@@ -134,14 +134,6 @@ open class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.getBalanceHistory(bankName, accountLast4, startDate, endDate)
     }
 
-    fun getAccountCount(): Flow<Int> {
-        return accountBalanceDao.getAccountCount()
-    }
-
-    suspend fun deleteOldBalances(beforeDate: LocalDateTime): Int {
-        return accountBalanceDao.deleteOldBalances(beforeDate)
-    }
-
     suspend fun updateBalance(balance: AccountBalanceEntity) {
         accountBalanceDao.updateBalance(balance)
     }
@@ -266,10 +258,6 @@ open class AccountBalanceRepository @Inject constructor(
                 else -> accountBalanceDao.deleteAccount(bankName, accountLast4)
             }
         }
-
-    fun getBalancesFromDate(startDate: LocalDateTime): Flow<List<AccountBalanceEntity>> {
-        return accountBalanceDao.getBalancesFromDate(startDate)
-    }
 
     suspend fun deleteAccount(bankName: String, accountLast4: String): Int {
         return accountBalanceDao.deleteAccount(bankName, accountLast4)

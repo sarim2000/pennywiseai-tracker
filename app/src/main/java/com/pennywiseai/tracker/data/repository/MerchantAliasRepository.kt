@@ -34,10 +34,6 @@ class MerchantAliasRepository @Inject constructor(
         return merchantAliasDao.getAllAliases()
     }
 
-    suspend fun getAliasCount(): Int {
-        return merchantAliasDao.getAliasCount()
-    }
-
     /**
      * Returns all merchant→alias mappings as a plain Map for O(1) lookup.
      * Used by display-resolution code to pre-load the cache once instead of

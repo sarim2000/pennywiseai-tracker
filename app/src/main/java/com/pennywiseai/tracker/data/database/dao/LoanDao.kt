@@ -43,9 +43,6 @@ interface LoanDao {
     @Query("SELECT * FROM loans ORDER BY created_at DESC")
     fun getAllLoans(): Flow<List<LoanEntity>>
 
-    @Query("SELECT COUNT(*) FROM loans WHERE status = 'ACTIVE'")
-    fun getActiveLoanCount(): Flow<Int>
-
     // Suggestions for "mark as loan", so only people you still have an open loan
     // with. Settled ones piled up until the list was mostly names you were done
     // with (#753); a settled person can still be typed in by hand.

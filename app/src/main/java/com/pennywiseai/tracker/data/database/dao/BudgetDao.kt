@@ -19,20 +19,8 @@ interface BudgetDao {
     @Query("SELECT * FROM budget_categories ORDER BY budget_id")
     fun getAllBudgetCategories(): Flow<List<BudgetCategoryEntity>>
 
-    @Query("""
-        SELECT * FROM budgets
-        WHERE is_active = 1
-        AND :today >= start_date
-        AND :today <= end_date
-        ORDER BY created_at DESC
-    """)
-    fun getCurrentBudgets(today: LocalDate): Flow<List<BudgetEntity>>
-
     @Query("SELECT * FROM budgets WHERE id = :budgetId")
     suspend fun getBudgetById(budgetId: Long): BudgetEntity?
-
-    @Query("SELECT * FROM budgets WHERE id = :budgetId")
-    fun getBudgetByIdFlow(budgetId: Long): Flow<BudgetEntity?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBudget(budget: BudgetEntity): Long
@@ -52,9 +40,6 @@ interface BudgetDao {
         updateBudgetCategories(categories)
     }
 
-    @Query("UPDATE budgets SET is_active = 0, updated_at = datetime('now') WHERE id = :budgetId")
-    suspend fun deactivateBudget(budgetId: Long)
-
     @Delete
     suspend fun deleteBudget(budget: BudgetEntity)
 
@@ -67,9 +52,6 @@ interface BudgetDao {
 
     @Query("SELECT * FROM budget_categories WHERE budget_id = :budgetId")
     suspend fun getCategoriesForBudgetList(budgetId: Long): List<BudgetCategoryEntity>
-
-    @Query("SELECT category_name FROM budget_categories WHERE budget_id = :budgetId")
-    suspend fun getCategoryNamesForBudget(budgetId: Long): List<String>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBudgetCategory(category: BudgetCategoryEntity): Long

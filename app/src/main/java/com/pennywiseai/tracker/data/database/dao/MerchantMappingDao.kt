@@ -30,9 +30,6 @@ interface MerchantMappingDao {
     @Query("SELECT * FROM merchant_mappings ORDER BY merchant_name ASC")
     fun getAllMappings(): Flow<List<MerchantMappingEntity>>
     
-    @Query("SELECT COUNT(*) FROM merchant_mappings")
-    suspend fun getMappingCount(): Int
-    
     @Query("DELETE FROM merchant_mappings")
     suspend fun deleteAllMappings()
 

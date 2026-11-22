@@ -10,9 +10,6 @@ interface ChatDao {
     @Query("SELECT * FROM chat_messages WHERE isSystemPrompt = 0 ORDER BY timestamp ASC")
     fun getAllMessages(): Flow<List<ChatMessage>>
     
-    @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
-    fun getAllMessagesIncludingSystem(): Flow<List<ChatMessage>>
-    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: ChatMessage)
     
@@ -24,9 +21,6 @@ interface ChatDao {
     
     @Query("DELETE FROM chat_messages WHERE timestamp < :before")
     suspend fun deleteMessagesBefore(before: Long)
-    
-    @Query("SELECT COUNT(*) FROM chat_messages")
-    suspend fun getMessageCount(): Int
     
     @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
     suspend fun getAllMessagesForContext(): List<ChatMessage>

@@ -78,24 +78,12 @@ class CardRepository @Inject constructor(
         return newCard.copy(id = id)
     }
     
-    suspend fun getCardsForAccount(accountLast4: String): List<CardEntity> {
-        return cardDao.getCardsForAccount(accountLast4)
-    }
-    
-    fun getCardsForAccountFlow(accountLast4: String): Flow<List<CardEntity>> {
-        return cardDao.getCardsForAccountFlow(accountLast4)
-    }
-    
     suspend fun getOrphanedDebitCards(): List<CardEntity> {
         return cardDao.getOrphanedCards(CardType.DEBIT)
     }
     
     suspend fun getOrphanedCreditCards(): List<CardEntity> {
         return cardDao.getOrphanedCards(CardType.CREDIT)
-    }
-    
-    fun getAllActiveCards(): Flow<List<CardEntity>> {
-        return cardDao.getAllActiveCards()
     }
     
     fun getAllCards(): Flow<List<CardEntity>> {
@@ -112,18 +100,6 @@ class CardRepository @Inject constructor(
     
     suspend fun setCardActive(cardId: Long, isActive: Boolean) {
         cardDao.setCardActive(cardId, isActive)
-    }
-    
-    suspend fun getCardCount(): Int {
-        return cardDao.getCardCount()
-    }
-    
-    suspend fun getCardCountByType(cardType: CardType): Int {
-        return cardDao.getCardCountByType(cardType)
-    }
-    
-    suspend fun getBankCards(bankName: String, cardType: CardType): List<CardEntity> {
-        return cardDao.getBankCards(bankName, cardType)
     }
     
     /**

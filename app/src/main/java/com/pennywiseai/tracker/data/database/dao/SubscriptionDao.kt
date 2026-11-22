@@ -19,9 +19,6 @@ interface SubscriptionDao {
     @Query("SELECT * FROM subscriptions WHERE state = 'ACTIVE' ORDER BY next_payment_date ASC")
     fun getActiveSubscriptions(): Flow<List<SubscriptionEntity>>
 
-    @Query("SELECT * FROM subscriptions WHERE next_payment_date <= :date AND state = 'ACTIVE' ORDER BY next_payment_date ASC")
-    fun getUpcomingSubscriptions(date: LocalDate): Flow<List<SubscriptionEntity>>
-
     /**
      * Active INCOME-direction subscriptions whose next_payment_date is today
      * or earlier — the phantom auto-creator (#371) materialises one

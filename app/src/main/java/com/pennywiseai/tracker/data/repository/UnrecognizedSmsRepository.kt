@@ -23,11 +23,6 @@ class UnrecognizedSmsRepository @Inject constructor(
     fun getUnreportedCount(): Flow<Int> = dao.getUnreportedCount()
 
     /**
-     * Get all unreported messages
-     */
-    fun getAllUnreported(): Flow<List<UnrecognizedSmsEntity>> = dao.getAllUnreported()
-
-    /**
      * Get all visible messages (including reported, excluding deleted)
      */
     fun getAllVisible(): Flow<List<UnrecognizedSmsEntity>> = dao.getAllVisible()

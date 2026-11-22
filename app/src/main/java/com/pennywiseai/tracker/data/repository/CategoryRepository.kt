@@ -30,10 +30,6 @@ class CategoryRepository @Inject constructor(
     fun getExpenseCategories(): Flow<List<CategoryEntity>> {
         return categoryDao.getExpenseCategories().map { it.hierarchical() }
     }
-    
-    fun getIncomeCategories(): Flow<List<CategoryEntity>> {
-        return categoryDao.getIncomeCategories().map { it.hierarchical() }
-    }
 
     // Visible-only variants for pickers — hidden categories are excluded (#736).
     fun getVisibleCategories(): Flow<List<CategoryEntity>> {
@@ -46,10 +42,6 @@ class CategoryRepository @Inject constructor(
 
     fun getVisibleIncomeCategories(): Flow<List<CategoryEntity>> {
         return categoryDao.getVisibleIncomeCategories().map { it.hierarchical() }
-    }
-
-    suspend fun setCategoryHidden(categoryId: Long, hidden: Boolean) {
-        categoryDao.setCategoryHidden(categoryId, hidden)
     }
 
     /**

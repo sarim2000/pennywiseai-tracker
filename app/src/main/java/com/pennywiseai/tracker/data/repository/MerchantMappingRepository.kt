@@ -36,10 +36,6 @@ class MerchantMappingRepository @Inject constructor(
     fun getAllMappings(): Flow<List<MerchantMappingEntity>> {
         return merchantMappingDao.getAllMappings()
     }
-    
-    suspend fun getMappingCount(): Int {
-        return merchantMappingDao.getMappingCount()
-    }
 
     /**
      * Returns all merchant→category mappings for in-memory lookup. Used by the SMS

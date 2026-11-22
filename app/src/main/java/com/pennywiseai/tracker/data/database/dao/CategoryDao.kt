@@ -13,9 +13,6 @@ interface CategoryDao {
     
     @Query("SELECT * FROM categories WHERE is_income = 0 ORDER BY display_order ASC, name ASC")
     fun getExpenseCategories(): Flow<List<CategoryEntity>>
-    
-    @Query("SELECT * FROM categories WHERE is_income = 1 ORDER BY display_order ASC, name ASC")
-    fun getIncomeCategories(): Flow<List<CategoryEntity>>
 
     // Visible-only variants for the category PICKERS — hidden categories are kept
     // in the DB (so existing transactions keep their category and still show in

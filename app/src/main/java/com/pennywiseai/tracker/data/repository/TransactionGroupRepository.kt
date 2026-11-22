@@ -117,8 +117,6 @@ class TransactionGroupRepository @Inject constructor(
             groups.map { group -> group to byGroup[group.id].orEmpty().sortedByDescending { it.dateTime } }
         }
 
-    fun getTransactionCount(groupId: Long): Flow<Int> = groupDao.getTransactionCount(groupId)
-
     fun getRecentUngroupedTransactions(): Flow<List<TransactionEntity>> =
         groupDao.getRecentUngroupedTransactions()
 

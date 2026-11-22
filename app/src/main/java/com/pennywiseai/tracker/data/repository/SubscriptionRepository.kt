@@ -40,11 +40,6 @@ class SubscriptionRepository @Inject constructor(
     fun getEndedSubscriptions(): Flow<List<SubscriptionEntity>> =
         subscriptionDao.getSubscriptionsByState(SubscriptionState.ENDED)
 
-    fun getUpcomingSubscriptions(daysAhead: Int = 7): Flow<List<SubscriptionEntity>> {
-        val futureDate = LocalDate.now().plusDays(daysAhead.toLong())
-        return subscriptionDao.getUpcomingSubscriptions(futureDate)
-    }
-
     suspend fun getSubscriptionById(id: Long): SubscriptionEntity? =
         subscriptionDao.getSubscriptionById(id)
 

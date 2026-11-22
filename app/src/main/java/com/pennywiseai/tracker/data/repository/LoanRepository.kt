@@ -43,8 +43,6 @@ class LoanRepository @Inject constructor(
 
     fun getAllLoans(): Flow<List<LoanEntity>> = loanDao.getAllLoans()
 
-    fun getActiveLoanCount(): Flow<Int> = loanDao.getActiveLoanCount()
-
     /**
      * Expenses lent on ACTIVE loans in the window. A split bill (#346) appears
      * once per share, with [TransactionEntity.loanContribution] set to that

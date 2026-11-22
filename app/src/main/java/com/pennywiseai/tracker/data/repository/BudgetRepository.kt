@@ -35,20 +35,11 @@ class BudgetRepository @Inject constructor(
     fun getAllBudgets(): Flow<List<BudgetEntity>> =
         budgetDao.getAllBudgets()
 
-    fun getCurrentBudgets(): Flow<List<BudgetEntity>> =
-        budgetDao.getCurrentBudgets(LocalDate.now())
-
     suspend fun getBudgetById(id: Long): BudgetEntity? =
         budgetDao.getBudgetById(id)
 
-    fun getBudgetByIdFlow(id: Long): Flow<BudgetEntity?> =
-        budgetDao.getBudgetByIdFlow(id)
-
     fun getCategoriesForBudget(budgetId: Long): Flow<List<BudgetCategoryEntity>> =
         budgetDao.getCategoriesForBudget(budgetId)
-
-    suspend fun getCategoryNamesForBudget(budgetId: Long): List<String> =
-        budgetDao.getCategoryNamesForBudget(budgetId)
 
     suspend fun createBudget(
         name: String,
@@ -131,10 +122,6 @@ class BudgetRepository @Inject constructor(
 
     suspend fun deleteBudget(budgetId: Long) {
         budgetDao.deleteBudgetById(budgetId)
-    }
-
-    suspend fun deactivateBudget(budgetId: Long) {
-        budgetDao.deactivateBudget(budgetId)
     }
 
     /**

@@ -415,15 +415,20 @@ private fun rememberTonalBarColors(cards: List<Color>): Pair<Color, Color> {
     val scheme = MaterialTheme.colorScheme
     val primary = scheme.primary
     val container = scheme.primaryContainer
-    return remember(primary, container, cards) {
-        val latest = primary.readableOn(cards, GRAPHIC_CONTRAST)
-        val older = container.readableOn(cards, GRAPHIC_CONTRAST)
-        if (contrastRatio(older, latest) >= DISTINCT_BARS) return@remember older to latest
-        val paler = latest.palestMark(cards.first(), cards)
-        // The palest mark stops at 3:1 on the hardest surface, which can leave it a hair under
-        // the gap; the latest bar then moves further from it (and from the cards with it).
-        paler to latest.readableOn(listOf(paler), DISTINCT_BARS)
-    }
+    return remember(primary, container, cards) { tonalBarColors(primary, container, cards) }
+}
+
+/** [rememberTonalBarColors]' rule: older bars first, then the latest. */
+internal fun tonalBarColors(primary: Color, container: Color, cards: List<Color>): Pair<Color, Color> {
+    val latest = primary.readableOn(cards, GRAPHIC_CONTRAST)
+    val older = container.readableOn(cards, GRAPHIC_CONTRAST)
+    if (contrastRatio(older, latest) >= DISTINCT_BARS) return older to latest
+    val paler = latest.palestMark(cards.first(), cards)
+    // The palest mark stops at 3:1 on the hardest surface, which can leave it a hair under
+    // the gap; the latest bar then moves further from it. The cards are in the list so it
+    // moves away from them too: against the paler bar alone it went dark on Rosé Pine
+    // dark's card (under 3:1).
+    return paler to latest.readableOn(listOf(paler) + cards, DISTINCT_BARS)
 }
 
 internal enum class BarGranularity { DAY, MONTH, YEAR }

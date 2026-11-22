@@ -446,6 +446,13 @@ it by `Dimensions.Component.bottomBarHeight`.
   App Lock, an editor sub-page) registers after the hosts, so it gets the
   gesture first; a plain `BackHandler` shows no preview, which is right for
   "undo a mode" backs.
+- **A new look spreads as a circle.** Changing the theme, palette, accent,
+  AMOLED or font in Appearance doesn't snap every colour at once: `ThemeReveal`
+  (around `PennyWiseTheme` in `PennyWiseApp`) takes a still of the old frame and
+  the new look grows over it as a circle from the control just tapped, on
+  `slowSpatialSpec()` (an overshoot past the far corner can't be seen). It clips;
+  nothing scales. Dialogs and sheets are other windows and just swap; with
+  "Remove animations" the whole theme just swaps.
 - **Lazy list rows animate.** Keyed `items(…, key = …)` rows pass
   `Modifier.animateItem()` on the item's root composable, so rows slide on
   insert, remove and filter instead of jumping. It needs a stable, unique

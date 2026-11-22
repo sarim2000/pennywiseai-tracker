@@ -35,17 +35,23 @@ class BillMomentsTest {
     fun `a bill paid carries the payment's own amount and currency`() {
         assertEquals(
             MascotMoment.BillPaid(Money(BigDecimal("12.99"), "EUR")),
-            billPaidMoment(payment(TransactionType.EXPENSE)),
+            billPaidMoment(SubscriptionDirection.EXPENSE, payment(TransactionType.EXPENSE)),
         )
         assertEquals(
             MascotMoment.BillPaid(Money(BigDecimal("4500"), "JPY")),
-            billPaidMoment(payment(TransactionType.EXPENSE, amount = "4500", currency = "JPY")),
+            billPaidMoment(SubscriptionDirection.EXPENSE, payment(TransactionType.EXPENSE, amount = "4500", currency = "JPY")),
         )
     }
 
     @Test
+    fun `an expense linked to an income subscription is no bill paid`() {
+        assertNull(billPaidMoment(SubscriptionDirection.INCOME, payment(TransactionType.EXPENSE)))
+        assertNull(billPaidMoment(null, payment(TransactionType.EXPENSE)))
+    }
+
+    @Test
     fun `income marked received, or no payment at all, says nothing`() {
-        assertNull(billPaidMoment(payment(TransactionType.INCOME)))
-        assertNull(billPaidMoment(null))
+        assertNull(billPaidMoment(SubscriptionDirection.EXPENSE, payment(TransactionType.INCOME)))
+        assertNull(billPaidMoment(SubscriptionDirection.EXPENSE, null))
     }
 }

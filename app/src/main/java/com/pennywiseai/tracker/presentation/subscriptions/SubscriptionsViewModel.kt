@@ -312,18 +312,21 @@ class SubscriptionsViewModel @Inject constructor(
                 markPaidMessage = (if (paid) finishedPlan(subscriptionId) else null) ?: message,
                 settledSubscriptionId = subscriptionId.takeIf { paid } ?: _uiState.value.settledSubscriptionId,
             )
-            announceBillPaid(result)
+            announceBillPaid(subscriptionId, result)
         }
     }
 
     /** Tells the Chat tab about a payment the user just recorded or linked, at its own amount. */
-    private suspend fun announceBillPaid(result: MarkSubscriptionPaidUseCase.Result) {
+    private suspend fun announceBillPaid(subscriptionId: Long, result: MarkSubscriptionPaidUseCase.Result) {
         val paymentId = when (result) {
             is MarkSubscriptionPaidUseCase.Result.Created -> result.transactionId
             is MarkSubscriptionPaidUseCase.Result.Linked -> result.transactionId
             else -> return
         }
-        billPaidMoment(transactionRepository.getTransactionById(paymentId))?.let(mascotMoments::announce)
+        // The sheet offers expense rows to link even for an income subscription, so the
+        // payment's own type isn't enough: the subscription must be a bill.
+        val direction = subscriptionRepository.getSubscriptionById(subscriptionId)?.direction
+        billPaidMoment(direction, transactionRepository.getTransactionById(paymentId))?.let(mascotMoments::announce)
     }
 
     /** "All 12 payments made" when that payment was a plan's last (#1061): its row has moved to Cancelled. */
@@ -391,7 +394,7 @@ class SubscriptionsViewModel @Inject constructor(
                 settledSubscriptionId = subscriptionId.takeIf { linked }
                     ?: _uiState.value.settledSubscriptionId,
             )
-            announceBillPaid(result)
+            announceBillPaid(subscriptionId, result)
         }
     }
 }
@@ -405,10 +408,11 @@ internal fun billTrackedMoment(direction: SubscriptionDirection?): MascotMoment.
 
 /**
  * The Chat tab's moment for a bill the user marked paid, carrying the [payment] recorded or
- * linked for it, in its own currency. Null when there's no payment, or it's money coming in.
+ * linked for it, in its own currency. Null when there's no payment, it's money coming in, or
+ * the subscription ([direction]) isn't a bill: an expense linked to an income one isn't.
  */
-internal fun billPaidMoment(payment: TransactionEntity?): MascotMoment.BillPaid? =
-    payment?.takeIf { it.transactionType == TransactionType.EXPENSE }
+internal fun billPaidMoment(direction: SubscriptionDirection?, payment: TransactionEntity?): MascotMoment.BillPaid? =
+    payment?.takeIf { direction == SubscriptionDirection.EXPENSE && it.transactionType == TransactionType.EXPENSE }
         ?.let { MascotMoment.BillPaid(Money(it.amount, it.currency)) }
 
 data class SubscriptionsUiState(

@@ -52,11 +52,13 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.spending
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
 import java.time.LocalDate
 
-private const val MASK = "••••••"
+// The formatter's own mask, so the card never shows two kinds while hiding (see BalanceCard).
+private const val MASK = AmountPrivacy.MASK
 
 private fun SafeToSpend.formatAmount() = CurrencyFormatter.formatCurrency(amount, currency)
 
@@ -105,7 +107,9 @@ fun SafeToSpendLine(
                 )
                 Text(
                     text = when {
-                        isBalanceHidden -> MASK
+                        // The app-wide switch can land a frame first: mask the whole line
+                        // then too, not each amount inside it.
+                        isBalanceHidden || AmountPrivacy.hidden -> MASK
                         perDay != null && repeatsHero -> stringResource(
                             R.string.safe_to_spend_per_day_headline,
                             CurrencyFormatter.formatCurrency(perDay, primary.currency)

@@ -76,6 +76,7 @@ import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.ui.theme.stateLayer
 import com.pennywiseai.tracker.ui.theme.tabular
 import com.pennywiseai.tracker.ui.theme.warning
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -785,7 +786,9 @@ private fun SummaryItem(
     }
 }
 
-private const val MASK = "••••••"
+// The formatter's own mask: the app-wide switch can land a frame before Home's
+// isBalanceHidden, and a second, longer mask would flash in between.
+private const val MASK = AmountPrivacy.MASK
 
 /** The meter turns warning here, and error at [DANGER_AT] (fractions of the limit used). */
 private const val WARNING_AT = 0.7f

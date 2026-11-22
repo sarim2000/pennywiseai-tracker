@@ -102,6 +102,7 @@ fun MascotPlaygroundScreen(
     if (slider != null) lastSlider[0] = slider
 
     PennyWiseScaffold(
+        revealAmountsAction = false, // shows no amounts
         title = stringResource(R.string.mascot_playground_title),
         navigationIcon = {
             IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {

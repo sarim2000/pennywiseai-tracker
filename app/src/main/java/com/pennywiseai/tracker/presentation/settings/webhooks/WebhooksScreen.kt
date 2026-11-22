@@ -51,7 +51,7 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
         state.historyId != null -> stringResource(R.string.webhooks_title_history)
         else -> stringResource(R.string.webhooks_title)
     }
-    PennyWiseScaffold(title = title, navigationIcon = {
+    PennyWiseScaffold(title = title, revealAmountsAction = false, navigationIcon = {
         IconButton(onClick = back, shapes = IconButtonDefaults.shapes()) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.webhooks_back)) }
     }) { padding ->
         LazyColumn(

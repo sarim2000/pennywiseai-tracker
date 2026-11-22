@@ -258,37 +258,6 @@ fun categoryLabel(name: String): String =
 object IconProvider {
 
     /**
-     * Get icon for a merchant with fallback logic
-     * 1. Try to get brand-specific icon
-     * 2. If not found, use category icon
-     * 3. If category not found, use default icon
-     */
-    fun getIconForMerchant(merchantName: String): IconResource {
-        BrandIcons.getIconResource(merchantName)?.let { iconRes ->
-            return IconResource.DrawableResource(iconRes)
-        }
-
-        val category = CategoryMapping.getCategory(merchantName)
-        CategoryMapping.emojiFor(category)?.let { return IconResource.Emoji(it, CategoryMapping.colorFor(category)) }
-        val categoryInfo = CategoryMapping.categories[category]
-            ?: CategoryMapping.categories["Others"]!!
-
-        return IconResource.VectorIcon(
-            icon = categoryInfo.icon,
-            tint = categoryInfo.color
-        )
-    }
-
-    /**
-     * Get category info including icon and color
-     */
-    fun getCategoryInfo(merchantName: String): CategoryMapping.CategoryInfo {
-        val category = CategoryMapping.getCategory(merchantName)
-        return CategoryMapping.categories[category]
-            ?: CategoryMapping.categories["Others"]!!
-    }
-
-    /**
      * Get icon for a transaction, using an explicitly set category when available.
      * 1. Try brand-specific icon
      * 2. If not found, use provided category (if valid)

@@ -31,34 +31,21 @@ abstract class UAEBankParser : BankParser() {
     }
 
     override fun extractCurrency(message: String): String? {
-        // Explicit patterns with [A-Z]{3} inlined to avoid compilation issues
-        val currencyPatterns = listOf(
-            Regex("""Amount\s+([A-Z]{3})""", RegexOption.IGNORE_CASE),
-            Regex("""\b([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
-            Regex("""for\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
-            Regex("""of\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
-            Regex("""[A-Z]{3}\s+([A-Z]{3})""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in currencyPatterns) {
+        for (pattern in CURRENCY_PATTERNS) {
             val found = pattern.find(message)
             if (found != null) {
-                // Check all groups starting from 1
-                for (i in 1 until found.groups.size) {
-                    val groupVal = found.groupValues[i]
-                    val upperVal = groupVal.uppercase()
-                    if (upperVal.length == 3 &&
-                        upperVal.all { it.isLetter() } &&
-                        !isMonthAbbreviation(upperVal)) {
-                        return upperVal
-                    }
+                // Every pattern has exactly one group: the currency code
+                val upperVal = found.groupValues[1].uppercase()
+                if (upperVal.length == 3 &&
+                    upperVal.all { it.isLetter() } &&
+                    !isMonthAbbreviation(upperVal)) {
+                    return upperVal
                 }
             }
         }
 
         // Final fallback
-        val simplePattern = Regex("""\b([A-Z]{3})\s+\d""", RegexOption.IGNORE_CASE)
-        simplePattern.find(message)?.let {
+        CURRENCY_FALLBACK.find(message)?.let {
             val code = it.groupValues[1].uppercase()
             if (!isMonthAbbreviation(code)) return code
         }
@@ -71,13 +58,7 @@ abstract class UAEBankParser : BankParser() {
     override fun extractAmount(message: String): BigDecimal? {
         // Generic multi-currency amount extraction for UAE banks
         // Patterns: "AED 100.00", "USD 50.50", "Purchase of EUR 20.00", etc.
-        val patterns = listOf(
-            Regex("""(?:purchase of|transfer of|amount|for|of)\s+(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+\*+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE) // Masked amount *123.45
-        )
-
-        for (pattern in patterns) {
+        for (pattern in AMOUNT_PATTERNS) {
             pattern.find(message)?.let { match ->
                 val currencyCode = match.groupValues[1].uppercase()
                 // Skip if currency code looks like a month
@@ -104,10 +85,7 @@ abstract class UAEBankParser : BankParser() {
         return super.extractAmount(message)
     }
 
-    private fun isMonthAbbreviation(code: String): Boolean {
-        val months = setOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
-        return months.contains(code)
-    }
+    private fun isMonthAbbreviation(code: String): Boolean = code in MONTH_ABBREVIATIONS
 
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
@@ -149,5 +127,23 @@ abstract class UAEBankParser : BankParser() {
 
             else -> super.extractTransactionType(message)
         }
+    }
+
+    private companion object {
+        // Explicit patterns with [A-Z]{3} inlined to avoid compilation issues
+        val CURRENCY_PATTERNS = listOf(
+            Regex("""Amount\s+([A-Z]{3})""", RegexOption.IGNORE_CASE),
+            Regex("""\b([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
+            Regex("""for\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
+            Regex("""of\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
+            Regex("""[A-Z]{3}\s+([A-Z]{3})""", RegexOption.IGNORE_CASE)
+        )
+        val CURRENCY_FALLBACK = Regex("""\b([A-Z]{3})\s+\d""", RegexOption.IGNORE_CASE)
+        val AMOUNT_PATTERNS = listOf(
+            Regex("""(?:purchase of|transfer of|amount|for|of)\s+(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+\*+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE) // Masked amount *123.45
+        )
+        val MONTH_ABBREVIATIONS = setOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
     }
 }

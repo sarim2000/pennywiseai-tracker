@@ -12,14 +12,7 @@ abstract class BaseIranianBankParser : BankParser() {
     override fun getCurrency(): String = "IRR"
 
     override fun extractAmount(message: String): BigDecimal? {
-        // Pattern 1: "مبلغ 1,500,000 ریال" or "مبلغ 1,500,000 تومان"
-        val patterns = listOf(
-            Regex("""مبلغ\s*(\d{1,3}(?:,\d{3})*|\d+)\s*(?:ریال|تومان)"""),
-            // Pattern 2: amount followed directly by keyword
-            Regex("""(\d{1,3}(?:,\d{3})*|\d+)\s*(?:ریال|تومان)""")
-        )
-
-        for (pattern in patterns) {
+        for (pattern in AMOUNT_PATTERNS) {
             pattern.find(message)?.let { match ->
                 val cleanAmount = match.groupValues[1].replace(",", "")
                 return try {
@@ -60,8 +53,7 @@ abstract class BaseIranianBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        val cardPattern = Regex("""(\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4})""")
-        cardPattern.find(message)?.let { match ->
+        CARD_NUMBER.find(message)?.let { match ->
             return "Card ${match.groupValues[1]}"
         }
 
@@ -74,8 +66,7 @@ abstract class BaseIranianBankParser : BankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         super.extractAccountLast4(message)?.let { return it }
-        val cardPattern = Regex("""\d{4}[-\s]?(\d{4})""")
-        cardPattern.find(message)?.let { match ->
+        CARD_LAST4.find(message)?.let { match ->
             return match.groupValues[1]
         }
 
@@ -83,8 +74,7 @@ abstract class BaseIranianBankParser : BankParser() {
     }
 
     override fun extractBalance(message: String): BigDecimal? {
-        val balancePattern = Regex("""مانده\s*:?\s*(\d{1,3}(?:,\d{3})*)""")
-        balancePattern.find(message)?.let { match ->
+        BALANCE.find(message)?.let { match ->
             val balanceStr = match.groupValues[1].replace(",", "")
             return try {
                 BigDecimal(balanceStr)
@@ -151,5 +141,17 @@ abstract class BaseIranianBankParser : BankParser() {
             name.any { it.isLetter() } &&
             name.uppercase() !in commonWords &&
             !name.contains("@")
+    }
+
+    private companion object {
+        val AMOUNT_PATTERNS = listOf(
+            // "مبلغ 1,500,000 ریال" or "مبلغ 1,500,000 تومان"
+            Regex("""مبلغ\s*(\d{1,3}(?:,\d{3})*|\d+)\s*(?:ریال|تومان)"""),
+            // Amount followed directly by keyword
+            Regex("""(\d{1,3}(?:,\d{3})*|\d+)\s*(?:ریال|تومان)""")
+        )
+        val CARD_NUMBER = Regex("""(\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4})""")
+        val CARD_LAST4 = Regex("""\d{4}[-\s]?(\d{4})""")
+        val BALANCE = Regex("""مانده\s*:?\s*(\d{1,3}(?:,\d{3})*)""")
     }
 }

@@ -12,15 +12,7 @@ abstract class BaseThailandBankParser : BankParser() {
     override fun getCurrency(): String = "THB"
 
     override fun extractAmount(message: String): BigDecimal? {
-        // Pattern 1: "1,250.00 THB" or "1,250.00 บาท"
-        val patterns = listOf(
-            Regex("""(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:THB|บาท)"""),
-            Regex("""(?:THB|฿)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)"""),
-            // Pattern 3: "1,250.00 USD" for international transactions
-            Regex("""(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*USD""")
-        )
-
-        for (pattern in patterns) {
+        for (pattern in AMOUNT_PATTERNS) {
             pattern.find(message)?.let { match ->
                 val cleanAmount = match.groupValues[1].replace(",", "")
                 return try {
@@ -83,13 +75,7 @@ abstract class BaseThailandBankParser : BankParser() {
     }
 
     override fun extractBalance(message: String): BigDecimal? {
-        // Thai: "คงเหลือ 15,820.45 บาท" or English: "Bal 15,820.45 THB"
-        val patterns = listOf(
-            Regex("""(?:Bal|คงเหลือ)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:THB|บาท)""", RegexOption.IGNORE_CASE),
-            Regex("""(?:Bal|คงเหลือ)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in patterns) {
+        for (pattern in BALANCE_PATTERNS) {
             pattern.find(message)?.let { match ->
                 val cleanAmount = match.groupValues[1].replace(",", "")
                 return try {
@@ -105,22 +91,14 @@ abstract class BaseThailandBankParser : BankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         super.extractAccountLast4(message)?.let { return it }
-        // Pattern: "A/C xNNNN" or "บช xNNNN"
-        val pattern = Regex("""(?:A/C|บช)\s*x(\d{4})""", RegexOption.IGNORE_CASE)
-        pattern.find(message)?.let { match ->
+        ACCOUNT_PATTERN.find(message)?.let { match ->
             return match.groupValues[1]
         }
         return null
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        // Thai: "ร้าน MERCHANT" or English: "at MERCHANT"
-        val patterns = listOf(
-            Regex("""(?:at|ร้าน)\s+([A-Za-z0-9\s&._-]+?)(?:\s+(?:A/C|บช|Bal|คงเหลือ|Available|on|$))""", RegexOption.IGNORE_CASE),
-            Regex("""(?:at|ร้าน)\s+([A-Za-z0-9\s&._-]+)$""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in patterns) {
+        for (pattern in MERCHANT_PATTERNS) {
             pattern.find(message)?.let { match ->
                 val merchant = cleanMerchantName(match.groupValues[1].trim())
                 if (isValidMerchantName(merchant)) {
@@ -133,8 +111,7 @@ abstract class BaseThailandBankParser : BankParser() {
     }
 
     override fun extractAvailableLimit(message: String): BigDecimal? {
-        val pattern = Regex("""(?:Available limit|วงเงินคงเหลือ)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:THB|บาท)""", RegexOption.IGNORE_CASE)
-        pattern.find(message)?.let { match ->
+        AVAILABLE_LIMIT.find(message)?.let { match ->
             val cleanAmount = match.groupValues[1].replace(",", "")
             return try {
                 cleanAmount.toBigDecimal()
@@ -192,5 +169,32 @@ abstract class BaseThailandBankParser : BankParser() {
             name.any { it.isLetter() } &&
             name.uppercase() !in commonWords &&
             !name.contains("@")
+    }
+
+    private companion object {
+        val AMOUNT_PATTERNS = listOf(
+            // "1,250.00 THB" or "1,250.00 บาท"
+            Regex("""(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:THB|บาท)"""),
+            Regex("""(?:THB|฿)\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)"""),
+            // "1,250.00 USD" for international transactions
+            Regex("""(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*USD""")
+        )
+
+        // Thai: "คงเหลือ 15,820.45 บาท" or English: "Bal 15,820.45 THB"
+        val BALANCE_PATTERNS = listOf(
+            Regex("""(?:Bal|คงเหลือ)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:THB|บาท)""", RegexOption.IGNORE_CASE),
+            Regex("""(?:Bal|คงเหลือ)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
+        )
+
+        // "A/C xNNNN" or "บช xNNNN"
+        val ACCOUNT_PATTERN = Regex("""(?:A/C|บช)\s*x(\d{4})""", RegexOption.IGNORE_CASE)
+
+        // Thai: "ร้าน MERCHANT" or English: "at MERCHANT"
+        val MERCHANT_PATTERNS = listOf(
+            Regex("""(?:at|ร้าน)\s+([A-Za-z0-9\s&._-]+?)(?:\s+(?:A/C|บช|Bal|คงเหลือ|Available|on|$))""", RegexOption.IGNORE_CASE),
+            Regex("""(?:at|ร้าน)\s+([A-Za-z0-9\s&._-]+)$""", RegexOption.IGNORE_CASE)
+        )
+
+        val AVAILABLE_LIMIT = Regex("""(?:Available limit|วงเงินคงเหลือ)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:THB|บาท)""", RegexOption.IGNORE_CASE)
     }
 }

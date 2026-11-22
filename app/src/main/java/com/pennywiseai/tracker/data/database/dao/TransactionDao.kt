@@ -165,18 +165,6 @@ interface TransactionDao {
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 ORDER BY merchant_name ASC")
     fun getAllMerchants(): Flow<List<String>>
 
-    @Query("""
-        SELECT SUM(amount) FROM transactions 
-        WHERE is_deleted = 0 
-        AND transaction_type = :type 
-        AND date_time BETWEEN :startDate AND :endDate
-    """)
-    suspend fun getTotalAmountByTypeAndPeriod(
-        type: TransactionType,
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): Double?
-
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTransaction(transaction: TransactionEntity): Long
 

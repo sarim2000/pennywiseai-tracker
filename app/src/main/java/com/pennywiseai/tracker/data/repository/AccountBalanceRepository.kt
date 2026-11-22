@@ -125,10 +125,6 @@ open class AccountBalanceRepository @Inject constructor(
     fun getUnanchoredAccounts(): Flow<Set<Pair<String, String>>> =
         accountBalanceDao.getBalanceSourceRows().map(BalanceCalculator::unanchoredAccounts)
 
-    fun getTotalBalance(): Flow<BigDecimal?> {
-        return accountBalanceDao.getTotalBalance()
-    }
-
     fun getBalanceHistory(
         bankName: String,
         accountLast4: String,

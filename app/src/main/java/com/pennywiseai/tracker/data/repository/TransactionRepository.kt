@@ -120,12 +120,6 @@ open class TransactionRepository @Inject constructor(
     fun getAllMerchants(): Flow<List<String>> =
         transactionDao.getAllMerchants()
 
-    suspend fun getTotalAmountByTypeAndPeriod(
-        type: TransactionType,
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): Double? = transactionDao.getTotalAmountByTypeAndPeriod(type, startDate, endDate)
-
     suspend fun insertTransaction(transaction: TransactionEntity): Long =
         transactionDao.insertTransaction(withCurrentCategoryNames(listOf(transaction)).single())
 

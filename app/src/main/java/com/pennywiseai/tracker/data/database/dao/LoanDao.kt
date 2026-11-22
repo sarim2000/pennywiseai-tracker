@@ -70,12 +70,6 @@ interface LoanDao {
     @Query("SELECT * FROM transactions WHERE loan_id = :loanId AND is_deleted = 0")
     suspend fun getLinkedTransactions(loanId: Long): List<TransactionEntity>
 
-    @Query("SELECT COALESCE(SUM(remaining_amount), 0) FROM loans WHERE direction = 'LENT' AND status = 'ACTIVE'")
-    fun getTotalLentRemaining(): Flow<BigDecimal>
-
-    @Query("SELECT COALESCE(SUM(remaining_amount), 0) FROM loans WHERE direction = 'BORROWED' AND status = 'ACTIVE'")
-    fun getTotalBorrowedRemaining(): Flow<BigDecimal>
-
     /**
      * Source EXPENSE transactions of currently-ACTIVE LENT loans whose date_time falls in the
      * given window. Drives "Lent this month" on the home screen — settled loans are excluded

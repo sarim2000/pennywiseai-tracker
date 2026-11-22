@@ -10,7 +10,6 @@ import com.pennywiseai.parser.core.GenericTransactionExtractor
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
-import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
@@ -85,10 +84,6 @@ class AddViewModel @Inject constructor(
         ?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
     private val unrecognizedSmsId: Long? = savedStateHandle.get<Long>("unrecognizedSmsId")
 
-    // General UI State
-    private val _uiState = MutableStateFlow(AddUiState())
-    val uiState: StateFlow<AddUiState> = _uiState.asStateFlow()
-
     // Transaction Tab State
     private val _transactionUiState = MutableStateFlow(TransactionUiState())
     val transactionUiState: StateFlow<TransactionUiState> = _transactionUiState.asStateFlow()
@@ -157,7 +152,6 @@ class AddViewModel @Inject constructor(
                 )
             }
             selectAccount(draftBankName, draftAccountLast4)
-            _transactionUiState.update { it.copy(draftLoaded = true) }
         }
     }
 
@@ -479,12 +473,6 @@ class AddViewModel @Inject constructor(
         }
     }
 
-    fun updateTransactionRecurring(isRecurring: Boolean) {
-        _transactionUiState.update { currentState ->
-            currentState.copy(isRecurring = isRecurring)
-        }
-    }
-
     fun updateTransactionCurrency(currency: String) {
         _transactionUiState.update { currentState ->
             // An account in another currency can't take this amount: drop it rather than mix.
@@ -722,10 +710,7 @@ class AddViewModel @Inject constructor(
 
     fun updateSubscriptionBillingCycle(cycle: String) {
         _subscriptionUiState.update { currentState ->
-            currentState.copy(
-                billingCycle = cycle,
-                billingCycleError = null
-            )
+            currentState.copy(billingCycle = cycle)
         }
     }
 
@@ -885,10 +870,6 @@ private fun SaveOutcome.message(failed: Int): UiText = when (this) {
 }
 
 // UI State Classes
-data class AddUiState(
-    val currentTab: Int = 0
-)
-
 data class TransactionUiState(
     val amount: String = "",
     val amountError: UiText? = null,
@@ -914,10 +895,7 @@ data class TransactionUiState(
     // A picked receipt is still being checked; Save waits for it.
     val checkingReceipt: Boolean = false,
     val budgetImpactType: BudgetImpactType? = null,
-    val budgetCategory: String? = null,
-    // False until a Duplicate/shared/voice draft has been copied in, so the
-    // calculator doesn't open on an amount that's about to be replaced.
-    val draftLoaded: Boolean = false
+    val budgetCategory: String? = null
 ) {
     // The currency the amount is saved in: a transfer moves the FROM account's money.
     val entryCurrency: String
@@ -952,7 +930,6 @@ data class SubscriptionUiState(
     val amount: String = "",
     val amountError: UiText? = null,
     val billingCycle: String = "Monthly",
-    val billingCycleError: UiText? = null,
     val nextPaymentDate: LocalDate = LocalDate.now().plusMonths(1),
     val category: String = "Subscriptions",
     val categoryError: UiText? = null,

@@ -87,17 +87,6 @@ val investment_dark = Color(0xFFA9B8C0)
 // Loan Colors (Amber / Warm)
 val loan_light = Color(0xFF935000)
 val loan_dark = Color(0xFFFFCA28)
-val loan_container_light = Color(0xFFFFF8E1) // Amber 50
-val loan_container_dark = Color(0xFF3E2723)  // Brown 900
-
-// Category Colors (matching the owl theme)
-val category_food = Color(0xFFFF7043)  // Coral
-val category_transport = Color(0xFF5C6BC0)  // Indigo
-val category_shopping = Color(0xFFAB47BC)  // Purple
-val category_bills = Color(0xFF42A5F5)  // Light Blue
-val category_entertainment = Color(0xFFEC407A)  // Pink
-val category_health = Color(0xFF26A69A)  // Teal
-val category_other = Color(0xFF78909C)  // Blue Grey
 
 // Budget Progress Colors
 // Green: under 50% spent (safe)
@@ -111,18 +100,6 @@ val budget_warning_dark = Color(0xFFFFCA28)   // Light amber - readable on dark
 // Red: over 80% spent (danger)
 val budget_danger_light = Color(0xFFC62828)   // Red 800 - good contrast on white
 val budget_danger_dark = Color(0xFFE57373)    // Red 300 - readable on dark
-
-// Budget Card Colors (for different budget cards)
-val budget_card_colors = listOf(
-    Color(0xFF1565C0),  // Blue (default)
-    Color(0xFF2E7D32),  // Green
-    Color(0xFFF57C00),  // Orange
-    Color(0xFF7B1FA2),  // Purple
-    Color(0xFFD32F2F),  // Red
-    Color(0xFF00838F),  // Cyan
-    Color(0xFFC2185B),  // Pink
-    Color(0xFF455A64)   // Blue Grey
-)
 
 // Rose Pine Dawn (Light) - accent palettes
 val Dawn_Rose = Color(0xFFD7827E)
@@ -223,26 +200,6 @@ val RosePine_Overlay_secondary = Color(0xFF6E6A86)
 val RosePine_Overlay_tertiary = Color(0xFF403D52)
 
 // Settings Icon Background Colors
-val amber_light = Color(0xFFFFF8E1)
-val amber_dark = Color(0xFFFF8F00)
-val orange_light = Color(0xFFFFF3E0)
-val orange_dark = Color(0xFFE65100)
-val green_light = Color(0xFFE8F5E9)
-val green_dark = Color(0xFF2E7D32)
-val teal_light = Color(0xFFE0F2F1)
-val teal_dark = Color(0xFF00695C)
-val blue_light = Color(0xFFE3F2FD)
-val blue_dark = Color(0xFF1565C0)
-val indigo_light = Color(0xFFE8EAF6)
-val indigo_dark = Color(0xFF283593)
-val red_light = Color(0xFFFFEBEE)
-val red_dark = Color(0xFFC62828)
-val pink_light = Color(0xFFFCE4EC)
-val pink_dark = Color(0xFFAD1457)
-val purple_light = Color(0xFFF3E5F5)
-val purple_dark = Color(0xFF6A1B9A)
-val cyan_light = Color(0xFFE0F7FA)
-val cyan_dark = Color(0xFF00838F)
 val yellow_light = Color(0xFFFFF8E1)
 val yellow_dark = Color(0xFFF57F17)
 /** Body text on a [yellow_light] surface — readable in both themes since the surface never darkens. */
@@ -253,8 +210,6 @@ val yellow_surface_dark = Color(0xFF2E2614)
 val yellow_on_dark = Color(0xFFFFE6A8)
 /** Accent (icon, action) on [yellow_surface_dark]. */
 val yellow_accent_dark = Color(0xFFFFC24A)
-val grey_light = Color(0xFFECEFF1)
-val grey_dark = Color(0xFF546E7A)
 
 // AMOLED Dark Mode Colors
 val amoled_background = Color(0xFF000000)

@@ -13,6 +13,7 @@ class GPaySharedStatementParser : SharedStatementParser {
         private val receivedFromPattern = Regex("""Received\s+from\s+(.+?)(?:\n|$)""")
         private val paidByPattern = Regex("""Paid\s+by\s+(.+?)(?:\n|$)""")
         private val accountLast4Pattern = Regex("""[Xx*]+(\d{4})""")
+        private val bankNameSeparatorPattern = Regex("""[•\-–]""")
         // Max reasonable transaction amount: ₹1 crore = 10,000,000.00 = 1_000_000_000 paise
         private const val MAX_AMOUNT_MINOR = 1_000_000_000L
     }
@@ -61,7 +62,7 @@ class GPaySharedStatementParser : SharedStatementParser {
         val reference = upiPattern.find(block)?.groupValues?.getOrNull(1)
         val paidByText = paidByPattern.find(block)?.groupValues?.getOrNull(1).orEmpty()
         val accountLast4 = accountLast4Pattern.find(paidByText)?.groupValues?.getOrNull(1)
-        val bankName = paidByText.replace(accountLast4Pattern, "").replace(Regex("""[•\-–]"""), "").trim().ifEmpty { "UPI (GPay)" }
+        val bankName = paidByText.replace(accountLast4Pattern, "").replace(bankNameSeparatorPattern, "").trim().ifEmpty { "UPI (GPay)" }
         return SharedParsedStatementTransaction(
             amountMinor = amountMinor,
             transactionType = type,

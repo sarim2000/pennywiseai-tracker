@@ -20,6 +20,8 @@ class PhonePeSharedStatementParser : SharedStatementParser {
         private val dateStartPattern = Regex("""(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[\s,]+\d{1,2}[\s,]+\d{4}""")
         // Account last4 pattern: "Paid by XXXXXX0093" -> "0093"
         private val accountPattern = Regex("""(?:Paid\s+by|Received\s+by)\s+X+(\d{4})""", RegexOption.IGNORE_CASE)
+        private val whitespacePattern = Regex("[\\s]+")
+        private val nonTimeCharPattern = Regex("[^0-9:]")
         // Max reasonable transaction amount: ₹1 crore = 10,000,000.00 = 1_000_000_000 paise
         private const val MAX_AMOUNT_MINOR = 1_000_000_000L
     }
@@ -107,7 +109,7 @@ class PhonePeSharedStatementParser : SharedStatementParser {
         // Parse date part: "Mar 02, 2026" or "02 Mar, 2026"
         // Handle PDFKit whitespace variations (newlines, tabs, multiple commas/spaces)
         val cleaned = dateStr.replace(",", " ").trim()
-        val parts = cleaned.split(Regex("[\\s]+")).filter { it.isNotEmpty() }
+        val parts = cleaned.split(whitespacePattern).filter { it.isNotEmpty() }
         if (parts.size < 3) return null
 
         val month: Int
@@ -133,7 +135,7 @@ class PhonePeSharedStatementParser : SharedStatementParser {
         if (!timeStr.isNullOrBlank()) {
             val timeCleaned = timeStr.trim().lowercase()
             val isPm = timeCleaned.contains("pm")
-            val timeDigits = timeCleaned.replace(Regex("[^0-9:]"), "")
+            val timeDigits = timeCleaned.replace(nonTimeCharPattern, "")
             val timeParts = timeDigits.split(":")
             if (timeParts.size >= 2) {
                 hour = timeParts[0].toIntOrNull() ?: 0

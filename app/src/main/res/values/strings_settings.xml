@@ -15,7 +15,6 @@
     <string name="settings_pro_subtitle_upgrade">Unlimited rules, statements, exports, and more</string>
 
     <!-- Personalization -->
-    <string name="settings_personalization_section">Personalization</string>
     <string name="settings_appearance_title">Appearance</string>
     <string name="settings_appearance_subtitle">Theme, colors, fonts &amp; navigation</string>
     <string name="settings_language_title">Language</string>
@@ -43,7 +42,6 @@
     <string name="settings_main_account_subtitle">Sets your default currency</string>
     <string name="settings_main_account_not_set">Not set</string>
     <string name="settings_number_format_title">Number Format</string>
-    <string name="settings_number_format_subtitle">How large amounts are grouped</string>
     <string name="settings_number_format_auto">Auto</string>
     <string name="settings_number_format_indian">Indian</string>
     <string name="settings_number_format_international">International</string>
@@ -51,7 +49,6 @@
     <string name="settings_number_format_indian_example">1,50,000 (lakh / crore)</string>
     <string name="settings_number_format_international_example">150,000 (thousand / million)</string>
     <string name="settings_date_format_title">Date Format</string>
-    <string name="settings_date_format_subtitle">How dates are shown</string>
 
     <!-- Budget -->
     <string name="settings_budget_cycle_title">Budget Cycle Start Day</string>
@@ -87,12 +84,6 @@
 
     <!-- Data Management -->
     <string name="settings_data_section">Data Management</string>
-    <string name="settings_manage_accounts_title">Manage Accounts</string>
-    <string name="settings_manage_accounts_subtitle">View and manage your bank accounts</string>
-    <string name="settings_categories_title">Categories</string>
-    <string name="settings_categories_subtitle">Manage expense and income categories</string>
-    <string name="settings_smart_rules_title">Smart Rules</string>
-    <string name="settings_smart_rules_subtitle">Automatic transaction categorization</string>
     <string name="settings_budgets_title">Budgets</string>
     <string name="settings_budgets_subtitle">Track spending limits by category</string>
     <string name="settings_loans_title">Loans</string>
@@ -126,8 +117,6 @@
     <string name="settings_import_data_subtitle">Restore data from backup</string>
     <string name="settings_import_csv_title">Import Transactions (CSV)</string>
     <string name="settings_import_csv_subtitle">Import from a PennyWise CSV export</string>
-    <string name="settings_import_statement_title">Import Statement</string>
-    <string name="settings_import_statement_subtitle">Bank statements (Excel, CSV) or UPI app PDFs</string>
     <string name="settings_unrecognized_sms_title">Unrecognized SMS</string>
     <string name="settings_unrecognized_sms_subtitle">View and report unsupported bank messages</string>
     <string name="settings_delete_all_title">Delete All Transactions</string>
@@ -282,8 +271,6 @@
     <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
     <string name="settings_ai_cancel_download">Cancel Download</string>
     <string name="settings_ai_info">Chat with AI about your expenses and get financial insights. All conversations stay private on your device.</string>
-    <string name="settings_ai_download_notification_title">AI Chat Model</string>
-    <string name="settings_ai_download_notification_description">Downloading AI chat assistant for PennyWise</string>
 
     <!-- Developer -->
     <string name="settings_developer_section">Developer</string>
@@ -294,7 +281,6 @@
     <string name="settings_webhooks_subtitle_pro">Pro · Send selected data to your endpoint</string>
 
     <!-- Support & Community -->
-    <string name="settings_support_section">Support &amp; Community</string>
     <string name="settings_help_faq_title">Help &amp; FAQ</string>
     <string name="settings_help_faq_subtitle">Frequently asked questions and help</string>
     <string name="settings_user_guide_title">User Guide</string>
@@ -414,11 +400,6 @@
     <string name="appearance_nav_floating_subtitle">Modern &amp; Sleek</string>
     <string name="appearance_nav_normal">Normal</string>
     <string name="appearance_nav_normal_subtitle">Standard M3</string>
-
-    <!-- Cover style -->
-    <string name="appearance_cover_section">Cover Style</string>
-    <string name="appearance_cover_none">None</string>
-    <string name="appearance_cover_selected">Selected</string>
 
     <!-- Fonts -->
     <string name="appearance_fonts_section">Fonts</string>

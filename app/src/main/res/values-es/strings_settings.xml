@@ -11,7 +11,6 @@
     <string name="settings_pro_subtitle_active">Activo · todas las funciones avanzadas desbloqueadas</string>
     <string name="settings_pro_subtitle_upgrade">Reglas, estados de cuenta, exportaciones ilimitadas y más</string>
     <!-- Personalization -->
-    <string name="settings_personalization_section">Personalización</string>
     <string name="settings_appearance_title">Apariencia</string>
     <string name="settings_appearance_subtitle">Tema, colores, fuentes y navegación</string>
     <string name="settings_language_title">Idioma</string>
@@ -36,14 +35,12 @@
     <string name="settings_main_account_subtitle">Define tu moneda predeterminada</string>
     <string name="settings_main_account_not_set">Sin definir</string>
     <string name="settings_number_format_title">Formato de números</string>
-    <string name="settings_number_format_subtitle">Cómo se agrupan los montos grandes</string>
     <string name="settings_number_format_auto">Automático</string>
     <string name="settings_number_format_indian">Indio</string>
     <string name="settings_number_format_international">Internacional</string>
     <string name="settings_number_format_auto_example">Según cada moneda (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_international_example">150,000 (miles / millones)</string>
     <string name="settings_date_format_title">Formato de fecha</string>
-    <string name="settings_date_format_subtitle">Cómo se muestran las fechas</string>
     <!-- Budget -->
     <string name="settings_budget_cycle_title">Día de inicio del ciclo del presupuesto</string>
     <string name="settings_budget_cycle_dialog_body">Elige el día en que empieza cada ciclo mensual del presupuesto. P. ej., 25 significa que el ciclo va del 25 al 24 del mes siguiente.</string>
@@ -73,12 +70,6 @@
     </plurals>
     <!-- Data Management -->
     <string name="settings_data_section">Gestión de datos</string>
-    <string name="settings_manage_accounts_title">Administrar cuentas</string>
-    <string name="settings_manage_accounts_subtitle">Consulta y administra tus cuentas bancarias</string>
-    <string name="settings_categories_title">Categorías</string>
-    <string name="settings_categories_subtitle">Administra las categorías de gastos e ingresos</string>
-    <string name="settings_smart_rules_title">Reglas inteligentes</string>
-    <string name="settings_smart_rules_subtitle">Categorización automática de transacciones</string>
     <string name="settings_budgets_title">Presupuestos</string>
     <string name="settings_budgets_subtitle">Sigue límites de gasto por categoría</string>
     <string name="settings_loans_title">Préstamos</string>
@@ -105,8 +96,6 @@
     <string name="settings_import_data_subtitle">Restaura datos desde una copia de seguridad</string>
     <string name="settings_import_csv_title">Importar transacciones (CSV)</string>
     <string name="settings_import_csv_subtitle">Importa desde un CSV exportado de PennyWise</string>
-    <string name="settings_import_statement_title">Importar estado de cuenta</string>
-    <string name="settings_import_statement_subtitle">Estados de cuenta bancarios (Excel, CSV) o PDF de apps UPI</string>
     <string name="settings_unrecognized_sms_title">SMS no reconocidos</string>
     <string name="settings_unrecognized_sms_subtitle">Consulta y reporta mensajes bancarios no compatibles</string>
     <string name="settings_delete_all_title">Eliminar todas las transacciones</string>
@@ -223,8 +212,6 @@
     <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
     <string name="settings_ai_cancel_download">Cancelar descarga</string>
     <string name="settings_ai_info">Chatea con la AI sobre tus gastos y obtén ideas financieras. Todas las conversaciones se quedan en privado en tu dispositivo.</string>
-    <string name="settings_ai_download_notification_title">Modelo de chat con AI</string>
-    <string name="settings_ai_download_notification_description">Descargando el asistente de chat con AI de PennyWise</string>
     <!-- Developer -->
     <string name="settings_developer_section">Desarrollador</string>
     <string name="settings_developer_mode_title">Modo desarrollador</string>
@@ -232,7 +219,6 @@
     <string name="settings_webhooks_subtitle">Envía los datos que elijas a tu endpoint</string>
     <string name="settings_webhooks_subtitle_pro">Pro · Envía los datos que elijas a tu endpoint</string>
     <!-- Support & Community -->
-    <string name="settings_support_section">Soporte y comunidad</string>
     <string name="settings_help_faq_title">Ayuda y preguntas frecuentes</string>
     <string name="settings_help_faq_subtitle">Preguntas frecuentes y ayuda</string>
     <string name="settings_user_guide_title">Guía de uso</string>
@@ -269,10 +255,6 @@
     <string name="appearance_nav_floating">Flotante</string>
     <string name="appearance_nav_floating_subtitle">Moderna y elegante</string>
     <string name="appearance_nav_normal_subtitle">M3 estándar</string>
-    <!-- Cover style -->
-    <string name="appearance_cover_section">Estilo de portada</string>
-    <string name="appearance_cover_none">Ninguno</string>
-    <string name="appearance_cover_selected">Seleccionado</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Fuentes</string>
     <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->

@@ -9666,28 +9666,6 @@
     </issue>
 
     <issue
-        id="UnusedResources"
-        message="The resource `R.string.settings_ai_download_notification_title` appears to be unused"
-        errorLine1="    &lt;string name=&quot;settings_ai_download_notification_title&quot;>AI Chat Model&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings_settings.xml"
-            line="258"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.string.settings_ai_download_notification_description` appears to be unused"
-        errorLine1="    &lt;string name=&quot;settings_ai_download_notification_description&quot;>Downloading AI chat assistant for PennyWise&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings_settings.xml"
-            line="259"
-            column="13"/>
-    </issue>
-
-    <issue
         id="UsableSpace"
         message="Consider also using `StorageManager#getAllocatableBytes` and `allocateBytes` which will consider clearable cached data"
         errorLine1="        return dir.usableSpace >= Constants.ModelDownload.REQUIRED_SPACE_BYTES - part.length()"

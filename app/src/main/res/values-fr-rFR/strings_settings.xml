@@ -12,7 +12,6 @@
     <string name="settings_pro_subtitle_active">Activé · toutes les fonctionnalités d\'énergie déverrouillées</string>
     <string name="settings_pro_subtitle_upgrade">Règles illimitées, relevés, exports et plus encore</string>
     <!-- Personalization -->
-    <string name="settings_personalization_section">Personnalisation</string>
     <string name="settings_appearance_title">Apparence</string>
     <string name="settings_appearance_subtitle">Thème, couleurs, polices et navigation</string>
     <string name="settings_language_title">Langue</string>
@@ -37,7 +36,6 @@
     <string name="settings_main_account_subtitle">Définit votre devise par défaut</string>
     <string name="settings_main_account_not_set">Non défini</string>
     <string name="settings_number_format_title">Format de nombre</string>
-    <string name="settings_number_format_subtitle">Regroupement des chiffres des gros montants</string>
     <string name="settings_number_format_auto">Automatique</string>
     <string name="settings_number_format_indian">Indien</string>
     <string name="settings_number_format_international">International</string>
@@ -45,7 +43,6 @@
     <string name="settings_number_format_indian_example">1,50.000 (lac/croûte)</string>
     <string name="settings_number_format_international_example">150 000 (mille / millions)</string>
     <string name="settings_date_format_title">Format de date</string>
-    <string name="settings_date_format_subtitle">Affichage des dates</string>
     <!-- Budget -->
     <string name="settings_budget_cycle_title">Journée de début du cycle budgétaire</string>
     <string name="settings_budget_cycle_dialog_body">Choisissez le jour où commence chaque cycle budgétaire mensuel. Par exemple, 25 signifie que le cycle se déroule du 25 au 24 du mois suivant.</string>
@@ -71,12 +68,6 @@
     <string name="settings_lock_timeout_option_immediately">Immédiatement</string>
     <!-- Data Management -->
     <string name="settings_data_section">Gestion des données</string>
-    <string name="settings_manage_accounts_title">Gérer les comptes</string>
-    <string name="settings_manage_accounts_subtitle">Voir et gérer vos comptes bancaires</string>
-    <string name="settings_categories_title">Catégories</string>
-    <string name="settings_categories_subtitle">Gérer les catégories de dépenses et de revenus</string>
-    <string name="settings_smart_rules_title">Règles intelligentes</string>
-    <string name="settings_smart_rules_subtitle">Catégorisation automatique des transactions</string>
     <string name="settings_budgets_title">Les budgets</string>
     <string name="settings_budgets_subtitle">Suivre les limites de dépenses par catégorie</string>
     <string name="settings_loans_title">Prêts</string>
@@ -103,8 +94,6 @@
     <string name="settings_import_data_subtitle">Restaurer les données depuis la sauvegarde</string>
     <string name="settings_import_csv_title">Importer des transactions (CSV)</string>
     <string name="settings_import_csv_subtitle">Importer depuis un export CSV PennyWise</string>
-    <string name="settings_import_statement_title">Importer un relevé</string>
-    <string name="settings_import_statement_subtitle">Relevés bancaires (Excel, CSV) ou PDF d\'apps UPI</string>
     <string name="settings_unrecognized_sms_title">SMS non reconnu</string>
     <string name="settings_unrecognized_sms_subtitle">Voir et signaler les messages bancaires non pris en charge</string>
     <string name="settings_delete_all_title">Supprimer toutes les transactions</string>
@@ -223,8 +212,6 @@
     <string name="settings_ai_download_progress">%1$d Mo / %2$d Mo</string>
     <string name="settings_ai_cancel_download">Annuler le téléchargement</string>
     <string name="settings_ai_info">Discutez avec l\'IA à propos de vos dépenses et obtenez un aperçu financier. Toutes les conversations restent privées sur votre appareil.</string>
-    <string name="settings_ai_download_notification_title">Modèle de chat AI</string>
-    <string name="settings_ai_download_notification_description">Téléchargement de l\'assistant de chat AI pour PennyWise</string>
     <!-- Developer -->
     <string name="settings_developer_section">Développeur</string>
     <string name="settings_developer_mode_title">Mode développeur</string>
@@ -232,7 +219,6 @@
     <string name="settings_webhooks_subtitle">Envoyer les données choisies vers votre endpoint</string>
     <string name="settings_webhooks_subtitle_pro">Pro · Envoyer les données choisies vers votre endpoint</string>
     <!-- Support & Community -->
-    <string name="settings_support_section">Soutenir &amp; Communauté</string>
     <string name="settings_help_faq_title">Aide &amp; FAQ</string>
     <string name="settings_help_faq_subtitle">Foire aux questions et aide</string>
     <string name="settings_user_guide_title">Guide d\'utilisation</string>
@@ -271,10 +257,6 @@
     <string name="appearance_nav_floating_subtitle">Moderne &amp; élégant</string>
     <string name="appearance_nav_normal">Normale</string>
     <string name="appearance_nav_normal_subtitle">M3 standard</string>
-    <!-- Cover style -->
-    <string name="appearance_cover_section">Style de couverture</string>
-    <string name="appearance_cover_none">Aucun</string>
-    <string name="appearance_cover_selected">Sélectionné</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Polices</string>
     <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->

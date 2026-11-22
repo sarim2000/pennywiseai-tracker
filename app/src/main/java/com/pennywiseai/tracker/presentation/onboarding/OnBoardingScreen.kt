@@ -167,10 +167,7 @@ fun OnBoardingScreen(
                 },
                 onSkip = withCommittedText {
                     when (uiState.currentStep) {
-                        OnBoardingStep.PERMISSIONS -> {
-                            viewModel.skipSmsPermission()
-                            viewModel.goToNextStep()
-                        }
+                        OnBoardingStep.PERMISSIONS -> viewModel.goToNextStep()
                         OnBoardingStep.SMS_SCAN -> viewModel.goToNextStep()
                         OnBoardingStep.ACCOUNT_SETUP -> {
                             viewModel.completeOnboarding(onOnboardingComplete)

@@ -341,7 +341,6 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.junit)
-    testImplementation(libs.androidx.room.testing)
     // Architecture guardrails (ArchitectureTest): parses app sources, test-only.
     testImplementation(libs.konsist)
     androidTestImplementation(libs.androidx.room.testing)

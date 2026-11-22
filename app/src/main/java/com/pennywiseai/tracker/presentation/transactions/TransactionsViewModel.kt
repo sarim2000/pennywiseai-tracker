@@ -789,7 +789,6 @@ class TransactionsViewModel @Inject constructor(
                         }
                         ComputedList(
                             transactions = sorted,
-                            grouped = groupTransactionsByDate(sorted),
                             // Calculate totals for filtered transactions
                             totals = calculateCurrencyGroupedTotals(
                                 splitShares.forTotals(sorted),
@@ -806,7 +805,6 @@ class TransactionsViewModel @Inject constructor(
             .onEach { computed ->
                 _uiState.value = _uiState.value.copy(
                     transactions = computed.transactions,
-                    groupedTransactions = computed.grouped,
                     splitShares = computed.splitShares,
                     isLoading = false
                 )
@@ -1342,7 +1340,6 @@ class TransactionsViewModel @Inject constructor(
 
 data class TransactionsUiState(
     val transactions: List<TransactionEntity> = emptyList(),
-    val groupedTransactions: Map<DateGroup, List<TransactionEntity>> = emptyMap(),
     /** Set while a category filter is on: split rows count only their share in it (#1192). */
     val splitShares: CategorySplitShares? = null,
     val isLoading: Boolean = true
@@ -1358,17 +1355,9 @@ private data class FilteredRows(
 /** One finished computation of the list, published to the UI state in one go. */
 private class ComputedList(
     val transactions: List<TransactionEntity>,
-    val grouped: Map<DateGroup, List<TransactionEntity>>,
     val totals: CurrencyGroupedTotals,
     val splitShares: CategorySplitShares?
 )
-
-enum class DateGroup(@StringRes val labelRes: Int) {
-    TODAY(R.string.txn_list_group_today),
-    YESTERDAY(R.string.txn_list_group_yesterday),
-    THIS_WEEK(R.string.txn_list_group_this_week),
-    EARLIER(R.string.txn_list_group_earlier)
-}
 
 enum class SortOption(@StringRes val labelRes: Int) {
     DATE_NEWEST(R.string.txn_list_sort_newest),

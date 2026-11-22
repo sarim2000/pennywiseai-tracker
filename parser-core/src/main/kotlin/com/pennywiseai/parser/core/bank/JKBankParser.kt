@@ -55,8 +55,7 @@ class JKBankParser : BaseIndianBankParser() {
     ): String {
         val normalizedAmount = transaction.amount.setScale(2, RoundingMode.HALF_UP)
 
-        // Use the already parsed reference to ensure consistency
-        // This avoids issues where extractJKBankReference might have different patterns than extractReference
+        // Use the already parsed reference to ensure consistency with extractReference
         val reference = transaction.reference
         val transactionTime = extractTransactionTime(smsBody)
 
@@ -102,56 +101,20 @@ class JKBankParser : BaseIndianBankParser() {
         return md5Hex(hashData)
     }
 
-    private fun extractJKBankReference(message: String): String? {
-        val patterns = listOf(
-            // RTGS-JAKAH25085024027
-            Regex("""RTGS-([A-Z0-9]+)"""),
-            // NEFT/IMPS references
-            Regex("""NEFT-([A-Z0-9]+)"""),
-            Regex("""IMPS-([A-Z0-9]+)"""),
-            // UTR/TRN numbers
-            Regex("""UTR\s+([A-Z0-9]+)"""),
-            Regex("""TRN\s+([A-Z0-9]+)"""),
-            // CHRGS/RTGS/BWY - unique charge reference
-            Regex("""by\s+(CHRGS/[^.]+)"""),
-            // eTFR/mTFR references
-            Regex("""by\s+(eTFR/[^.]+)"""),
-            Regex("""by\s+(mTFR/\d+/[^.]+)"""),
-            // UPI reference
-            Regex("""UPI\s+Ref[:\s]+(\d+)""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in patterns) {
-            pattern.find(message)?.let { match ->
-                return match.groupValues[1].trim()
-            }
-        }
-
-        return null
-    }
-
     private fun extractTransactionTime(message: String): String? {
         // Extract transaction time from JK Bank messages
         // Pattern: "at 10:43 by" or "on 17-Sep-24 at 10:43"
+        // ("on 17-Sep-24 at 10:43" yields the time, since the time pattern is tried first)
         val patterns = listOf(
             // Time only: "at 10:43"
             Regex("""at\s+(\d{1,2}:\d{2}(?::\d{2})?)""", RegexOption.IGNORE_CASE),
-            // Date and time: "on 17-Sep-24 at 10:43"
-            Regex(
-                """on\s+(\d{1,2}-\w{3}-\d{2,4})\s+at\s+(\d{1,2}:\d{2})""",
-                RegexOption.IGNORE_CASE
-            ),
             // Date only: "on 17-Sep-24"
             Regex("""on\s+(\d{1,2}-\w{3}-\d{2,4})""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in patterns) {
             pattern.find(message)?.let { match ->
-                return when (match.groupValues.size) {
-                    2 -> match.groupValues[1] // Time only
-                    3 -> "${match.groupValues[1]} ${match.groupValues[2]}" // Date and time
-                    else -> null
-                }
+                return match.groupValues[1]
             }
         }
 

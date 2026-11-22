@@ -1324,7 +1324,6 @@
     <ID>MagicNumber:IndusIndBankParser.kt$IndusIndBankParser$2000</ID>
     <ID>MagicNumber:IndusIndBankParser.kt$IndusIndBankParser$3</ID>
     <ID>MagicNumber:IslamicInternationalArabBankParser.kt$IslamicInternationalArabBankParser$4</ID>
-    <ID>MagicNumber:JKBankParser.kt$JKBankParser$3</ID>
     <ID>MagicNumber:JioPayParser.kt$JioPayParser$4</ID>
     <ID>MagicNumber:JordanIslamicBankParser.kt$JordanIslamicBankParser$4</ID>
     <ID>MagicNumber:KotakBankParser.kt$KotakBankParser$20</ID>
@@ -2733,7 +2732,6 @@
     <ID>UnusedParameter:TransactionFilterHeader.kt$customRangeLabel: String?</ID>
     <ID>UnusedPrivateMember:AnalyticsScreen.kt$@Composable private fun CategoryListItem( category: CategoryData, currency: String )</ID>
     <ID>UnusedPrivateMember:CurrencyConversionService.kt$CurrencyConversionService$private suspend fun getBaseCurrency(): String</ID>
-    <ID>UnusedPrivateMember:JKBankParser.kt$JKBankParser$private fun extractJKBankReference(message: String): String?</ID>
     <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createEmiDetectionRule(): TransactionRule</ID>
     <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createFuelDetectionRule(): TransactionRule</ID>
     <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createHealthcareDetectionRule(): TransactionRule</ID>

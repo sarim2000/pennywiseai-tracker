@@ -272,28 +272,6 @@ class PennyWiseSharedFacade {
         }
     }
 
-    fun updateExpenseAndLoadHome(
-        transactionId: Long,
-        merchantName: String,
-        category: String,
-        amountMinor: Long,
-        note: String? = null,
-        currency: String = "INR"
-    ): SharedHomeSnapshot = safeSnapshot {
-        updateTransactionAndLoadHome(
-            transactionId = transactionId,
-            merchantName = merchantName,
-            category = category,
-            amountMinor = amountMinor,
-            note = note,
-            currency = currency,
-            transactionType = "EXPENSE",
-            occurredAtEpochMillis = com.pennywiseai.shared.data.util.currentTimeMillis(),
-            bankName = null,
-            accountLast4 = null
-        )
-    }
-
     fun updateTransactionAndLoadHome(
         transactionId: Long,
         merchantName: String,
@@ -377,23 +355,6 @@ class PennyWiseSharedFacade {
             }
         } catch (_: Throwable) {
             false
-        }
-    }
-
-    fun searchTransactions(query: String): List<SharedRecentTransactionItem> {
-        return try {
-            runBlocking {
-                val lowerQuery = query.lowercase()
-                graph.transactionRepository.observeTransactions().first()
-                    .filter {
-                        it.merchantName.lowercase().contains(lowerQuery) ||
-                            (it.note?.lowercase()?.contains(lowerQuery) == true) ||
-                            it.category.lowercase().contains(lowerQuery)
-                    }
-                    .map { it.toItem() }
-            }
-        } catch (_: Throwable) {
-            emptyList()
         }
     }
 

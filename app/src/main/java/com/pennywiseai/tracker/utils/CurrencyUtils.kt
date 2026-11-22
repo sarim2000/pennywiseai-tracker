@@ -4,7 +4,7 @@ package com.pennywiseai.tracker.utils
  * Currency list helpers. Format money with [CurrencyFormatter].
  */
 object CurrencyUtils {
-    
+
     /**
      * Sorts a list of currency codes with INR prioritized first, then alphabetically.
      * This is the standard sorting for currency lists throughout the app.
@@ -19,13 +19,7 @@ object CurrencyUtils {
      * ```
      */
     fun sortCurrencies(currencies: List<String>): List<String> {
-        return currencies.sortedWith { a, b ->
-            when {
-                a == "INR" -> -1 // INR first
-                b == "INR" -> 1
-                else -> a.compareTo(b) // Alphabetical for others
-            }
-        }
+        return currencies.sortedWith(compareBy({ it != "INR" }, { it }))
     }
 
     /**

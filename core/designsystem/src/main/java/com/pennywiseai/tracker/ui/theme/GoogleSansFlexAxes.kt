@@ -3,12 +3,14 @@ package com.pennywiseai.tracker.ui.theme
 import android.content.Context
 import android.graphics.Paint
 import android.graphics.Typeface
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.AndroidFont
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontListFontFamily
 import androidx.compose.ui.text.font.FontLoadingStrategy
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontSynthesis
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
@@ -23,10 +25,14 @@ import kotlin.math.roundToInt
  *
  * Every distinct axis setting is a separate Android `Typeface`, and Compose
  * keeps only 16 of them in its own caches. So no value reaches a font
- * unquantized: the typography snaps to this grid, and the typefaces come from
- * a bounded process-wide cache.
+ * unquantized: the typography and [withFlexAxes] snap to this grid, and the
+ * fonts come from bounded process-wide caches. An animation therefore walks
+ * through a handful of cached variants instead of building a font per frame.
  */
 object GoogleSansFlexAxes {
+    /** `wght` step. Static styles sit on multiples of 100, so they are on the grid. */
+    const val WEIGHT_STEP = 25
+
     /** `ROND` step: 11 stops over 0–100. */
     const val ROUNDNESS_STEP = 10
 
@@ -63,12 +69,77 @@ object GoogleSansFlexAxes {
     const val LIGHT_GRADE = 20f
     const val DARK_GRADE = 0f
 
+    /**
+     * Grade to add for emphasis — a selected tab or chip, a pressed toggle.
+     * `GRAD` thickens strokes without changing any advance width, so unlike
+     * `wght` it never reflows the line.
+     */
+    const val EMPHASIS_GRADE = 80f
+
     internal const val MIN_WEIGHT = 100
     internal const val MAX_WEIGHT = 900
     internal const val MAX_AXIS = 100
 
+    /** Families kept: the type scale (~20 per theme) plus whatever is animating. */
+    internal const val MAX_FAMILIES = 64
+
     /** Typefaces kept, one per (axes, weight) actually drawn. */
     internal const val MAX_TYPEFACES = 128
+}
+
+/**
+ * Whether the theme's typography is Google Sans Flex: the font picked and a
+ * Latin-script locale. Axis animation is only meaningful then; with the system
+ * font or SN Pro [withFlexAxes] returns its style unchanged anyway, so this is
+ * for skipping the animation's own setup.
+ */
+val LocalGoogleSansFlexActive = staticCompositionLocalOf { false }
+
+/**
+ * This style with some of its Google Sans Flex axes moved, for animating them.
+ * Call it every frame with the animated values: they are quantized to
+ * [GoogleSansFlexAxes]'s grid and the family comes from a bounded cache, so it
+ * never builds a font per frame. Returns this style unchanged when it isn't
+ * drawn in Google Sans Flex (system font, SN Pro, a non-Latin locale) or when
+ * nothing moved past a grid step.
+ *
+ * Pass the theme's style (e.g. `MaterialTheme.typography.labelMedium`), not
+ * one this function already returned: the theme's grade is read from it.
+ *
+ * @param weight absolute `wght`, 100–900. Changes advance widths, so the text
+ *   reflows each step; prefer [gradeBoost] for emphasis. Pins one weight, so
+ *   the system "bold text" setting no longer applies to this style.
+ * @param roundness absolute `ROND`, 0 (square) – 100 (round).
+ * @param opticalSize absolute `opsz`, as a size in sp (snapped to
+ *   [GoogleSansFlexAxes.OPTICAL_SIZES], so never under 18).
+ * @param gradeBoost `GRAD` added to the theme's grade, e.g. a fraction of
+ *   [GoogleSansFlexAxes.EMPHASIS_GRADE]. Never changes widths.
+ */
+fun TextStyle.withFlexAxes(
+    weight: Float? = null,
+    roundness: Float? = null,
+    opticalSize: Float? = null,
+    gradeBoost: Float = 0f,
+): TextStyle {
+    val base = flexKeyOrNull() ?: return this
+    val key = FlexKey(
+        weight = weight?.let(::quantizeWeight) ?: base.weight,
+        roundness = roundness?.let(::quantizeRoundness) ?: base.roundness,
+        opticalSize = opticalSize?.let(::quantizeOpticalSize) ?: base.opticalSize,
+        grade = quantizeGrade(base.grade + gradeBoost),
+    )
+    if (key == base) return this
+    return if (weight == null) {
+        copy(fontFamily = googleSansFlexFamily(key))
+    } else {
+        // One pinned weight: name it on the style too, so Compose neither
+        // picks another instance nor fakes bold on top of it.
+        copy(
+            fontFamily = googleSansFlexFamily(key),
+            fontWeight = FontWeight(key.weight),
+            fontSynthesis = FontSynthesis.None,
+        )
+    }
 }
 
 /**
@@ -95,7 +166,8 @@ internal fun TextStyle.asMoney(fallbackFamily: FontFamily?): TextStyle {
 /**
  * A Google Sans Flex family with every weight 100–900, each its own pinned
  * instance at these axes. Compose resolves a style only by weight and style,
- * so each (roundness, optical size, grade) needs its own family.
+ * so each (roundness, optical size, grade) needs its own family; this returns
+ * the cached one.
  */
 internal fun googleSansFlexFamily(roundness: Float, opticalSize: Float, grade: Float): FontFamily =
     googleSansFlexFamily(
@@ -118,6 +190,11 @@ internal data class FlexKey(val weight: Int, val roundness: Int, val opticalSize
 
 internal const val ALL_WEIGHTS = 0
 
+internal fun quantizeWeight(value: Float): Int {
+    val step = GoogleSansFlexAxes.WEIGHT_STEP
+    return ((value / step).roundToInt() * step).coerceIn(GoogleSansFlexAxes.MIN_WEIGHT, GoogleSansFlexAxes.MAX_WEIGHT)
+}
+
 internal fun quantizeRoundness(value: Float): Int = quantize(value, GoogleSansFlexAxes.ROUNDNESS_STEP)
 
 internal fun quantizeGrade(value: Float): Int = quantize(value, GoogleSansFlexAxes.GRADE_STEP)
@@ -138,9 +215,10 @@ internal fun TextStyle.flexKeyOrNull(): FlexKey? {
     return if (fonts.size > 1) font.key.copy(weight = ALL_WEIGHTS) else font.key
 }
 
-// ponytail: no family cache; GoogleSansFlexFont is equal by its axes, so equal families
-// compare equal and the typeface cache below does the real work. Add one with axis animation.
-internal fun googleSansFlexFamily(key: FlexKey): FontFamily =
+private val families = BoundedCache<FlexKey, FontFamily>(GoogleSansFlexAxes.MAX_FAMILIES)
+
+/** Cached, so an animation frame that lands on a visited step allocates nothing. */
+internal fun googleSansFlexFamily(key: FlexKey): FontFamily = families.getOrPut(key) {
     if (key.weight == ALL_WEIGHTS) {
         FontFamily(
             (GoogleSansFlexAxes.MIN_WEIGHT..GoogleSansFlexAxes.MAX_WEIGHT step 100).map {
@@ -150,6 +228,7 @@ internal fun googleSansFlexFamily(key: FlexKey): FontFamily =
     } else {
         FontFamily(GoogleSansFlexFont(key))
     }
+}
 
 /**
  * One pinned instance of the bundled variable font. Equal by its axes, so

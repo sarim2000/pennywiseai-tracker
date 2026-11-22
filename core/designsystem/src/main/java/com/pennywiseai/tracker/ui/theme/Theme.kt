@@ -268,7 +268,11 @@ fun PennyWiseTheme(
     val latinScript = remember(locale) { ULocale.addLikelySubtags(ULocale.forLocale(locale)).script == "Latn" }
     val typography = remember(appFont, latinScript, darkTheme) { typographyFor(appFont, latinScript, darkTheme) }
 
-    CompositionLocalProvider(LocalBlurEffects provides blurEffects, LocalRedSpending provides redSpending) {
+    CompositionLocalProvider(
+        LocalBlurEffects provides blurEffects,
+        LocalRedSpending provides redSpending,
+        LocalGoogleSansFlexActive provides (latinScript && appFont == AppFont.GOOGLE_SANS_FLEX),
+    ) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,
             // Springy, overshooting spatial motion for every M3 component.

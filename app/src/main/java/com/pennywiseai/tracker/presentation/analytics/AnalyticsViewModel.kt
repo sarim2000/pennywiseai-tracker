@@ -105,12 +105,6 @@ class AnalyticsViewModel @Inject constructor(
     // apply / filter-by-tag) stays free.
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
 
-    // name -> hex color for the user's categories (incl. recolored built-ins), so
-    // Analytics renders each category in its assigned color instead of gray (#586).
-    private val categoryColors: Flow<Map<String, String>> =
-        categoryRepository.getAllCategories()
-            .map { cats -> cats.associate { it.name to it.color } }
-
     // Colors plus the sub-category → parent map (#374): Analytics rolls each
     // sub-category into its parent, and a parent filter includes its children.
     private class CategoryIndex(

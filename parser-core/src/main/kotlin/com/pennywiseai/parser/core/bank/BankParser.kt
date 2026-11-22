@@ -453,12 +453,11 @@ abstract class BankParser {
         // Escape the last4 for safe regex usage
         val escapedLast4 = Regex.escape(last4)
 
-        // Check if it's part of a date pattern (dd/mm/yyyy, dd-mm-yyyy, etc.)
+        // Check if it's part of a date pattern (dd/mm/yyyy, dd-mm-yyyy, etc.). Unanchored,
+        // so these also cover "on 04/11/2025" and "dated 05-02-2025".
         val datePatterns = listOf(
             Regex("""\d{1,2}[/-]\d{1,2}[/-]$escapedLast4"""),  // 04/11/2025, 05-02-2025
-            Regex("""$escapedLast4[/-]\d{1,2}[/-]\d{1,2}"""),  // 2025/11/04, 2025-02-05
-            Regex("""\bon\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE),  // "on 04/11/2025"
-            Regex("""\bdated\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE)  // "dated 05-02-2025"
+            Regex("""$escapedLast4[/-]\d{1,2}[/-]\d{1,2}""")  // 2025/11/04, 2025-02-05
         )
 
         for (datePattern in datePatterns) {
@@ -471,7 +470,6 @@ abstract class BankParser {
         if (last4.toIntOrNull() in 2000..2099) {
             // Only reject if it appears to be a year in date context
             val yearContextPatterns = listOf(
-                Regex("""\bon\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE),
                 Regex("""\bdated\s+.*?$escapedLast4""", RegexOption.IGNORE_CASE),
                 Regex("""$escapedLast4(?:\s|$)""")  // Year at end of phrase
             )

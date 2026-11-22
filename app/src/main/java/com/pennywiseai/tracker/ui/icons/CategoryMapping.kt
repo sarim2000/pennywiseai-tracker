@@ -3,44 +3,27 @@ package com.pennywiseai.tracker.ui.icons
 import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.AirplanemodeActive
-import androidx.compose.material.icons.filled.AttachMoney
-import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Commute
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Flight
-import androidx.compose.material.icons.filled.HealthAndSafety
-import androidx.compose.material.icons.filled.LocalGroceryStore
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.MoneyOff
-import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MovieFilter
-import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.RemoveCircle
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Smartphone
-import androidx.compose.material.icons.filled.Spa
-import androidx.compose.material.icons.filled.SportsMartialArts
-import androidx.compose.material.icons.filled.Store
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.res.stringResource
@@ -60,8 +43,7 @@ object CategoryMapping {
     data class CategoryInfo(
         @StringRes val label: Int,
         val icon: ImageVector,
-        val color: Color,
-        val fallbackIcon: ImageVector = Icons.Default.Category
+        val color: Color
     )
 
     /** What the user set on a CategoryEntity: its color and optional emoji (#760). */
@@ -152,128 +134,107 @@ object CategoryMapping {
         "Food & Dining" to CategoryInfo(
             label = R.string.category_food_dining,
             icon = Icons.Default.Restaurant,
-            color = Color(0xFFFC8019),
-            fallbackIcon = Icons.Default.Fastfood
+            color = Color(0xFFFC8019)
         ),
         "Groceries" to CategoryInfo(
             label = R.string.category_groceries,
             icon = Icons.Default.ShoppingCart,
-            color = Color(0xFF5AC85A),
-            fallbackIcon = Icons.Default.LocalGroceryStore
+            color = Color(0xFF5AC85A)
         ),
         "Transportation" to CategoryInfo(
             label = R.string.category_transportation,
             icon = Icons.Default.DirectionsCar,
-            color = Color(0xFF000000),
-            fallbackIcon = Icons.Default.Commute
+            color = Color(0xFF000000)
         ),
         "Shopping" to CategoryInfo(
             label = R.string.category_shopping,
             icon = Icons.Default.ShoppingBag,
-            color = Color(0xFFFF9900),
-            fallbackIcon = Icons.Default.Store
+            color = Color(0xFFFF9900)
         ),
         "Bills & Utilities" to CategoryInfo(
             label = R.string.category_bills_utilities,
             icon = Icons.Default.Receipt,
-            color = Color(0xFF4CAF50),
-            fallbackIcon = Icons.Default.Payment
+            color = Color(0xFF4CAF50)
         ),
         "Entertainment" to CategoryInfo(
             label = R.string.category_entertainment,
             icon = Icons.Default.MovieFilter,
-            color = Color(0xFFE50914),
-            fallbackIcon = Icons.Default.PlayCircle
+            color = Color(0xFFE50914)
         ),
         "Healthcare" to CategoryInfo(
             label = R.string.category_healthcare,
             icon = Icons.Default.LocalHospital,
-            color = Color(0xFF10847E),
-            fallbackIcon = Icons.Default.HealthAndSafety
+            color = Color(0xFF10847E)
         ),
         "Investments" to CategoryInfo(
             label = R.string.category_investments,
             icon = Icons.AutoMirrored.Filled.TrendingUp,
-            color = Color(0xFF00D09C),
-            fallbackIcon = Icons.AutoMirrored.Filled.ShowChart
+            color = Color(0xFF00D09C)
         ),
         "Banking" to CategoryInfo(
             label = R.string.category_banking,
             icon = Icons.Default.AccountBalance,
-            color = Color(0xFF004C8F),
-            fallbackIcon = Icons.Default.AccountBalanceWallet
+            color = Color(0xFF004C8F)
         ),
         "Personal Care" to CategoryInfo(
             label = R.string.category_personal_care,
             icon = Icons.Default.Face,
-            color = Color(0xFF6A4C93),
-            fallbackIcon = Icons.Default.Spa
+            color = Color(0xFF6A4C93)
         ),
         "Education" to CategoryInfo(
             label = R.string.category_education,
             icon = Icons.Default.School,
-            color = Color(0xFF673AB7),
-            fallbackIcon = Icons.Default.Book
+            color = Color(0xFF673AB7)
         ),
         "Mobile" to CategoryInfo(
             label = R.string.category_mobile,
             icon = Icons.Default.Smartphone,
-            color = Color(0xFF2A3890),
-            fallbackIcon = Icons.Default.PhoneAndroid
+            color = Color(0xFF2A3890)
         ),
         "Fitness" to CategoryInfo(
             label = R.string.category_fitness,
             icon = Icons.Default.FitnessCenter,
-            color = Color(0xFFFF3278),
-            fallbackIcon = Icons.Default.SportsMartialArts
+            color = Color(0xFFFF3278)
         ),
         "Insurance" to CategoryInfo(
             label = R.string.category_insurance,
             icon = Icons.Default.Shield,
-            color = Color(0xFF0066CC),
-            fallbackIcon = Icons.Default.Security
+            color = Color(0xFF0066CC)
         ),
         "Tax" to CategoryInfo(
             label = R.string.category_tax,
             icon = Icons.Default.AccountBalanceWallet,
-            color = Color(0xFF795548),
-            fallbackIcon = Icons.Default.Receipt
+            color = Color(0xFF795548)
         ),
         "Bank Charges" to CategoryInfo(
             label = R.string.category_bank_charges,
             icon = Icons.Default.MoneyOff,
-            color = Color(0xFF9E9E9E),
-            fallbackIcon = Icons.Default.RemoveCircle
+            color = Color(0xFF9E9E9E)
         ),
         "Credit Card Payment" to CategoryInfo(
             label = R.string.category_credit_card_payment,
             icon = Icons.Default.CreditCard,
-            color = Color(0xFF1976D2),
-            fallbackIcon = Icons.Default.Payment
+            color = Color(0xFF1976D2)
         ),
         "Salary" to CategoryInfo(
             label = R.string.category_salary,
             icon = Icons.Default.Payments,
-            color = Color(0xFF4CAF50),
-            fallbackIcon = Icons.Default.AttachMoney
+            color = Color(0xFF4CAF50)
         ),
         "Income" to CategoryInfo(
             label = R.string.category_income,
             icon = Icons.Default.AddCircle,
-            color = Color(0xFF4CAF50),
-            fallbackIcon = Icons.AutoMirrored.Filled.TrendingUp
+            color = Color(0xFF4CAF50)
         ),
         "Travel" to CategoryInfo(
             label = R.string.category_travel,
             icon = Icons.Default.Flight,
-            color = Color(0xFF00BCD4),
-            fallbackIcon = Icons.Default.AirplanemodeActive
+            color = Color(0xFF00BCD4)
         ),
         "Others" to CategoryInfo(
             label = R.string.category_others,
             icon = Icons.Default.Category,
-            color = Color(0xFF757575),
-            fallbackIcon = Icons.Default.MoreHoriz
+            color = Color(0xFF757575)
         )
     )
 

@@ -36,7 +36,6 @@ import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.utils.CurrencyUtils
-import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import com.pennywiseai.tracker.utils.dateQueryWindow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -180,7 +179,6 @@ class TransactionsViewModel @Inject constructor(
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
 
     private val _currencyGroupedTotals = MutableStateFlow(CurrencyGroupedTotals())
-    val currencyGroupedTotals: StateFlow<CurrencyGroupedTotals> = _currencyGroupedTotals.asStateFlow()
 
     // Available currencies for the selected time period
     val availableCurrencies: StateFlow<List<String>> = combine(selectedPeriod, customDateRange, budgetCycleStartDay) { period, customRange, _ ->
@@ -1321,10 +1319,6 @@ class TransactionsViewModel @Inject constructor(
             else -> getDateRangeForPeriod(period)
         } ?: return null
         return dates.first.atStartOfDay() to dates.second.atTime(23, 59, 59)
-    }
-
-    fun getReportUrl(transaction: TransactionEntity): String {
-        return SmsReportUrlBuilder.buildUrl(context, transaction.smsBody, transaction.smsSender)
     }
 }
 

@@ -81,9 +81,15 @@ fun CustomTitleTopAppBar(
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
     hazeState: HazeState = HazeState(),
-    blurEffects: Boolean = LocalBlurEffects.current
+    blurEffects: Boolean = LocalBlurEffects.current,
+    /** [RevealAmountsAction] first in the actions. Home has its own eye. */
+    revealAmountsAction: Boolean = !isHomeScreen,
 ) {
     val collapsedFraction = scrollBehaviorLarge.state.collapsedFraction
+    val actions: @Composable () -> Unit = {
+        if (revealAmountsAction) RevealAmountsAction()
+        actionContent()
+    }
 
     // LargeTopAppBar — only when we have a separate large behavior
     if (scrollBehaviorLarge != scrollBehaviorSmall) {
@@ -95,7 +101,7 @@ fun CustomTitleTopAppBar(
             isHomeScreen = isHomeScreen,
             hasBackButton = hasBackButton,
             collapsedFraction = collapsedFraction,
-            actionContent = actionContent,
+            actionContent = actions,
             navigationContent = navigationContent,
             extraInfoCard = extraInfoCard,
             hazeState = hazeState,
@@ -111,7 +117,7 @@ fun CustomTitleTopAppBar(
         subtitle = subtitle,
         isHomeScreen = isHomeScreen,
         hasBackButton = hasBackButton,
-        actionContent = actionContent,
+        actionContent = actions,
         navigationContent = navigationContent,
         userName = userName,
         profileImageUri = profileImageUri,

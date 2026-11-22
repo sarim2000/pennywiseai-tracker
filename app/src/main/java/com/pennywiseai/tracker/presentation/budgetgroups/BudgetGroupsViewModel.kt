@@ -13,15 +13,12 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
@@ -51,32 +48,13 @@ class BudgetGroupsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BudgetGroupsUiState())
     val uiState: StateFlow<BudgetGroupsUiState> = _uiState.asStateFlow()
 
-    // Defaults to the user's current budget-cycle start (e.g. Sep 2026 on
-    // Oct 5 with startDay=25) so opening the screen lands on the cycle that
-    // contains today, not the calendar month. Once the user navigates
-    // forwards/backwards via the month picker, we stop overriding.
-    private val _selectedYearMonth = MutableStateFlow<YearMonth?>(null)
-    private val selectedYearMonth: StateFlow<YearMonth> = _selectedYearMonth
-        .filterNotNull()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = YearMonth.now()
-        )
+    private val selectedYearMonth = MutableStateFlow(YearMonth.now())
 
     // The summary reads today once per subscription: a new day resubscribes, so
     // days left moves on without a relaunch, as on Home.
     private val today = MutableStateFlow(LocalDate.now())
 
     init {
-        // Default to today's calendar month. A user on startDay=25 viewing
-        // the page on Jul 1 should land on the July view (the cycle started
-        // Jun 25 and ends Jul 24, but the page label is the calendar month
-        // today falls in). The cycle's start day still drives the per-budget
-        // displayed window via resolveBudgetWindow, so Monthly cards on the
-        // July view show the (Jun 25..Jul 24) cycle window — same data as
-        // before, just labelled with today's month.
-        _selectedYearMonth.value = YearMonth.now()
         loadBudgetData()
     }
 
@@ -120,7 +98,7 @@ class BudgetGroupsViewModel @Inject constructor(
     }
 
     fun selectPreviousMonth() {
-        _selectedYearMonth.value = selectedYearMonth.value.minusMonths(1)
+        selectedYearMonth.value = selectedYearMonth.value.minusMonths(1)
     }
 
     fun selectNextMonth() {
@@ -131,7 +109,7 @@ class BudgetGroupsViewModel @Inject constructor(
         val current = YearMonth.of(today.year, today.monthValue)
         val next = selectedYearMonth.value.plusMonths(1)
         if (!next.isAfter(current)) {
-            _selectedYearMonth.value = next
+            selectedYearMonth.value = next
         }
     }
 

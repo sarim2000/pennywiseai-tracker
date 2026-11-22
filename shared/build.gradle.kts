@@ -32,7 +32,7 @@ kotlin {
             dependencies {
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.serialization.json)
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1") // same as parser-core's
+                implementation(libs.kotlinx.datetime)
                 implementation(libs.androidx.room.runtime)
                 implementation(project(":parser-core"))
             }

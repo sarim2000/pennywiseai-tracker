@@ -16,7 +16,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            api("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+            api(libs.kotlinx.datetime)
         }
         val jvmMain by getting {
             kotlin.srcDir("src/main/kotlin")
@@ -34,7 +34,7 @@ kotlin {
             kotlin.srcDir("src/test/kotlin")
             resources.srcDir("src/test/resources")
             dependencies {
-                implementation("org.junit.jupiter:junit-jupiter:5.10.0")
+                implementation(libs.junit.jupiter)
                 runtimeOnly("org.junit.platform:junit-platform-launcher")
             }
         }

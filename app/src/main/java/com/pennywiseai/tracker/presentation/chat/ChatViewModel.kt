@@ -135,7 +135,6 @@ class ChatViewModel @Inject constructor(
     val chatStats = combine(llmRepository.getAllMessages(), llmRepository.contextTokens) { visible, tokens ->
         ChatStats(
             messageCount = visible.size,
-            totalCharacters = visible.sumOf { it.message.length },
             estimatedTokens = tokens,
             contextUsagePercent = TokenUtils.calculateContextUsagePercent(tokens, TokenUtils.MODEL_CONTEXT_TOKENS)
         )
@@ -484,7 +483,6 @@ data class ChatUiState(
 
 data class ChatStats(
     val messageCount: Int = 0,
-    val totalCharacters: Int = 0,
     val estimatedTokens: Int = 0,
     val maxTokens: Int = TokenUtils.MODEL_CONTEXT_TOKENS,
     val contextUsagePercent: Int = 0

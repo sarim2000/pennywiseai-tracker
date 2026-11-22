@@ -27,12 +27,13 @@ class IFICBangladeshParser : BankParser() {
         private val ACCOUNT = Regex("""(?:Joint\s+)?A/C\s+[0-9xX*]*\*([0-9]{4})""", RegexOption.IGNORE_CASE)
         private val BALANCE_AFTER = Regex("""BDT\s+([^\s]+)\s+Balance""", RegexOption.IGNORE_CASE)
         private val BALANCE_BEFORE = Regex("""Balance:\s*BDT\s+([^\s]+)""", RegexOption.IGNORE_CASE)
+        private val SENDER_SEPARATOR = Regex("""[\s_-]""")
     }
 
     override fun getBankName(): String = "IFIC Bank (Bangladesh)"
     override fun getCurrency(): String = "BDT"
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s_-]"""), "") == "IFICBANK"
+        sender.uppercase().replace(SENDER_SEPARATOR, "") == "IFICBANK"
 
     private fun money(raw: String): BigDecimal? =
         if (VALID_MONEY.matches(raw)) raw.replace(",", "").toBigDecimalOrNull() else null

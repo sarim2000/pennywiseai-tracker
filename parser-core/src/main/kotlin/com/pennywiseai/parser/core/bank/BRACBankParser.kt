@@ -19,7 +19,7 @@ class BRACBankParser : BankParser() {
     override fun getCurrency() = "BDT"
 
     override fun canHandle(sender: String): Boolean {
-        val normalized = sender.uppercase().replace(Regex("""[\s_-]"""), "")
+        val normalized = sender.uppercase().replace(SENDER_SEPARATOR, "")
         return normalized.contains("BRACBANK") || normalized.contains("BRACBNK")
     }
 
@@ -72,4 +72,8 @@ class BRACBankParser : BankParser() {
     override fun extractReference(message: String): String? = null
 
     override fun detectIsCard(message: String): Boolean = message.contains("Card#", ignoreCase = true)
+
+    private companion object {
+        val SENDER_SEPARATOR = Regex("""[\s_-]""")
+    }
 }

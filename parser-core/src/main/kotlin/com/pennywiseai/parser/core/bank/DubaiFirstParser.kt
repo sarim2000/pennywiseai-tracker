@@ -19,7 +19,7 @@ class DubaiFirstParser : UAEBankParser() {
     override fun getBankName() = "Dubai First"
 
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s_-]"""), "") == "DUBAIFIRST"
+        sender.uppercase().replace(SENDER_SEPARATOR, "") == "DUBAIFIRST"
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
         // Gate on the labelled fields, not the "Card Transaction" heading: the heading may sit in
@@ -57,5 +57,6 @@ class DubaiFirstParser : UAEBankParser() {
         val MERCHANT = Regex("""\bAt:\s*(.+?)\s*(?=\n|\bDate:|\bAvailable\s+Balance:|$)""", RegexOption.IGNORE_CASE)
         val AVAILABLE = Regex("""Available\s+Balance:\s*([A-Z]{3})\s*$NUM""", RegexOption.IGNORE_CASE)
         val REFUND = Regex("""\b(?:refund|reversal|reversed)\b""", RegexOption.IGNORE_CASE)
+        val SENDER_SEPARATOR = Regex("""[\s_-]""")
     }
 }

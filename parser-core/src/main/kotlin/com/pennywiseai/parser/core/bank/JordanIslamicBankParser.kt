@@ -30,7 +30,7 @@ class JordanIslamicBankParser : BankParser() {
     override fun getCurrency() = "JOD"
 
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s\-_]"""), "") == "JIB"
+        sender.uppercase().replace(SENDER_SEPARATOR, "") == "JIB"
 
     private data class Shape(
         val regex: Regex,
@@ -82,5 +82,6 @@ class JordanIslamicBankParser : BankParser() {
         const val ACCT = """حسابكم\s+(?<acct>\d+)\s*-\s*\d+"""
         const val CARD_FIELD_LENGTH = 40
         const val CARD_NAME_LENGTH = 25
+        val SENDER_SEPARATOR = Regex("""[\s\-_]""")
     }
 }

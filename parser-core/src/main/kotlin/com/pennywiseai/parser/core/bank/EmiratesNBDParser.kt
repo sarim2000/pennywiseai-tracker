@@ -13,7 +13,7 @@ class EmiratesNBDParser : UAEBankParser() {
     override fun getBankName() = "Emirates NBD"
 
     override fun canHandle(sender: String): Boolean {
-        val normalizedSender = sender.uppercase().replace(Regex("\\s+"), "")
+        val normalizedSender = sender.uppercase().replace(WHITESPACE, "")
         return normalizedSender.contains("EMIRATESNBD") ||
                 normalizedSender.contains("ENBD") ||
                 normalizedSender.contains("EMIRATESNB")
@@ -140,5 +140,9 @@ class EmiratesNBDParser : UAEBankParser() {
 
             else -> super.extractTransactionType(message)
         }
+    }
+
+    private companion object {
+        val WHITESPACE = Regex("\\s+")
     }
 }

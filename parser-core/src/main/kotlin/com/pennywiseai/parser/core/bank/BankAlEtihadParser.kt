@@ -23,7 +23,7 @@ class BankAlEtihadParser : BankParser() {
     override fun getCurrency() = "JOD"
 
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s\-_]"""), "") == "BANKETIHAD"
+        sender.uppercase().replace(SENDER_SEPARATOR, "") == "BANKETIHAD"
 
     private val purchasePattern = Regex("""^$AMT\s+$CCY\s+at\s+(.+?)\.\s+Card\s+(\d+)""")
     // The name runs to the "." that ends its line, not the first "." — "Dr. Jane Doe", "ACME Co. Ltd".
@@ -70,5 +70,6 @@ class BankAlEtihadParser : BankParser() {
         const val AMT = """([\d,]*\.?\d+)"""
         const val CCY = """([A-Z]{3})"""
         const val NAME_END = """(?=\s*\n|\s+Available\s+balance|\s*$)"""
+        val SENDER_SEPARATOR = Regex("""[\s\-_]""")
     }
 }

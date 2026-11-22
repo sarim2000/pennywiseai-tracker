@@ -30,7 +30,7 @@ class NationalBankOfEgyptParser : BankParser() {
     override fun getCurrency() = "EGP"
 
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s\-_]"""), "").contains("ALAHLY")
+        sender.uppercase().replace(SENDER_SEPARATOR, "").contains("ALAHLY")
 
     private val cardPattern = Regex(
         """تم\s*خصم\s*([\d,]+(?:\.\d+)?)\s*(?:جم|EGP)\s*من\s*بطاقة\s*(الائتمان|الخصم\s*المباشر)\s*""" +
@@ -85,4 +85,8 @@ class NationalBankOfEgyptParser : BankParser() {
     }
 
     private fun amount(raw: String): BigDecimal? = raw.replace(",", "").toBigDecimalOrNull()
+
+    private companion object {
+        val SENDER_SEPARATOR = Regex("""[\s\-_]""")
+    }
 }

@@ -51,7 +51,7 @@ class MixxByYasParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         // Normalize by stripping spaces, dashes and underscores so "MIXX BY YAS",
         // "MIXX-BY-YAS" and "MixxByYas" all collapse to MIXXBYYAS.
-        val normalized = sender.uppercase().replace(Regex("""[\s\-_]"""), "")
+        val normalized = sender.uppercase().replace(SENDER_SEPARATOR, "")
         return normalized.contains("MIXXBYYAS")
     }
 
@@ -220,5 +220,9 @@ class MixxByYasParser : BankParser() {
         }
 
         return true
+    }
+
+    private companion object {
+        val SENDER_SEPARATOR = Regex("""[\s\-_]""")
     }
 }

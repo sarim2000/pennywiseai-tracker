@@ -31,7 +31,7 @@ class SabbBankParser : BankParser() {
     override fun getCurrency() = "SAR"
 
     override fun canHandle(sender: String): Boolean {
-        val normalized = sender.uppercase().replace(Regex("[\\s\\-_]"), "")
+        val normalized = sender.uppercase().replace(SENDER_SEPARATOR, "")
         // Match sender variants like "SAB", "SABB", "SAB-Bank", "JD-SAB-S".
         // Avoid catching banks with "SAB" as a sub-token only when there is
         // additional bank-identifying context.
@@ -207,5 +207,6 @@ class SabbBankParser : BankParser() {
 
     private companion object {
         val SAB_TOKEN = Regex("""(?:^|[^A-Z])SAB(?:[^A-Z]|$)""")
+        val SENDER_SEPARATOR = Regex("[\\s\\-_]")
     }
 }

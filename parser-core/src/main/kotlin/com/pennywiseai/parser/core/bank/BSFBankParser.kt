@@ -36,7 +36,7 @@ class BSFBankParser : BankParser() {
     override fun getCurrency() = "SAR"
 
     override fun canHandle(sender: String): Boolean {
-        val normalized = sender.uppercase().replace(Regex("[\\s\\-_]"), "")
+        val normalized = sender.uppercase().replace(SENDER_SEPARATOR, "")
         if (normalized == "BSF" || normalized.contains("BSFR")) return true
         // DLT-style headers e.g. "AD-BSF-S", "VK-BSF-T"
         if (BSF_TOKEN.containsMatchIn(sender.uppercase())) return true
@@ -153,5 +153,6 @@ class BSFBankParser : BankParser() {
 
     private companion object {
         val BSF_TOKEN = Regex("""(?:^|[^A-Z])BSF(?:[^A-Z]|$)""")
+        val SENDER_SEPARATOR = Regex("[\\s\\-_]")
     }
 }

@@ -20,7 +20,7 @@ class ChaseUKParser : BankParser() {
     override fun getCurrency() = "GBP"
 
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s_-]"""), "") == "CHASEUK"
+        sender.uppercase().replace(SENDER_SEPARATOR, "") == "CHASEUK"
 
     private val moneyInPattern = Regex(
         """£\s*([0-9,]+(?:\.\d{1,2})?)\s+just\s+landed\s+in\s+.+?\s+from\s+(.+?)\s*[.!]?\s*$""",
@@ -43,5 +43,9 @@ class ChaseUKParser : BankParser() {
             bankName = getBankName(),
             currency = getCurrency()
         )
+    }
+
+    private companion object {
+        val SENDER_SEPARATOR = Regex("""[\s_-]""")
     }
 }

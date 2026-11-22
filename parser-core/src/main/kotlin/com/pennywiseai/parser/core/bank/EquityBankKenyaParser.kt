@@ -23,7 +23,7 @@ class EquityBankKenyaParser : BankParser() {
 
     // Alphanumeric sender: "Equity Bank", "EQUITYBANK", "EQUITY_BANK". Equitas (India) uses EQUITA/EQUITS.
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s_-]"""), "").contains("EQUITY")
+        sender.uppercase().replace(SENDER_SEPARATOR, "").contains("EQUITY")
 
     override fun extractAmount(message: String): BigDecimal? {
         val match = Regex("""(?:Kshs?|KES)\.?\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE).find(message)
@@ -56,4 +56,8 @@ class EquityBankKenyaParser : BankParser() {
     override fun extractAccountLast4(message: String): String? =
         Regex("""to\s+your\s+Equity\s+account\s+[0-9*X]*?(\d{4})\b""", RegexOption.IGNORE_CASE)
             .find(message)?.groupValues?.get(1)
+
+    private companion object {
+        val SENDER_SEPARATOR = Regex("""[\s_-]""")
+    }
 }

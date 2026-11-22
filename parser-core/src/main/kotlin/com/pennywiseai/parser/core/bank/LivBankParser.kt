@@ -19,7 +19,7 @@ class LivBankParser : UAEBankParser() {
     override fun getBankName() = "Liv Bank"
 
     override fun canHandle(sender: String): Boolean {
-        val normalizedSender = sender.uppercase().replace(Regex("\\s+"), "")
+        val normalizedSender = sender.uppercase().replace(WHITESPACE, "")
         return normalizedSender.contains("LIV")
     }
 
@@ -205,5 +205,9 @@ class LivBankParser : UAEBankParser() {
 
         // Default to AED for Liv Bank (UAE Dirham)
         return "AED"
+    }
+
+    private companion object {
+        val WHITESPACE = Regex("\\s+")
     }
 }

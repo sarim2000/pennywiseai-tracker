@@ -29,7 +29,7 @@ class IslamicInternationalArabBankParser : BankParser() {
     override fun getCurrency() = "JOD"
 
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s\-_]"""), "") == "ARABIISLAMI"
+        sender.uppercase().replace(SENDER_SEPARATOR, "") == "ARABIISLAMI"
 
     private val amountPattern = Regex("""المبلغ:\s*([\d,]+(?:\.\d+)?)\s*([A-Z]{3})""")
     private val accountPattern = Regex("""حساب:\s*(\d+)(?:\*\d+)?""")
@@ -96,4 +96,8 @@ class IslamicInternationalArabBankParser : BankParser() {
 
     private val branchSuffix =
         Regex("""\s*[-–]\s*(?:AL[\s\-]?)?(?:AMMAN|ZARQA|IRBID|AQABA|JUBEIHA)$""", RegexOption.IGNORE_CASE)
+
+    private companion object {
+        val SENDER_SEPARATOR = Regex("""[\s\-_]""")
+    }
 }

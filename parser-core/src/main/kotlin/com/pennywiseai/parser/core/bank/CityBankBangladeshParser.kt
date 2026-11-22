@@ -32,6 +32,7 @@ class CityBankBangladeshParser : BankParser() {
         private val numericBalanceLine = Regex("""Tk\.?\s+($NUMBER)\s+Balance""", RegexOption.IGNORE_CASE)
         // Both A/C: ***1234 and A/C: 7777***1234 are observed structures.
         private val accountLine = Regex("""A/C\s*:\s*[0-9]*\*+([0-9]{4})""", RegexOption.IGNORE_CASE)
+        private val SENDER_SEPARATOR = Regex("""[\s_-]""")
     }
 
     private data class Fields(
@@ -44,7 +45,7 @@ class CityBankBangladeshParser : BankParser() {
     override fun getCurrency(): String = "BDT"
 
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s_-]"""), "") == "CITYBANK"
+        sender.uppercase().replace(SENDER_SEPARATOR, "") == "CITYBANK"
 
     private fun fields(message: String): Fields? {
         if (isNonTransactionMessage(message)) return null

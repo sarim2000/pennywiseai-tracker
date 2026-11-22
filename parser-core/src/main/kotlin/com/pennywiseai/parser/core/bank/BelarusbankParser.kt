@@ -10,7 +10,7 @@ class BelarusbankParser : BankParser() {
     override fun getCurrency() = "BYN"
 
     override fun canHandle(sender: String): Boolean {
-        return sender.trim().uppercase().replace(Regex("""^[A-Z]{2}-|-[A-Z]$"""), "") == "ASB.BY"
+        return sender.trim().uppercase().replace(DLT_AFFIXES, "") == "ASB.BY"
     }
 
     /** Groups: 1 = operation, 2 = amount, 3 = card number. */
@@ -108,5 +108,9 @@ class BelarusbankParser : BankParser() {
         return transactionPattern.containsMatchIn(message) &&
             Regex("""\bKARTA\b""", RegexOption.IGNORE_CASE)
                 .containsMatchIn(message)
+    }
+
+    private companion object {
+        val DLT_AFFIXES = Regex("""^[A-Z]{2}-|-[A-Z]$""")
     }
 }

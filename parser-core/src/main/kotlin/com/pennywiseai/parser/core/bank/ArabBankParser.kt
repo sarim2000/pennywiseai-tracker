@@ -50,7 +50,7 @@ class ArabBankParser : BankParser() {
         val normalized = sender.uppercase()
         if (normalized.contains("ARABBANK")) return true
         // DLT-style "AB-ARABBK-S": strip spaces/dashes/underscores then match.
-        val stripped = normalized.replace(Regex("""[\s\-_]"""), "")
+        val stripped = normalized.replace(SENDER_SEPARATOR, "")
         return stripped.contains("ARABBANK") ||
             stripped.matches(DLT_SENDER)
     }
@@ -370,5 +370,6 @@ class ArabBankParser : BankParser() {
 
     private companion object {
         val DLT_SENDER = Regex("""^[A-Z]{2}ARABBK[A-Z]?$""")
+        val SENDER_SEPARATOR = Regex("""[\s\-_]""")
     }
 }

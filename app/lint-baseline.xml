@@ -1168,17 +1168,6 @@
     </issue>
 
     <issue
-        id="ModifierParameter"
-        message="Modifier parameter should be the first optional parameter"
-        errorLine1="    modifier: Modifier = Modifier"
-        errorLine2="    ~~~~~~~~">
-        <location
-            file="src/main/java/com/pennywiseai/tracker/ui/components/UnifiedAccountsCard.kt"
-            line="34"
-            column="5"/>
-    </issue>
-
-    <issue
         id="MutableCollectionMutableState"
         message="Creating a MutableState object with a mutable collection type"
         errorLine1="        mutableStateOf(existingRule?.conditions?.toMutableList() ?: mutableListOf("

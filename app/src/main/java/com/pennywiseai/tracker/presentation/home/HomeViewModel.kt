@@ -134,7 +134,6 @@ class HomeViewModel @Inject constructor(
      */
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
 
-    private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
@@ -628,7 +627,7 @@ class HomeViewModel @Inject constructor(
                 _cachedAccountBalances.value = allBalances
 
                 // Get hidden accounts from SharedPreferences
-                val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+                val hiddenAccounts = ignoredAccountsStore.keys()
 
                 // Filter out hidden accounts and apply business filter
                 val balances = filterVisibleBalances(allBalances, hiddenAccounts)
@@ -1048,7 +1047,7 @@ class HomeViewModel @Inject constructor(
             val allBalances = cachedAccountBalances
             if (allBalances.isEmpty()) return@launch
 
-            val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+            val hiddenAccounts = ignoredAccountsStore.keys()
 
             val visibleBalances = filterVisibleBalances(allBalances, hiddenAccounts)
 
@@ -1220,7 +1219,7 @@ class HomeViewModel @Inject constructor(
             val allBalances = cachedAccountBalances
             if (allBalances.isEmpty()) return@launch
 
-            val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+            val hiddenAccounts = ignoredAccountsStore.keys()
 
             val balances = filterVisibleBalances(allBalances, hiddenAccounts)
             val rawRegularAccounts = spendableAccounts(balances)

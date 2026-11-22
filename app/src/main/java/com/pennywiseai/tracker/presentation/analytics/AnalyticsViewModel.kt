@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.ledger.countingTransferPairsOnce
 import com.pennywiseai.tracker.data.ledger.forTotals
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
@@ -95,6 +96,7 @@ class AnalyticsViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val categoryRepository: CategoryRepository,
     private val tagRepository: TagRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
@@ -290,8 +292,7 @@ class AnalyticsViewModel @Inject constructor(
             fun scopeTransactions(
                 txs: List<TransactionWithSplits>
             ): List<TransactionWithSplits> {
-                val hidden = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
-                    .getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+                val hidden = ignoredAccountsStore.keys()
                 val profileKeys = buildProfileAccountKeys(balances)
                 val keptIds = filterTransactionsByProfile(
                     txs.map { it.transaction },

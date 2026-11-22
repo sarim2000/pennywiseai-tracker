@@ -21,6 +21,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
 import com.pennywiseai.tracker.data.mapper.withTransferAccount
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.receipt.ReceiptFiles
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -79,6 +80,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val ruleRepository: com.pennywiseai.tracker.domain.repository.RuleRepository,
     private val detectBalanceDiscrepancy: com.pennywiseai.tracker.domain.usecase.DetectBalanceDiscrepancyUseCase,
     private val goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
 
@@ -383,11 +385,9 @@ class TransactionDetailViewModel @Inject constructor(
     )
 
     // Available accounts for linking (excluding hidden accounts)
-    private val sharedPrefs = context.getSharedPreferences("account_prefs", android.content.Context.MODE_PRIVATE)
-
     val availableAccounts = accountBalanceRepository.getAllLatestBalances()
         .map { balances ->
-            val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+            val hiddenAccounts = ignoredAccountsStore.keys()
             balances
                 .filter { balance ->
                     val key = "${balance.bankName}_${balance.accountLast4}"

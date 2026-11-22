@@ -302,6 +302,7 @@
     <string name="rules_reset">รีเซ็ต</string>
     <string name="rules_auto_categorization_title">การจัดหมวดหมู่โดยอัตโนมัติ</string>
     <string name="rules_auto_categorization_body">เปิดใช้งานกฎเพื่อจัดหมวดหมู่ธุรกรรมของคุณโดยอัตโนมัติบนพื้นฐานรูปแบบ</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
     <string name="rules_group_daily">ค่าใช้จ่ายประจำวัน</string>
     <string name="rules_group_income">รายได้และเงินคืน</string>
     <string name="rules_group_recurring">การชำระเงินซ้ำ</string>

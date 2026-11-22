@@ -159,6 +159,9 @@
     <string name="manage_accounts_credit_limit">Крэдытны ліміт</string>
     <!-- %1$d = utilization percentage -->
     <string name="manage_accounts_utilization_used">(выкарыстана %1$d%%)</string>
+    <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
+    <!-- %1$s = formatted available credit -->
+    <!-- Summary cards at the top of Manage Accounts -->
     <string name="manage_accounts_more_options">Іншыя параметры</string>
     <string name="manage_accounts_action_edit">Змяніць</string>
     <string name="manage_accounts_action_update">Абнавіць</string>

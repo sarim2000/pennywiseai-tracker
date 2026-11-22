@@ -487,6 +487,7 @@
     <string name="rules_reset">إعادة تعيين</string>
     <string name="rules_auto_categorization_title">التصنيف التلقائي</string>
     <string name="rules_auto_categorization_body">تمكين القواعد لتصنيف معاملاتك تلقائيًا بناءً على الأنماط</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
     <string name="rules_group_daily">المصروفات اليومية</string>
     <string name="rules_group_income">الدخل والاسترداد النقدي</string>
     <string name="rules_group_recurring">المدفوعات المتكررة</string>

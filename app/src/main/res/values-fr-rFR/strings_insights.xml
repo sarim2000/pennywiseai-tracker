@@ -3,6 +3,11 @@
     <!-- Home: the section, its title in Edit home, and the menu entry -->
     <!-- Insights screen -->
     <!-- What active subscriptions cost a month, beside this cycle's figures -->
+    <!-- How long the money in savings, current and cash accounts would last at a usual month's spending -->
+    <!-- Some balances are estimates. %1$s = a number of months, e.g. "2.4 months" -->
+    <!-- %1$s = a number of months with one decimal, e.g. "2.4" -->
+    <!-- %1$s = a whole number of months -->
+    <!-- Some balances are unknown, so the money held may last longer than this -->
     <!-- Empty page for someone with earlier transactions, early in a new cycle -->
     <!-- Under the title of an insight the user dismissed, in the "Show dismissed" list -->
     <!-- %1$d = how many insights were dismissed this cycle -->
@@ -24,6 +29,8 @@
     <!-- %1$s = category, %2$s = date -->
     <!-- Price change. %1$s = subscription name, %2$s = new amount -->
     <!-- Card utilisation. %1$s = percentage, %2$s = card name -->
+    <!-- Runway. %1$s = how long, e.g. "2.4 months", "about 2.4 months" (some balances unknown) or "under a month" -->
+    <!-- Under the runway's Held and Usual month figures. %1$d = months many aim for -->
     <!-- Bills due. %1$s = total, %2$d = days -->
     <!-- %1$s = the subscriptions due, soonest first, as a list ("Spotify and Netflix"), %2$s = date of the first -->
     <!-- The first is due today. %1$s = the subscriptions due, soonest first, as a list -->

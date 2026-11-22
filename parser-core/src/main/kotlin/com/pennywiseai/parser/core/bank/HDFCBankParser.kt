@@ -485,11 +485,6 @@ class HDFCBankParser : BaseIndianBankParser() {
         return super.extractBalance(message)
     }
 
-    override fun cleanMerchantName(merchant: String): String {
-        // Use parent class implementation which already uses CompiledPatterns
-        return super.cleanMerchantName(merchant)
-    }
-
     override fun isTransactionMessage(message: String): Boolean {
         // Skip E-Mandate notifications
         if (isEMandateNotification(message)) {

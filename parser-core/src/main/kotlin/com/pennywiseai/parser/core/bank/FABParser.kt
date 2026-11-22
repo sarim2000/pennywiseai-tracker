@@ -116,11 +116,6 @@ open class FABParser : UAEBankParser() {
         return super.extractAmount(message)
     }
 
-    override fun extractTransactionType(message: String): TransactionType? {
-        // Use base class implementation which covers all FAB patterns
-        return super.extractTransactionType(message)
-    }
-
     override fun extractMerchant(message: String, sender: String): String? {
         // Pattern 1: Credit/Debit card - merchant extraction for both single-line and multi-line formats
         if (containsCardPurchase(message)) {

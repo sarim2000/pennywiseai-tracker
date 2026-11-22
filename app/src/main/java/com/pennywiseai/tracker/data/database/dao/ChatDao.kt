@@ -13,9 +13,6 @@ interface ChatDao {
     @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
     fun getAllMessagesIncludingSystem(): Flow<List<ChatMessage>>
     
-    @Query("SELECT * FROM chat_messages WHERE timestamp > :since ORDER BY timestamp ASC")
-    fun getMessagesSince(since: Long): Flow<List<ChatMessage>>
-    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessage(message: ChatMessage)
     

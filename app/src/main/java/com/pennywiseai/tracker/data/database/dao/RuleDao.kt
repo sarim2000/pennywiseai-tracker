@@ -37,12 +37,6 @@ interface RuleDao {
     @Query("DELETE FROM transaction_rules WHERE id = :ruleId")
     suspend fun deleteRuleById(ruleId: String)
 
-    @Query("SELECT COUNT(*) FROM transaction_rules")
-    suspend fun getRuleCount(): Int
-
-    @Query("SELECT COUNT(*) FROM transaction_rules WHERE is_active = 1")
-    suspend fun getActiveRuleCount(): Int
-
     @Query("DELETE FROM transaction_rules")
     suspend fun deleteAllRules()
 }

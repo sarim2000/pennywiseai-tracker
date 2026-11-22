@@ -37,18 +37,8 @@ interface SubscriptionDao {
     """)
     suspend fun getDueIncomeSubscriptions(date: LocalDate): List<SubscriptionEntity>
 
-    @Query("SELECT * FROM subscriptions WHERE merchant_name = :merchantName AND state = 'HIDDEN' LIMIT 1")
-    suspend fun getHiddenSubscriptionByMerchant(merchantName: String): SubscriptionEntity?
-
     @Query("SELECT * FROM subscriptions WHERE umn = :umn LIMIT 1")
     suspend fun getSubscriptionByUmn(umn: String): SubscriptionEntity?
-
-    @Query("SELECT * FROM subscriptions WHERE merchant_name = :merchantName AND amount = :amount AND next_payment_date = :paymentDate LIMIT 1")
-    suspend fun getSubscriptionByMerchantAmountAndDate(
-        merchantName: String,
-        amount: BigDecimal,
-        paymentDate: LocalDate
-    ): SubscriptionEntity?
 
     @Query("SELECT * FROM subscriptions WHERE merchant_name = :merchantName AND amount = :amount LIMIT 1")
     suspend fun getSubscriptionByMerchantAndAmount(

@@ -34,9 +34,6 @@ interface BudgetDao {
     @Query("SELECT * FROM budgets WHERE id = :budgetId")
     fun getBudgetByIdFlow(budgetId: Long): Flow<BudgetEntity?>
 
-    @Query("SELECT * FROM budgets WHERE name = :name AND is_active = 1 LIMIT 1")
-    suspend fun getActiveBudgetByName(name: String): BudgetEntity?
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBudget(budget: BudgetEntity): Long
 
@@ -83,30 +80,6 @@ interface BudgetDao {
     @Query("DELETE FROM budget_categories WHERE budget_id = :budgetId")
     suspend fun deleteCategoriesForBudget(budgetId: Long)
 
-    @Query("DELETE FROM budget_categories WHERE id = :categoryId")
-    suspend fun deleteBudgetCategoryById(categoryId: Long)
-
-    // Get budgets that include a specific category (for spending calculation)
-    @Query("""
-        SELECT b.* FROM budgets b
-        INNER JOIN budget_categories bc ON b.id = bc.budget_id
-        WHERE bc.category_name = :categoryName
-        AND b.is_active = 1
-        AND :today >= b.start_date
-        AND :today <= b.end_date
-    """)
-    suspend fun getBudgetsForCategory(categoryName: String, today: LocalDate): List<BudgetEntity>
-
-    // Get budgets that include all categories
-    @Query("""
-        SELECT * FROM budgets
-        WHERE include_all_categories = 1
-        AND is_active = 1
-        AND :today >= start_date
-        AND :today <= end_date
-    """)
-    suspend fun getBudgetsWithAllCategories(today: LocalDate): List<BudgetEntity>
-
     @Query("DELETE FROM budgets")
     suspend fun deleteAllBudgets()
 
@@ -121,14 +94,6 @@ interface BudgetDao {
         WHERE b.is_active = 1
     """)
     fun getAllAssignedCategoryNames(): Flow<List<String>>
-
-    @Query("""
-        SELECT b.* FROM budgets b
-        INNER JOIN budget_categories bc ON b.id = bc.budget_id
-        WHERE b.is_active = 1 AND bc.category_name = :categoryName
-        LIMIT 1
-    """)
-    suspend fun getActiveBudgetForCategory(categoryName: String): BudgetEntity?
 
     @Query("UPDATE budget_categories SET budget_amount = :amount WHERE budget_id = :budgetId AND category_name = :categoryName")
     suspend fun updateCategoryBudgetAmount(budgetId: Long, categoryName: String, amount: java.math.BigDecimal)

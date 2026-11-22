@@ -307,9 +307,6 @@ interface TransactionDao {
     @Query("UPDATE transactions SET updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime'), is_deleted = 1, transaction_hash = 'DELETED_' || id || '_' || transaction_hash WHERE id = :transactionId")
     suspend fun softDeleteTransaction(transactionId: Long)
 
-    @Query("UPDATE transactions SET updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime'), is_deleted = 1, transaction_hash = 'DELETED_' || id || '_' || transaction_hash WHERE transaction_hash = :transactionHash")
-    suspend fun softDeleteByHash(transactionHash: String)
-
     // Method to check if transaction exists by hash (including deleted)
     @Query("SELECT * FROM transactions WHERE transaction_hash = :transactionHash LIMIT 1")
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?

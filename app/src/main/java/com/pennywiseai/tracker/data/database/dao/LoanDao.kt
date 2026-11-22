@@ -43,9 +43,6 @@ interface LoanDao {
     @Query("SELECT * FROM loans ORDER BY created_at DESC")
     fun getAllLoans(): Flow<List<LoanEntity>>
 
-    @Query("SELECT * FROM loans WHERE status = :status ORDER BY created_at DESC")
-    fun getLoansByStatus(status: LoanStatus): Flow<List<LoanEntity>>
-
     @Query("SELECT COUNT(*) FROM loans WHERE status = 'ACTIVE'")
     fun getActiveLoanCount(): Flow<Int>
 

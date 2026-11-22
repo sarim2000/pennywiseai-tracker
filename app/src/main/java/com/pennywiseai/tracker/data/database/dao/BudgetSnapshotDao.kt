@@ -35,12 +35,6 @@ interface BudgetSnapshotDao {
         insertCategorySnapshots(categorySnapshots)
     }
 
-    @Query("SELECT * FROM budget_month_snapshots WHERE year = :year AND month = :month ORDER BY display_order ASC")
-    suspend fun getGroupSnapshots(year: Int, month: Int): List<BudgetMonthSnapshotEntity>
-
-    @Query("SELECT * FROM budget_category_month_snapshots WHERE year = :year AND month = :month")
-    suspend fun getCategorySnapshots(year: Int, month: Int): List<BudgetCategoryMonthSnapshotEntity>
-
     // Full-table reads used by backup export.
     @Query("SELECT * FROM budget_month_snapshots")
     suspend fun getAllGroupSnapshots(): List<BudgetMonthSnapshotEntity>

@@ -24,7 +24,6 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
-import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
 import com.pennywiseai.tracker.presentation.transactions.normalizeReference
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.pickerDefault
@@ -46,7 +45,6 @@ class AddViewModel @Inject constructor(
     @ApplicationContext private val appContext: Context,
     private val addTransactionUseCase: AddTransactionUseCase,
     private val addSubscriptionUseCase: AddSubscriptionUseCase,
-    private val getCategoriesUseCase: GetCategoriesUseCase,
     private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
@@ -233,7 +231,7 @@ class AddViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Categories for dropdowns
-    val categories = getCategoriesUseCase.execute()
+    val categories = categoryRepository.getAllCategories()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

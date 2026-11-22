@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.core.entitlement.FreeTierLimits
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
@@ -341,33 +340,6 @@ class RulesViewModel @Inject constructor(
                         }
                     )
                 }
-                _batchApplyResult.value = result
-            } catch (e: Exception) {
-                e.printStackTrace()
-                _batchApplyResult.value = BatchApplyResult(
-                    totalProcessed = 0,
-                    totalUpdated = 0,
-                    errors = listOf("Error: ${e.message}")
-                )
-            } finally {
-                _isLoading.value = false
-                _batchApplyProgress.value = null
-            }
-        }
-    }
-
-    fun applyAllRulesToPastTransactions() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _batchApplyProgress.value = 0 to 0
-            _batchApplyResult.value = null
-
-            try {
-                val result = applyRulesToPastTransactionsUseCase.applyAllActiveRulesToTransactions(
-                    onProgress = { processed, total ->
-                        _batchApplyProgress.value = processed to total
-                    }
-                )
                 _batchApplyResult.value = result
             } catch (e: Exception) {
                 e.printStackTrace()

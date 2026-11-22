@@ -7,7 +7,6 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface RuleApplicationDao {
 
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertApplication(application: RuleApplicationEntity)
 

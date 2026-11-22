@@ -26,9 +26,9 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
@@ -276,7 +276,7 @@ object IconProvider {
         }
 
         val effectiveCategory = if (category.isValidCategoryOverride()) category!!
-            else CategoryMapping.getCategory(merchantName)
+        else CategoryMapping.getCategory(merchantName)
 
         CategoryMapping.emojiFor(effectiveCategory)?.let {
             return IconResource.Emoji(it, CategoryMapping.colorFor(effectiveCategory))
@@ -288,7 +288,7 @@ object IconProvider {
             icon = categoryInfo.icon,
             // A user category keeps its own color; unknown names fall back to Others'.
             tint = if (effectiveCategory in CategoryMapping.userStyles) CategoryMapping.colorFor(effectiveCategory)
-                else categoryInfo.color
+            else categoryInfo.color
         )
     }
 }

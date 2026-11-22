@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.aiaccess
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
@@ -16,20 +16,20 @@ import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
-import kotlinx.serialization.json.JsonArray
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.add
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import javax.inject.Inject

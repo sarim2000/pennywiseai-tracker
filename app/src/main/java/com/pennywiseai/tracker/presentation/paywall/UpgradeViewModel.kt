@@ -2,13 +2,13 @@ package com.pennywiseai.tracker.presentation.paywall
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.billing.PurchaseLauncher
 import com.pennywiseai.tracker.billing.PurchaseResult
-import com.pennywiseai.tracker.BuildConfig
-import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.billing.license.LicenseManager
+import com.pennywiseai.tracker.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow

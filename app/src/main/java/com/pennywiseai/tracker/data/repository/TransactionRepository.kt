@@ -57,7 +57,6 @@ open class TransactionRepository @Inject constructor(
             endDate.atTime(23, 59, 59)
         )
 
-
     fun getAllCurrencies(): Flow<List<String>> =
         transactionDao.getAllCurrencies()
 

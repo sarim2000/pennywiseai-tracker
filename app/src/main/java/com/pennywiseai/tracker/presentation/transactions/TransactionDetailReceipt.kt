@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -62,6 +63,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.TransactionAvatar
 import com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory
+import com.pennywiseai.tracker.ui.components.cards.unsorted
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
@@ -490,7 +492,7 @@ private fun primaryRows(
     }
     val categoryColor = when {
         isSplit -> MaterialTheme.colorScheme.primary
-        isUnsortedCategory(transaction.category) -> MaterialTheme.colorScheme.tertiary
+        isUnsortedCategory(transaction.category) -> MaterialTheme.colorScheme.unsorted
         else -> CategoryMapping.colorFor(transaction.category)
     }
     // Account, or both legs of a paired transfer. An account without a number
@@ -720,11 +722,12 @@ private fun DetailValueRow(
 /** The category's name on a wash of its colour, with a dropdown chevron. */
 @Composable
 private fun CategoryDropdownChip(text: String, color: Color) {
+    val fill = color.copy(alpha = Dimensions.Alpha.categoryTint)
     Surface(
         shape = CircleShape,
-        color = color.copy(alpha = Dimensions.Alpha.categoryTint),
-        // Ink nudged for the wash of itself it sits on; the wash keeps the raw hue.
-        contentColor = MaterialTheme.colorScheme.inkOnWash(color, Dimensions.Alpha.categoryTint),
+        color = fill,
+        // The wash lowers the colour's contrast with itself: check it over the row (GroupedRow's fill).
+        contentColor = color.readableOn(listOf(fill.compositeOver(MaterialTheme.colorScheme.surfaceContainerLow))),
         modifier = Modifier.heightIn(min = Dimensions.Component.chipHeight)
     ) {
         Row(

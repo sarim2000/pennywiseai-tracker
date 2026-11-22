@@ -330,6 +330,7 @@
     <string name="rules_reset">Сброс</string>
     <string name="rules_auto_categorization_title">Автоматическая категоризация</string>
     <string name="rules_auto_categorization_body">Включите правила для автоматической классификации ваших транзакций на основе шаблонов</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
     <string name="rules_group_daily">Ежедневные расходы</string>
     <string name="rules_group_income">Доход &amp; возврат</string>
     <string name="rules_group_recurring">Повторяющиеся платежи</string>

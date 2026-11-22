@@ -123,6 +123,13 @@
     <string name="budgets_tracking_all">Suivi de toutes les dépenses</string>
     <string name="budgets_chart_actual">Réel</string>
     <string name="budgets_chart_pace">Rythme budgétaire</string>
+    <!-- ══ Plan tab: header and the Budgets section ══ -->
+    <!-- %1$s = month name, e.g. "November" -->
+    <!-- Under the amount left. %1$s = the month's total limit -->
+    <!-- Under the amount overspent. %1$s = the month's total limit -->
+    <!-- %1$d = days left, %2$s = amount that can be spent each day -->
+    <!-- Under a budget's amount: what's left of it, or how far past it -->
+    <!-- %1$s = spent, %2$s = limit -->
     <!-- ══ Budget edit screen ══ -->
     <string name="budget_edit_title_edit">Modifier le budget</string>
     <string name="budget_edit_title_new">Nouveau budget</string>
@@ -323,4 +330,14 @@
     <string name="analytics_forecast_for">Prévision pour %1$s</string>
     <string name="analytics_forecast_above_usual">Environ %1$s de plus que d\'habitude</string>
     <string name="analytics_forecast_stay_under">Dépensez moins de %1$s par jour pour rester à %2$s.</string>
+    <!-- ══ Insights tab (redesign) ══ -->
+    <!-- Small line above the Insights title -->
+    <!-- Period picker: the third button, which opens the other periods -->
+    <!-- Hero label; %1$s = the period, e.g. "November" or "Current FY" -->
+    <!-- Hero label for a non-spend type view; %1$s = type (e.g. "Income"), %2$s = period -->
+    <!-- Short financial-year label under a bar; %1$s = two-digit end year, e.g. "26" -->
+    <!-- Change against the previous period. %1$d = percent, %2$s = previous period (e.g. "October") -->
+    <!-- The period is still running, so it is compared with the same days of the previous one -->
+    <!-- %1$s = average amount of one transaction -->
+    <!-- A suggested question; %1$s = a month, e.g. "August" -->
 </resources>

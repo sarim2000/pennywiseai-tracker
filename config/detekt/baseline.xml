@@ -1763,7 +1763,6 @@
     <ID>NewLineAtEndOfFile:CardEntity.kt$com.pennywiseai.tracker.data.database.entity.CardEntity.kt</ID>
     <ID>NewLineAtEndOfFile:CategoriesScreen.kt$com.pennywiseai.tracker.presentation.categories.CategoriesScreen.kt</ID>
     <ID>NewLineAtEndOfFile:CategoryChip.kt$com.pennywiseai.tracker.ui.components.CategoryChip.kt</ID>
-    <ID>NewLineAtEndOfFile:CategoryRepository.kt$com.pennywiseai.tracker.data.repository.CategoryRepository.kt</ID>
     <ID>NewLineAtEndOfFile:CentralBankOfIndiaParser.kt$com.pennywiseai.parser.core.bank.CentralBankOfIndiaParser.kt</ID>
     <ID>NewLineAtEndOfFile:CharlesSchwabParser.kt$com.pennywiseai.parser.core.bank.CharlesSchwabParser.kt</ID>
     <ID>NewLineAtEndOfFile:ChatDao.kt$com.pennywiseai.tracker.data.database.dao.ChatDao.kt</ID>

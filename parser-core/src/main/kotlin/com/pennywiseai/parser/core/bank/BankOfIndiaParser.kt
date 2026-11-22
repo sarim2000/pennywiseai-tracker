@@ -26,14 +26,14 @@ class BankOfIndiaParser : BaseIndianBankParser() {
         if (normalizedSender in boiSenders) return true
 
         // DLT patterns (XX-BOIIND-S/T or XX-BOIBNK-S/T format)
-        return normalizedSender.matches(Regex("^[A-Z]{2}-BOIIND-[ST]$")) ||
-            normalizedSender.matches(Regex("^[A-Z]{2}-BOIBNK-[ST]$")) ||
-            normalizedSender.matches(Regex("^[A-Z]{2}-BOI-[ST]$")) ||
-            normalizedSender.matches(Regex("^[A-Z]{2}-BOIIND$")) ||
-            normalizedSender.matches(Regex("^[A-Z]{2}-BOIBNK$")) ||
-            normalizedSender.matches(Regex("^[A-Z]{2}-BOI$")) ||
-            normalizedSender.matches(Regex("^BK-BOIIND.*$")) ||
-            normalizedSender.matches(Regex("^JD-BOIIND.*$"))
+        return normalizedSender.matches(BOIIND_DLT_SENDER) ||
+                normalizedSender.matches(BOIBNK_DLT_SENDER) ||
+                normalizedSender.matches(BOI_DLT_SENDER) ||
+                normalizedSender.matches(BOIIND_LEGACY_SENDER) ||
+                normalizedSender.matches(BOIBNK_LEGACY_SENDER) ||
+                normalizedSender.matches(BOI_LEGACY_SENDER) ||
+                normalizedSender.matches(BK_BOIIND_SENDER) ||
+                normalizedSender.matches(JD_BOIIND_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -379,5 +379,16 @@ class BankOfIndiaParser : BaseIndianBankParser() {
 
         // The base class skips OTP, promotional and other non-transaction messages.
         return super.isTransactionMessage(message)
+    }
+
+    private companion object {
+        val BOIIND_DLT_SENDER = Regex("^[A-Z]{2}-BOIIND-[ST]$")
+        val BOIBNK_DLT_SENDER = Regex("^[A-Z]{2}-BOIBNK-[ST]$")
+        val BOI_DLT_SENDER = Regex("^[A-Z]{2}-BOI-[ST]$")
+        val BOIIND_LEGACY_SENDER = Regex("^[A-Z]{2}-BOIIND$")
+        val BOIBNK_LEGACY_SENDER = Regex("^[A-Z]{2}-BOIBNK$")
+        val BOI_LEGACY_SENDER = Regex("^[A-Z]{2}-BOI$")
+        val BK_BOIIND_SENDER = Regex("^BK-BOIIND.*$")
+        val JD_BOIIND_SENDER = Regex("^JD-BOIIND.*$")
     }
 }

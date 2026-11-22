@@ -18,7 +18,7 @@ class CBEBankParser : BankParser() {
                 upperSender.contains("COMMERCIALBANK") ||
                 upperSender.contains("CBEBANK") ||
                 // DLT patterns for Ethiopia might be different
-                upperSender.matches(Regex("""^[A-Z]{2}-CBE-[A-Z]$"""))
+                upperSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -238,5 +238,9 @@ class CBEBankParser : BankParser() {
         }
 
         return super.isTransactionMessage(message)
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("""^[A-Z]{2}-CBE-[A-Z]$""")
     }
 }

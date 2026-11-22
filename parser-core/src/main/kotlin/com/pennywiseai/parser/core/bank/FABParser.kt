@@ -75,7 +75,7 @@ open class FABParser : UAEBankParser() {
                 upperSender.contains("FABBANK") ||
                 upperSender.contains("ADFAB") ||
                 // DLT patterns for UAE might be different
-                upperSender.matches(Regex("^[A-Z]{2}-FAB-[A-Z]$"))
+                upperSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -498,5 +498,6 @@ open class FABParser : UAEBankParser() {
         val MASKED_LEADING_ASTERISK = Regex("""\*\d+(?:\.\d{2})?""")
         val MASKED_WHOLE_PART = Regex("""\*+\.\d{2}""")
         val MASKED_NUMERIC_PART = Regex("""(\d+(?:\.\d{2})?)""")
+        val DLT_SENDER = Regex("^[A-Z]{2}-FAB-[A-Z]$")
     }
 }

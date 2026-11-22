@@ -15,7 +15,7 @@ class AxisBankParser : BaseIndianBankParser() {
         return normalizedSender.contains("AXIS BANK") ||
                 normalizedSender.contains("AXISB") ||
                 // DLT patterns (-S suffix for transactions, or legacy without suffix)
-                normalizedSender.matches(Regex("^[A-Z]{2}-AXIS(?:-S)?$")) ||
+                normalizedSender.matches(DLT_SENDER) ||
                 // Direct sender IDs
                 normalizedSender == "AXIS"
     }
@@ -308,5 +308,9 @@ class AxisBankParser : BaseIndianBankParser() {
 
         // Fall back to base class patterns (for Rs-based formats)
         return super.extractAvailableLimit(message)
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("^[A-Z]{2}-AXIS(?:-S)?$")
     }
 }

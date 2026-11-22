@@ -20,9 +20,9 @@ class CredParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         // DLT patterns: JK-CREDIN-S, AX-CREDIN-S, etc.
-        return normalizedSender.matches(Regex("^[A-Z]{2}-CREDIN-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-CRED-[TPG]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-CRED-S$")) ||
+        return normalizedSender.matches(CREDIN_S_SENDER) ||
+                normalizedSender.matches(CRED_TPG_SENDER) ||
+                normalizedSender.matches(CRED_S_SENDER) ||
                 normalizedSender == "CRED" ||
                 normalizedSender == "CREDIN"
     }
@@ -74,4 +74,10 @@ class CredParser : BankParser() {
     }
 
 
+
+    private companion object {
+        val CREDIN_S_SENDER = Regex("^[A-Z]{2}-CREDIN-S$")
+        val CRED_TPG_SENDER = Regex("^[A-Z]{2}-CRED-[TPG]$")
+        val CRED_S_SENDER = Regex("^[A-Z]{2}-CRED-S$")
+    }
 }

@@ -25,7 +25,7 @@ class SiketBankParser : BankParser() {
         return normalized == "SIKET BANK" ||
                 normalized == "SIKETBANK" ||
                 normalized == "SIKET" ||
-                normalized.matches(Regex("""^[A-Z]{2}-SIKET-[A-Z]$"""))
+                normalized.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -121,5 +121,9 @@ class SiketBankParser : BankParser() {
         } catch (e: NumberFormatException) {
             null
         }
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("""^[A-Z]{2}-SIKET-[A-Z]$""")
     }
 }

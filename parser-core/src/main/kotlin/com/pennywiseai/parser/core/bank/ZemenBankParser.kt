@@ -18,7 +18,7 @@ class ZemenBankParser : BankParser() {
         // Support plain and DLT-style senders for Zemen Bank
         return normalized == "ZEMEN BANK" ||
                 normalized.replace(" ", "") == "ZEMENBANK" ||
-                normalized.matches(Regex("""^[A-Z]{2}-ZEMENBANK-[A-Z]$"""))
+                normalized.matches(DLT_SENDER)
     }
 
     /**
@@ -266,5 +266,9 @@ class ZemenBankParser : BankParser() {
         } catch (e: NumberFormatException) {
             null
         }
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("""^[A-Z]{2}-ZEMENBANK-[A-Z]$""")
     }
 }

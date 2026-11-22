@@ -109,7 +109,7 @@ class CharlesSchwabParser : BankParser() {
                 upperSender.contains("CHARLES SCHWAB") ||
                 upperSender.contains("SCHWAB BANK") ||
                 upperSender == "24465" ||  // Typical DLT sender ID
-                upperSender.matches(Regex("""^[A-Z]{2}-SCHWAB-[A-Z]$"""))
+                upperSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -262,5 +262,9 @@ class CharlesSchwabParser : BankParser() {
             lowerMessage.contains("ach transaction") -> false // ACH transactions are not card-based
             else -> super.detectIsCard(message)
         }
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("""^[A-Z]{2}-SCHWAB-[A-Z]$""")
     }
 }

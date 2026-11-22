@@ -33,13 +33,7 @@ class JKBankParser : BaseIndianBankParser() {
         if (upperSender in jkBankSenders) return true
 
         // DLT patterns (AD-JKBANK-S, etc.)
-        val dltPatterns = listOf(
-            Regex("^[A-Z]{2}-JKB.*$"),
-            Regex("^JKBANK-[A-Z]+$"),
-            Regex("^JKB-[A-Z]+$")
-        )
-
-        return dltPatterns.any { it.matches(upperSender) }
+        return DLT_PATTERNS.any { it.matches(upperSender) }
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -561,5 +555,13 @@ class JKBankParser : BaseIndianBankParser() {
         )
 
         return jkBankTransactionKeywords.any { lowerMessage.contains(it) }
+    }
+
+    private companion object {
+        val DLT_PATTERNS = listOf(
+            Regex("^[A-Z]{2}-JKB.*$"),
+            Regex("^JKBANK-[A-Z]+$"),
+            Regex("^JKB-[A-Z]+$")
+        )
     }
 }

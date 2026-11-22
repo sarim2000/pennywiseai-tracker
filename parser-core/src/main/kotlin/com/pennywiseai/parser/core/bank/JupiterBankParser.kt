@@ -21,10 +21,8 @@ class JupiterBankParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        return normalizedSender.matches(Regex("^[A-Z]{2}-JTEDGE-S$")) ||
-            normalizedSender.matches(Regex("^[A-Z]{2}-JTEDGE-T$")) ||
-            // Legacy patterns
-            normalizedSender.matches(Regex("^[A-Z]{2}-JTEDGE$"))
+        // DLT patterns with -S/-T suffix, or legacy without suffix
+        return normalizedSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -106,5 +104,9 @@ class JupiterBankParser : BankParser() {
 
         // Fall back to base class
         return super.extractReference(message)
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("^[A-Z]{2}-JTEDGE(?:-[ST])?$")
     }
 }

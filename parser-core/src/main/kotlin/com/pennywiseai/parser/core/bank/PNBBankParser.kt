@@ -19,9 +19,9 @@ class PNBBankParser : BaseIndianBankParser() {
                 normalizedSender.contains("PNBBNK") ||
                 normalizedSender.contains("PUNBN") ||
                 normalizedSender.contains("PNBSMS") || // Matches V?-PNBSMS-S
-                normalizedSender.matches(Regex("^[A-Z]{2}-PNB-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-PNB$")) ||
-                normalizedSender.matches(Regex("^(?:[A-Z]{2}-)?PNBCCD(?:-[ST])?$")) || // Credit card alerts
+                normalizedSender.matches(PNB_S_SENDER) ||
+                normalizedSender.matches(PNB_LEGACY_SENDER) ||
+                normalizedSender.matches(PNBCCD_SENDER) || // Credit card alerts
                 normalizedSender == "PNB"
     }
 
@@ -420,5 +420,11 @@ class PNBBankParser : BaseIndianBankParser() {
         override val accountLast4: String? = null
     ) : MandateInfo {
         override val dateFormat = "dd-MMM-yy"
+    }
+
+    private companion object {
+        val PNB_S_SENDER = Regex("^[A-Z]{2}-PNB-S$")
+        val PNB_LEGACY_SENDER = Regex("^[A-Z]{2}-PNB$")
+        val PNBCCD_SENDER = Regex("^(?:[A-Z]{2}-)?PNBCCD(?:-[ST])?$")
     }
 }

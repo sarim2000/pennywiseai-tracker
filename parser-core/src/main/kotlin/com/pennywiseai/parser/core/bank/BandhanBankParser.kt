@@ -22,8 +22,8 @@ class BandhanBankParser : BaseIndianBankParser() {
         if (s.contains("BANDHAN")) return true
 
         // DLT/route patterns frequently used in India
-        if (s.matches(Regex("^[A-Z]{2}-BDNSMS(?:-S)?$"))) return true
-        if (s.matches(Regex("^[A-Z]{2}-BANDHN(?:-S)?$"))) return true
+        if (s.matches(BDNSMS_SENDER)) return true
+        if (s.matches(BANDHN_SENDER)) return true
 
         return false
     }
@@ -102,5 +102,10 @@ class BandhanBankParser : BaseIndianBankParser() {
         }
 
         return super.extractBalance(message)
+    }
+
+    private companion object {
+        val BDNSMS_SENDER = Regex("^[A-Z]{2}-BDNSMS(?:-S)?$")
+        val BANDHN_SENDER = Regex("^[A-Z]{2}-BANDHN(?:-S)?$")
     }
 }

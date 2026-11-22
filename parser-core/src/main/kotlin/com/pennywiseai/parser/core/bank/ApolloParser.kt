@@ -29,7 +29,7 @@ class ApolloParser : BankParser() {
         val upperSender = sender.uppercase().trim()
         return upperSender == "APOLLO" ||
                 // DLT-style variants such as "AB-APOLLO-S"
-                upperSender.matches(Regex("""^[A-Z]{2}-APOLLO-[A-Z]$"""))
+                upperSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -102,5 +102,9 @@ class ApolloParser : BankParser() {
         } catch (e: NumberFormatException) {
             null
         }
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("""^[A-Z]{2}-APOLLO-[A-Z]$""")
     }
 }

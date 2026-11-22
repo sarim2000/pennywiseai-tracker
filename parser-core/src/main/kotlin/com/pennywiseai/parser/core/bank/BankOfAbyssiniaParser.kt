@@ -23,7 +23,7 @@ class BankOfAbyssiniaParser : BankParser() {
         return upperSender == "BOA" ||
                 upperSender.contains("ABYSSINIA") ||
                 // DLT-style variants such as "AB-BOA-S"
-                upperSender.matches(Regex("""^[A-Z]{2}-BOA-[A-Z]$"""))
+                upperSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -98,5 +98,9 @@ class BankOfAbyssiniaParser : BankParser() {
         } catch (e: NumberFormatException) {
             null
         }
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("""^[A-Z]{2}-BOA-[A-Z]$""")
     }
 }

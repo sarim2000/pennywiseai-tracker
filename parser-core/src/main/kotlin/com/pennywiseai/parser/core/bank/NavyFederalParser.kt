@@ -19,7 +19,7 @@ class NavyFederalParser : BankParser() {
                 upperSender == "NAVYFED" ||
                 upperSender.contains("NAVY FEDERAL") ||
                 upperSender.contains("NAVYFEDERAL") ||
-                upperSender.matches(Regex("""^[A-Z]{2}-NFCU-[A-Z]$"""))
+                upperSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -142,5 +142,9 @@ class NavyFederalParser : BankParser() {
             lowerMessage.contains("credit card") -> true
             else -> super.detectIsCard(message)
         }
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("""^[A-Z]{2}-NFCU-[A-Z]$""")
     }
 }

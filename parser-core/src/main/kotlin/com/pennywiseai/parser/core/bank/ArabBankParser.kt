@@ -52,7 +52,7 @@ class ArabBankParser : BankParser() {
         // DLT-style "AB-ARABBK-S": strip spaces/dashes/underscores then match.
         val stripped = normalized.replace(Regex("""[\s\-_]"""), "")
         return stripped.contains("ARABBANK") ||
-            stripped.matches(Regex("""^[A-Z]{2}ARABBK[A-Z]?$"""))
+            stripped.matches(DLT_SENDER)
     }
 
     /**
@@ -366,5 +366,9 @@ class ArabBankParser : BankParser() {
         } catch (e: NumberFormatException) {
             null
         }
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("""^[A-Z]{2}ARABBK[A-Z]?$""")
     }
 }

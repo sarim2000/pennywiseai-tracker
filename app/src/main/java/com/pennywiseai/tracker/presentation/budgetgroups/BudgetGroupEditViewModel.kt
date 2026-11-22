@@ -18,7 +18,6 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.spending.BudgetRollover
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -57,7 +56,6 @@ data class BudgetGroupEditUiState(
     val categorySpending: Map<String, BigDecimal> = emptyMap(),
     val typeSpending: Map<String, BigDecimal> = emptyMap(),
     val currency: String = "INR",
-    val availableCurrencies: List<String> = emptyList(),
     /**
      * The cadence this budget runs on.
      *
@@ -144,7 +142,6 @@ class BudgetGroupEditViewModel @Inject constructor(
             // budget screen reads it so, converting it when unified shows another (#1417).
             val currency = userPreferencesRepository.baseCurrency.first()
             val unifiedMode = userPreferencesRepository.unifiedCurrencyMode.first()
-            val currencies = CurrencyFormatter.getSupportedCurrencies()
 
             val today = LocalDate.now()
             val yearMonth = YearMonth.from(today)
@@ -218,7 +215,6 @@ class BudgetGroupEditViewModel @Inject constructor(
                         // Read as the base currency whatever the column says, as every
                         // budget screen reads it; saving puts the column right.
                         currency = currency,
-                        availableCurrencies = currencies,
                         // Editing: trust the budget's own persisted period
                         // type + anchor + dates. We re-derive the displayed
                         // [startDate, endDate] window for WEEKLY / MONTHLY
@@ -247,7 +243,6 @@ class BudgetGroupEditViewModel @Inject constructor(
                     currency = currency,
                     categorySpending = categorySpending,
                     typeSpending = typeSpending,
-                    availableCurrencies = currencies,
                     // Creating: default to Monthly anchored to the user's
                     // global budget cycle start day. The user can flip the
                     // chip to Weekly or One-time and the form rebuilds.
@@ -314,10 +309,6 @@ class BudgetGroupEditViewModel @Inject constructor(
         if (amount.isEmpty() || amount.matches(Regex("^\\d*\\.?\\d*$"))) {
             _uiState.value = _uiState.value.copy(overallAmount = amount)
         }
-    }
-
-    fun updateCurrency(currency: String) {
-        _uiState.value = _uiState.value.copy(currency = currency)
     }
 
     fun addCategory(categoryName: String) {

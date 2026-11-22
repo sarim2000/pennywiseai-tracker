@@ -6,6 +6,7 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -39,10 +40,13 @@ fun WavyMeter(
     containerColor: Color? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val cards = containerColor?.let { listOf(it) } ?: scheme.neutralSurfaces
     // A translucent track is seen over the card. If the nudged indicator still misses
-    // either background, the track changes and the indicator is recomputed.
-    val meter = readableMeterColors(color, trackColor, cards, scheme.surfaceContainerHighest)
+    // either background, the track changes and the indicator is recomputed. Remembered:
+    // an animating fraction recomposes this every frame.
+    val meter = remember(color, trackColor, containerColor, scheme) {
+        val cards = containerColor?.let { listOf(it) } ?: scheme.neutralSurfaces
+        readableMeterColors(color, trackColor, cards, scheme.surfaceContainerHighest)
+    }
     val clamped = fraction.coerceIn(0f, 1f)
     LinearWavyProgressIndicator(
         progress = { clamped },

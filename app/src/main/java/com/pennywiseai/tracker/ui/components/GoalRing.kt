@@ -89,22 +89,21 @@ fun GoalRing(
     if (AmountPrivacy.hidden) return
 
     val scheme = MaterialTheme.colorScheme
-    // The goal's hue, nudged to 3:1 on the track and the card behind it, as the meters do.
-    // [containerColor] replaces the neutral surfaces when the ring sits on a coloured row.
-    val cards = containerColor?.let { listOf(it) } ?: scheme.neutralSurfaces
-    val meter = readableMeterColors(
-        progress.goal.color.toColorOr(scheme.primary),
-        scheme.surfaceContainerHighest,
-        cards,
-        scheme.surfaceContainerHighest,
-    )
+    val goalColor = progress.goal.color.toColorOr(scheme.primary)
+    // Remembered: the sweep and the emphasis recompose this every frame while they run.
+    val (meter, faded) = remember(goalColor, containerColor, scheme) {
+        // The goal's hue, nudged to 3:1 on the track and the card behind it, as the meters do.
+        // [containerColor] replaces the neutral surfaces when the ring sits on a coloured row.
+        val cards = containerColor?.let { listOf(it) } ?: scheme.neutralSurfaces
+        val meter = readableMeterColors(goalColor, scheme.surfaceContainerHighest, cards, scheme.surfaceContainerHighest)
+        val backgrounds = cards.map { meter.track.compositeOver(it) } + cards
+        // The emphasis fades the ring toward the track, as an opaque colour held at 3:1 too: a
+        // translucent stroke lost the contrast the ring just gained (1.8:1 for yellow).
+        meter to meter.indicator.copy(alpha = Dimensions.Alpha.medium).compositeOver(meter.track)
+            .readableOn(backgrounds, GRAPHIC_CONTRAST)
+    }
     val track = meter.track
     val color = meter.indicator
-    val backgrounds = cards.map { track.compositeOver(it) } + cards
-    // The emphasis fades the ring toward the track, as an opaque colour held at 3:1 too: a
-    // translucent stroke lost the contrast the ring just gained (1.8:1 for yellow).
-    val faded = color.copy(alpha = Dimensions.Alpha.medium).compositeOver(track)
-        .readableOn(backgrounds, GRAPHIC_CONTRAST)
     val description = stringResource(R.string.goals_ring_description, progress.percent())
     Box(
         modifier = modifier.size(size).clearAndSetSemantics { if (announceProgress) contentDescription = description },

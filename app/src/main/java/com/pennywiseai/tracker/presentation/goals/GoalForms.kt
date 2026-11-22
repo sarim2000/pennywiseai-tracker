@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.presentation.goals
 import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
-import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalRules
 import com.pennywiseai.tracker.domain.goals.monthlyDisplay
 import java.math.BigDecimal

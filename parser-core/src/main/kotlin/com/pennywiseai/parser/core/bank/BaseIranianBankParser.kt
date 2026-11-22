@@ -90,7 +90,7 @@ abstract class BaseIranianBankParser : BankParser() {
         val lowerMessage = message.lowercase()
 
         val cardKeywords = listOf(
-            "کارت", "card", "debit card", "credit card", "کارت بدهی", "کارت اعتباری"
+            "کارت", "card"
         )
 
         return cardKeywords.any { lowerMessage.contains(it) }
@@ -119,7 +119,7 @@ abstract class BaseIranianBankParser : BankParser() {
         }
 
         val transactionKeywords = listOf(
-            "مبلغ", "ریال", "تومان", "IRR", "TOMAN",
+            "مبلغ", "ریال", "تومان",
             "برداشت", "واریز", "پرداخت", "خرید", "انتقال",
             "debit", "credit", "spent", "received", "transferred", "paid"
         )
@@ -134,7 +134,7 @@ abstract class BaseIranianBankParser : BankParser() {
     override fun isValidMerchantName(name: String): Boolean {
         val commonWords = setOf(
             "USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE",
-            "استفاده", "از", "توسط", "از طریق", "برای", "به", "از", "در", "و", "با"
+            "استفاده", "از", "توسط", "از طریق", "برای", "به", "در", "و", "با"
         )
 
         return name.length >= 2 &&

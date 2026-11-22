@@ -833,14 +833,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun isAppInForeground(context: Context): Boolean {
-        return try {
-            val application = context.applicationContext as? PennyWiseApplication
-            application?.isAppInForeground ?: false
-        } catch (e: Exception) {
-            false
-        }
-    }
+    private fun isAppInForeground(context: Context) =
+        (context.applicationContext as? PennyWiseApplication)?.isAppInForeground == true
 
     private suspend fun showTransactionNotification(
         context: Context,

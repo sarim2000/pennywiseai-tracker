@@ -31,10 +31,6 @@ class PhonePeSharedStatementParser : SharedStatementParser {
 
     override fun parse(text: String): List<SharedParsedStatementTransaction> {
         val blocks = splitBlocks(text)
-        println("[PhonePe Parser] Found ${blocks.size} blocks")
-        blocks.take(3).forEachIndexed { i, block ->
-            println("[PhonePe Parser] Block #${i + 1} (first 200 chars): ${block.take(200)}")
-        }
         return blocks.mapNotNull { parseBlock(it) }
     }
 
@@ -101,17 +97,10 @@ class PhonePeSharedStatementParser : SharedStatementParser {
     }
 
     private fun extractTimestamp(block: String): Long? {
-        val match = datePattern.find(block)
-        if (match == null) {
-            println("[PhonePe Parser] WARNING: No date found in block: ${block.take(100)}")
-            return null
-        }
+        val match = datePattern.find(block) ?: return null
         val dateStr = match.groupValues[1].trim()
         val timeStr = match.groupValues.getOrNull(2)?.trim()
-        println("[PhonePe Parser] Parsed date='$dateStr' time='$timeStr'")
-        val result = parseDateTime(dateStr, timeStr)
-        println("[PhonePe Parser] Epoch millis = $result")
-        return result
+        return parseDateTime(dateStr, timeStr)
     }
 
     private fun parseDateTime(dateStr: String, timeStr: String?): Long? {

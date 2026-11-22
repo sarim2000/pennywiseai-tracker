@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
@@ -116,6 +117,11 @@ fun BudgetGroupsScreen(
     focusBudgetId: Long? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // A new day moves days left on, as Home does.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshDate()
+        onPauseOrDispose { }
+    }
     val goalsSection: (@Composable () -> Unit)? = if (planTab != null) null else {
         {
             com.pennywiseai.tracker.presentation.goals.GoalsSection(

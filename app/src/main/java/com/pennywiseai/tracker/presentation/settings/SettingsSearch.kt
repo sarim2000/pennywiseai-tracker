@@ -296,16 +296,24 @@ private fun wordCost(word: String, texts: List<String>, typos: Boolean): Int? {
         }
     }.minOrNull()
     if (exact != null || !typos) return exact
-    val budget = typoBudget(word)
-    if (budget == 0) return null
-    return texts.indexOfFirst { text -> text.split(' ').any { typoDistance(word, it) <= budget } }
-        .takeIf { it >= 0 }
-        ?.let { 2 * texts.size + it }
+    return texts.indexOfFirst { typoMatches(word, it) }.takeIf { it >= 0 }?.let { 2 * texts.size + it }
 }
 
-/** Typos a query word this long may have: none up to 3 letters (short words would match too much), 2 from 8. */
+/** Whether [word] is in [text] as typed or, within [typoBudget], starts one of its words. */
+internal fun wordMatches(word: String, text: String) = word in text || typoMatches(word, text)
+
+private fun typoMatches(word: String, text: String): Boolean {
+    val budget = typoBudget(word)
+    // A token too short to be within budget of the word skips the matrix (a pasted wall of text stays cheap).
+    return budget > 0 && text.split(' ').any { it.length >= word.length - budget && typoDistance(word, it) <= budget }
+}
+
+/**
+ * Typos a query word this long may have: none up to 3 letters, or 2 after the Arabic
+ * article ("الغم" would find every "الم…"), as short words would match too much; 2 from 8.
+ */
 private fun typoBudget(word: String) = when {
-    word.length <= 3 -> 0
+    word.length <= 3 || (word.startsWith("ال") && word.length <= 4) -> 0
     word.length <= 7 -> 1
     else -> 2
 }
@@ -440,7 +448,7 @@ internal fun SettingsSearchResults(query: String, contentPadding: PaddingValues,
         itemsIndexed(results, key = { _, it -> "${it.entry.title}/${it.entry.target}" }) { index, result ->
             val ownSubtitle = result.subtitle?.let(::normalizeForSearch)
             val title = normalizeForSearch(result.title)
-            val matchedSubtitle = ownSubtitle != null && words.any { it !in title && it in ownSubtitle }
+            val matchedSubtitle = ownSubtitle != null && words.any { !wordMatches(it, title) && wordMatches(it, ownSubtitle) }
             SettingsNavItem(
                 icon = result.entry.icon,
                 title = result.title,

@@ -104,15 +104,30 @@ class SettingsSearchTest {
         assertEquals(listOf("Folder backup"), items.search("bakcup")) // swapped letters
         assertEquals(listOf("Folder backup"), items.search("bakc")) // typo while still typing
         assertEquals(listOf("Default currency"), items.search("curency defalt"))
+        // Two typos only from 8 letters.
+        assertEquals(listOf("Default currency"), items.search("curxenxy"))
+        assertTrue(items.search("curxenx").isEmpty())
         assertEquals(listOf("الإعدادات"), items.search("الاعددات"))
         // Short words get no slack, or "dar" would find "Date" too.
         assertEquals(listOf("Dark"), items.search("dar"))
         assertTrue(items.search("drk").isEmpty())
+        // Nor do two letters after the Arabic article, or "الغم" would find every "الم…".
+        val arabic = rows("العملة", "المزامنة", "اللغة")
+        assertTrue(arabic.search("الغم").isEmpty())
+        assertEquals(listOf("اللغة"), arabic.search("اللفه"))
         // Any exact hit turns typo matching off, so "date" doesn't also list "Data".
         assertEquals(listOf("Date format"), rows("Data", "Date format").search("date"))
         // Typo hits keep the field order: title before page name.
         val typo = listOf(listOf("Export data", "", "", "Backup"), listOf("Backup now", "", "", "Data"))
         assertEquals(listOf("Backup now", "Export data"), typo.search("bakup"))
+    }
+
+    @Test
+    fun `a typo in a word counts as matching it`() {
+        assertTrue(wordMatches("restroe", "restore data from backup"))
+        assertTrue(wordMatches("backup", "restore data from backup"))
+        assertTrue(!wordMatches("restroe", "import data"))
+        assertTrue(!wordMatches("x".repeat(10_000), "import data"))
     }
 
     @Test

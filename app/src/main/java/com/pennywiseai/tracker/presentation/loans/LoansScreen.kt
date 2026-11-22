@@ -82,7 +82,7 @@ fun LoansScreen(
             return@PennyWiseScaffold
         }
 
-        if (uiState.activeLoans.isEmpty() && uiState.settledLoans.isEmpty()) {
+        if (uiState.people.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center

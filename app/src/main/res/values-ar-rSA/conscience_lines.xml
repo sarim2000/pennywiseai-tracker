@@ -2,16 +2,28 @@
 <!--
     Conscience lines in Jordanian colloquial Arabic. Written natively, not translated.
     {category} is أكل / ترفيه / تسوق (all masculine), so ال{category}, لل{category},
-    بال{category} and يوم {category} read right with each. Never mark the user's gender:
+    بال{category} and يوم {category} read right with each. {weekday} already carries ال
+    (الخميس), so write يوم {weekday}, never كل {weekday}. Never mark the user's gender:
     reword the line so it doesn't need it.
 -->
 <resources>
     <string name="conscience_content_locale">ar</string>
 
+    <!-- Every kind and the Conscience screen: see values/conscience_lines.xml. -->
+    <bool name="conscience_full">true</bool>
+
     <!-- Words the placeholders take. They live here, not in strings_conscience.xml, so Crowdin can't change a word the lines are written around. All masculine with no article, so ال{category} and verb agreement work for each. -->
     <string name="conscience_category_food">أكل</string>
     <string name="conscience_category_entertainment">ترفيه</string>
     <string name="conscience_category_shopping">تسوق</string>
+    <plurals name="conscience_days">
+        <item quantity="zero">%1$s يوم</item>
+        <item quantity="one">%1$s يوم</item>
+        <item quantity="two">يومين</item>
+        <item quantity="few">%1$s أيام</item>
+        <item quantity="many">%1$s يوم</item>
+        <item quantity="other">%1$s يوم</item>
+    </plurals>
     <plurals name="conscience_hours">
         <item quantity="zero">%1$s ساعة</item>
         <item quantity="one">%1$s ساعة</item>
@@ -65,4 +77,77 @@
     <string name="conscience_line_positive_07">احترامي. ال{category} كان أخف بـ{percent} الأسبوع الماضي 🏅</string>
     <string name="conscience_line_positive_08">نجمة ذهبية ⭐ ال{category} الأسبوع الماضي كان أقل من الطبيعي بـ{percent}.</string>
 
+    <!-- Comeback, Food & Dining. Fact: no food purchase for {days}, now one. -->
+    <string name="conscience_line_comeback_food_01">{days} صمود. طيب، شو بدنا ناكل؟ 😋</string>
+    <string name="conscience_line_comeback_food_02">{days} بطولة، رح يألّفوا عنها أغنية. أغنية قصيرة 🎶</string>
+    <string name="conscience_line_comeback_food_03">راهنت الكل إنها رح تطوّل… طوّلت {days} بس 😅</string>
+    <string name="conscience_line_comeback_food_04">{days} صمود، والبطاطا ولا لحظة فقدت الأمل 🍟</string>
+    <string name="conscience_line_comeback_food_05">{days} إرادة حديد… لحد ما حدا قال: «بس لقمة» 🤏</string>
+    <string name="conscience_line_comeback_food_06">رجعت المي لمجاريها بينك وبين الأكل بعد {days} زعل</string>
+    <string name="conscience_line_comeback_food_07">{days} ما حدا قدر يكسر الصمود… لحد ما طلّ الأكل 😏</string>
+    <string name="conscience_line_comeback_food_08">بعد {days} فراق، المنيو لسا بستنّى 😏</string>
+    <string name="conscience_line_comeback_food_09">بعد {days}، الأكل سامح وما فتح الموضوع 🤝</string>
+    <string name="conscience_line_comeback_food_10">الأكل كسب الجولة بعد {days} 🥊</string>
+    <string name="conscience_line_comeback_food_11">فرحتنا طوّلت {days} بس 😂</string>
+    <string name="conscience_line_comeback_food_12">{days} وقلنا خلص، صفحة جديدة… طلعنا غلطانين 😂</string>
+
+    <!-- Comeback, entertainment or shopping. Fact: none of {category} for {days}, now one. -->
+    <string name="conscience_line_comeback_01">قال بطّلنا ال{category} قال! {days} بس 😂</string>
+    <string name="conscience_line_comeback_02">تقاعدك من ال{category} طوّل {days}. وخطاب الوداع كان مؤثر 👏</string>
+    <string name="conscience_line_comeback_03">{days} حلم حلو… وصحينا على ال{category} 😴</string>
+    <string name="conscience_line_comeback_04">{days} زعل بينك وبين ال{category}. وهلأ تصالحتوا 🤝</string>
+    <string name="conscience_line_comeback_05">{days} تحدّي نظرات بينك وبين ال{category}… والعين رمشت 😳</string>
+    <string name="conscience_line_comeback_06">بعد {days}، ال{category} رنّ رنّة وحدة… والجواب كان فوري 🏃</string>
+    <string name="conscience_line_comeback_07">{days} عقل وتوفير، وبعدين قلنا: الحياة قصيرة 😂</string>
+    <string name="conscience_line_comeback_08">التجربة طوّلت {days}. النتيجة: {category} 🧪</string>
+    <string name="conscience_line_comeback_09">ولا حدا كان بعدّ. ماشي، أنا كنت بعدّ: {days} 🤓</string>
+    <string name="conscience_line_comeback_10">{days} بدون {category}؟ لأ، هاد كتير 😂</string>
+    <string name="conscience_line_comeback_11">{days} راحوا، ورجعنا لل{category} ولا كأنه إشي صار 😶</string>
+    <string name="conscience_line_comeback_12">ال{category} ضل مستنّي على الباب {days}… وأخيراً انفتح 🚪</string>
+
+    <!-- Record day, any category. Fact: today's {category} total beat every day of the last two months. -->
+    <string name="conscience_line_record_day_01">شو؟ خلصنا؟ الحفلة لسا شغّالة 😂</string>
+    <string name="conscience_line_record_day_02">أعلى يوم {category} من شهرين. بدنا خطاب! 🎤</string>
+    <string name="conscience_line_record_day_03">يوم {category} تاريخي… بس تاريخ آخر شهرين 😂</string>
+    <string name="conscience_line_record_day_04">أحسن يوم {category} من شهرين. مش متأكد إنه «أحسن» هي الكلمة 🤔</string>
+    <string name="conscience_line_record_day_05">أنا ما شفت إشي… إلا أعلى يوم {category} من شهرين 🙈</string>
+    <string name="conscience_line_record_day_06">هاليوم بدّه برواز: أعلى يوم {category} من شهرين 🖼️</string>
+    <string name="conscience_line_record_day_07">ميدالية ذهبية لل{category} 🥇 والمنافسين: آخر شهرين</string>
+    <string name="conscience_line_record_day_08">آخر شهرين اتصلوا. بقولوا: استسلمنا 🏳️</string>
+    <string name="conscience_line_record_day_09">ولا يوم {category} بآخر شهرين وصل لليوم. فخور… بطريقة غريبة 😅</string>
+    <string name="conscience_line_record_day_10">شهرين تسخين، واليوم المباراة النهائية ⚽</string>
+    <string name="conscience_line_record_day_11">اليوم قمة ال{category} بآخر شهرين. كيف المنظر من فوق؟ 🏔️</string>
+    <string name="conscience_line_record_day_12">تحديث ترتيب ال{category} لآخر شهرين: اليوم بالمركز الأول 🏆</string>
+
+    <!-- Spike. Fact: the last 7 days of {category} are well above a usual week. -->
+    <string name="conscience_line_spike_01">ال{category} بآخر سبع أيام سابق أسبوعك العادي بمراحل 📈 بس بحكي.</string>
+    <string name="conscience_line_spike_02">ال{category} هالأسبوع عامل حاله على أسابيعك العادية 💪</string>
+    <string name="conscience_line_spike_03">أسبوع ال{category} طلع برا الجدول. جدولك الشخصي بالذات 📊</string>
+    <string name="conscience_line_spike_04">ال{category} عنده أسبوع كبير. أكبر من العادة بكتير 🚀</string>
+    <string name="conscience_line_spike_05">أسبوع {category} عادي: هدوء. هالأسبوع: مهرجان 🎪</string>
+    <string name="conscience_line_spike_06">مفاجأة: سبع أيام {category} سبقت أسبوعك العادي بفرق كبير 🏁</string>
+
+    <!-- Weekly pattern. Fact: {category} shows up on {weekday} most weeks, and today is {weekday}. -->
+    <string name="conscience_line_weekly_01">{weekday} وال{category}: قصة حب بحلقات أسبوعية 💞</string>
+    <string name="conscience_line_weekly_02">اليوم {weekday}، يعني أكيد: {category} 🗓️</string>
+    <string name="conscience_line_weekly_03">{weekday} رجع، وال{category} رجع معه. عادة ما بتنقطع 🎉</string>
+    <string name="conscience_line_weekly_04">يوم {weekday} تبعك إله عنوان، والعنوان: {category} 😄</string>
+    <string name="conscience_line_weekly_05">في ناس عندها خطط يوم {weekday}. وفي ناس عندها {category} 😏</string>
+    <string name="conscience_line_weekly_06">زي الساعة: {weekday} يعني {category} ⏰</string>
+
+    <!-- Hello, Food & Dining. Fact: only that a food purchase was just recorded. -->
+    <string name="conscience_line_hello_food_01">سمعت كلمة أكل؟ إجيت ركض 👀</string>
+    <string name="conscience_line_hello_food_02">أكل! صحتين، وأنا هون بس بتفرّج 🍽️</string>
+    <string name="conscience_line_hello_food_03">أكل انسجّل. أنا مش بحكم… بصوت عالي 🤐</string>
+    <string name="conscience_line_hello_food_04">دينغ! أكل انسجّل. حاجبي ارتفع شعرة 🤨</string>
+    <string name="conscience_line_hello_food_05">أكل جديد. يسلموا الإيدين 🤌</string>
+    <string name="conscience_line_hello_food_06">أكل؟ احكيلي كل إشي. لأ، بلاش 😌</string>
+
+    <!-- Hello, entertainment or shopping. Fact: only that a {category} purchase was just recorded. -->
+    <string name="conscience_line_hello_01">ال{category} دخل الشات 💬</string>
+    <string name="conscience_line_hello_02">تنبيه: رصدنا {category} بالمنطقة 🚨</string>
+    <string name="conscience_line_hello_03">شفت {category}. رح أعمل حالي ما شفت 🙈</string>
+    <string name="conscience_line_hello_04">سجّلنا: {category}. والقصة مكمّلة، وأنا بس الراوي 🎙️</string>
+    <string name="conscience_line_hello_05">{category}؟ لحظة أجيب البوشار 🍿</string>
+    <string name="conscience_line_hello_06">أوه، {category}؟ احكي، احكي، أنا سامع 👂</string>
 </resources>

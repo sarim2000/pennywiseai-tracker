@@ -188,6 +188,10 @@ data object Webhooks : NavKey
 @Serializable
 data object AiAccess : NavKey
 
+/** The full conscience's own screen, in a language that has the full set (Arabic for now). Opens inside the tab. */
+@Serializable
+data object Conscience : NavKey
+
 /** Developer mode's mascot playground. It opens inside the tab, under the bottom bar. */
 @Serializable
 data object MascotPlayground : NavKey

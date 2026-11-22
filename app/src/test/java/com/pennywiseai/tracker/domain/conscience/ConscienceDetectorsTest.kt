@@ -3,13 +3,19 @@ package com.pennywiseai.tracker.domain.conscience
 import com.pennywiseai.tracker.domain.conscience.ConscienceCategory.ENTERTAINMENT
 import com.pennywiseai.tracker.domain.conscience.ConscienceCategory.FOOD
 import com.pennywiseai.tracker.domain.conscience.ConscienceCategory.SHOPPING
+import com.pennywiseai.tracker.domain.conscience.ConscienceFact.Comeback
+import com.pennywiseai.tracker.domain.conscience.ConscienceFact.Hello
 import com.pennywiseai.tracker.domain.conscience.ConscienceFact.LateNight
 import com.pennywiseai.tracker.domain.conscience.ConscienceFact.Positive
+import com.pennywiseai.tracker.domain.conscience.ConscienceFact.RecordDay
 import com.pennywiseai.tracker.domain.conscience.ConscienceFact.Repeat
+import com.pennywiseai.tracker.domain.conscience.ConscienceFact.Spike
+import com.pennywiseai.tracker.domain.conscience.ConscienceFact.Weekly
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.math.BigDecimal
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -65,22 +71,36 @@ class ConscienceDetectorsTest {
     // --- Shape of the result ---
 
     @Test
-    fun `no history proves nothing`() {
-        assertEquals(emptyList<ConscienceFact>(), detect(emptyList()))
-        assertEquals(emptyList<ConscienceFact>(), detect(emptyList(), now(category = SHOPPING), ledgerStart = null))
+    fun `no history still says hello, and only hello`() {
+        assertEquals(listOf(Hello(FOOD)), detect(emptyList()))
+        assertEquals(listOf(Hello(SHOPPING)), detect(emptyList(), now(category = SHOPPING), ledgerStart = null))
     }
 
     @Test
-    fun `every fact that holds comes back in priority order`() {
-        val history = listOf(on(today, hour = 20), on(today, hour = 21), on(today, hour = 22))
+    fun `every fact that holds comes back in priority order with hello last`() {
+        val history = recordBase + listOf(
+            on(today, "40", hour = 20),
+            on(today, "40", hour = 21),
+            on(today, "40", hour = 22),
+        )
         assertEquals(
-            listOf(Repeat(FOOD, 4, 6), LateNight(FOOD)),
-            detect(history, now(hour = 23, minute = 30)),
+            listOf(Repeat(FOOD, 4, 6), LateNight(FOOD), RecordDay(FOOD), Hello(FOOD)),
+            detect(history, now("10", hour = 23, minute = 30)),
         )
     }
 
     @Test
     fun `a same-time purchase is earlier only with a lower id, a later one never counts`() {
+        val at = today.atTime(12, 0)
+        val quiet = everyNDays(daysAgo(3), 1, 30)
+        assertEquals(Comeback(FOOD, 3), comeback(quiet))
+        assertNull(comeback(quiet + buy(at, id = CURRENT_ID - 1)))
+        assertEquals(Comeback(FOOD, 3), comeback(quiet + buy(at, id = CURRENT_ID + 1)))
+        assertEquals(Comeback(FOOD, 3), comeback(quiet + on(today, hour = 13)))
+    }
+
+    @Test
+    fun `a same-time purchase only joins a repeat run with a lower id`() {
         val at = today.atTime(20, 0)
         val earlier = listOf(on(today, hour = 15))
         assertNull(detect(earlier + buy(at, id = CURRENT_ID + 1), now(hour = 20)).find<Repeat>())
@@ -219,6 +239,119 @@ class ConscienceDetectorsTest {
         )
     }
 
+    // --- Spike ---
+
+    private fun spikeWeekStart(index: Int): LocalDate = today.minusDays(6L + 7L * index)
+
+    /** Baseline week [index] (1..8), one purchase per day from its first day. */
+    private fun week(index: Int, vararg amounts: String, currency: String = "JOD") =
+        amounts.mapIndexed { day, amount -> on(spikeWeekStart(index).plusDays(day.toLong()), amount, currency = currency) }
+
+    /** Eight weeks of 100 over 2 days: the bar is 1.8 x 100 = 180. */
+    private val steadyWeeks get() = (1..8).flatMap { week(it, "50", "50") }
+
+    private val spikeWeek get() = listOf(on(daysAgo(3), "60"), on(daysAgo(1), "60"))
+
+    private fun spike(history: List<ConsciencePurchase>, amount: String = "61", ledgerStart: LocalDate = longLedger) =
+        detect(history, now(amount), ledgerStart).find<Spike>()
+
+    @Test
+    fun `a refund this week keeps a spike quiet, an older one does not`() {
+        fun spike(refund: ConsciencePurchase) =
+            detect(steadyWeeks + spikeWeek, now("61"), refunds = listOf(refund)).find<Spike>()
+        // The gross week would overstate what was spent.
+        assertNull(spike(on(spikeWeekStart(0), "60")))
+        assertNull(spike(on(today, "60", hour = 9)))
+        assertEquals(Spike(FOOD), spike(on(spikeWeekStart(0).minusDays(1), "60")))
+        assertEquals(Spike(FOOD), spike(on(daysAgo(1), "60", category = SHOPPING)))
+    }
+
+    @Test
+    fun `the week crossing the bar with this purchase is a spike`() {
+        assertEquals(Spike(FOOD), spike(steadyWeeks + spikeWeek))
+        assertNull(spike(steadyWeeks + spikeWeek, amount = "60"))
+    }
+
+    @Test
+    fun `a week already over the bar stays quiet`() {
+        val atBar = listOf(on(daysAgo(3), "90"), on(daysAgo(1), "90"))
+        assertEquals(Spike(FOOD), spike(steadyWeeks + atBar, amount = "1"))
+        val overBar = listOf(on(daysAgo(3), "90"), on(daysAgo(1), "90.01"))
+        assertNull(spike(steadyWeeks + overBar, amount = "1"))
+    }
+
+    @Test
+    fun `the ledger must cover all eight baseline weeks`() {
+        assertEquals(Spike(FOOD), spike(steadyWeeks + spikeWeek, ledgerStart = daysAgo(62)))
+        assertNull(spike(steadyWeeks + spikeWeek, ledgerStart = daysAgo(61)))
+    }
+
+    @Test
+    fun `the baseline needs 12 active days`() {
+        val twelve = (1..4).flatMap { week(it, "50", "50") } + (5..8).flatMap { week(it, "100") }
+        assertEquals(Spike(FOOD), spike(twelve + spikeWeek))
+        val eleven = (1..3).flatMap { week(it, "50", "50") } + (4..8).flatMap { week(it, "100") }
+        assertNull(spike(eleven + spikeWeek))
+    }
+
+    @Test
+    fun `the baseline needs 6 of 8 weeks with spending`() {
+        assertEquals(Spike(FOOD), spike((1..6).flatMap { week(it, "50", "50") } + spikeWeek))
+        // The median would still be 100, yet five weeks are too few.
+        assertNull(spike((1..5).flatMap { week(it, "34", "33", "33") } + spikeWeek))
+    }
+
+    @Test
+    fun `a high baseline week lifts the bar to 1_15 x its total`() {
+        val history = (1..7).flatMap { week(it, "50", "50") } + week(8, "100", "100") // bar 230
+        assertNull(spike(history + spikeWeek))
+        val bigger = listOf(on(daysAgo(3), "80"), on(daysAgo(1), "80"))
+        assertNull(spike(history + bigger, amount = "70"))
+        assertEquals(Spike(FOOD), spike(history + bigger, amount = "71"))
+    }
+
+    @Test
+    fun `an uneven baseline lifts the bar by three deviations`() {
+        // Median 100, deviation 50: the bar is 250.
+        val history = (1..8).flatMap { if (it % 2 == 1) week(it, "75", "75") else week(it, "25", "25") }
+        val week0 = listOf(on(daysAgo(3), "100"), on(daysAgo(1), "100"))
+        assertNull(spike(history + week0, amount = "50"))
+        assertEquals(Spike(FOOD), spike(history + week0, amount = "50.01"))
+    }
+
+    @Test
+    fun `a spike takes three purchases over two days`() {
+        assertNull(spike(steadyWeeks + on(daysAgo(1), "90.5"), amount = "90.5"))
+        assertNull(spike(steadyWeeks + on(today, "60", hour = 8) + on(today, "60", hour = 9)))
+    }
+
+    @Test
+    fun `one purchase over half the week is a big buy, not a spike`() {
+        assertNull(spike(steadyWeeks + on(daysAgo(3), "30") + on(daysAgo(2), "30"), amount = "121"))
+    }
+
+    @Test
+    fun `two high weeks running are a new level, not a spike`() {
+        val raised = (1..2).flatMap { week(it, "75", "75") } + (3..8).flatMap { week(it, "50", "50") }
+        assertNull(spike(raised + spikeWeek))
+        val oneHigh = week(1, "75", "75") + (2..8).flatMap { week(it, "50", "50") }
+        assertEquals(Spike(FOOD), spike(oneHigh + spikeWeek))
+    }
+
+    @Test
+    fun `spike totals never mix categories`() {
+        assertEquals(Spike(FOOD), spike(steadyWeeks + spikeWeek + on(daysAgo(2), "500", category = SHOPPING)))
+    }
+
+    @Test
+    fun `another currency in the spike window keeps it quiet`() {
+        // A far bigger USD week would make "way ahead of your usual week" false for the category.
+        assertNull(spike(steadyWeeks + spikeWeek + week(1, "5000", currency = "USD")))
+        assertNull(spike(steadyWeeks + spikeWeek + on(daysAgo(2), "5", currency = "USD")))
+        // Just before the window: it can't contradict anything.
+        assertEquals(Spike(FOOD), spike(steadyWeeks + spikeWeek + on(spikeWeekStart(8).minusDays(1), "5000", currency = "USD")))
+    }
+
     // --- Positive ---
 
     private val wednesday = today.plusDays(2)
@@ -334,6 +467,311 @@ class ConscienceDetectorsTest {
     fun `percent is rounded down`() {
         assertEquals(Positive(FOOD, 66), positive(usualWeeks + pWeek(0, "33.333")))
         assertEquals(Positive(FOOD, 99), positive(usualWeeks + pWeek(0, "0.5")))
+    }
+
+    // --- Weekly ---
+
+    private fun weeksBack(weeks: Long, day: DayOfWeek): LocalDate = today.minusWeeks(weeks).plusDays(day.value - 1L)
+
+    private fun onDays(day: DayOfWeek, weeks: Iterable<Long>, currency: String = "JOD", recurring: Boolean = false) =
+        weeks.map { on(weeksBack(it, day), currency = currency, recurring = recurring) }
+
+    private val mondays4 get() = onDays(DayOfWeek.MONDAY, 1L..4L)
+
+    private fun weekly(history: List<ConsciencePurchase>, current: ConsciencePurchase = now()) =
+        detect(history, current).find<Weekly>()
+
+    private val mondayFact = Weekly(FOOD, DayOfWeek.MONDAY)
+
+    @Test
+    fun `a weekday active in 4 of the last 6 weeks is a habit`() {
+        assertEquals(mondayFact, weekly(mondays4 + onDays(DayOfWeek.WEDNESDAY, 1L..4L)))
+        assertNull(weekly(onDays(DayOfWeek.MONDAY, 1L..3L) + onDays(DayOfWeek.WEDNESDAY, 1L..5L)))
+    }
+
+    @Test
+    fun `a habit needs 8 active days in the six weeks`() {
+        assertNull(weekly(mondays4 + onDays(DayOfWeek.WEDNESDAY, 1L..3L)))
+    }
+
+    @Test
+    fun `the weekday must beat the typical other day by two weeks`() {
+        fun others(vararg counts: Pair<DayOfWeek, Int>) = counts.flatMap { (day, n) -> onDays(day, 1L..n.toLong()) }
+        val median25 = others(
+            DayOfWeek.TUESDAY to 3, DayOfWeek.WEDNESDAY to 3, DayOfWeek.THURSDAY to 3,
+            DayOfWeek.FRIDAY to 2, DayOfWeek.SATURDAY to 2, DayOfWeek.SUNDAY to 2,
+        )
+        assertNull(weekly(mondays4 + median25))
+        assertEquals(mondayFact, weekly(onDays(DayOfWeek.MONDAY, 1L..5L) + median25))
+        val median2 = others(
+            DayOfWeek.TUESDAY to 3, DayOfWeek.WEDNESDAY to 3, DayOfWeek.THURSDAY to 2,
+            DayOfWeek.FRIDAY to 2, DayOfWeek.SATURDAY to 2, DayOfWeek.SUNDAY to 2,
+        )
+        assertEquals(mondayFact, weekly(mondays4 + median2))
+        // Every day alike is no weekday habit.
+        assertNull(weekly(DayOfWeek.entries.flatMap { onDays(it, 1L..6L) }))
+    }
+
+    @Test
+    fun `only the six complete weeks before this one count`() {
+        val wednesdays = onDays(DayOfWeek.WEDNESDAY, 1L..5L)
+        assertNull(weekly(onDays(DayOfWeek.MONDAY, listOf(1L, 2L, 3L, 7L)) + wednesdays))
+        assertEquals(mondayFact, weekly(onDays(DayOfWeek.MONDAY, listOf(1L, 2L, 3L, 6L)) + wednesdays))
+        // Earlier days of this week are not part of the six.
+        val thursday = today.plusDays(3)
+        val habit = onDays(DayOfWeek.THURSDAY, 1L..4L) + onDays(DayOfWeek.WEDNESDAY, 1L..3L)
+        val thisWeek = (0L..2L).map { on(today.plusDays(it)) }
+        assertNull(weekly(habit + thisWeek, now(date = thursday)))
+        assertEquals(
+            Weekly(FOOD, DayOfWeek.THURSDAY),
+            weekly(habit + thisWeek + on(weeksBack(4, DayOfWeek.WEDNESDAY)), now(date = thursday)),
+        )
+    }
+
+    @Test
+    fun `only the first purchase of the day is a habit`() {
+        val history = mondays4 + onDays(DayOfWeek.WEDNESDAY, 1L..4L)
+        assertNull(weekly(history + on(today, hour = 8)))
+        // A recurring charge earlier today doesn't take the first slot.
+        assertEquals(mondayFact, weekly(history + on(today, hour = 8, recurring = true)))
+    }
+
+    @Test
+    fun `weeks count once however many purchases, recurring charges not at all`() {
+        val wednesdays = onDays(DayOfWeek.WEDNESDAY, 1L..5L)
+        val twice = onDays(DayOfWeek.MONDAY, 1L..3L).flatMap { listOf(it, it.copy(at = it.at.withHour(19), transactionId = nextId++)) }
+        assertNull(weekly(twice + wednesdays))
+        assertNull(weekly(onDays(DayOfWeek.MONDAY, 1L..4L, recurring = true) + wednesdays))
+    }
+
+    @Test
+    fun `a weekday habit spans currencies`() {
+        val mixed = onDays(DayOfWeek.MONDAY, 1L..2L) + onDays(DayOfWeek.MONDAY, 3L..4L, currency = "USD")
+        assertEquals(mondayFact, weekly(mixed + onDays(DayOfWeek.WEDNESDAY, 1L..4L)))
+    }
+
+    // --- Comeback ---
+
+    /** Purchases walking backward from [last] by the given day gaps. */
+    private fun fromGaps(last: LocalDate, gaps: List<Int>, amount: String = "10") =
+        gaps.runningFold(last) { date, gap -> date.minusDays(gap.toLong()) }.map { on(it, amount) }
+
+    private fun everyNDays(last: LocalDate, step: Int, count: Int, amount: String = "10") =
+        fromGaps(last, List(count - 1) { step }, amount)
+
+    private fun comeback(
+        history: List<ConsciencePurchase>,
+        current: ConsciencePurchase = now(),
+        ledgerStart: LocalDate? = longLedger,
+        active: Set<LocalDate> = fedEveryDay,
+    ) = detect(history, current, ledgerStart, active).find<Comeback>()
+
+    /** Something was spent every day of the last year, in some category. */
+    private val fedEveryDay = (0L..365L).map { daysAgo(it) }.toSet()
+
+    @Test
+    fun `a break with nothing logged at all is no comeback`() {
+        val history = everyNDays(daysAgo(5), 1, 30)
+        assertNull(comeback(history, active = emptySet()))
+        assertNull(comeback(history, active = setOf(daysAgo(5), today)))
+        assertEquals(Comeback(FOOD, 5), comeback(history, active = setOf(daysAgo(2))))
+    }
+
+    @Test
+    fun `daily orderer is silent at gap 2 and fires at exactly 3`() {
+        assertNull(comeback(everyNDays(daysAgo(2), 1, 30)))
+        assertEquals(Comeback(FOOD, 3), comeback(everyNDays(daysAgo(3), 1, 30)))
+    }
+
+    @Test
+    fun `a Mon-Thu routine is no comeback on Monday, only past its longest gap`() {
+        val routine = (1L..56L).map { today.minusDays(it) }
+            .filter { it.dayOfWeek.value in 1..4 }
+            .map { on(it) }
+        assertNull(comeback(routine, now()))
+
+        val lastThursday = routine.maxOf { it.at.toLocalDate() }
+        assertNull(comeback(routine, now(date = lastThursday.plusDays(4))))
+        assertEquals(Comeback(FOOD, 5), comeback(routine, now(date = lastThursday.plusDays(5))))
+    }
+
+    @Test
+    fun `median of 3 is silent at 8 and fires at 9`() {
+        assertNull(comeback(everyNDays(daysAgo(8), 3, 21)))
+        assertEquals(Comeback(FOOD, 9), comeback(everyNDays(daysAgo(9), 3, 21)))
+    }
+
+    @Test
+    fun `even gap count averages the middle two and rounds the threshold up`() {
+        val gaps = List(5) { 1 } + List(5) { 2 } // median 1.5, threshold ceil(4.5) = 5
+        assertNull(comeback(fromGaps(daysAgo(4), gaps)))
+        assertEquals(Comeback(FOOD, 5), comeback(fromGaps(daysAgo(5), gaps)))
+    }
+
+    @Test
+    fun `threshold of exactly 30 fires, above 30 stays silent`() {
+        val median10 = List(4) { 1 } + List(5) { 10 }
+        assertEquals(Comeback(FOOD, 30), comeback(fromGaps(daysAgo(30), median10)))
+
+        val median11 = List(4) { 1 } + List(5) { 11 } // threshold 33, never lowered to the cap
+        assertNull(comeback(fromGaps(daysAgo(30), median11)))
+    }
+
+    @Test
+    fun `gap of 31 is silent`() {
+        assertNull(comeback(everyNDays(daysAgo(31), 1, 30)))
+    }
+
+    @Test
+    fun `needs 8 baseline days`() {
+        assertNull(comeback(everyNDays(daysAgo(3), 1, 7)))
+        assertEquals(Comeback(FOOD, 3), comeback(everyNDays(daysAgo(3), 1, 8)))
+    }
+
+    @Test
+    fun `baseline reaches exactly 60 days back from the last active date`() {
+        val last = daysAgo(21)
+        val seven = listOf(0L, 1, 2, 3, 4, 20, 40).map { on(last.minusDays(it)) }
+        assertEquals(Comeback(FOOD, 21), comeback(seven + on(last.minusDays(60))))
+        assertNull(comeback(seven + on(last.minusDays(61))))
+    }
+
+    @Test
+    fun `purchase earlier today means no comeback, one later today is ignored`() {
+        val history = everyNDays(daysAgo(3), 1, 30)
+        assertNull(comeback(history + on(today, hour = 8)))
+        assertEquals(Comeback(FOOD, 3), comeback(history + on(today, hour = 20)))
+    }
+
+    @Test
+    fun `a break in a category is measured across currencies`() {
+        val usd = everyNDays(daysAgo(3), 1, 30).map { it.copy(currency = "USD") }
+        assertEquals(Comeback(FOOD, 3), comeback(usd))
+        assertNull(comeback(everyNDays(daysAgo(3), 1, 30) + on(daysAgo(1), currency = "USD")))
+    }
+
+    @Test
+    fun `other category history does not count, a recurring charge does`() {
+        val shopping = everyNDays(daysAgo(3), 1, 30).map { it.copy(category = SHOPPING) }
+        assertNull(comeback(shopping))
+        val food = everyNDays(daysAgo(3), 1, 30)
+        assertEquals(Comeback(FOOD, 3), comeback(food + on(daysAgo(1), category = SHOPPING)))
+        assertNull(comeback(food + on(daysAgo(1), recurring = true)))
+    }
+
+    @Test
+    fun `several purchases on one day do not distort the median`() {
+        fun triples(last: LocalDate) = everyNDays(last, 3, 21).flatMap { p ->
+            listOf(p, p.copy(at = p.at.withHour(9), transactionId = nextId++), p.copy(at = p.at.withHour(20), transactionId = nextId++))
+        }
+        assertNull(comeback(triples(daysAgo(8))))
+        assertEquals(Comeback(FOOD, 9), comeback(triples(daysAgo(9))))
+    }
+
+    @Test
+    fun `a comeback needs no ledger age, only the active days`() {
+        val history = everyNDays(daysAgo(3), 1, 30)
+        assertEquals(Comeback(FOOD, 3), comeback(history, ledgerStart = daysAgo(32)))
+        assertEquals(Comeback(FOOD, 3), comeback(history, ledgerStart = null))
+    }
+
+    // --- Record day ---
+
+    /** Eight active days ending yesterday, the best at 100: the bar is 120. */
+    private val recordBase get() = (1L..8L).map { on(daysAgo(it), "50") } + on(daysAgo(2), "50", hour = 18)
+
+    private fun record(
+        history: List<ConsciencePurchase>,
+        amount: String,
+        ledgerStart: LocalDate = longLedger,
+    ) = detect(history, now(amount), ledgerStart).find<RecordDay>()
+
+    @Test
+    fun `today passing 1_2 x the best day is a record`() {
+        val earlier = recordBase + on(today, "60", hour = 9)
+        assertEquals(RecordDay(FOOD), record(earlier, "60.01"))
+        assertNull(record(earlier, "60"))
+    }
+
+    @Test
+    fun `sitting exactly on the bar before still fires, past it stays quiet`() {
+        val onBar = recordBase + on(today, "60", hour = 8) + on(today, "60", hour = 9)
+        assertEquals(RecordDay(FOOD), record(onBar, "1"))
+        val pastBar = recordBase + on(today, "60", hour = 8) + on(today, "60.01", hour = 9)
+        assertNull(record(pastBar, "1"))
+    }
+
+    @Test
+    fun `a refund today keeps a record day quiet, yesterday's does not`() {
+        val earlier = recordBase + on(today, "60", hour = 9)
+        fun record(refund: ConsciencePurchase) =
+            detect(earlier, now("60.01"), refunds = listOf(refund)).find<RecordDay>()
+        assertNull(record(on(today, "30", hour = 10)))
+        assertEquals(RecordDay(FOOD), record(on(daysAgo(1), "30")))
+        assertEquals(RecordDay(FOOD), record(on(today, "30", category = SHOPPING)))
+    }
+
+    @Test
+    fun `one purchase alone is no record day`() {
+        assertNull(record(recordBase, "500"))
+    }
+
+    @Test
+    fun `today's purchases must spread over half an hour`() {
+        assertNull(record(recordBase + on(today, "60", hour = 11, minute = 31), "60.01"))
+        assertEquals(RecordDay(FOOD), record(recordBase + on(today, "60", hour = 11, minute = 30), "60.01"))
+    }
+
+    @Test
+    fun `no purchase may carry over 60 percent of the day`() {
+        assertNull(record(recordBase + on(today, "40", hour = 9), "90"))
+        assertEquals(RecordDay(FOOD), record(recordBase + on(today, "52", hour = 9), "78"))
+    }
+
+    @Test
+    fun `split parts of one transaction are one purchase of the day`() {
+        val at = today.atTime(9, 0)
+        assertNull(record(recordBase + buy(at, "40", id = 500) + buy(at, "40", id = 500), "41"))
+        assertEquals(RecordDay(FOOD), record(recordBase + on(today, "40", hour = 9) + on(today, "40", hour = 10), "41"))
+    }
+
+    @Test
+    fun `needs 8 active days in the window`() {
+        val seven = (1L..7L).map { on(daysAgo(it), "50") } + on(daysAgo(2), "50", hour = 18)
+        assertNull(record(seven + on(today, "60", hour = 9), "60.01"))
+        assertEquals(RecordDay(FOOD), record(seven + on(daysAgo(30), "50") + on(today, "60", hour = 9), "60.01"))
+    }
+
+    @Test
+    fun `the ledger must cover the 60 days`() {
+        val history = recordBase + on(today, "60", hour = 9)
+        assertEquals(RecordDay(FOOD), record(history, "60.01", ledgerStart = daysAgo(60)))
+        assertNull(record(history, "60.01", ledgerStart = daysAgo(59)))
+    }
+
+    @Test
+    fun `window covers 60 days back and no further`() {
+        val base = (1L..8L).map { on(daysAgo(it), "50") } + on(today, "31", hour = 9) // bar 60
+        assertEquals(RecordDay(FOOD), record(base + on(daysAgo(61), "500"), "30"))
+        assertNull(record(base + on(daysAgo(60), "500"), "30"))
+    }
+
+    @Test
+    fun `record totals never mix categories`() {
+        val noise = on(today, "1000", hour = 10, category = SHOPPING)
+        assertEquals(RecordDay(FOOD), record(recordBase + on(today, "60", hour = 9) + noise, "60.01"))
+    }
+
+    @Test
+    fun `another currency in the record window keeps it quiet`() {
+        val todaySoFar = recordBase + on(today, "60", hour = 9)
+        // A far bigger USD day would make "biggest food day in two months" false.
+        assertNull(record(todaySoFar + on(daysAgo(3), "99999", currency = "USD"), "60.01"))
+        assertNull(record(todaySoFar + on(today, "1000", hour = 10, currency = "USD"), "60.01"))
+        // Too small to move any total: only the rule itself can keep this one quiet.
+        assertNull(record(todaySoFar + on(daysAgo(3), "5", currency = "USD"), "60.01"))
+        // Just before the window: it can't contradict anything.
+        assertEquals(RecordDay(FOOD), record(todaySoFar + on(daysAgo(61), "99999", currency = "USD"), "60.01"))
     }
 
     private companion object {

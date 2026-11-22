@@ -9,6 +9,12 @@ data class ConscienceLog(
     val kindFiredAtMillis: Map<String, Long> = emptyMap(),
 )
 
+/** What the user said about lines, by line key. A retired line never comes back; a liked one comes up more. */
+data class ConscienceFeedback(
+    val liked: Set<String> = emptySet(),
+    val retired: Set<String> = emptySet(),
+)
+
 /** A fact with the lines that rendered for it, in the order the detectors ranked them. */
 data class ConscienceCandidate(val fact: ConscienceFact, val lines: List<ConscienceLine>)
 
@@ -19,6 +25,10 @@ object ConscienceCadence {
     private const val DAY_MILLIS = 24 * HOUR_MILLIS
     private const val WEEK_MILLIS = 7 * DAY_MILLIS
     private const val LINE_COOLDOWN_DAYS = 30L
+    private const val LIKED_WEIGHT = 2
+
+    /** A hello only fills a silence: none when anything was said in the last 3 days. */
+    private const val HELLO_SILENCE_MILLIS = 3 * DAY_MILLIS
 
     private const val FIRE_PREFIX = "fire"
     private const val LINE_PREFIX = "line"
@@ -27,14 +37,17 @@ object ConscienceCadence {
     /** How long a kind stays quiet in one category after it spoke there. */
     fun kindCooldownMillis(kind: ConscienceKind): Long = when (kind) {
         ConscienceKind.REPEAT -> 3 * DAY_MILLIS
-        ConscienceKind.LATE_NIGHT -> WEEK_MILLIS
-        ConscienceKind.POSITIVE -> 2 * WEEK_MILLIS
+        ConscienceKind.COMEBACK, ConscienceKind.LATE_NIGHT -> WEEK_MILLIS
+        ConscienceKind.POSITIVE, ConscienceKind.WEEKLY, ConscienceKind.RECORD_DAY, ConscienceKind.SPIKE -> 2 * WEEK_MILLIS
+        ConscienceKind.HELLO -> HELLO_SILENCE_MILLIS
     }
 
-    /** At most once a day and three times a week. */
-    fun allows(log: ConscienceLog, nowMillis: Long): Boolean {
+    fun allows(log: ConscienceLog, frequency: ConscienceFrequency, nowMillis: Long): Boolean {
         fun firedWithin(window: Long) = log.firedAtMillis.count { nowMillis - it < window }
-        return firedWithin(DAY_MILLIS) < 1 && firedWithin(WEEK_MILLIS) < 3
+        return when (frequency) {
+            ConscienceFrequency.NORMAL -> firedWithin(DAY_MILLIS) < 1 && firedWithin(WEEK_MILLIS) < 3
+            ConscienceFrequency.LESS -> firedWithin(WEEK_MILLIS) < 1
+        }
     }
 
     private fun kindKey(fact: ConscienceFact) = "${fact.kind.name}_${fact.category.name}"
@@ -46,34 +59,38 @@ object ConscienceCadence {
     fun choose(
         candidates: List<ConscienceCandidate>,
         log: ConscienceLog,
-        retired: Set<String>,
+        feedback: ConscienceFeedback,
+        frequency: ConscienceFrequency,
         contentLocale: String,
         nowMillis: Long,
         todayEpochDay: Long,
         random: Random,
     ): ConscienceChoice? {
-        if (!allows(log, nowMillis)) return null
+        if (!allows(log, frequency, nowMillis)) return null
         for (candidate in candidates) {
             val fact = candidate.fact
+            if (fact.kind == ConscienceKind.HELLO && log.firedAtMillis.any { nowMillis - it < HELLO_SILENCE_MILLIS }) continue
             val lastOfKind = log.kindFiredAtMillis[kindKey(fact)]
             if (lastOfKind != null && nowMillis - lastOfKind < kindCooldownMillis(fact.kind)) continue
-            val line = pickLine(candidate.lines, contentLocale, log, retired, todayEpochDay, random) ?: continue
+            val line = pickLine(candidate.lines, contentLocale, log, feedback, todayEpochDay, random) ?: continue
             return ConscienceChoice(fact, line, ConscienceLines.key(contentLocale, line))
         }
         return null
     }
 
-    /** A line the user turned down never returns; any other waits 30 days. */
+    /** A line the user turned down never returns; any other waits 30 days. A liked one is twice as likely. */
     fun pickLine(
         pool: List<ConscienceLine>,
         contentLocale: String,
         log: ConscienceLog,
-        retired: Set<String>,
+        feedback: ConscienceFeedback,
         todayEpochDay: Long,
         random: Random,
     ): ConscienceLine? = pool.filter { line ->
         val key = ConscienceLines.key(contentLocale, line)
-        key !in retired && (log.lineUsedOnEpochDay[key]?.let { todayEpochDay - it >= LINE_COOLDOWN_DAYS } ?: true)
+        key !in feedback.retired && (log.lineUsedOnEpochDay[key]?.let { todayEpochDay - it >= LINE_COOLDOWN_DAYS } ?: true)
+    }.flatMap { line ->
+        List(if (ConscienceLines.key(contentLocale, line) in feedback.liked) LIKED_WEIGHT else 1) { line }
     }.randomOrNull(random)
 
     fun record(log: ConscienceLog, choice: ConscienceChoice, nowMillis: Long, todayEpochDay: Long): ConscienceLog {

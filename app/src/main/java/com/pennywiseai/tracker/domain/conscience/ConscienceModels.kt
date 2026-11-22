@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.domain.conscience
 
 import java.math.BigDecimal
+import java.time.DayOfWeek
 import java.time.LocalDateTime
 
 /**
@@ -20,13 +21,30 @@ enum class ConscienceCategory(val builtinKey: String) {
 
 /**
  * The kinds of comment, in priority order: when several facts hold for one
- * purchase, the first kind with a line left wins.
+ * purchase, the first kind with a line left wins. [HELLO] is the fallback that
+ * keeps the feature from going quiet for weeks.
  */
 enum class ConscienceKind {
     POSITIVE,
+    COMEBACK,
     REPEAT,
+    WEEKLY,
     LATE_NIGHT,
+    RECORD_DAY,
+    SPIKE,
+    HELLO;
+
+    companion object {
+        /**
+         * What every language with lines says. The rest speak only where the lines turn on
+         * the full set (conscience_full), Arabic for now.
+         */
+        val BASIC: Set<ConscienceKind> = setOf(POSITIVE, REPEAT, LATE_NIGHT)
+    }
 }
+
+/** At most once a day and three times a week, or at most once a week. */
+enum class ConscienceFrequency { NORMAL, LESS }
 
 /**
  * A transaction reduced to what the detectors read. [merchant] stays in memory:
@@ -50,6 +68,16 @@ sealed interface ConscienceFact {
     val category: ConscienceCategory
     val kind: ConscienceKind
 
+    /** The category went quiet for [days] days, then came back today. */
+    data class Comeback(override val category: ConscienceCategory, val days: Int) : ConscienceFact {
+        override val kind get() = ConscienceKind.COMEBACK
+    }
+
+    /** Today's total passed the highest single day of the prior 60 days by a clear margin. */
+    data class RecordDay(override val category: ConscienceCategory) : ConscienceFact {
+        override val kind get() = ConscienceKind.RECORD_DAY
+    }
+
     /** [count] purchases in the category within the last [hours] hours, this one included. */
     data class Repeat(override val category: ConscienceCategory, val count: Int, val hours: Int) : ConscienceFact {
         override val kind get() = ConscienceKind.REPEAT
@@ -60,8 +88,23 @@ sealed interface ConscienceFact {
         override val kind get() = ConscienceKind.LATE_NIGHT
     }
 
+    /** The last 7 days in this category and currency crossed well above the usual week. */
+    data class Spike(override val category: ConscienceCategory) : ConscienceFact {
+        override val kind get() = ConscienceKind.SPIKE
+    }
+
     /** Last completed week came in [percent]% under the usual week, same category and currency. */
     data class Positive(override val category: ConscienceCategory, val percent: Int) : ConscienceFact {
         override val kind get() = ConscienceKind.POSITIVE
+    }
+
+    /** This category shows up on [weekday] most weeks. */
+    data class Weekly(override val category: ConscienceCategory, val weekday: DayOfWeek) : ConscienceFact {
+        override val kind get() = ConscienceKind.WEEKLY
+    }
+
+    /** Only that a purchase in the category was recorded just now. */
+    data class Hello(override val category: ConscienceCategory) : ConscienceFact {
+        override val kind get() = ConscienceKind.HELLO
     }
 }

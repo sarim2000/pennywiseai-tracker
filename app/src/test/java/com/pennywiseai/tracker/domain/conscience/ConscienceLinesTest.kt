@@ -7,6 +7,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
+import java.time.DayOfWeek
 import java.util.Locale
 import javax.xml.parsers.DocumentBuilderFactory
 
@@ -14,8 +15,10 @@ class ConscienceLinesTest {
 
     private object Words : ConscienceWords {
         override val locale: Locale = Locale.ENGLISH
+        override fun days(days: Int) = "$days days"
         override fun hours(hours: Int) = "$hours hours"
         override fun category(category: ConscienceCategory) = category.name.lowercase()
+        override fun weekday(day: DayOfWeek) = day.name.lowercase()
         override fun percent(percent: Int) = "$percent%"
     }
 
@@ -36,6 +39,8 @@ class ConscienceLinesTest {
         listOf<(ConscienceCategory) -> ConscienceFact>(
             { ConscienceFact.Repeat(it, 3, 6) },
             { ConscienceFact.LateNight(it) },
+            { ConscienceFact.Comeback(it, 5) },
+            { ConscienceFact.Hello(it) },
         ).forEach { make ->
             assertEquals(ConscienceLines.pool(make(shopping)), ConscienceLines.pool(make(fun_)))
             assertTrue(ConscienceLines.pool(make(food)).intersect(ConscienceLines.pool(make(shopping)).toSet()).isEmpty())
@@ -47,6 +52,11 @@ class ConscienceLinesTest {
     fun `render fills placeholders and capitalizes only sentence starts`() {
         assertEquals("Food: 25% less", ConscienceLines.render("{category}: {percent} less", ConscienceFact.Positive(food, 25), Words))
         assertEquals("3 in 6 hours", ConscienceLines.render("{count} in {hours}", ConscienceFact.Repeat(food, 3, 6), Words))
+        assertEquals("5 days strong", ConscienceLines.render("{days} strong", ConscienceFact.Comeback(food, 5), Words))
+        assertEquals(
+            "Friday means food",
+            ConscienceLines.render("{weekday} means {category}", ConscienceFact.Weekly(food, DayOfWeek.FRIDAY), Words)
+        )
         val late = ConscienceFact.LateNight(food)
         assertEquals("Hm. Food again? Food it is", ConscienceLines.render("hm. {category} again? {category} it is", late, Words))
         assertEquals("Wait… food, and more food", ConscienceLines.render("wait… {category}, and more {category}", late, Words))
@@ -56,6 +66,8 @@ class ConscienceLinesTest {
     fun `a placeholder the fact can't fill or a stray brace drops the line`() {
         val late = ConscienceFact.LateNight(food)
         assertNull(ConscienceLines.render("{count} late", late, Words))
+        assertNull(ConscienceLines.render("{days} late", late, Words))
+        assertNull(ConscienceLines.render("{weekday} late", late, Words))
         assertNull(ConscienceLines.render("{amount} spent", late, Words))
         assertNull(ConscienceLines.render("{tired|exhausted}", late, Words))
         assertNull(ConscienceLines.render("oops {", late, Words))
@@ -106,7 +118,14 @@ class ConscienceLinesTest {
                 ConscienceFact.Repeat(category, 4, 24),
                 ConscienceFact.LateNight(category),
                 ConscienceFact.Positive(category, 25),
-            )
+                ConscienceFact.Comeback(category, 1),
+                ConscienceFact.Comeback(category, 2),
+                ConscienceFact.Comeback(category, 5),
+                ConscienceFact.Comeback(category, 30),
+                ConscienceFact.RecordDay(category),
+                ConscienceFact.Spike(category),
+                ConscienceFact.Hello(category),
+            ) + DayOfWeek.entries.map { ConscienceFact.Weekly(category, it) }
         }
         return all.filter { line in ConscienceLines.pool(it) }
     }
@@ -121,7 +140,9 @@ class ConscienceLinesTest {
             listOf("category_food", "category_entertainment", "category_shopping", "percent").forEach {
                 assertTrue("${dir.name} is missing $it", lines["conscience_$it"].orEmpty().isNotBlank())
             }
-            assertTrue("${dir.name} is missing conscience_hours", "conscience_hours" in plurals(File(dir, "conscience_lines.xml")))
+            listOf("conscience_hours", "conscience_days").forEach {
+                assertTrue("${dir.name} is missing $it", it in plurals(File(dir, "conscience_lines.xml")))
+            }
             ConscienceLines.all.forEach { line ->
                 val template = lines["conscience_line_${line.id}"]
                 assertNotNull("${dir.name} is missing ${line.id}", template)
@@ -142,5 +163,27 @@ class ConscienceLinesTest {
                 assertFalse("${dir.name}/$name mentions money", currency.containsMatchIn(text))
             }
         }
+    }
+
+    @Test
+    fun `only Arabic speaks the full set for now`() {
+        fun full(dir: File): String? {
+            val nodes = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(File(dir, "conscience_lines.xml"))
+                .getElementsByTagName("bool")
+            return (0 until nodes.length).map { nodes.item(it) }
+                .firstOrNull { it.attributes.getNamedItem("name").nodeValue == "conscience_full" }?.textContent
+        }
+        assertEquals(mapOf("values" to "false", "values-ar-rSA" to "true"), localeDirs.associate { it.name to full(it) })
+    }
+
+    @Test
+    fun `a sample walks every kind before it repeats one`() {
+        val kinds = (0 until ConscienceKind.entries.size).map { ConscienceLines.sample(it).first.kind }
+        assertEquals(ConscienceKind.entries.toSet(), kinds.toSet())
+        (0 until 200).forEach { index ->
+            val (fact, line) = ConscienceLines.sample(index)
+            assertTrue(line in ConscienceLines.pool(fact))
+        }
+        assertEquals(ConscienceLines.sample(0), ConscienceLines.sample(Int.MAX_VALUE))
     }
 }

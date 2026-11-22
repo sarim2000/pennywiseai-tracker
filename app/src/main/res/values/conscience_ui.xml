@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    What only the full conscience shows: the Conscience screen, the "Liked it" action
+    and its confirmations. It ships only in a language whose conscience_lines.xml turns
+    conscience_full on (Arabic for now), so this file isn't named strings*.xml and stays
+    out of Crowdin, the same as the lines: no translator works on a screen nobody in
+    their language can open. Move these into strings_conscience.xml once the full set
+    reaches a language that Crowdin translates.
+-->
+<resources>
+    <!-- The row on the Notifications page that opens the screen -->
+    <string name="conscience_nav_subtitle_on">On · cheeky comments on your spending</string>
+    <string name="conscience_nav_subtitle_off">Off · cheeky comments on your spending</string>
+
+    <!-- The hero card at the top of the screen -->
+    <string name="conscience_hero_title">Your spending has a commentator</string>
+    <string name="conscience_hero_body">Cheeky one-liners after food, fun and shopping. And applause when it\'s earned.</string>
+    <string name="conscience_switch_title">Let it talk</string>
+
+    <!-- Status line under the switch -->
+    <string name="conscience_status_off">Napping. Flip the switch to wake it up 😴</string>
+    <string name="conscience_status_blocked">Notifications are off, so it\'s talking to a wall 🧱</string>
+    <string name="conscience_status_listening">Listening for your next food, fun or shopping purchase 👂</string>
+    <string name="conscience_status_learning">Still learning your habits. The sharper remarks unlock as your history grows 🧠</string>
+    <string name="conscience_open_notification_settings">Turn on notifications</string>
+
+    <!-- Examples -->
+    <string name="conscience_examples_title">Overheard examples</string>
+    <string name="conscience_example_badge">Example</string>
+    <string name="conscience_another_example">Another one</string>
+    <string name="conscience_try_it">Send me one</string>
+    <string name="conscience_try_sent">Sent! It makes no sound, so peek at your notifications.</string>
+
+    <!-- The kinds of comment, each with a switch -->
+    <string name="conscience_kinds_title">What it comments on</string>
+    <string name="conscience_kind_positive">Wins</string>
+    <string name="conscience_kind_positive_desc">A week well below your usual, so it cheers instead</string>
+    <string name="conscience_kind_comeback">Comebacks</string>
+    <string name="conscience_kind_comeback_desc">A category returns after an unusually long break</string>
+    <string name="conscience_kind_repeat">Repeat runs</string>
+    <string name="conscience_kind_repeat_desc">The same category again and again within hours</string>
+    <string name="conscience_kind_weekly">Weekly rituals</string>
+    <string name="conscience_kind_weekly_desc">The same category on the same weekday, week after week</string>
+    <string name="conscience_kind_late_night">Late nights</string>
+    <string name="conscience_kind_late_night_desc">Purchases after 11 PM. It never wakes you up</string>
+    <string name="conscience_kind_record_day">Record days</string>
+    <string name="conscience_kind_record_day_desc">Your biggest day in a category for two months</string>
+    <string name="conscience_kind_spike">Spikes</string>
+    <string name="conscience_kind_spike_desc">A week well above your usual in a category</string>
+    <string name="conscience_kind_hello">Quick hellos</string>
+    <string name="conscience_kind_hello_desc">A wave now and then, so you know it\'s still awake</string>
+
+    <!-- How often -->
+    <string name="conscience_frequency_title">How often</string>
+    <string name="conscience_frequency_normal">Normal</string>
+    <string name="conscience_frequency_less">Less often</string>
+    <string name="conscience_frequency_normal_note">At most once a day and 3 times a week.</string>
+    <string name="conscience_frequency_less_note">At most once a week.</string>
+
+    <!-- Recent remarks -->
+    <string name="conscience_recent_title">Recent remarks</string>
+    <string name="conscience_recent_empty">No remarks yet. It\'s waiting for your next food, fun or shopping purchase.</string>
+    <string name="conscience_recent_saved_quietly">Saved quietly</string>
+    <string name="conscience_recent_show_all">Show all</string>
+    <string name="conscience_recent_show_less">Show less</string>
+    <!-- %1$s liked lines, %2$s retired lines -->
+    <string name="conscience_feedback_summary">😂 %1$s liked · 🙅 %2$s retired</string>
+    <string name="conscience_reset_feedback">Reset reactions</string>
+    <string name="conscience_reaction_liked">You liked this 😂</string>
+    <string name="conscience_reaction_retired">Retired for good 🙅</string>
+
+    <string name="conscience_privacy">Hand-written jokes, matched to your patterns on this phone. No amounts or shop names, ever. Only food, entertainment and shopping.</string>
+
+    <!-- The notification -->
+    <string name="conscience_action_like">😂 Liked it</string>
+    <string name="conscience_confirm_like">Noted 😂 More like that, same limits.</string>
+    <string name="conscience_confirm_sample">Just a sample, so nothing changed 😉</string>
+</resources>

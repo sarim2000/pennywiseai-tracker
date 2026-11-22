@@ -15,11 +15,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.DateFormatStyle
 import com.pennywiseai.tracker.core.NumberFormatStyle
 import com.pennywiseai.tracker.data.manager.ConscienceText
 import com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT
+import com.pennywiseai.tracker.navigation.Conscience
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.utils.AppDates
 import java.time.LocalDate
@@ -132,7 +134,7 @@ private fun numberFormatStyleExample(style: NumberFormatStyle): String = stringR
 // ── Notifications ──
 
 @Composable
-internal fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewModel()) {
+internal fun NotificationsPage(onNavigate: (NavKey) -> Unit, settingsViewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val dailySummaryEnabled by settingsViewModel.dailySummaryEnabled.collectAsStateWithLifecycle(initialValue = DAILY_SUMMARY_DEFAULT)
     val weeklySummaryEnabled by settingsViewModel.weeklySummaryEnabled.collectAsStateWithLifecycle(initialValue = false)
@@ -167,7 +169,8 @@ internal fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMo
             Toast.makeText(context, R.string.settings_budget_alerts_needs_permission, Toast.LENGTH_LONG).show()
         }
     }
-    val conscienceAvailable = remember(context) { ConscienceText(context).speaksAppLanguage }
+    val conscienceText = remember(context) { ConscienceText(context) }
+    val conscienceAvailable = conscienceText.speaksAppLanguage
     val consciencePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -245,7 +248,18 @@ internal fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMo
             },
             position = ListItemPosition.from(row++, rowCount)
         )
-        if (conscienceAvailable) {
+        if (conscienceText.full) {
+            // The full set has its own screen, with the switch at the top.
+            SettingsNavItem(
+                icon = Icons.Default.Psychology,
+                title = stringResource(R.string.conscience_title),
+                subtitle = stringResource(
+                    if (conscienceEnabled) R.string.conscience_nav_subtitle_on else R.string.conscience_nav_subtitle_off
+                ),
+                onClick = { onNavigate(Conscience) },
+                position = ListItemPosition.from(row++, rowCount)
+            )
+        } else if (conscienceAvailable) {
             SettingsSwitchRow(
                 icon = Icons.Default.Psychology,
                 title = stringResource(R.string.conscience_title),

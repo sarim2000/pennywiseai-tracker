@@ -72,9 +72,9 @@ class ReceiverConscienceNotificationActionsTest {
     }
 
     @Test
-    fun `retireLine broadcasts the retire action with the line key on request code 0`() {
+    fun `react broadcasts the reaction with the remark id and line key on request code 0`() {
         recordIntentsFor(NotificationActionReceiver::class.java)
-        val result = ReceiverConscienceNotificationActions(context).retireLine(LINE_KEY)
+        val result = ReceiverConscienceNotificationActions(context).react(REMARK_ID, LINE_KEY, liked = false)
 
         assertSame(pendingIntent, result)
         verify(exactly = 1) { PendingIntent.getBroadcast(context, any(), any(), any()) }
@@ -88,12 +88,29 @@ class ReceiverConscienceNotificationActionsTest {
             intentTo(NotificationActionReceiver::class.java)
                 .putExtra("conscience_line_key", LINE_KEY)
         }
-        assertNothingOverwritten(NotificationActionReceiver::class.java, flags = 0, longExtras = 0, stringExtras = 1)
+        verify {
+            intentTo(NotificationActionReceiver::class.java)
+                .putExtra("conscience_remark_id", REMARK_ID)
+        }
+        // The remark id in the data keeps a sample's actions apart from a real remark's.
+        verify(exactly = 1) { intentTo(NotificationActionReceiver::class.java).setData(any()) }
+        assertNothingOverwritten(NotificationActionReceiver::class.java, flags = 0, longExtras = 1, stringExtras = 1)
+    }
+
+    @Test
+    fun `liking uses its own action`() {
+        recordIntentsFor(NotificationActionReceiver::class.java)
+        ReceiverConscienceNotificationActions(context).react(REMARK_ID, LINE_KEY, liked = true)
+        verify {
+            intentTo(NotificationActionReceiver::class.java)
+                .setAction("com.pennywiseai.tracker.ACTION_CONSCIENCE_LIKE")
+        }
     }
 
     @Test
     fun `the retire action is the one NotificationActionReceiver handles`() {
         assertEquals("com.pennywiseai.tracker.ACTION_CONSCIENCE_RETIRE", NotificationActionReceiver.ACTION_CONSCIENCE_RETIRE)
+        assertEquals("com.pennywiseai.tracker.ACTION_CONSCIENCE_LIKE", NotificationActionReceiver.ACTION_CONSCIENCE_LIKE)
         assertEquals("com.pennywiseai.tracker.ACTION_EDIT_TRANSACTION", SmsBroadcastReceiver.ACTION_EDIT_TRANSACTION)
         assertEquals("transaction_id", SmsBroadcastReceiver.EXTRA_TRANSACTION_ID)
     }
@@ -131,6 +148,7 @@ class ReceiverConscienceNotificationActionsTest {
         every { intentTo(component).hasExtra(PROBE) } returns true
         every { intentTo(component).setAction(any()) } answers { callOriginal() }
         every { intentTo(component).setFlags(any()) } answers { callOriginal() }
+        every { intentTo(component).setData(any()) } answers { callOriginal() }
         every {
             intentTo(component).putExtra(any<String>(), any<Long>())
         } answers { callOriginal() }
@@ -142,6 +160,7 @@ class ReceiverConscienceNotificationActionsTest {
     private companion object {
         const val TRANSACTION_ID = 4242L
         const val LINE_KEY = "late_night.1"
+        const val REMARK_ID = 1_800_000_000_000L
         const val PROBE = "test.built_with_expected_component"
     }
 }

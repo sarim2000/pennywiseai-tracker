@@ -1,0 +1,60 @@
+package com.pennywiseai.tracker.domain.conscience
+
+import kotlinx.serialization.Serializable
+
+enum class ConscienceReaction { LIKED, RETIRED }
+
+/**
+ * A line the conscience said, for the screen's recent remarks. [text] is the
+ * rendered line: no amount or merchant can be in it (see [ConscienceLines]).
+ * [notified] is false when it was kept quiet, late at night with the screen off.
+ * Stored on this device only, never backed up.
+ */
+@Serializable
+data class ConscienceRemark(
+    val id: Long,
+    val atMillis: Long,
+    val text: String,
+    val kind: ConscienceKind,
+    val lineKey: String,
+    val notified: Boolean = true,
+    val reaction: ConscienceReaction? = null,
+)
+
+object ConscienceRemarks {
+    const val MAX = 20
+    private const val MAX_AGE_MILLIS = 30 * 24 * 60 * 60 * 1000L
+
+    /** Only remarks younger than 30 days exist: older ones are neither shown nor rated. */
+    fun fresh(remarks: List<ConscienceRemark>, nowMillis: Long): List<ConscienceRemark> =
+        remarks.filter { nowMillis - it.atMillis < MAX_AGE_MILLIS }
+
+    /** Newest first, at most [MAX], none older than 30 days. */
+    fun add(remarks: List<ConscienceRemark>, remark: ConscienceRemark, nowMillis: Long): List<ConscienceRemark> =
+        fresh(listOf(remark) + remarks.filter { it.id != remark.id }, nowMillis).take(MAX)
+
+    /**
+     * Applies a reaction to the line behind [lineKey], and marks remark [remarkId]
+     * when it's still stored. The first reaction to a remark wins: null when it
+     * already has one. A remark that's gone (pruned, or posted where the screen
+     * isn't shown) still rates its line, so "Not this one" always holds.
+     */
+    fun react(
+        remarks: List<ConscienceRemark>,
+        feedback: ConscienceFeedback,
+        remarkId: Long,
+        lineKey: String,
+        reaction: ConscienceReaction,
+    ): Pair<List<ConscienceRemark>, ConscienceFeedback>? {
+        val remark = remarks.firstOrNull { it.id == remarkId }
+        if (remark?.reaction != null) return null
+        val key = remark?.lineKey ?: lineKey.ifEmpty { return null }
+        val updated = remarks.map { if (it.id == remarkId) it.copy(reaction = reaction) else it }
+        val newFeedback = when (reaction) {
+            // Retired means never again: an older remark's like can't undo it, only a reset can.
+            ConscienceReaction.LIKED -> if (key in feedback.retired) feedback else feedback.copy(liked = feedback.liked + key)
+            ConscienceReaction.RETIRED -> feedback.copy(liked = feedback.liked - key, retired = feedback.retired + key)
+        }
+        return updated to newFeedback
+    }
+}

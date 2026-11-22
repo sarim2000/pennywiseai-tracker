@@ -100,7 +100,7 @@ class BudgetInvestmentsTest {
     }
 
     /** Budgets screen in both currency modes, then Home outside and in unified mode. */
-    private fun spentEverywhere(group: BudgetWithCategories): List<BigDecimal> = runBlocking {
+    private fun spentEverywhere(group: BudgetWithCategories, txs: List<TransactionWithSplits> = this.txs): List<BigDecimal> = runBlocking {
         val repo = repository(group, txs)
         val raw = repo.getGroupSpendingAllCurrencies(month.year, month.monthValue).first()
         listOf(
@@ -127,6 +127,23 @@ class BudgetInvestmentsTest {
             assertEquals(3898.0, plan.dailyCumulativeSpending.last(), 0.01)
             assertEquals(plan.totalActual.toDouble(), plan.dailyCumulativeSpending.last(), 0.01)
         }
+    }
+
+    @Test
+    fun `an all-spending budget counts card spend on every surface`() = runBlocking {
+        val spent = listOf(tx(1, "3898", TransactionType.EXPENSE), tx(2, "1000", TransactionType.CREDIT))
+        assertSpent("4898", spentEverywhere(budget(), spent))
+        val repo = repository(budget(), spent)
+        for (unified in listOf(false, true)) {
+            val plan = budgets(repo, unified)
+            assertEquals(plan.totalActual.toDouble(), plan.dailyCumulativeSpending.last(), 0.01)
+        }
+        val last = month.minusMonths(1)
+        val history = repository(
+            budget(),
+            listOf(tx(1, "100", TransactionType.EXPENSE, date = last.atDay(1)), tx(2, "50", TransactionType.CREDIT, date = last.atDay(1)))
+        ).getBudgetHistoryForMonth(budget().budget, last.year, last.monthValue, "INR")
+        assertEquals(0, BigDecimal("150").compareTo(history.single().spent))
     }
 
     @Test

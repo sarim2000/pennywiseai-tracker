@@ -759,45 +759,24 @@ class BudgetGroupRepository @Inject constructor(
     }
 
     /**
-     * Sum the EXPENSE amounts in [transactions]. Used by the
-     * per-window spend aggregation. Loan-linked, INVESTMENT (not spending,
-     * see [budgetSpend]) and INCOME/TRANSFER transactions are excluded; the
-     * category-based [aggregateBudgetCategorySpending] handles per-category filtering and
-     * Refund (DEDUCT_SPENT) deductions at a finer grain.
-     */
-    private fun sumExpensesForWindow(
-        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>
-    ): BigDecimal {
-        return transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
-            val tx = txWithSplits.transaction.forTotals() ?: return@fold acc
-            if (tx.transactionType != TransactionType.EXPENSE) return@fold acc
-            acc + tx.amount
-        }
-    }
-
-    /**
-     * Sum the EXPENSE/INVESTMENT amounts in [transactions] that belong
-     * to one of [group]'s categories or type-buckets. The plain
-     * [sumExpensesForWindow] (above) is a date-range total — it counts
-     * every expense in the window, even ones outside the budget's
-     * categories. That mismatch is what made the Budget History page
-     * show 43k when the per-category breakdown correctly said 8k. Use
-     * this helper for any "what did this budget spend in this window"
-     * query the user sees on a card or history row.
+     * Sum the spending in [transactions] that belongs to one of [group]'s
+     * categories or type-buckets, not every expense in the window (that
+     * mismatch made Budget History show 43k when the per-category
+     * breakdown correctly said 8k). Use this helper for any "what did this
+     * budget spend in this window" query the user sees on a card or history row.
      *
-     * Falls back to [sumExpensesForWindow] for tracking-all budgets
-     * (no per-category allocations) — they include every expense.
-     *
-     * A budget with rollover on is added up with [budgetSpend] instead, the way its
-     * carry is, so what it shows spent is what it carries from.
+     * A budget with rollover on, or one with no categories (it tracks all
+     * spending, card spend included), is added up with [budgetSpend], as its
+     * card and carry are, so every screen shows the same spent.
      */
     private suspend fun getBudgetWindowFilteredSpend(
         group: BudgetWithCategories,
         transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
         parentOf: Map<String, String>
     ): BigDecimal {
-        if (group.budget.rolloverEnabled) return budgetSpend(group, transactions, parentOf, asIs).amount
-        if (group.categories.isEmpty()) return sumExpensesForWindow(transactions)
+        if (group.budget.rolloverEnabled || group.categories.isEmpty()) {
+            return budgetSpend(group, transactions, parentOf, asIs).amount
+        }
         val (categoryAmounts, _, typeAmounts) = aggregateBudgetCategorySpending(
             parentOf = parentOf,
             transactions = transactions,
@@ -1046,9 +1025,8 @@ class BudgetGroupRepository @Inject constructor(
         val totalActual = when {
             rollover -> budgetSpend(counted, txs, parentOf, converter).amount
             categorySpending.isNotEmpty() -> categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
-            // No per-cat breakdown → report the window total. For
-            // tracking-all budgets the helper falls back to the
-            // unfiltered sumExpensesForWindow.
+            // No per-cat breakdown → report the window total, added up
+            // with budgetSpend for a tracking-all budget, as its card is.
             else -> getBudgetWindowFilteredSpend(counted, txs, parentOf)
         }
         return WindowBreakdown(

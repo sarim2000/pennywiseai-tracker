@@ -20,7 +20,7 @@ class DhanlaxmiBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("DHANBK") ||
-                normalizedSender.contains("DHANLAXMI")
+            normalizedSender.contains("DHANLAXMI")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

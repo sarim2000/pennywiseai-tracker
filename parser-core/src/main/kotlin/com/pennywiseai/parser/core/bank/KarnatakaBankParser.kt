@@ -19,10 +19,10 @@ class KarnatakaBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("KARNATAKA BANK") ||
-                normalizedSender.contains("KARNATAKABANK") ||
-                normalizedSender.contains("KBLBNK") ||
-                normalizedSender.contains("KTKBANK") ||
-                normalizedSender.contains("KARBANK")
+            normalizedSender.contains("KARNATAKABANK") ||
+            normalizedSender.contains("KBLBNK") ||
+            normalizedSender.contains("KTKBANK") ||
+            normalizedSender.contains("KARBANK")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

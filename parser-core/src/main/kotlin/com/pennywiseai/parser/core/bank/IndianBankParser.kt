@@ -19,13 +19,13 @@ class IndianBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
         return normalized.contains("INDIAN BANK") ||
-                normalized.contains("INDIANBANK") ||
-                normalized.contains("INDIANBK") ||
-                // DLT patterns: -S for transactions, -T/-P/-G, or legacy without suffix
-                normalized.matches(DLT_SENDER) ||
-                // Direct sender IDs
-                normalized == "INDBNK" ||
-                normalized == "INDIAN"
+            normalized.contains("INDIANBANK") ||
+            normalized.contains("INDIANBK") ||
+            // DLT patterns: -S for transactions, -T/-P/-G, or legacy without suffix
+            normalized.matches(DLT_SENDER) ||
+            // Direct sender IDs
+            normalized == "INDBNK" ||
+            normalized == "INDIAN"
     }
 
     override fun extractAmount(message: String): BigDecimal? {

@@ -21,7 +21,7 @@ class OneCardParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("ONECRD") ||
-                normalizedSender.contains("ONECARD")
+            normalizedSender.contains("ONECARD")
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {

@@ -19,8 +19,8 @@ class UCOBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("UCOBNK") ||
-                normalizedSender.contains("UCOBANK") ||
-                normalizedSender.contains("UCO BANK")
+            normalizedSender.contains("UCOBANK") ||
+            normalizedSender.contains("UCO BANK")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

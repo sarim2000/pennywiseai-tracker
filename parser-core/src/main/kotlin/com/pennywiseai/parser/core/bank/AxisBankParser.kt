@@ -13,11 +13,11 @@ class AxisBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("AXIS BANK") ||
-                normalizedSender.contains("AXISB") ||
-                // DLT patterns (-S suffix for transactions, or legacy without suffix)
-                normalizedSender.matches(DLT_SENDER) ||
-                // Direct sender IDs
-                normalizedSender == "AXIS"
+            normalizedSender.contains("AXISB") ||
+            // DLT patterns (-S suffix for transactions, or legacy without suffix)
+            normalizedSender.matches(DLT_SENDER) ||
+            // Direct sender IDs
+            normalizedSender == "AXIS"
     }
 
     /**

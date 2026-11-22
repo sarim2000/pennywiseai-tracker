@@ -83,7 +83,7 @@ class ADCBParser : FABParser() {
     override fun containsCardPurchase(message: String): Boolean {
         // ADCB debit card purchase patterns
         return message.contains("was used for", ignoreCase = true) ||
-                message.contains("used for", ignoreCase = true)
+            message.contains("used for", ignoreCase = true)
     }
 
     override fun extractMerchant(message: String, sender: String): String? {

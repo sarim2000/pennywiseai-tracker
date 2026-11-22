@@ -25,7 +25,7 @@ class HuntingtonBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "446622" || // Huntington's US alert shortcode
-                upperSender.contains("HUNTINGTON")
+            upperSender.contains("HUNTINGTON")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

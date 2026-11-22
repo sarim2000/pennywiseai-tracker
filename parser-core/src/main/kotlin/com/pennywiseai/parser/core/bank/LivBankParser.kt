@@ -163,9 +163,9 @@ class LivBankParser : UAEBankParser() {
 
         // Liv-specific card indicators
         return lowerMessage.contains("debit card ending") ||
-                lowerMessage.contains("credit card ending") ||
-                lowerMessage.contains("purchase of") ||  // Liv Bank uses this for card purchases
-                super.detectIsCard(message)
+            lowerMessage.contains("credit card ending") ||
+            lowerMessage.contains("purchase of") ||  // Liv Bank uses this for card purchases
+            super.detectIsCard(message)
     }
 
     override fun containsCardPurchase(message: String): Boolean {
@@ -173,8 +173,8 @@ class LivBankParser : UAEBankParser() {
 
         // Liv Bank uses "Purchase of" with "Debit Card ending" or "Credit Card ending"
         return (lowerMessage.contains("purchase of") &&
-                (lowerMessage.contains("debit card ending") || lowerMessage.contains("credit card ending"))) ||
-                super.containsCardPurchase(message)
+            (lowerMessage.contains("debit card ending") || lowerMessage.contains("credit card ending"))) ||
+            super.containsCardPurchase(message)
     }
 
     override fun extractCurrency(message: String): String? {

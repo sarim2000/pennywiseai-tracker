@@ -72,10 +72,10 @@ open class FABParser : UAEBankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "FAB" ||
-                upperSender.contains("FABBANK") ||
-                upperSender.contains("ADFAB") ||
-                // DLT patterns for UAE might be different
-                upperSender.matches(DLT_SENDER)
+            upperSender.contains("FABBANK") ||
+            upperSender.contains("ADFAB") ||
+            // DLT patterns for UAE might be different
+            upperSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -266,9 +266,9 @@ open class FABParser : UAEBankParser() {
     override fun extractBalance(message: String): BigDecimal? {
         // Pattern: "Available Balance [CURRENCY] **30.16" or "Available Balance AED ***0.00"
         val balancePattern = Regex(
-                """(?:Available|available)\s+[Bb]alance\s+(?:is\s+)?(${CompiledPatterns.Currency.ISO_CODE.pattern})\s*\*{0,}([0-9*,]+(?:\.\d{2})?)""",
-                RegexOption.IGNORE_CASE
-            )
+            """(?:Available|available)\s+[Bb]alance\s+(?:is\s+)?(${CompiledPatterns.Currency.ISO_CODE.pattern})\s*\*{0,}([0-9*,]+(?:\.\d{2})?)""",
+            RegexOption.IGNORE_CASE
+        )
         balancePattern.find(message)?.let { match ->
             var balanceStr = match.groupValues[2].replace(",", "")
 
@@ -314,9 +314,9 @@ open class FABParser : UAEBankParser() {
         return super.extractReference(message)
     }
 
-    //Added public getter for test case
+    // Added public getter for test case
     fun shouldParseTransactionMessage(message: String): Boolean {
-        return isTransactionMessage(message);
+        return isTransactionMessage(message)
     }
 
     // Format transfer merchant information based on extracted accounts
@@ -442,7 +442,6 @@ open class FABParser : UAEBankParser() {
             lowerMessage.contains("remittance") ||
             lowerMessage.contains("available balance")
         ) {
-
             // Only return true if there's a currency amount pattern
             val amountPattern = Regex("""${CompiledPatterns.Currency.ISO_CODE.pattern}\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE)
             return amountPattern.containsMatchIn(message)

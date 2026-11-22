@@ -73,8 +73,6 @@ class IndusIndBankParser : BaseIndianBankParser() {
         return super.detectIsCard(message)
     }
 
-
-
     /**
      * Detect balance-only notifications (not transactions).
      * Examples:
@@ -83,9 +81,9 @@ class IndusIndBankParser : BaseIndianBankParser() {
     override fun isBalanceUpdateNotification(message: String): Boolean {
         val lower = message.lowercase()
         val hasBalanceCue = lower.contains("avl bal") ||
-                lower.contains("available bal") ||
-                lower.contains("account balance") ||
-                lower.contains("a/c balance")
+            lower.contains("available bal") ||
+            lower.contains("account balance") ||
+            lower.contains("a/c balance")
         val hasTxnVerb = listOf("debited", "credited", "withdrawn", "spent", "transferred")
             .any { lower.contains(it) }
         return hasBalanceCue && lower.contains("as on") && !hasTxnVerb

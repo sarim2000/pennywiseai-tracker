@@ -27,13 +27,13 @@ class BankOfIndiaParser : BaseIndianBankParser() {
 
         // DLT patterns (XX-BOIIND-S/T or XX-BOIBNK-S/T format)
         return normalizedSender.matches(BOIIND_DLT_SENDER) ||
-                normalizedSender.matches(BOIBNK_DLT_SENDER) ||
-                normalizedSender.matches(BOI_DLT_SENDER) ||
-                normalizedSender.matches(BOIIND_LEGACY_SENDER) ||
-                normalizedSender.matches(BOIBNK_LEGACY_SENDER) ||
-                normalizedSender.matches(BOI_LEGACY_SENDER) ||
-                normalizedSender.matches(BK_BOIIND_SENDER) ||
-                normalizedSender.matches(JD_BOIIND_SENDER)
+            normalizedSender.matches(BOIBNK_DLT_SENDER) ||
+            normalizedSender.matches(BOI_DLT_SENDER) ||
+            normalizedSender.matches(BOIIND_LEGACY_SENDER) ||
+            normalizedSender.matches(BOIBNK_LEGACY_SENDER) ||
+            normalizedSender.matches(BOI_LEGACY_SENDER) ||
+            normalizedSender.matches(BK_BOIIND_SENDER) ||
+            normalizedSender.matches(JD_BOIIND_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {

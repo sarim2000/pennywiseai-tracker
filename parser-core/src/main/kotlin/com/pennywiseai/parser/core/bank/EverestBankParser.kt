@@ -20,13 +20,13 @@ class EverestBankParser : BankParser() {
 
             // Text-based senders
             upperSender == "EVEREST" ||
-                    upperSender.contains("EVERESTBANK") ||
-                    upperSender.contains("EBL") ||
-                    upperSender == "UJJ SH" ||
-                    upperSender == "CWRD" ||  // ATM withdrawal code
+                upperSender.contains("EVERESTBANK") ||
+                upperSender.contains("EBL") ||
+                upperSender == "UJJ SH" ||
+                upperSender == "CWRD" ||  // ATM withdrawal code
 
-                    // DLT patterns for Nepal
-                    upperSender.matches(DLT_SENDER) -> true
+                // DLT patterns for Nepal
+                upperSender.matches(DLT_SENDER) -> true
 
             else -> false
         }

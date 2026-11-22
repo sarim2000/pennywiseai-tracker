@@ -207,8 +207,8 @@ class CIBEgyptParser : BankParser() {
 
         // CIB messages explicitly mention credit card
         return lowerMessage.contains("credit card") ||
-                lowerMessage.contains("debit card") ||
-                lowerMessage.contains("card ending") ||
-                lowerMessage.contains("card#")
+            lowerMessage.contains("debit card") ||
+            lowerMessage.contains("card ending") ||
+            lowerMessage.contains("card#")
     }
 }

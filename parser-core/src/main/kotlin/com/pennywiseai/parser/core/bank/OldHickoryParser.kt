@@ -22,7 +22,7 @@ class OldHickoryParser : BankParser() {
             // Text-based senders
             sender.uppercase().let { upper ->
                 upper == "OHCU" ||
-                        upper.contains("HICKORY")
+                    upper.contains("HICKORY")
             } -> true
 
             else -> false

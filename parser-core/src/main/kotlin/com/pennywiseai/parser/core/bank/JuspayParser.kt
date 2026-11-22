@@ -14,8 +14,8 @@ class JuspayParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("JUSPAY") ||
-                normalizedSender.contains("APAY") ||
-                normalizedSender == "AMAZON PAY"
+            normalizedSender.contains("APAY") ||
+            normalizedSender == "AMAZON PAY"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -142,6 +142,6 @@ class JuspayParser : BaseIndianBankParser() {
         )
 
         return transactionKeywords.any { lowerMessage.contains(it) } ||
-                super.isTransactionMessage(message)
+            super.isTransactionMessage(message)
     }
 }

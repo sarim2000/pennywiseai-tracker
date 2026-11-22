@@ -13,7 +13,7 @@ class BankOfBarodaParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("BOB") ||
-                normalizedSender.contains("BARODA")
+            normalizedSender.contains("BARODA")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

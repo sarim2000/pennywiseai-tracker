@@ -19,8 +19,8 @@ class YesBankParser : BaseIndianBankParser() {
         val normalizedSender = sender.uppercase()
         // DLT patterns for Yes Bank (XX-YESBNK-S format, or legacy without suffix)
         return normalizedSender.matches(DLT_SENDER) ||
-                normalizedSender == "YESBNK" ||
-                normalizedSender == "YESBANK"
+            normalizedSender == "YESBNK" ||
+            normalizedSender == "YESBANK"
     }
 
     override fun extractAmount(message: String): BigDecimal? {

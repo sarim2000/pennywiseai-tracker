@@ -15,10 +15,10 @@ class CBEBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "CBE" ||
-                upperSender.contains("COMMERCIALBANK") ||
-                upperSender.contains("CBEBANK") ||
-                // DLT patterns for Ethiopia might be different
-                upperSender.matches(DLT_SENDER)
+            upperSender.contains("COMMERCIALBANK") ||
+            upperSender.contains("CBEBANK") ||
+            // DLT patterns for Ethiopia might be different
+            upperSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -42,13 +42,13 @@ class CBEBankParser : BankParser() {
         )
         if (message.contains("?id=", ignoreCase = true)) {
             debitedWithBalancePattern.find(message)?.let { match ->
-            val amountStr = match.groupValues[1].replace(",", "")
-            return try {
-                BigDecimal(amountStr)
-            } catch (e: NumberFormatException) {
-                null
+                val amountStr = match.groupValues[1].replace(",", "")
+                return try {
+                    BigDecimal(amountStr)
+                } catch (e: NumberFormatException) {
+                    null
+                }
             }
-        }
         }
 
         // CBE patterns: "ETB 3,000.00", "ETB 25.00", "ETB250"

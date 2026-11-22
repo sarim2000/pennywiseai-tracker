@@ -6,7 +6,7 @@ import java.math.BigDecimal
 /**
  * Parser for Telebirr - handles ETB currency transactions
  */
-class TelebirrParser: BankParser() {
+class TelebirrParser : BankParser() {
 
     override fun getBankName() = "Telebirr"
 
@@ -50,9 +50,9 @@ class TelebirrParser: BankParser() {
             // - Deposit TO saving account => money leaves telebirr wallet => EXPENSE
             // - Withdraw FROM saving account => money enters telebirr wallet => INCOME
             lowerMessage.contains("deposited etb") &&
-                    lowerMessage.contains("to your saving account") -> TransactionType.EXPENSE
+                lowerMessage.contains("to your saving account") -> TransactionType.EXPENSE
             (lowerMessage.contains(" withdraw etb") || lowerMessage.contains("withdraw etb")) &&
-                    lowerMessage.contains("from your saving account") -> TransactionType.INCOME
+                lowerMessage.contains("from your saving account") -> TransactionType.INCOME
 
             // Credit transactions are income
             lowerMessage.contains("you have received") -> TransactionType.INCOME

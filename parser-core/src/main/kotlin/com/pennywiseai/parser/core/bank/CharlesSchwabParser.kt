@@ -106,10 +106,10 @@ class CharlesSchwabParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "SCHWAB" ||
-                upperSender.contains("CHARLES SCHWAB") ||
-                upperSender.contains("SCHWAB BANK") ||
-                upperSender == "24465" ||  // Typical DLT sender ID
-                upperSender.matches(DLT_SENDER)
+            upperSender.contains("CHARLES SCHWAB") ||
+            upperSender.contains("SCHWAB BANK") ||
+            upperSender == "24465" ||  // Typical DLT sender ID
+            upperSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {

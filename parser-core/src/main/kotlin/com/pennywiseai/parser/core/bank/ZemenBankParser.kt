@@ -17,8 +17,8 @@ class ZemenBankParser : BankParser() {
         val normalized = sender.uppercase().trim()
         // Support plain and DLT-style senders for Zemen Bank
         return normalized == "ZEMEN BANK" ||
-                normalized.replace(" ", "") == "ZEMENBANK" ||
-                normalized.matches(DLT_SENDER)
+            normalized.replace(" ", "") == "ZEMENBANK" ||
+            normalized.matches(DLT_SENDER)
     }
 
     /**

@@ -24,9 +24,9 @@ class AwashBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase().trim()
         return normalized == "AWASH BANK" ||
-                normalized == "AWASHBANK" ||
-                normalized == "AWASH" ||
-                normalized.matches(DLT_SENDER)
+            normalized == "AWASHBANK" ||
+            normalized == "AWASH" ||
+            normalized.matches(DLT_SENDER)
     }
 
     /**

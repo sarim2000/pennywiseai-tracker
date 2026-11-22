@@ -30,7 +30,6 @@ import javax.inject.Inject
 data class ManageAccountsUiState(
     val accounts: List<AccountBalanceEntity> = emptyList(),
     val hiddenAccounts: Set<String> = emptySet(),
-    val balanceHistory: List<AccountBalanceEntity> = emptyList(),
     val linkedCards: Map<String, List<CardEntity>> = emptyMap(), // accountLast4 -> List of cards
     // (bankName, last4) of accounts whose balance was never set from a real figure (#982).
     val unanchoredAccounts: Set<Pair<String, String>> = emptySet(),
@@ -314,42 +313,6 @@ class ManageAccountsViewModel @Inject constructor(
         return _uiState.value.hiddenAccounts.contains(key)
     }
 
-    fun clearError() {
-        _formState.update { it.copy(errorMessage = null) }
-        _uiState.update { it.copy(errorMessage = null) }
-    }
-
-    fun loadBalanceHistory(bankName: String, accountLast4: String) {
-        viewModelScope.launch {
-            val history = accountBalanceRepository.getBalanceHistoryForAccount(bankName, accountLast4)
-            _uiState.update { it.copy(balanceHistory = history) }
-        }
-    }
-
-    fun deleteBalanceRecord(id: Long, bankName: String, accountLast4: String) {
-        viewModelScope.launch {
-            // Check if this is the only record
-            val count = accountBalanceRepository.getBalanceCountForAccount(bankName, accountLast4)
-            if (count > 1) {
-                accountBalanceRepository.deleteBalanceById(id)
-                // Reload history
-                loadBalanceHistory(bankName, accountLast4)
-            }
-        }
-    }
-
-    fun updateBalanceRecord(id: Long, newBalance: BigDecimal, bankName: String, accountLast4: String) {
-        viewModelScope.launch {
-            accountBalanceRepository.updateBalanceById(id, newBalance)
-            // Reload history
-            loadBalanceHistory(bankName, accountLast4)
-        }
-    }
-
-    fun clearBalanceHistory() {
-        _uiState.update { it.copy(balanceHistory = emptyList()) }
-    }
-
     fun linkCardToAccount(cardId: Long, accountLast4: String) {
         viewModelScope.launch {
             try {
@@ -422,12 +385,6 @@ class ManageAccountsViewModel @Inject constructor(
                     it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_delete_card_failed, listOf("${e.message}")))
                 }
             }
-        }
-    }
-
-    fun setCardActive(cardId: Long, isActive: Boolean) {
-        viewModelScope.launch {
-            cardRepository.setCardActive(cardId, isActive)
         }
     }
 

@@ -79,10 +79,6 @@ class CardRepository @Inject constructor(
         cardDao.linkCardToAccount(cardId, null)
     }
 
-    suspend fun setCardActive(cardId: Long, isActive: Boolean) {
-        cardDao.setCardActive(cardId, isActive)
-    }
-
     /**
      * Updates the last known balance for a card from a transaction.
      * This is used to track balance for unlinked cards.

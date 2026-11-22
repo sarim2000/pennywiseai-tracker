@@ -278,6 +278,11 @@ class HomeViewModel @Inject constructor(
     private val _reviewPrompt = MutableStateFlow<ReviewPrompt?>(null)
     val reviewPrompt: StateFlow<ReviewPrompt?> = _reviewPrompt.asStateFlow()
 
+    // Fixed for the process: read once rather than over binder on every transaction-count change.
+    private val installedAtMillis by lazy {
+        context.packageManager.getPackageInfo(context.packageName, 0).firstInstallTime
+    }
+
     /** The one-time Home card pointing engaged free users to Pro (#945). */
     val showProHomeCard: StateFlow<Boolean> = combine(
         entitlementGate.resolvedProEntitlement,
@@ -288,8 +293,7 @@ class HomeViewModel @Inject constructor(
         shouldShowProHomeCard(
             isPro = isPro,
             handled = handled,
-            installedAtMillis = context.packageManager
-                .getPackageInfo(context.packageName, 0).firstInstallTime,
+            installedAtMillis = installedAtMillis,
             nowMillis = System.currentTimeMillis(),
             transactionCount = count,
             reviewPromptShowing = reviewPrompt != null,

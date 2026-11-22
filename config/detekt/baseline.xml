@@ -417,7 +417,6 @@
     <ID>LongMethod:BudgetGroupsScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable fun BudgetGroupsScreen( viewModel: BudgetGroupsViewModel = hiltViewModel(), onNavigateBack: () -&gt; Unit = {}, onNavigateToGroupEdit: (Long) -&gt; Unit = {}, onNavigateToHistory: (Long, Int, Int) -&gt; Unit = { _, _, _ -&gt; }, onNavigateToCategory: (category: String, yearMonth: String, currency: String) -&gt; Unit = { _, _, _ -&gt; }, onNavigateToGoal: (Long) -&gt; Unit = {}, onNavigateToGoalEdit: (Long) -&gt; Unit = {}, createGoalOnOpen: Boolean = false )</ID>
     <ID>LongMethod:BudgetHistoryScreen.kt$@Composable fun BudgetHistoryScreen( onNavigateBack: () -&gt; Unit, viewModel: BudgetHistoryViewModel = hiltViewModel() )</ID>
     <ID>LongMethod:BudgetHistoryScreen.kt$@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class) @Composable private fun BreakdownSheet( breakdown: com.pennywiseai.tracker.data.repository.WindowBreakdown?, isLoading: Boolean, currency: String, onDismiss: () -&gt; Unit )</ID>
-    <ID>LongMethod:BudgetRepository.kt$BudgetRepository$fun getBudgetSpending(budget: BudgetEntity): Flow&lt;BudgetSpending&gt;</ID>
     <ID>LongMethod:BudgetSummaryProvider.kt$BudgetSummaryProvider$private suspend fun buildUnifiedGroupSpending( group: BudgetWithCategories, today: LocalDate, isCurrentMonth: Boolean, windowedSpend: List&lt;WindowSpending&gt;, // The per-budget current window resolved by the repo from // resolveBudgetWindow (for current month) or windowsForMonth.last // (for historical). Replaces the old hard-coded `resolveBudgetWindow(budget, today, 1)` // which always used the global start-day pref as a fallback // instead of the budget's own monthStartDay anchor. currentWindow: com.pennywiseai.tracker.data.repository.BudgetWindow, displayCurrency: String, baseCurrency: String ): BudgetGroupSpending</ID>
     <ID>LongMethod:BudgetSummaryProvider.kt$BudgetSummaryProvider$private suspend fun convertRawToSummary( raw: BudgetGroupSpendingRaw, displayCurrency: String, baseCurrency: String ): BudgetOverallSummary</ID>
     <ID>LongMethod:BudgetSummaryProvider.kt$BudgetSummaryProvider$suspend fun buildGroupPace( categoryNames: Set&lt;String&gt;?, matchTypes: Set&lt;String&gt;, groupBudget: BigDecimal ): Pair&lt;List&lt;Double&gt;, List&lt;Double&gt;&gt;</ID>
@@ -665,8 +664,6 @@
     <ID>LongParameterList:BudgetGroupsScreen.kt$( groupSpending: BudgetGroupSpending, currency: String, isFirst: Boolean = false, isLast: Boolean = false, onClick: () -&gt; Unit, onDelete: () -&gt; Unit, onMoveUp: () -&gt; Unit, onMoveDown: () -&gt; Unit, onViewHistory: () -&gt; Unit, onCategoryClick: (String) -&gt; Unit, modifier: Modifier = Modifier )</ID>
     <ID>LongParameterList:BudgetGroupsScreen.kt$( modifier: Modifier = Modifier, topPadding: Dp = 0.dp, uiState: BudgetGroupsUiState, goalsSection: @Composable () -&gt; Unit = {}, onPreviousMonth: () -&gt; Unit, onNextMonth: () -&gt; Unit, onGroupClick: (Long) -&gt; Unit, onDeleteGroup: (Long) -&gt; Unit, onMoveGroupUp: (Long) -&gt; Unit, onMoveGroupDown: (Long) -&gt; Unit, onNavigateToHistory: (Long) -&gt; Unit, onCategoryClick: (String) -&gt; Unit )</ID>
     <ID>LongParameterList:BudgetGroupsScreen.kt$( viewModel: BudgetGroupsViewModel = hiltViewModel(), onNavigateBack: () -&gt; Unit = {}, onNavigateToGroupEdit: (Long) -&gt; Unit = {}, onNavigateToHistory: (Long, Int, Int) -&gt; Unit = { _, _, _ -&gt; }, onNavigateToCategory: (category: String, yearMonth: String, currency: String) -&gt; Unit = { _, _, _ -&gt; }, onNavigateToGoal: (Long) -&gt; Unit = {}, onNavigateToGoalEdit: (Long) -&gt; Unit = {}, createGoalOnOpen: Boolean = false )</ID>
-    <ID>LongParameterList:BudgetRepository.kt$BudgetRepository$( budgetId: Long, name: String, limitAmount: BigDecimal, periodType: BudgetPeriodType, startDate: LocalDate, endDate: LocalDate, currency: String, includeAllCategories: Boolean, categories: List&lt;String&gt;, color: String )</ID>
-    <ID>LongParameterList:BudgetRepository.kt$BudgetRepository$( name: String, limitAmount: BigDecimal, periodType: BudgetPeriodType, startDate: LocalDate, endDate: LocalDate, currency: String, includeAllCategories: Boolean, categories: List&lt;String&gt;, color: String )</ID>
     <ID>LongParameterList:BudgetSummaryProvider.kt$BudgetSummaryProvider$( group: BudgetWithCategories, today: LocalDate, isCurrentMonth: Boolean, windowedSpend: List&lt;WindowSpending&gt;, // The per-budget current window resolved by the repo from // resolveBudgetWindow (for current month) or windowsForMonth.last // (for historical). Replaces the old hard-coded `resolveBudgetWindow(budget, today, 1)` // which always used the global start-day pref as a fallback // instead of the budget's own monthStartDay anchor. currentWindow: com.pennywiseai.tracker.data.repository.BudgetWindow, displayCurrency: String, baseCurrency: String )</ID>
     <ID>LongParameterList:BulkActionsToolbar.kt$( visible: Boolean, canMarkAsTransfer: Boolean, onChangeCategory: () -&gt; Unit, onAddToGroup: () -&gt; Unit, onDelete: () -&gt; Unit, onMarkAsTransfer: () -&gt; Unit, modifier: Modifier = Modifier, )</ID>
     <ID>LongParameterList:CashFlowCard.kt$( currency: String, creditCardSpend: BigDecimal, investments: BigDecimal, transfers: BigDecimal, isBalanceHidden: Boolean, onToggleBalanceVisibility: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
@@ -952,13 +949,6 @@
     <ID>MagicNumber:BudgetGroupsScreen.kt$90f</ID>
     <ID>MagicNumber:BudgetHistoryScreen.kt$100f</ID>
     <ID>MagicNumber:BudgetHistoryScreen.kt$50</ID>
-    <ID>MagicNumber:BudgetRepository.kt$BudgetRepository$100f</ID>
-    <ID>MagicNumber:BudgetRepository.kt$BudgetRepository$23</ID>
-    <ID>MagicNumber:BudgetRepository.kt$BudgetRepository$59</ID>
-    <ID>MagicNumber:BudgetRepository.kt$BudgetRepository$6</ID>
-    <ID>MagicNumber:BudgetRepository.kt$BudgetRepository$7</ID>
-    <ID>MagicNumber:BudgetRepository.kt$BudgetRepository.Companion$29</ID>
-    <ID>MagicNumber:BudgetRepository.kt$BudgetRepository.Companion$6</ID>
     <ID>MagicNumber:BudgetSummaryProvider.kt$BudgetSummaryProvider$100f</ID>
     <ID>MagicNumber:BudgetWidget.kt$BudgetWidget$100f</ID>
     <ID>MagicNumber:BudgetWidget.kt$BudgetWidget$5000L</ID>
@@ -2589,7 +2579,6 @@
     <ID>TooManyFunctions:BudgetGroupEditViewModel.kt$BudgetGroupEditViewModel : ViewModel</ID>
     <ID>TooManyFunctions:BudgetGroupRepository.kt$BudgetGroupRepository</ID>
     <ID>TooManyFunctions:BudgetGroupsViewModel.kt$BudgetGroupsViewModel : ViewModel</ID>
-    <ID>TooManyFunctions:BudgetRepository.kt$BudgetRepository</ID>
     <ID>TooManyFunctions:BudgetSnapshotDao.kt$BudgetSnapshotDao</ID>
     <ID>TooManyFunctions:CIBEgyptParser.kt$CIBEgyptParser : BankParser</ID>
     <ID>TooManyFunctions:CardDao.kt$CardDao</ID>
@@ -2750,7 +2739,6 @@
     <ID>UnusedPrivateProperty:BudgetGroupEditScreen.kt$val catInfo = CategoryMapping.categories[option.displayName] ?: CategoryMapping.categories["Others"]!!</ID>
     <ID>UnusedPrivateProperty:BudgetGroupEditScreen.kt$val categoryInfo = CategoryMapping.categories[categoryName] ?: CategoryMapping.categories["Others"]!!</ID>
     <ID>UnusedPrivateProperty:BudgetGroupsScreen.kt$val categoryInfo = CategoryMapping.categories[catSpending.categoryName] ?: CategoryMapping.categories["Others"]!!</ID>
-    <ID>UnusedPrivateProperty:BudgetRepository.kt$BudgetRepository$private val transactionDao: TransactionDao</ID>
     <ID>UnusedPrivateProperty:FABParser.kt$FABParser$val currencyCode = match.groupValues[1].uppercase()</ID>
     <ID>UnusedPrivateProperty:InAppReviewManager.kt$InAppReviewManager$@ApplicationContext private val context: Context</ID>
     <ID>UnusedPrivateProperty:InAppReviewManager.kt$InAppReviewManager$private val userPreferencesRepository: UserPreferencesRepository</ID>

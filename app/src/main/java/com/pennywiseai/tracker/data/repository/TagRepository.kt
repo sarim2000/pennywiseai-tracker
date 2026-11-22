@@ -52,14 +52,9 @@ class TagRepository @Inject constructor(
         tagWriteQueue.trySend(transactionId to tagNames)
     }
 
-    fun observeAllTags(): Flow<List<TagEntity>> = tagDao.getAllTags()
-
     /** All tag names currently in use, for autocomplete suggestions. */
     fun observeAllTagNames(): Flow<List<String>> =
         tagDao.getAllTags().map { tags -> tags.map { it.name } }
-
-    fun observeTagsForTransaction(transactionId: Long): Flow<List<TagEntity>> =
-        tagDao.getTagsForTransaction(transactionId)
 
     fun observeTagNamesForTransaction(transactionId: Long): Flow<List<String>> =
         tagDao.getTagsForTransaction(transactionId).map { tags -> tags.map { it.name } }

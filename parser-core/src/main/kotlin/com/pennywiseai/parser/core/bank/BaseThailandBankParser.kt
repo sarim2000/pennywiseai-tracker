@@ -145,16 +145,6 @@ abstract class BaseThailandBankParser : BankParser() {
         return null
     }
 
-    fun isCreditCardMessage(message: String): Boolean {
-        val lowerMessage = message.lowercase()
-        val cardKeywords = listOf(
-            "credit card", "บัตรเครดิต",
-            "card spending", "card payment", "card transaction",
-            "ใช้จ่ายบัตร", "ยอดใช้จ่าย"
-        )
-        return cardKeywords.any { lowerMessage.contains(it) }
-    }
-
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
 

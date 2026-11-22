@@ -255,17 +255,18 @@ tasks.register<Copy>("copyChangelog") {
 
 android.sourceSets["main"].assets.directories.add(generatedAssetsDir.get().asFile.path)
 
-tasks.matching { it.name.startsWith("merge") && it.name.contains("Assets") }.configureEach {
+// named { } filters by name alone, so unlike matching { } it doesn't realize every task.
+tasks.named { it.startsWith("merge") && it.contains("Assets") }.configureEach {
     dependsOn("copyChangelog")
 }
 
 // Dependency Analysis (buildHealth) reads the asset sources too.
-tasks.matching { it.name.startsWith("explodeAssetSource") }.configureEach {
+tasks.named { it.startsWith("explodeAssetSource") }.configureEach {
     dependsOn("copyChangelog")
 }
 
 // Lint tasks also need to depend on copyChangelog since they analyze generated assets
-tasks.matching { it.name.contains("lint") || it.name.contains("Lint") }.configureEach {
+tasks.named { it.contains("lint") || it.contains("Lint") }.configureEach {
     dependsOn("copyChangelog")
 }
 

@@ -96,6 +96,8 @@ class GoalWidgetConfigActivity : FragmentActivity() {
             PennyWiseUserTheme {
                 PennyWiseScaffold(
                     title = stringResource(R.string.widget_goal_config_title),
+                    // No amounts here, and it opens from the launcher, before any unlock.
+                    revealAmountsAction = false,
                     navigationIcon = {
                         IconButton(onClick = ::finish) {
                             Icon(Icons.Default.Close, contentDescription = stringResource(R.string.widget_goal_config_close))

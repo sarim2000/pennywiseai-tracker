@@ -105,7 +105,6 @@ private fun AiChatSettingsItem(
                 subtitle = when (downloadState) {
                     DownloadState.NOT_DOWNLOADED -> stringResource(R.string.settings_ai_status_not_downloaded, Constants.ModelDownload.MODEL_SIZE_MB)
                     DownloadState.DOWNLOADING -> stringResource(R.string.settings_ai_status_downloading)
-                    DownloadState.PAUSED -> stringResource(R.string.settings_ai_status_paused)
                     DownloadState.COMPLETED -> stringResource(R.string.settings_ai_status_completed)
                     DownloadState.FAILED -> stringResource(R.string.settings_ai_status_failed)
                     DownloadState.ERROR_INSUFFICIENT_SPACE -> stringResource(R.string.settings_ai_status_insufficient_space)
@@ -127,13 +126,6 @@ private fun AiChatSettingsItem(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
-                }
-                DownloadState.PAUSED -> {
-                    Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
-                        Icon(Icons.Default.Download, contentDescription = null)
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.settings_ai_retry))
-                    }
                 }
                 DownloadState.COMPLETED -> {
                     Row(

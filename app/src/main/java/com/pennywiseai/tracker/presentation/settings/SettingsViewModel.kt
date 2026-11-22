@@ -943,7 +943,6 @@ data class BudgetConversionPrompt(val from: String, val to: String, val rate: ja
 enum class DownloadState {
     NOT_DOWNLOADED,
     DOWNLOADING,
-    PAUSED,
     COMPLETED,
     FAILED,
     ERROR_INSUFFICIENT_SPACE

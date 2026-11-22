@@ -966,14 +966,6 @@ class TransactionDetailViewModel @Inject constructor(
         return true
     }
 
-    /**
-     * Checks if the amount field should be editable.
-     * Amount is locked when splits exist.
-     */
-    fun isAmountEditable(): Boolean {
-        return !_showSplitEditor.value || _splits.value.isEmpty()
-    }
-
     fun saveChanges() {
         val toSave = _editableTransaction.value ?: return
         if (_checkingReceipt.value) return

@@ -594,12 +594,6 @@ class ICICIBankParser : BaseIndianBankParser() {
 
         val lowerMessage = message.lowercase()
 
-        // Skip SMS BLOCK instructions (not a transaction)
-        if (lowerMessage.contains("sms block") && lowerMessage.contains("to 9215676766")) {
-            // This is just instruction text at the end of transaction messages
-            // Don't skip the entire message, just ignore this part
-        }
-
         // Skip cash deposit confirmation messages (these are duplicates)
         // We only want to process the actual credit notification
         if (lowerMessage.contains("cash deposit transaction") &&

@@ -70,8 +70,4 @@ class BPCEParser : BankParser() {
 
         return super.extractMerchant(message, sender)
     }
-
-    override fun extractAccountLast4(message: String): String? {
-        return super.extractAccountLast4(message)
-    }
 }

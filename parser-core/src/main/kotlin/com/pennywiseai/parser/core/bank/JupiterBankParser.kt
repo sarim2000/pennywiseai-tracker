@@ -60,10 +60,6 @@ class JupiterBankParser : BankParser() {
         return super.extractAmount(message)
     }
 
-    override fun extractMerchant(message: String, sender: String): String? {
-        return super.extractMerchant(message, sender)
-    }
-
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
 
@@ -110,23 +106,5 @@ class JupiterBankParser : BankParser() {
 
         // Fall back to base class
         return super.extractReference(message)
-    }
-
-    override fun isTransactionMessage(message: String): Boolean {
-        val lowerMessage = message.lowercase()
-
-        // Skip dispute instructions (not a transaction)
-        if (lowerMessage.contains("to dispute") && lowerMessage.contains("call")) {
-            // This is just instruction text, don't skip the entire message
-        }
-
-        // Check for Jupiter-specific transaction keywords
-        if (lowerMessage.contains("jupiter") || lowerMessage.contains("csb")) {
-            // If it's from Jupiter/CSB and has transaction keywords, it's likely valid
-            return super.isTransactionMessage(message)
-        }
-
-        // Fall back to base class for standard checks
-        return super.isTransactionMessage(message)
     }
 }

@@ -196,16 +196,4 @@ class IDBIBankParser : BaseIndianBankParser() {
         // Fall back to base class
         return super.extractBalance(message)
     }
-
-    override fun isTransactionMessage(message: String): Boolean {
-        val lowerMessage = message.lowercase()
-
-        // Skip UPI block instructions (not a transaction)
-        if (lowerMessage.contains("to block upi") && lowerMessage.contains("send sms")) {
-            // This is just instruction text, don't skip the entire message
-        }
-
-        // Fall back to base class for standard checks
-        return super.isTransactionMessage(message)
-    }
 }

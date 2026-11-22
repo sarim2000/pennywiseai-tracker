@@ -19,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -97,37 +96,6 @@ fun BrandIcon(
 }
 
 /**
- * Letter avatar for merchants without icons
- */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-fun LetterAvatar(
-    merchantName: String,
-    modifier: Modifier = Modifier,
-    size: Dp = 40.dp
-) {
-    val letter = merchantName.firstOrNull()?.uppercase() ?: "?"
-    val backgroundColor = BrandIcons.getBrandColor(merchantName)?.let { 
-        Color(it.toColorInt()) 
-    } ?: generateColorFromString(merchantName)
-    
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(MaterialShapes.Cookie9Sided.toShape())
-            .background(backgroundColor),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = letter,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.bodyLarge
-        )
-    }
-}
-
-/**
  * Category icon with consistent styling
  */
 @Composable
@@ -166,27 +134,6 @@ fun EmojiGlyph(emoji: String, box: Dp) {
         softWrap = false,
         textAlign = TextAlign.Center
     )
-}
-
-/**
- * Utility function to generate consistent colors from strings
- */
-private fun generateColorFromString(str: String): Color {
-    val colors = listOf(
-        Color(0xFF6750A4), // Material Purple
-        Color(0xFF0061A4), // Material Blue
-        Color(0xFF006D40), // Material Green
-        Color(0xFFB3261E), // Material Red
-        Color(0xFF9A4521), // Material Orange
-        Color(0xFF6D4C41), // Material Brown
-        Color(0xFF455A64), // Material Blue Grey
-        Color(0xFF5E35B1), // Deep Purple
-        Color(0xFF43A047), // Green
-        Color(0xFFE53935), // Red
-    )
-    
-    val hash = str.hashCode()
-    return colors[Math.abs(hash) % colors.size]
 }
 
 /**

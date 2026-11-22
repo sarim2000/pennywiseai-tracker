@@ -254,7 +254,7 @@ Reference `MaterialTheme.shapes.*` rather than re-typing
 `small`; pill shapes use `CircleShape`.
 
 Expressive accents use `MaterialShapes` (opt-in `ExperimentalMaterial3ExpressiveApi`):
-merchant avatars (`BrandIcon`, `LetterAvatar`) and the empty-state badge are
+merchant avatars (`BrandIcon`) and the empty-state badge are
 `MaterialShapes.Cookie9Sided.toShape()`. Keep these to identity/hero glyphs —
 not containers or buttons. Home's shortcut row is the one deliberate exception:
 each shortcut keeps its own shape as its glyph, the label under it says what it

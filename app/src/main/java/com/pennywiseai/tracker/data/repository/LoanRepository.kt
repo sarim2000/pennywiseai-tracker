@@ -238,6 +238,19 @@ class LoanRepository @Inject constructor(
         note: String? = null,
         overflow: LoanOverflow = LoanOverflow.COUNT_AS_OWN
     ): Boolean = repaymentLock.withLock {
+        // One transaction from the first read to the recalculation: a principal edit
+        // ([updateOriginalAmount] doesn't take repaymentLock) can't land in between and
+        // have its settlement credited to this payment.
+        database.withTransaction { recordRepaymentLocked(loanId, transactionId, contribution, note, overflow) }
+    }
+
+    private suspend fun recordRepaymentLocked(
+        loanId: Long,
+        transactionId: Long,
+        contribution: BigDecimal?,
+        note: String?,
+        overflow: LoanOverflow,
+    ): Boolean {
         requireNotSplit(transactionId)
         val loan = loanDao.getLoanById(loanId)
         val txn = transactionDao.getTransactionById(transactionId)
@@ -252,16 +265,14 @@ class LoanRepository @Inject constructor(
         if (overflow == LoanOverflow.FLIP_DEBT && loan != null && wanted != null && extra != null &&
             extra.signum() > 0 && canFlip(loan)
         ) {
-            // One transaction: a payment linked in full on a loan that never turned
-            // would hide it from totals and wipe the old balance instead.
-            database.withTransaction {
-                loanDao.linkTransaction(transactionId, loanId)
-                persistContributionOverride(transactionId, wanted)
-                keepNote(transactionId, note)
-                flipDirection(loan, extra)
-            }
+            // In the one transaction: a payment linked in full on a loan that never
+            // turned would hide it from totals and wipe the old balance instead.
+            loanDao.linkTransaction(transactionId, loanId)
+            persistContributionOverride(transactionId, wanted)
+            keepNote(transactionId, note)
+            flipDirection(loan, extra)
             // Turned around: a debt the other way is left, so nothing is paid off.
-            return@withLock false
+            return false
         }
         // Capped even at zero (a reopened, fully repaid loan): the payment then
         // counts in full as ordinary income/spend rather than vanishing.
@@ -272,7 +283,7 @@ class LoanRepository @Inject constructor(
         }
         keepNote(transactionId, note)
         // Judged from the loan this payment's own recalculation wrote, not a later read.
-        LoanMath.paidOff(before, recalculateRemaining(loanId))
+        return LoanMath.paidOff(before, recalculateRemaining(loanId))
     }
 
     /**
@@ -337,7 +348,18 @@ class LoanRepository @Inject constructor(
         currency: String,
         overflow: LoanOverflow = LoanOverflow.COUNT_AS_OWN
     ): ManualRepayment? = repaymentLock.withLock {
-        val loan = loanDao.getLoanById(loanId) ?: return@withLock null
+        // One transaction, as in [recordRepayment]: a principal edit can't slip in between.
+        database.withTransaction { recordManualRepaymentLocked(loanId, amount, personName, currency, overflow) }
+    }
+
+    private suspend fun recordManualRepaymentLocked(
+        loanId: Long,
+        amount: BigDecimal,
+        personName: String,
+        currency: String,
+        overflow: LoanOverflow,
+    ): ManualRepayment? {
+        val loan = loanDao.getLoanById(loanId) ?: return null
         val owed = owedNow(loan)
         val flip = overflow == LoanOverflow.FLIP_DEBT && amount > owed && canFlip(loan)
         val txType = if (loan.direction == LoanDirection.LENT)
@@ -357,18 +379,14 @@ class LoanRepository @Inject constructor(
             // turns the loan around.
             loanContribution = if (flip) null else owed.takeIf { amount > it }
         )
-        if (!flip) {
-            val txId = transactionDao.insertTransaction(transaction)
-            val after = recalculateRemaining(loanId)
-            val before = loan.copy(remainingAmount = owed)
-            return@withLock ManualRepayment(txId, paidOff = LoanMath.paidOff(before, after))
-        }
-        database.withTransaction {
-            val txId = transactionDao.insertTransaction(transaction)
+        val txId = transactionDao.insertTransaction(transaction)
+        if (flip) {
             flipDirection(loan, amount - owed)
             // Turned around: a debt the other way is left, so nothing is paid off.
-            ManualRepayment(txId, paidOff = false)
+            return ManualRepayment(txId, paidOff = false)
         }
+        val after = recalculateRemaining(loanId)
+        return ManualRepayment(txId, paidOff = LoanMath.paidOff(loan.copy(remainingAmount = owed), after))
     }
 
     /**

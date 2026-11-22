@@ -390,9 +390,9 @@ private fun FloatingNavPill(
                     .offset(x = indicatorOffset)
                     .size(indicatorWidth, Dimensions.Component.floatingNavIndicatorHeight)
                     .clip(CircleShape)
-                    // Solid primary: the icons are icon-only and the owl takes the accent in
-                    // both states, so this is what says which tab is open. A tint of primary
-                    // sat at ~1.3:1 on the pill; primary reads at 4.5:1 on any surface.
+                    // Solid primary: the tabs are icon-only, so this is what says which tab
+                    // is open. A tint of primary sat at ~1.3:1 on the pill; primary reads at
+                    // 4.5:1 on any surface, and the open tab's icon takes onPrimary on it.
                     .background(MaterialTheme.colorScheme.primary)
             )
         }

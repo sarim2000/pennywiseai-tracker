@@ -1,30 +1,13 @@
-<a name="top"></a>
+
 [![PennyWise AI Banner](banner.png)](https://github.com/sarim2000/pennywiseai-tracker)
-[![GitHub stars](https://img.shields.io/github/stars/sarim2000/pennywiseai-tracker?style=social)](https://github.com/sarim2000/pennywiseai-tracker)
 [![License](https://img.shields.io/badge/license-AGPL%20v3-blue)](LICENSE)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84)](https://developer.android.com/about/versions/oreo/android-8.0)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF)](https://kotlinlang.org/)
-[![Privacy](https://img.shields.io/badge/AI-100%25_On--Device-FF6B6B)](https://ai.google.dev/edge)
-[![Downloads](https://img.shields.io/badge/Downloads-100+-green)](https://play.google.com/store/apps/details?id=com.pennywiseai.tracker)
 [![F-Droid](https://img.shields.io/f-droid/v/com.pennywiseai.tracker?color=1976d2)](https://f-droid.org/packages/com.pennywiseai.tracker/)
 [![GitHub release](https://img.shields.io/github/v/release/sarim2000/pennywiseai-tracker)](https://github.com/sarim2000/pennywiseai-tracker/releases)
-[![GitHub last commit](https://img.shields.io/github/last-commit/sarim2000/pennywiseai-tracker)](https://github.com/sarim2000/pennywiseai-tracker/commits)
 [![Discord](https://img.shields.io/badge/Discord-Join_Community-5865F2)](https://discord.gg/H3xWeMWjKQ)
 [![Greptile: The War on Bugs](https://www.greptile.com/badge.svg)](https://www.greptile.com/?utm_source=oss_badge&utm_medium=readme&utm_campaign=greptile_for_open_source)
 
 ## PennyWise AI — Free & Open‑Source, private SMS‑powered expense tracker
-
-Turn bank SMS into a clean, searchable money timeline with on-device AI assistance. Parsing, storage, and AI all run on your phone.
-
-
-⭐ **Star us on GitHub — join 300+ supporters!**
-
-[![Share](https://img.shields.io/badge/share-000000?logo=x&logoColor=white)](https://x.com/intent/tweet?text=Check%20out%20PennyWise%20AI%20-%20Privacy-first%20expense%20tracker%20with%20on-device%20AI:%20https://github.com/sarim2000/pennywiseai-tracker%20%23Android%20%23PrivacyFirst%20%23OnDeviceAI)
-[![Share](https://img.shields.io/badge/share-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/sharing/share-offsite/?url=https://github.com/sarim2000/pennywiseai-tracker)
-[![Share](https://img.shields.io/badge/share-FF4500?logo=reddit&logoColor=white)](https://www.reddit.com/submit?title=PennyWise%20AI%20-%20Privacy-first%20expense%20tracker&url=https://github.com/sarim2000/pennywiseai-tracker)
-[![Share](https://img.shields.io/badge/share-0088CC?logo=telegram&logoColor=white)](https://t.me/share/url?url=https://github.com/sarim2000/pennywiseai-tracker&text=Check%20out%20PennyWise%20AI)
-
-## Overview
 
 Your bank already texts you every transaction — PennyWise turns those SMS into a private, zero-setup expense tracker with on-device AI. No accounts, no sign-ups, no effort.
 
@@ -38,7 +21,67 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
   <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
 </a>
 
-### How it works
+## Screenshots
+
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="160"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="160"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="160"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="160"/>
+</p>
+
+<details>
+<summary>More screenshots (light &amp; dark themes)</summary>
+
+<br/>
+
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="160"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" width="160"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" width="160"/>
+</p>
+
+**Light Theme**
+
+<table>
+<tr>
+<td><img src="screenshots/home-light.png" width="160"/></td>
+<td><img src="screenshots/analytics-light.png" width="160"/></td>
+<td><img src="screenshots/analytics-scroll-light.png" width="160"/></td>
+<td><img src="screenshots/transaction-detail-light.png" width="160"/></td>
+<td><img src="screenshots/chat-light.png" width="160"/></td>
+</tr>
+<tr>
+<td align="center">Home</td>
+<td align="center">Insights</td>
+<td align="center">Categories</td>
+<td align="center">Details</td>
+<td align="center">Ask (AI)</td>
+</tr>
+</table>
+
+**Dark Theme**
+
+<table>
+<tr>
+<td><img src="screenshots/home-dark.png" width="160"/></td>
+<td><img src="screenshots/analytics-dark.png" width="160"/></td>
+<td><img src="screenshots/account-detail-dark.png" width="160"/></td>
+<td><img src="screenshots/accounts-dark.png" width="160"/></td>
+<td><img src="screenshots/chat-dark.png" width="160"/></td>
+</tr>
+<tr>
+<td align="center">Home</td>
+<td align="center">Insights</td>
+<td align="center">Account Detail</td>
+<td align="center">Accounts</td>
+<td align="center">Ask (AI)</td>
+</tr>
+</table>
+
+</details>
+
+## How it works
 
 1. **Grant SMS permission** (read-only) — no account creation, no inbox changes, no messages sent.
 2. **PennyWise parses your transactions instantly** — extracts amount, merchant, category, and date. New SMS are detected in real-time.
@@ -60,7 +103,7 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 - **🤖 Smart SMS Parsing** — <!-- BANKS_SUMMARY -->178 banks across 26 countries<!-- /BANKS_SUMMARY --> with real-time detection of incoming SMS; SMS from banks we don't support yet, and notifications from apps you pick, become suggested transactions
 - **🌍 Multi-Currency** — Per-account currency, live exchange rates, and totals that never mix currencies
 - **💬 On-Device AI Assistant** — Ask "What did I spend on food?", compare with last month, add or review transactions in plain words, or dictate with the mic — powered by Qwen 2.5, runs entirely on your phone
-- **🏷️ Categories, Tags & Smart Rules** — Sub-categories, emoji icons, renamable built-ins, learned merchant categories, and rules with multiple conditions and actions
+- **🏷️ Categories, Tags & Smart Rules** — Sub-categories, emoji icons, renamable built-ins, learned merchant categories, and rules with multiple conditions and actions ([how rules work](docs/smart-rules.md))
 - **💰 Budgets & Savings Goals** — Category or type budgets with custom cycles (including last working day), per-day allowance, safe-to-spend and a month-end forecast; goals you add to straight from transactions
 - **📊 Analytics & Charts** — Group by category, merchant, account, tag or weekday; trends, heatmaps, top merchants, custom date ranges
 - **🏦 Accounts, Cards & Loans** — Live balances from SMS, balance history, discrepancy fixes, low-balance alerts, account merge, loans by person, and bill splits with UPI QR requests
@@ -77,51 +120,30 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 - **🎭 Material 3 Expressive** — Dynamic color, extra colour themes, Google Sans Flex, light/dark/system, and a Home screen you can reorder
 - **🍎 iOS App** — On the [App Store](https://apps.apple.com/app/id6793073167), with on-device AI chat and Shortcuts automation for bank SMS
 
-### Smart Rules Engine
+## Privacy First
 
-Rules let you auto-categorize, modify, or block transactions based on configurable **conditions**. A rule consists of one or more "When" conditions and a "Then" action.
+All AI processing happens on your device, powered by Google AI Edge LiteRT-LM running Qwen 2.5. Your SMS and transactions are parsed, stored, and analyzed **locally** — there are no accounts, **no analytics, crash-reporting, or telemetry SDKs** (no Firebase / Crashlytics / Sentry / Google Analytics — verify in `app/build.gradle.kts`), and no PennyWise server receives your financial data unless you start one of the opt-in features below (reporting a parsing problem, or AI access). The whole codebase is open source (AGPL v3) so every claim below is checkable.
 
-**Available condition fields:**
+<details>
+<summary>Network access — every outbound call the app can make</summary>
 
-| Field | Description | Example value | Supported operators |
-|---|---|---|---|
-| `AMOUNT` | Transaction amount | `200` | `<`, `>`, `=` |
-| `TYPE` | Income/Expense/Transfer | `INCOME` | `contains`, `equals`, `starts with` |
-| `CATEGORY` | Assigned category | `Food & Dining` | `contains`, `equals`, `starts with` |
-| `MERCHANT` | Merchant/vendor name | `Amazon` | `contains`, `equals`, `starts with` |
-| `NARRATION` | Transaction description | `Monthly rent` | `contains`, `equals`, `starts with` |
-| `SMS_TEXT` | Raw SMS body | `OTP` | `contains`, `equals`, `starts with` |
-| `BANK_NAME` | Bank name from SMS | `HDFC Bank` | `contains`, `equals`, `starts with` |
-| `TIME` / `HOUR` | Transaction time | `09:00` / `9` | `before`, `after`, `at or after`, `at or before` |
-| `DAY_OF_WEEK` | Day (1=Mon .. 7=Sun) | `1` | `is`, `is any of`, `is not` |
-| `DAY_OF_MONTH` | Day of month (1-31) | `15` | `is`, `is any of`, `before`, `after` |
-| `DATE` | Transaction date | `2026-03-21` | `is`, `before`, `after` |
-| **`ACCOUNT`** | **Bank account composite** | Select from picker | `is`, `is not` |
+1. **Google Play services** *(Play Store build only)* — Google Play Billing (optional Pro subscription), In-App Updates, and In-App Review. These are Google's SDKs (declared `standardImplementation`), and they do their own background connectivity to Google — this is the most likely source of any "background data" you notice, especially on a single-currency setup. **The [F-Droid](https://f-droid.org/) build strips all three and is fully Google-free.**
+2. **Exchange rates** — fetched from `open.er-api.com`. Automatic currency conversion runs **only when you hold more than one currency** (same-currency conversions make no call), but opening the currency picker also fetches the current rate list. Either way the request carries just a 3-letter currency code and a static `User-Agent` — no SMS, transactions, or device identifier — and results are cached locally. (`ExchangeRateProvider.kt`)
+3. **On-device AI model** — a one-time ~1.5 GB download from Cloudflare R2, **only if you open the AI chat and choose to download it**. The bytes are SHA-256 pinned; after that the AI runs 100% offline. (`Constants.MODEL_URL`)
+4. **Report a parsing problem** — when you use this flow it opens `pennywise.zynth.dev` with the SMS text, its sender, and an RSA-encrypted device identifier (your Android ID plus a timestamp) pre-filled, and parses them server-side to show a preview. Nothing is sent unless you start this yourself. (`SmsReportUrlBuilder.kt`, `DeviceEncryption.kt`)
+5. **Online voice in chat** *(optional, off until you agree)* — dictation runs on your phone's speech service, on-device by default. A language your phone can't recognize offline (e.g. Arabic) can be used online after a one-time prompt that names the service; your speech then goes to that service, not to PennyWise. No audio is recorded or kept. (`VoiceInput.kt`)
+6. **AI access** *(Pro, off until you connect an app)* — while an AI session you started is on, questions from Claude, ChatGPT or the PennyWise dashboard reach your phone through the PennyWise relay (`ai.pennywise.zynth.dev`, or your own self-hosted relay); your phone answers from its database. The relay terminates TLS, so it could read those answers; it is built never to store or log them, and you can run your own instead, and SMS text, full account numbers and notes never leave. See [docs/ai-access.md](docs/ai-access.md).
+7. **Webhook sync** *(Pro, off unless you add one)* — sends the data you choose (summary, transactions, budgets, accounts, subscriptions) to a URL you enter. (`WebhookDeliveryService.kt`)
+8. **Links** (Discord, GitHub, Play Store, user guide, backup docs) open your browser — no background data.
 
-**Account condition (ACCOUNT)** — Restricts the rule to transactions from a specific bank account. The value is stored as a `BankName||Last4` composite key (e.g. `HDFC Bank||1234`). When selected, the UI shows an account picker populated from your tracked accounts. Only `EQUALS` and `NOT_EQUALS` operators are available.
+</details>
 
-Conditions can be combined with **AND** / **OR** logic, and multiple conditions per rule are supported.
-
-**Available actions:**
-- **Set** — Override a field (category, merchant, type, description)
-- **Append / Prepend** — Add text to a field (merchant, description)
-- **Clear** — Remove a field value
-- **Block** — Prevent the transaction from being saved
-
-**JSON representation** (stored locally, not exposed via API):
-```json
-{
-  "conditions": [
-    {"field": "ACCOUNT", "operator": "EQUALS", "value": "HDFC Bank||1234"},
-    {"field": "AMOUNT", "operator": "GREATER_THAN", "value": "500"}
-  ],
-  "actions": [
-    {"field": "CATEGORY", "actionType": "SET", "value": "Food & Dining"}
-  ]
-}
-```
+Everything else stays on your phone.
 
 ## Supported Banks & Countries
+
+<details>
+<summary>See every supported bank, by country</summary>
 
 <!-- SUPPORTED_BANKS:START (generated by scripts/update-supported-banks.sh — do not edit by hand) -->
 Supporting **178 banks & services** across **26 countries** with **multi-currency** capabilities:
@@ -205,83 +227,9 @@ Supporting **178 banks & services** across **26 countries** with **multi-currenc
 **Enpara**
 <!-- SUPPORTED_BANKS:END -->
 
-More banks being added regularly! [Request your bank →](https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.yml)
-
-## Privacy First
-
-All AI processing happens on your device, powered by Google AI Edge LiteRT-LM running Qwen 2.5. Your SMS and transactions are parsed, stored, and analyzed **locally** — there are no accounts, **no analytics, crash-reporting, or telemetry SDKs** (no Firebase / Crashlytics / Sentry / Google Analytics — verify in `app/build.gradle.kts`), and no PennyWise server receives your financial data unless you start one of the opt-in features below (reporting a parsing problem, or AI access). The whole codebase is open source (AGPL v3) so every claim below is checkable.
-
-### Network access — every outbound call the app can make
-
-1. **Google Play services** *(Play Store build only)* — Google Play Billing (optional Pro subscription), In-App Updates, and In-App Review. These are Google's SDKs (declared `standardImplementation`), and they do their own background connectivity to Google — this is the most likely source of any "background data" you notice, especially on a single-currency setup. **The [F-Droid](https://f-droid.org/) build strips all three and is fully Google-free.**
-2. **Exchange rates** — fetched from `open.er-api.com`. Automatic currency conversion runs **only when you hold more than one currency** (same-currency conversions make no call), but opening the currency picker also fetches the current rate list. Either way the request carries just a 3-letter currency code and a static `User-Agent` — no SMS, transactions, or device identifier — and results are cached locally. (`ExchangeRateProvider.kt`)
-3. **On-device AI model** — a one-time ~1.5 GB download from Cloudflare R2, **only if you open the AI chat and choose to download it**. The bytes are SHA-256 pinned; after that the AI runs 100% offline. (`Constants.MODEL_URL`)
-4. **Report a parsing problem** — when you use this flow it opens `pennywise.zynth.dev` with the SMS text, its sender, and an RSA-encrypted device identifier (your Android ID plus a timestamp) pre-filled, and parses them server-side to show a preview. Nothing is sent unless you start this yourself. (`SmsReportUrlBuilder.kt`, `DeviceEncryption.kt`)
-5. **Online voice in chat** *(optional, off until you agree)* — dictation runs on your phone's speech service, on-device by default. A language your phone can't recognize offline (e.g. Arabic) can be used online after a one-time prompt that names the service; your speech then goes to that service, not to PennyWise. No audio is recorded or kept. (`VoiceInput.kt`)
-6. **AI access** *(Pro, off until you connect an app)* — while an AI session you started is on, questions from Claude, ChatGPT or the PennyWise dashboard reach your phone through the PennyWise relay (`ai.pennywise.zynth.dev`, or your own self-hosted relay); your phone answers from its database. The relay terminates TLS, so it could read those answers; it is built never to store or log them, and you can run your own instead, and SMS text, full account numbers and notes never leave. See [docs/ai-access.md](docs/ai-access.md).
-7. **Webhook sync** *(Pro, off unless you add one)* — sends the data you choose (summary, transactions, budgets, accounts, subscriptions) to a URL you enter. (`WebhookDeliveryService.kt`)
-8. **Links** (Discord, GitHub, Play Store, user guide, backup docs) open your browser — no background data.
-
-Everything else stays on your phone.
-
-## Screenshots
-
-<p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="160"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="160"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="160"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="160"/>
-</p>
-<p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="160"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" width="160"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7.png" width="160"/>
-</p>
-
-<details>
-<summary>In-app screenshots (light &amp; dark themes)</summary>
-
-<br/>
-
-**Light Theme**
-
-<table>
-<tr>
-<td><img src="screenshots/home-light.png" width="160"/></td>
-<td><img src="screenshots/analytics-light.png" width="160"/></td>
-<td><img src="screenshots/analytics-scroll-light.png" width="160"/></td>
-<td><img src="screenshots/transaction-detail-light.png" width="160"/></td>
-<td><img src="screenshots/chat-light.png" width="160"/></td>
-</tr>
-<tr>
-<td align="center">Home</td>
-<td align="center">Insights</td>
-<td align="center">Categories</td>
-<td align="center">Details</td>
-<td align="center">Ask (AI)</td>
-</tr>
-</table>
-
-**Dark Theme**
-
-<table>
-<tr>
-<td><img src="screenshots/home-dark.png" width="160"/></td>
-<td><img src="screenshots/analytics-dark.png" width="160"/></td>
-<td><img src="screenshots/account-detail-dark.png" width="160"/></td>
-<td><img src="screenshots/accounts-dark.png" width="160"/></td>
-<td><img src="screenshots/chat-dark.png" width="160"/></td>
-</tr>
-<tr>
-<td align="center">Home</td>
-<td align="center">Insights</td>
-<td align="center">Account Detail</td>
-<td align="center">Accounts</td>
-<td align="center">Ask (AI)</td>
-</tr>
-</table>
-
 </details>
+
+More banks being added regularly! [Request your bank →](https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.yml)
 
 ## Quick Start
 
@@ -412,6 +360,13 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
 
 ## Star History
+
+⭐ **Star us on GitHub — join 300+ supporters!**
+
+[![Share](https://img.shields.io/badge/share-000000?logo=x&logoColor=white)](https://x.com/intent/tweet?text=Check%20out%20PennyWise%20AI%20-%20Privacy-first%20expense%20tracker%20with%20on-device%20AI:%20https://github.com/sarim2000/pennywiseai-tracker%20%23Android%20%23PrivacyFirst%20%23OnDeviceAI)
+[![Share](https://img.shields.io/badge/share-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/sharing/share-offsite/?url=https://github.com/sarim2000/pennywiseai-tracker)
+[![Share](https://img.shields.io/badge/share-FF4500?logo=reddit&logoColor=white)](https://www.reddit.com/submit?title=PennyWise%20AI%20-%20Privacy-first%20expense%20tracker&url=https://github.com/sarim2000/pennywiseai-tracker)
+[![Share](https://img.shields.io/badge/share-0088CC?logo=telegram&logoColor=white)](https://t.me/share/url?url=https://github.com/sarim2000/pennywiseai-tracker&text=Check%20out%20PennyWise%20AI)
 
 [![Star History Chart](https://star-history.dera.page/svg?repos=sarim2000/pennywiseai-tracker&type=Date)](https://star-history.dera.page/#sarim2000/pennywiseai-tracker&type=date)
 

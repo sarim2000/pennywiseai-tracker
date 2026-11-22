@@ -23,8 +23,6 @@ class KeralaBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Kerala Bank"
 
-    override fun getCurrency() = "INR"
-
     override fun canHandle(sender: String): Boolean {
         return sender.uppercase().contains("KELBNK")
     }

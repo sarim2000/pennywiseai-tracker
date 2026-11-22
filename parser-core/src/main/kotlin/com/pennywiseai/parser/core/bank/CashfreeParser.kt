@@ -20,8 +20,6 @@ class CashfreeParser : BankParser() {
 
     override fun getBankName() = "Cashfree"
 
-    override fun getCurrency() = "INR"
-
     override fun canHandle(sender: String): Boolean {
         // Match the CSHfre token case-insensitively. Covers headers like
         // JX-CSHfre-S, VK-CSHfre-S, JD-CSHfre-T, and plain "CSHFRE".

@@ -11,8 +11,6 @@ class JuspayParser : BaseIndianBankParser() {
 
     override fun getBankName() = "Amazon Pay"
 
-    override fun getCurrency() = "INR"
-
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("JUSPAY") ||

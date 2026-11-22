@@ -116,36 +116,6 @@ interface TransactionDao {
     ): Flow<List<TransactionEntity>>
 
     @Query("""
-        SELECT * FROM transactions 
-        WHERE is_deleted = 0 
-        AND transaction_type = :type 
-        ORDER BY date_time DESC
-    """)
-    fun getTransactionsByType(type: TransactionType): Flow<List<TransactionEntity>>
-
-    @Query("""
-        SELECT * FROM transactions 
-        WHERE is_deleted = 0 
-        AND category = :category 
-        ORDER BY date_time DESC
-    """)
-    fun getTransactionsByCategory(category: String): Flow<List<TransactionEntity>>
-
-    @Query("""
-        SELECT * FROM transactions 
-        WHERE is_deleted = 0 
-        AND (merchant_name LIKE '%' || :searchQuery || '%' 
-        OR description LIKE '%' || :searchQuery || '%'
-        OR reference LIKE '%' || :searchQuery || '%'
-        OR sms_body LIKE '%' || :searchQuery || '%') 
-        ORDER BY date_time DESC
-    """)
-    fun searchTransactions(searchQuery: String): Flow<List<TransactionEntity>>
-
-    @Query("SELECT DISTINCT category FROM transactions WHERE is_deleted = 0 ORDER BY category ASC")
-    fun getAllCategories(): Flow<List<String>>
-
-    @Query("""
         SELECT category FROM transactions
         WHERE is_deleted = 0
         GROUP BY category
@@ -161,9 +131,6 @@ interface TransactionDao {
         ORDER BY COUNT(*) DESC
     """)
     fun observeCategoriesByUsageSince(since: LocalDateTime): Flow<List<String>>
-
-    @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 ORDER BY merchant_name ASC")
-    fun getAllMerchants(): Flow<List<String>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTransaction(transaction: TransactionEntity): Long
@@ -301,24 +268,6 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE transaction_hash IN (:transactionHashes)")
     suspend fun getTransactionsByHashes(transactionHashes: List<String>): List<TransactionEntity>
-
-    /**
-     * A SOFT-DELETED transaction from the exact same SMS (raw sender + body).
-     * Used to keep deletion durable across app updates: the transaction_hash
-     * includes the parsed amount, so a parser change can shift it and let a
-     * re-scan re-insert a previously-deleted row. The raw SMS never changes, so
-     * matching on it lets the scanner skip resurrecting a deleted txn even when
-     * its hash no longer matches. (#703)
-     */
-    @Query(
-        """
-        SELECT * FROM transactions
-        WHERE is_deleted = 1 AND sms_body = :smsBody
-          AND (sms_sender = :smsSender OR (:smsSender IS NULL AND sms_sender IS NULL))
-        LIMIT 1
-        """
-    )
-    suspend fun getDeletedBySms(smsBody: String, smsSender: String?): TransactionEntity?
 
     /**
      * Any stored row for this exact SMS — an active one first, else a
@@ -518,21 +467,6 @@ interface TransactionDao {
     @Query("UPDATE transactions SET transfer_pair_id = :pairId WHERE id IN (:ids)")
     suspend fun linkTransferPair(pairId: String, ids: List<Long>)
 
-    @Query("""
-        SELECT * FROM transactions
-        WHERE is_deleted = 0
-        AND bank_name = :bankName
-        AND account_number = :accountLast4
-        AND date_time BETWEEN :startDate AND :endDate
-        ORDER BY date_time DESC
-    """)
-    fun getTransactionsByAccountAndDateRange(
-        bankName: String,
-        accountLast4: String,
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): Flow<List<TransactionEntity>>
-
     /**
      * Total transactions on an account, including soft-deleted ones. Used by
      * the account-merge confirmation dialog (#368) — must match
@@ -616,9 +550,6 @@ interface TransactionDao {
         targetAccountLast4: String,
         updatedAt: LocalDateTime
     ): Int
-
-    @Query("SELECT * FROM transactions WHERE reference = :reference AND is_deleted = 0 LIMIT 1")
-    suspend fun getTransactionByReference(reference: String): TransactionEntity?
 
     @Query("""
         SELECT * FROM transactions

@@ -28,14 +28,6 @@ interface TransactionSplitDao {
     fun observeSplitsForActiveTransactions(): Flow<List<TransactionSplitEntity>>
 
     @Transaction
-    @Query("SELECT * FROM transactions WHERE id = :transactionId AND is_deleted = 0")
-    fun getTransactionWithSplits(transactionId: Long): Flow<TransactionWithSplits?>
-
-    @Transaction
-    @Query("SELECT * FROM transactions WHERE id = :transactionId AND is_deleted = 0")
-    suspend fun getTransactionWithSplitsSync(transactionId: Long): TransactionWithSplits?
-
-    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -68,12 +60,6 @@ interface TransactionSplitDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSplits(splits: List<TransactionSplitEntity>)
-
-    @Update
-    suspend fun updateSplit(split: TransactionSplitEntity)
-
-    @Delete
-    suspend fun deleteSplit(split: TransactionSplitEntity)
 
     @Query("DELETE FROM transaction_splits WHERE transaction_id = :transactionId")
     suspend fun deleteSplitsForTransaction(transactionId: Long)

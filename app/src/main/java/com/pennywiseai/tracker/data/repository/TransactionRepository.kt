@@ -88,23 +88,11 @@ open class TransactionRepository @Inject constructor(
             transactionType
         )
 
-    fun getTransactionsByType(type: TransactionType): Flow<List<TransactionEntity>> =
-        transactionDao.getTransactionsByType(type)
-
-    fun getTransactionsByCategory(category: String): Flow<List<TransactionEntity>> =
-        transactionDao.getTransactionsByCategory(category)
-
-    fun searchTransactions(query: String): Flow<List<TransactionEntity>> =
-        transactionDao.searchTransactions(query)
-
     fun getAllCurrencies(): Flow<List<String>> =
         transactionDao.getAllCurrencies()
 
     fun getCurrenciesForPeriod(startDate: LocalDateTime, endDate: LocalDateTime): Flow<List<String>> =
         transactionDao.getCurrenciesForPeriod(startDate, endDate)
-
-    fun getAllCategories(): Flow<List<String>> =
-        transactionDao.getAllCategories()
 
     /**
      * Every category in use, most-used first. Unlimited on purpose: callers
@@ -116,9 +104,6 @@ open class TransactionRepository @Inject constructor(
     /** Category names by use in the last 90 days, most first — the pickers' "Most used" (#1058). */
     fun observeRecentCategoryUsage(): Flow<List<String>> =
         transactionDao.observeCategoriesByUsageSince(LocalDateTime.now().minusDays(90))
-
-    fun getAllMerchants(): Flow<List<String>> =
-        transactionDao.getAllMerchants()
 
     suspend fun insertTransaction(transaction: TransactionEntity): Long =
         transactionDao.insertTransaction(withCurrentCategoryNames(listOf(transaction)).single())
@@ -239,10 +224,6 @@ open class TransactionRepository @Inject constructor(
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
         transactionDao.getTransactionByHash(transactionHash)
 
-    /** A soft-deleted transaction from the same raw SMS, if any (#703). */
-    suspend fun getDeletedBySms(smsBody: String, smsSender: String?): TransactionEntity? =
-        transactionDao.getDeletedBySms(smsBody, smsSender)
-
     /** See [TransactionDao.getAnyBySms]. */
     suspend fun getAnyBySms(smsBody: String, smsSender: String?): TransactionEntity? =
         transactionDao.getAnyBySms(smsBody, smsSender)
@@ -303,9 +284,6 @@ open class TransactionRepository @Inject constructor(
         limit: Int = 5,
     ): List<TransactionEntity> =
         transactionDao.findRecentExpensesByMerchantAndAmount(merchant, amount, since, limit)
-
-    suspend fun getTransactionByReference(reference: String): TransactionEntity? =
-        transactionDao.getTransactionByReference(reference)
 
     /** Transactions (deleted included) with any of [hashes], in chunks under SQLite's bound-variable limit. */
     suspend fun getTransactionsByHashes(hashes: List<String>): List<TransactionEntity> =
@@ -567,15 +545,6 @@ open class TransactionRepository @Inject constructor(
         }
     }
 
-    fun getTransactionsByAccountAndDateRange(
-        bankName: String,
-        accountLast4: String,
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): Flow<List<TransactionEntity>> {
-        return transactionDao.getTransactionsByAccountAndDateRange(bankName, accountLast4, startDate, endDate)
-    }
-
     // Methods for batch rule application
     suspend fun getAllTransactionsList(): List<TransactionEntity> {
         // Get all non-deleted transactions as a list (not Flow) for batch processing
@@ -594,12 +563,6 @@ open class TransactionRepository @Inject constructor(
     }
 
     // ========== Transaction Split Methods ==========
-
-    /**
-     * Gets a transaction with its splits.
-     */
-    fun getTransactionWithSplits(transactionId: Long): Flow<TransactionWithSplits?> =
-        transactionSplitDao.getTransactionWithSplits(transactionId)
 
     /**
      * Gets transactions with their splits for a date range and currency.
@@ -628,12 +591,6 @@ open class TransactionRepository @Inject constructor(
             startDate.atStartOfDay(),
             endDate.atTime(23, 59, 59)
         )
-
-    /**
-     * Gets a transaction with its splits synchronously.
-     */
-    suspend fun getTransactionWithSplitsSync(transactionId: Long): TransactionWithSplits? =
-        transactionSplitDao.getTransactionWithSplitsSync(transactionId)
 
     /** Splits of every non-deleted transaction, observed so split edits re-emit. */
     fun observeSplitsForActiveTransactions(): Flow<List<TransactionSplitEntity>> =
@@ -675,16 +632,4 @@ open class TransactionRepository @Inject constructor(
      */
     suspend fun insertSplit(split: TransactionSplitEntity): Long =
         transactionSplitDao.insertSplit(split)
-
-    /**
-     * Updates a split.
-     */
-    suspend fun updateSplit(split: TransactionSplitEntity) =
-        transactionSplitDao.updateSplit(split)
-
-    /**
-     * Deletes a single split.
-     */
-    suspend fun deleteSplit(split: TransactionSplitEntity) =
-        transactionSplitDao.deleteSplit(split)
 }

@@ -145,6 +145,7 @@ fun FAQScreen(
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
+                revealAmountsAction = false, // shows no amounts
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = stringResource(R.string.faq_title),

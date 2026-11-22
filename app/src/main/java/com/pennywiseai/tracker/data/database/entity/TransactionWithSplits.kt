@@ -4,6 +4,13 @@ import androidx.room3.Embedded
 import androidx.room3.Relation
 import java.math.BigDecimal
 
+/**
+ * The category a total files [category] under: a blank one is Others. Budgets and the
+ * Transactions list's category filter both match through this, so a budget's Others line
+ * opens a list that holds the rows it counted.
+ */
+fun countedCategory(category: String): String = category.ifEmpty { "Others" }
+
 data class TransactionWithSplits(
     @Embedded
     val transaction: TransactionEntity,

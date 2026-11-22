@@ -23,6 +23,7 @@ fun LearnedCategoriesEntry(onNavigateBack: () -> Unit) {
     com.pennywiseai.tracker.presentation.settings.LearnedCategoriesScreen(
         scaffold = { title, content ->
             PennyWiseScaffold(
+                revealAmountsAction = false, // shows no amounts
                 title = title,
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {

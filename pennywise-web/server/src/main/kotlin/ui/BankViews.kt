@@ -7,6 +7,8 @@ import com.example.ui.SharedComponents.PLAY_STORE_URL
 import com.example.ui.SharedComponents.SITE_ORIGIN
 import com.example.ui.SharedComponents.commonHead
 import com.example.ui.SharedComponents.commonStyles
+import com.example.ui.SharedComponents.downloadButtons
+import com.example.ui.SharedComponents.siteFooter
 import com.example.ui.SharedComponents.siteHeader
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -247,19 +249,66 @@ object BankViews {
         }
     }
 
+    private const val SOURCE_URL = "https://github.com/sarim2000/pennywiseai-tracker"
+
     private fun FlowContent.downloadCta() {
         div(classes = "cta-row") {
-            a(href = PLAY_STORE_URL, classes = "btn btn-primary") {
+            a(href = PLAY_STORE_URL, classes = "btn btn-filled btn-lg") {
                 attributes["rel"] = "noopener"
                 +"Get PennyWise on Google Play"
             }
-            a(
-                href = "https://github.com/sarim2000/pennywiseai-tracker",
-                classes = "btn btn-secondary"
-            ) {
+            a(href = SOURCE_URL, classes = "btn btn-outlined btn-lg") {
                 attributes["rel"] = "noopener"
                 +"View the source"
             }
+        }
+    }
+
+    /**
+     * The page's opening block: a tonal hero holding the title, lede and the download
+     * row. [art] is a decorative side piece (owl or a count badge), hidden on phones.
+     */
+    private fun FlowContent.hero(art: (DIV.() -> Unit)? = null, text: FlowContent.() -> Unit) {
+        section(classes = "bank-hero") {
+            div(classes = "bank-hero-text") {
+                text()
+                downloadCta()
+            }
+            if (art != null) {
+                div(classes = "bank-hero-art") {
+                    attributes["aria-hidden"] = "true"
+                    art()
+                }
+            }
+        }
+    }
+
+    private fun HTMLTag.owl() {
+        unsafe {
+            +"""<picture><source srcset="/static/owl-dark.svg" media="(prefers-color-scheme: dark)"><img src="/static/owl.svg" alt="" width="132" height="132" class="hero-owl"></picture>"""
+        }
+    }
+
+    private fun FlowContent.countBadge(count: Int, label: String) {
+        div(classes = "hero-badge shape-sunny") {
+            span(classes = "hero-badge-n") { +count.toString() }
+            span(classes = "hero-badge-l") { +label }
+        }
+    }
+
+    /** Closing call to action: every install channel, plus the source for the sceptical. */
+    private fun FlowContent.endCta(title: String) {
+        section(classes = "end-cta") {
+            h2 { +title }
+            p {
+                +"Free and open source. Works offline — your messages never leave your phone. "
+                a(href = SOURCE_URL) {
+                    attributes["rel"] = "noopener"
+                    +"View the source"
+                }
+                +"."
+            }
+            downloadButtons()
         }
     }
 
@@ -315,12 +364,12 @@ object BankViews {
             lang = "en"
             head {
                 commonHead(pageTitle, description, path)
-                style { unsafe { +commonStyles } }
+                style { unsafe { +commonStyles; +bankStyles } }
             }
             body {
                 siteHeader(currentPage = "banks")
                 div(classes = "container") {
-                    div(classes = "prose") {
+                    div(classes = "prose bank-page") {
                         breadcrumbs(
                             "Home" to "/",
                             "Supported banks" to "/banks",
@@ -328,21 +377,22 @@ object BankViews {
                             name to null,
                         )
 
-                        h1 { +"How to track $name transactions automatically" }
-                        p(classes = "lede") {
-                            +"$name already texts you every time money moves. PennyWise reads those "
-                            +"messages on your phone and builds your spending record from them — no "
-                            +"manual entry, no bank login, nothing leaves the device."
+                        hero(art = { owl() }) {
+                            h1 { +"How to track $name transactions automatically" }
+                            p(classes = "lede") {
+                                +"$name already texts you every time money moves. PennyWise reads those "
+                                +"messages on your phone and builds your spending record from them — no "
+                                +"manual entry, no bank login, nothing leaves the device."
+                            }
                         }
 
-                        // The demo is the argument, so it runs before the sales pitch.
+                        // The demo is the argument, so it runs straight after the hero and
+                        // before any of the explanation below.
                         val sample = SupportedBanks.sample(name)
                         if (sample != null) parseStrip(bank, sample)
 
-                        downloadCta()
-
                         h2 { +"How it works" }
-                        ol {
+                        ol(classes = "steps") {
                             li {
                                 +"Install PennyWise and grant SMS permission. That permission is the "
                                 +"whole product — it is how the app sees your $name alerts."
@@ -413,7 +463,7 @@ object BankViews {
                             }
                         }
 
-                        downloadCta()
+                        endCta("Start tracking $name automatically")
                         pageFooter()
 
                         jsonLd(
@@ -427,6 +477,7 @@ object BankViews {
                         )
                     }
                 }
+                siteFooter()
             }
         }
     }
@@ -447,29 +498,34 @@ object BankViews {
             lang = "en"
             head {
                 commonHead(pageTitle, description, path)
-                style { unsafe { +commonStyles } }
+                style { unsafe { +commonStyles; +bankStyles } }
             }
             body {
                 siteHeader(currentPage = "banks")
                 div(classes = "container") {
-                    div(classes = "prose") {
+                    div(classes = "prose bank-page") {
                         breadcrumbs(
                             "Home" to "/",
                             "Supported banks" to "/banks",
                             country.country to null,
                         )
 
-                        h1 { +"${country.flag} Automatic expense tracking for ${country.country}" }
-                        p(classes = "lede") {
-                            +"PennyWise recognises transaction messages from ${country.bankCount} "
-                            +"banks and payment services in ${country.country}, and tracks everything "
-                            +"in ${country.currency} (${country.symbol}) without you entering a single "
-                            +"amount by hand."
+                        hero(art = { countBadge(country.bankCount, "banks") }) {
+                            h1 { +"${country.flag} Automatic expense tracking for ${country.country}" }
+                            p(classes = "lede") {
+                                +"PennyWise recognises transaction messages from ${country.bankCount} "
+                                +"banks and payment services in ${country.country}, and tracks everything "
+                                +"in ${country.currency} (${country.symbol}) without you entering a single "
+                                +"amount by hand."
+                            }
                         }
 
-                        downloadCta()
-
-                        h2 { +"Supported in ${country.country} (${country.bankCount})" }
+                        div(classes = "country-head") {
+                            h2 { +"Supported in ${country.country}" }
+                            span(classes = "pill") {
+                                +"${country.bankCount} · ${country.currency} ${country.symbol}"
+                            }
+                        }
                         div(classes = "grid") {
                             country.banks.forEach { bank ->
                                 val bankSlug = SupportedBanks.banks.first { it.name == bank }.slug
@@ -519,7 +575,7 @@ object BankViews {
                                 }
                         }
 
-                        downloadCta()
+                        endCta("Start tracking your ${country.country} banks")
                         pageFooter()
 
                         jsonLd(
@@ -532,6 +588,7 @@ object BankViews {
                         )
                     }
                 }
+                siteFooter()
             }
         }
     }
@@ -552,27 +609,39 @@ object BankViews {
             lang = "en"
             head {
                 commonHead(pageTitle, description, path)
-                style { unsafe { +commonStyles } }
+                style { unsafe { +commonStyles; +bankStyles } }
             }
             body {
                 siteHeader(currentPage = "banks")
                 div(classes = "container") {
-                    div(classes = "prose") {
+                    div(classes = "prose bank-page") {
                         breadcrumbs("Home" to "/", "Supported banks" to null)
 
-                        h1 { +"Supported banks and payment services" }
-                        p(classes = "lede") {
-                            +"PennyWise turns transaction SMS into tracked spending for "
-                            +"${cat.totalBanks} banks and payment services across "
-                            +"${cat.totalCountries} countries — all parsed on your own device."
+                        hero(art = { owl() }) {
+                            h1 { +"Supported banks and payment services" }
+                            p(classes = "lede") {
+                                +"PennyWise turns transaction SMS into tracked spending for "
+                                +"${cat.totalBanks} banks and payment services across "
+                                +"${cat.totalCountries} countries — all parsed on your own device."
+                            }
                         }
 
-                        downloadCta()
+                        // 26 countries make a long page; a chip row lets people jump to theirs.
+                        nav(classes = "country-jump") {
+                            attributes["aria-label"] = "Jump to a country"
+                            cat.countries.forEach { country ->
+                                a(href = "#${SupportedBanks.countrySlug(country.country)}") {
+                                    +"${country.flag} ${country.country}"
+                                }
+                            }
+                        }
 
                         cat.countries.forEach { country ->
+                            val countrySlug = SupportedBanks.countrySlug(country.country)
                             div(classes = "country-head") {
+                                id = countrySlug
                                 h2 {
-                                    a(href = "/banks/country/${SupportedBanks.countrySlug(country.country)}") {
+                                    a(href = "/banks/country/$countrySlug") {
                                         +"${country.flag} ${country.country}"
                                     }
                                 }
@@ -603,9 +672,69 @@ object BankViews {
                         pageFooter()
                     }
                 }
+                siteFooter()
             }
         }
     }
+
+    // ------------------------------------------------------------------ styles
+
+    /**
+     * Page-specific layer over [commonStyles]: the tonal hero, the parse strip as a
+     * showcase card, numbered steps and the closing CTA. Role tokens only, so every rule
+     * works in light and dark.
+     */
+    private val bankStyles = """
+        .bank-hero { display: flex; align-items: center; gap: 24px; background: var(--primary-container); color: var(--on-primary-container); border-radius: var(--r-2xl); padding: 36px 36px 30px; margin: 0 0 8px; }
+        .bank-hero-text { flex: 1; min-width: 0; }
+        .bank-hero h1 { color: var(--on-primary-container); font-size: clamp(32px, 5vw, 46px); margin: 0 0 14px; overflow-wrap: anywhere; }
+        .bank-hero .lede { color: var(--on-primary-container) !important; margin: 0; }
+        .bank-hero .cta-row { margin: 24px 0 0; }
+        .bank-hero a.btn-outlined { color: var(--on-primary-container); border-color: color-mix(in srgb, var(--on-primary-container) 40%, transparent); }
+        .bank-hero a.btn-outlined:hover { background: color-mix(in srgb, var(--on-primary-container) 10%, transparent); }
+        .bank-hero-art { flex: none; align-self: flex-end; }
+        .bank-hero-art picture, .hero-owl { display: block; width: 132px; height: 132px; }
+        .hero-badge { width: 148px; height: 148px; background: var(--primary); color: var(--on-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; align-self: center; }
+        .hero-badge-n { font-family: var(--display); font-size: 48px; font-weight: 800; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+        .hero-badge-l { font-size: 14px; font-weight: 600; margin-top: 4px; }
+
+        /* Segmented lists read better on a tonal tile than on the near-identical page bg. */
+        .bank-page .grid { border-radius: var(--r-lg); overflow: hidden; }
+        .bank-page .grid a { background: var(--surface-container); }
+        .bank-page .grid a:focus-visible { outline-offset: -3px; border-radius: var(--r-lg); }
+        .bank-page .faq details { background: var(--surface-container); }
+        .bank-page .faq details summary::after { background: var(--surface-highest); }
+
+        /* The parse strip as a showcase card. */
+        .bank-page .parse { background: var(--surface-low); border-radius: var(--r-2xl); padding: 24px; margin: 24px 0 8px; }
+        .bank-page .parse .eyebrow { font-size: 16px; font-weight: 600; color: var(--on-bg); margin-bottom: 14px; }
+        .bank-page .parse .sms { background: var(--surface-high); }
+        .bank-page .parse-note { margin: 14px 2px 0; }
+
+        .country-jump { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 0; }
+        .country-jump a { display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: var(--r-full); background: var(--surface-container); color: var(--on-bg); text-decoration: none; font-size: 14px; font-weight: 500; transition: background .15s; }
+        .country-jump a:hover { background: var(--secondary-container); color: var(--on-secondary-container); }
+        .country-head { scroll-margin-top: 88px; }
+
+        .prose ol.steps { list-style: none; padding: 0; margin: 16px 0; counter-reset: step; display: grid; gap: 4px; }
+        .prose ol.steps li { counter-increment: step; display: flex; gap: 16px; align-items: flex-start; margin: 0; padding: 18px 20px; background: var(--surface-container); color: var(--on-bg); border-radius: var(--r-xs); }
+        .prose ol.steps li:first-child { border-top-left-radius: var(--r-lg); border-top-right-radius: var(--r-lg); }
+        .prose ol.steps li:last-child { border-bottom-left-radius: var(--r-lg); border-bottom-right-radius: var(--r-lg); }
+        .prose ol.steps li::before { content: counter(step); flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: var(--on-primary); font-family: var(--display); font-weight: 700; font-size: 15px; }
+
+        .end-cta { margin: 56px 0 0; padding: 32px; background: var(--surface-low); border-radius: var(--r-2xl); }
+        .prose .end-cta h2 { margin: 0 0 8px; font-size: 28px; font-weight: 800; }
+        .end-cta p { margin: 0 0 22px; }
+
+        @media (max-width: 720px) {
+          .bank-hero { padding: 26px 20px 22px; border-radius: var(--r-xl); }
+          .bank-hero-art { display: none; }
+          .bank-page .parse { padding: 16px; border-radius: var(--r-xl); }
+          .prose ol.steps li { padding: 16px; gap: 12px; }
+          .end-cta { padding: 24px 20px; border-radius: var(--r-xl); }
+          .prose .end-cta h2 { font-size: 24px; }
+        }
+    """.trimIndent()
 
     // ------------------------------------------------------------ sitemap/robots
 

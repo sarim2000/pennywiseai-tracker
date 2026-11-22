@@ -5,6 +5,7 @@ import com.example.ui.SharedComponents.commonHead
 import com.example.ui.SharedComponents.commonStyles
 import com.example.ui.SharedComponents.siteHeader
 import com.example.ui.SharedComponents.proBanner
+import com.example.ui.SharedComponents.siteFooter
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.html.*
@@ -25,40 +26,87 @@ object ParseViews {
                     "Bank SMS parser — see what PennyWise reads",
                     "Paste any bank SMS and see precisely which transaction details " +
                         "PennyWise extracts from it. Runs the same parser that ships in the app.",
-                    "/",
+                    "/tools/parse",
                     htmx = true,
                 )
                 style {
                     unsafe {
                         +commonStyles
                         +"""
-                        .header-content, .container { max-width: 860px; }
-                        .row { display: grid; grid-template-columns: 160px 1fr; gap: 8px; margin: 6px 0; }
-                        .row > div:first-child { color: var(--muted); font-family: var(--mono); font-size: 12px; }
-                        .row > div:last-child { word-break: break-word; font-family: var(--mono); font-size: 13.5px; }
-                        details { margin-top: 12px; }
-                        details summary { cursor: pointer; color: var(--muted); font-size: 14px; }
-                        details pre { background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin: 8px 0 0 0; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; font-size: 12px; font-family: var(--mono); }
-                        .report-btn { margin-top: 12px; padding: 8px 14px; background: transparent; color: #FF8A8A; border: 1px solid rgba(255,138,138,.4); border-radius: 8px; cursor: pointer; font-size: 14px; }
-                        .report-btn:hover { border-color: #FF8A8A; background: rgba(255,138,138,.08); }
-                        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+                        .tool-head { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin: 8px 0 28px; }
+                        .tool-head h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.06; margin: 6px 0 12px; }
+                        .tool-head .lede { margin: 0; }
+                        .tool-badge { flex: none; width: 112px; height: 112px; display: grid; place-items: center; background: var(--primary-container); }
+                        .tool-badge img { width: 72px; height: 72px; display: block; }
+
+                        .tool-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+                        .tool-form { background: var(--surface-low); border-radius: var(--r-2xl); padding: 24px; }
+                        .tool-form h2 { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+                        .tool-form label:first-of-type { margin-top: 18px; }
+                        /* M3 filled text field: surface-container-highest on the card's low surface. */
+                        .tool-form input[type=text], .tool-form textarea { background: var(--surface-highest); border-radius: var(--r-md); }
+                        .tool-form input[type=text]:focus, .tool-form textarea:focus { background: var(--surface-highest); border-color: var(--primary); }
+                        .tool-form textarea { min-height: 180px; line-height: 1.6; }
+                        .form-actions { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
+                        .form-actions .parse-btn { min-width: 160px; }
+                        /* hx-indicator puts .htmx-request on the spinner itself, not an ancestor. */
+                        .spinner.htmx-request { display: inline-block; }
+
+                        .result-pane { position: sticky; top: 88px; }
+                        .result-empty { border: 2px dashed var(--outline-variant); border-radius: var(--r-2xl); padding: 48px 24px; text-align: center; color: var(--on-variant); }
+                        .result-empty p { margin: 0; }
+                        .result-none { background: var(--surface-container); border-radius: var(--r-2xl); padding: 28px 24px; color: var(--on-bg); }
+                        .result-none p { margin: 0; font-weight: 600; }
+
+                        .result-hero { border-radius: var(--r-2xl) var(--r-2xl) var(--r-xs) var(--r-xs); padding: 24px; }
+                        .result-hero .parsed-top { align-items: center; }
+                        .result-hero h2 { color: inherit; font-size: 15px; font-weight: 600; letter-spacing: 0; margin: 0; opacity: .9; }
+                        .result-hero .parsed-amount { margin-top: 10px; font-size: clamp(36px, 5vw, 48px); line-height: 1.1; word-break: break-word; }
+                        .result-hero .parsed-amount .cur { font-size: .5em; font-weight: 700; margin-right: 6px; opacity: .85; }
+                        .result-hero .tag.tag-income { background: var(--success-container); color: var(--on-success-container); }
+
+                        .raw { margin-top: 4px; background: var(--surface-low); border-radius: var(--r-xs) var(--r-xs) var(--r-lg) var(--r-lg); padding: 14px 18px; }
+                        .raw summary { cursor: pointer; color: var(--on-bg); font-size: 15px; font-weight: 600; }
+                        .raw pre { background: var(--surface-container); color: var(--on-bg); border-radius: var(--r-md); padding: 14px 16px; margin: 12px 0 2px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; font-size: 12.5px; line-height: 1.7; font-family: var(--mono); }
+                        .result-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+                        button.report-btn { height: 40px; padding: 0 20px; background: transparent; color: var(--error); border: 1px solid var(--outline-variant); border-radius: var(--r-full); font-size: 14px; }
+                        button.report-btn:hover { background: var(--error-container); color: var(--on-error-container); border-color: transparent; filter: none; }
+
+                        /* Report dialog: M3 basic dialog over a scrim. The scrim role is black in both themes. */
+                        .modal { display: none; position: fixed; inset: 0; background: rgb(0 0 0 / .45); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
                         .modal.show { display: flex; }
-                        .modal-content { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
-                        .modal h3 { margin: 0 0 16px 0; }
-                        .modal label { margin-top: 16px; }
-                        .modal input[type=number] { width: 100%; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--text); font-size: 14px; }
-                        .modal select { width: 100%; padding: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--text); font-size: 14px; }
-                        .modal-buttons { display: flex; gap: 12px; margin-top: 20px; }
-                        .modal-buttons button { flex: 1; }
-                        .success-msg { background: rgba(91,217,165,.1); border: 1px solid var(--mint); color: var(--mint); padding: 12px; border-radius: 10px; margin-top: 12px; }
-                        .parsed-info { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 20px; }
-                        .parsed-info h4 { margin: 0 0 12px 0; color: var(--muted); font-size: 14px; font-weight: 600; }
-                        .parsed-info .info-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
-                        .parsed-info .info-label { color: var(--muted); }
-                        .parsed-info .info-value { color: var(--text); font-weight: 500; }
-                        .parsed-info .no-transaction { color: var(--muted); font-style: italic; }
+                        .modal-content { background: var(--surface-high); color: var(--on-bg); border-radius: var(--r-xl); padding: 24px; width: 100%; max-width: 520px; max-height: calc(100vh - 32px); overflow-y: auto; }
+                        .modal h3 { margin: 0 0 16px 0; font-size: 24px; font-weight: 700; }
+                        .modal h4 { margin: 0 0 4px; font-size: 16px; font-weight: 600; color: var(--on-bg); }
+                        .modal label { margin-top: 14px; }
+                        .modal input[type=text], .modal input[type=number], .modal select, .modal textarea { background: var(--surface-lowest); border: 1px solid var(--outline-variant); border-radius: var(--r-sm); color: var(--on-bg); font-size: 15px; }
+                        .modal input:focus, .modal select:focus, .modal textarea:focus { background: var(--surface-lowest); border-color: var(--primary); }
+                        .modal textarea { min-height: 88px; font-family: var(--body); font-size: 15px; }
+                        .modal-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+                        .modal-buttons button.btn-text { background: transparent; color: var(--primary); padding: 0 16px; }
+                        .modal-buttons button.btn-text:hover { background: color-mix(in srgb, var(--primary) 10%, transparent); filter: none; }
+                        .success-msg { background: var(--success-container); color: var(--on-success-container); padding: 12px 16px; border-radius: var(--r-md); margin-top: 16px; font-size: 14px; font-weight: 500; }
+                        .error-msg { background: var(--error-container); color: var(--on-error-container); padding: 12px 16px; border-radius: var(--r-md); margin-top: 16px; font-size: 14px; font-weight: 500; }
+                        .parsed-info { background: var(--primary-container); color: var(--on-primary-container); border-radius: var(--r-lg); padding: 16px 18px; margin-bottom: 20px; }
+                        .parsed-info h4 { margin: 0 0 8px 0; color: inherit; font-size: 14px; font-weight: 600; opacity: .9; }
+                        .parsed-info .info-row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14px; }
+                        .parsed-info .info-row + .info-row { border-top: 1px solid color-mix(in srgb, currentColor 16%, transparent); }
+                        .parsed-info .info-label { opacity: .85; }
+                        .parsed-info .info-value { font-weight: 600; font-family: var(--mono); text-align: right; word-break: break-word; }
+                        .parsed-info .no-transaction { margin: 0; font-style: italic; opacity: .9; }
+
+                        @media (max-width: 900px) {
+                          .tool-layout { grid-template-columns: 1fr; }
+                          .result-pane { position: static; }
+                        }
                         @media (max-width: 640px) {
-                          .row { grid-template-columns: 1fr; }
+                          .tool-head { margin-bottom: 20px; }
+                          .tool-badge { width: 72px; height: 72px; }
+                          .tool-badge img { width: 46px; height: 46px; }
+                          .tool-form { padding: 20px 16px; border-radius: var(--r-xl); }
+                          .form-actions .parse-btn { flex: 1; }
+                          .result-hero { padding: 20px; border-radius: var(--r-xl) var(--r-xl) var(--r-xs) var(--r-xs); }
+                          .result-empty { padding: 32px 20px; border-radius: var(--r-xl); }
                         }
                         """
                     }
@@ -69,38 +117,70 @@ object ParseViews {
 
                 div(classes = "container") {
                     proBanner()
-                    h1 { +"SMS Parser Tool" }
-                    p(classes = "muted") { +"Test bank SMS parsing with instant feedback. Report issues to help improve accuracy." }
-
-                    form {
-                        attributes["hx-post"] = "/htmx/parse"
-                        attributes["hx-target"] = "#result"
-                        attributes["hx-swap"] = "innerHTML"
-                        attributes["hx-indicator"] = "#indicator"
-
-                        label { htmlFor = "sender"; +"Sender ID" }
-                        input(type = InputType.text, name = "sender") {
-                            id = "sender"; placeholder = "e.g., VM-HDFC, AD-SBIBK-S"; required = true
+                    div(classes = "tool-head") {
+                        div {
+                            span(classes = "eyebrow") { +"Free tool" }
+                            h1 { +"Bank SMS parser" }
+                            p(classes = "lede") {
+                                +"Paste a bank SMS and see exactly what PennyWise reads from it, with the same parser that ships in the app. "
+                                +"Spot a mistake? Report it to help improve accuracy."
+                            }
                         }
-
-                        label { htmlFor = "smsBody"; +"Message Body" }
-                        textArea {
-                            id = "smsBody"; name = "smsBody"; placeholder = "Paste SMS body here"; required = true
+                        div(classes = "tool-badge shape-cookie") {
+                            attributes["aria-hidden"] = "true"
+                            picture {
+                                source {
+                                    attributes["srcset"] = "/static/owl-dark.svg"
+                                    attributes["media"] = "(prefers-color-scheme: dark)"
+                                }
+                                img(src = "/static/owl.svg", alt = "")
+                            }
                         }
-
-                        input(type = InputType.hidden, name = "timestamp") { id = "timestamp" }
-
-                        button(type = ButtonType.submit) { +"Parse" }
-                        span("spinner") { id = "indicator" }
                     }
 
-                    div(classes = "card") { id = "result"; p { +"Result will appear here." } }
+                    div(classes = "tool-layout") {
+                        form(classes = "tool-form") {
+                            attributes["hx-post"] = "/htmx/parse"
+                            attributes["hx-target"] = "#result"
+                            attributes["hx-swap"] = "innerHTML"
+                            attributes["hx-indicator"] = "#indicator"
+
+                            h2 { +"Your SMS" }
+                            p(classes = "muted") { +"Enter the sender ID exactly as it appears on your phone." }
+
+                            label { htmlFor = "sender"; +"Sender ID" }
+                            input(type = InputType.text, name = "sender") {
+                                id = "sender"; placeholder = "e.g., VM-HDFC, AD-SBIBK-S"; required = true
+                            }
+
+                            label { htmlFor = "smsBody"; +"Message Body" }
+                            textArea {
+                                id = "smsBody"; name = "smsBody"; placeholder = "Paste SMS body here"; required = true
+                            }
+
+                            input(type = InputType.hidden, name = "timestamp") { id = "timestamp" }
+
+                            div(classes = "form-actions") {
+                                button(type = ButtonType.submit, classes = "btn btn-filled btn-lg parse-btn") { +"Parse" }
+                                span("spinner") { id = "indicator"; attributes["aria-hidden"] = "true" }
+                            }
+                        }
+
+                        div(classes = "result-pane") {
+                            id = "result"
+                            attributes["aria-live"] = "polite"
+                            div(classes = "result-empty") { p { +"Result will appear here." } }
+                        }
+                    }
 
                     // Report Modal
                     div(classes = "modal") {
                         id = "reportModal"
+                        attributes["role"] = "dialog"
+                        attributes["aria-modal"] = "true"
+                        attributes["aria-labelledby"] = "reportTitle"
                         div(classes = "modal-content") {
-                            h3 { +"Report Parsing Issue" }
+                            h3 { id = "reportTitle"; +"Report Parsing Issue" }
 
                             // Display what was parsed
                             div(classes = "parsed-info") {
@@ -144,11 +224,11 @@ object ParseViews {
                                 }
 
                                 div(classes = "modal-buttons") {
-                                    button(type = ButtonType.button) {
+                                    button(type = ButtonType.button, classes = "btn btn-text") {
                                         attributes["onclick"] = "hideReportModal()"
                                         +"Cancel"
                                     }
-                                    button(type = ButtonType.button) {
+                                    button(type = ButtonType.button, classes = "btn btn-filled") {
                                         attributes["onclick"] = "submitReport()"
                                         +"Submit Report"
                                     }
@@ -329,11 +409,7 @@ object ParseViews {
                                     const status = document.getElementById('reportStatus');
                                     status.textContent = '';
                                     const el = document.createElement('div');
-                                    if (success) {
-                                        el.className = 'success-msg';
-                                    } else {
-                                        el.style.color = '#ef4444';
-                                    }
+                                    el.className = success ? 'success-msg' : 'error-msg';
                                     el.textContent = text;
                                     status.appendChild(el);
                                 }
@@ -360,48 +436,53 @@ object ParseViews {
                         """ }
                     }
                 }
+                siteFooter()
             }
         }
     }
 
     fun FlowContent.renderParseResult(parsed: ParsedTransaction?, senderId: String = "", message: String = "") {
         if (parsed == null) {
-            div { p { +"No transaction detected." } }
+            div(classes = "result-none") { p { +"No transaction detected." } }
             return
         }
-        div {
-            h3 { +"Parsed Transaction" }
-            div(classes = "row") { div { +"Bank" }; div { +parsed.bankName } }
-            div(classes = "row") { div { +"Type" }; div { +parsed.type.name } }
-            // Currency-tagged, never a bare number: the registry now parses
-            // non-INR banks (LKR since #658), so the code must travel with the
-            // amount.
-            div(classes = "row") { div { +"Amount" }; div { +"${parsed.currency} ${parsed.amount.toPlainString()}" } }
-            if (parsed.merchant != null) {
-                div(classes = "row") { div { +"Merchant" }; div { +parsed.merchant!! } }
+        div(classes = "result") {
+            div(classes = "parsed result-hero") {
+                div(classes = "parsed-top") {
+                    h2 { +"Parsed Transaction" }
+                    span(classes = if (parsed.type.name == "INCOME") "tag tag-income" else "tag") { +parsed.type.name }
+                }
+                // Currency-tagged, never a bare number: the registry now parses
+                // non-INR banks (LKR since #658), so the code must travel with the
+                // amount.
+                div(classes = "parsed-amount") {
+                    span(classes = "cur") { +parsed.currency }
+                    +" ${parsed.amount.toPlainString()}"
+                }
+                div(classes = "fields") {
+                    fun field(label: String, value: String) {
+                        div { div(classes = "field-k") { +label }; div(classes = "field-v") { +value } }
+                    }
+                    field("Bank", parsed.bankName)
+                    parsed.merchant?.let { field("Merchant", it) }
+                    parsed.reference?.let { field("Reference", it) }
+                    parsed.accountLast4?.let { field("Account last 4", it) }
+                    parsed.balance?.let { field("Balance", "${parsed.currency} ${it.toPlainString()}") }
+                    parsed.creditLimit?.let { field("Available limit", "${parsed.currency} ${it.toPlainString()}") }
+                    field("From card", if (parsed.isFromCard) "Yes" else "No")
+                }
             }
-            if (parsed.reference != null) {
-                div(classes = "row") { div { +"Reference" }; div { +parsed.reference!! } }
-            }
-            if (parsed.accountLast4 != null) {
-                div(classes = "row") { div { +"Account Last 4" }; div { +parsed.accountLast4!! } }
-            }
-            if (parsed.balance != null) {
-                div(classes = "row") { div { +"Balance" }; div { +parsed.balance!!.toPlainString() } }
-            }
-            if (parsed.creditLimit != null) {
-                div(classes = "row") { div { +"Available Limit" }; div { +parsed.creditLimit!!.toPlainString() } }
-            }
-            div(classes = "row") { div { +"From Card" }; div { +(if (parsed.isFromCard) "Yes" else "No") } }
-            details {
+            details(classes = "raw") {
                 summary { +"Raw SMS" }
                 pre { +parsed.smsBody }
             }
 
             // Report Issue button
-            button(classes = "report-btn") {
-                attributes["onclick"] = "showReportModal()"
-                +"Report Issue"
+            div(classes = "result-actions") {
+                button(type = ButtonType.button, classes = "report-btn") {
+                    attributes["onclick"] = "showReportModal()"
+                    +"Report Issue"
+                }
             }
         }
 

@@ -45,13 +45,4 @@ data class TransactionWithSplits(
     fun getSplitsTotal(): BigDecimal {
         return splits.fold(BigDecimal.ZERO) { acc, split -> acc + split.amount }
     }
-
-    /**
-     * Checks if splits are valid (sum equals transaction amount within tolerance).
-     */
-    fun areSplitsValid(tolerance: BigDecimal = BigDecimal("0.01")): Boolean {
-        if (!hasSplits) return true
-        val difference = (transaction.amount - getSplitsTotal()).abs()
-        return difference <= tolerance
-    }
 }

@@ -15,11 +15,7 @@ class CentralBankOfIndiaParser : BankParser() {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("CENTBK") ||
                 normalizedSender.contains("CBOI") ||
-                normalizedSender.contains("CENTRALBANK") ||
-                normalizedSender.contains("CENTRAL") ||
-                // DLT patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-CENTBK-[A-Z]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-CBOI-[A-Z]$"))
+                normalizedSender.contains("CENTRAL")
     }
 
     override fun parse(

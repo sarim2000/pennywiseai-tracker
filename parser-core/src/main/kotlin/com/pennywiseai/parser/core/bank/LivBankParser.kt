@@ -20,10 +20,7 @@ class LivBankParser : UAEBankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase().replace(Regex("\\s+"), "")
-        return normalizedSender == "LIV" ||
-                normalizedSender.contains("LIV") ||
-                // DLT patterns for UAE (if they exist)
-                normalizedSender.matches(Regex("^[A-Z]{2}-LIV-[A-Z]$"))
+        return normalizedSender.contains("LIV")
     }
 
     override fun isTransactionMessage(message: String): Boolean {

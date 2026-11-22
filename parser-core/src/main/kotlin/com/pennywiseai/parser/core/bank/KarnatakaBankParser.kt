@@ -22,15 +22,7 @@ class KarnatakaBankParser : BankParser() {
                 normalizedSender.contains("KARNATAKABANK") ||
                 normalizedSender.contains("KBLBNK") ||
                 normalizedSender.contains("KTKBANK") ||
-                normalizedSender.contains("KARBANK") ||
-                // DLT patterns for transactions (-S suffix)
-                normalizedSender.matches(Regex("^[A-Z]{2}-KBLBNK-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-KARBANK-S$")) ||
-                // Legacy patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-KBLBNK$")) ||
-                // Direct sender IDs
-                normalizedSender == "KBLBNK" ||
-                normalizedSender == "KARBANK"
+                normalizedSender.contains("KARBANK")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

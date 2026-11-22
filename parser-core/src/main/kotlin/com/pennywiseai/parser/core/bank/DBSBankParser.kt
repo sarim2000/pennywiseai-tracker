@@ -12,13 +12,7 @@ class DBSBankParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        return normalizedSender.contains("DBSBNK") ||
-                normalizedSender.contains("DBS") ||
-                normalizedSender == "DBSBANK" ||
-                // DLT patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-DBSBNK-[ST]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-DBS-[ST]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-DBSBANK-[ST]$"))
+        return normalizedSender.contains("DBS")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

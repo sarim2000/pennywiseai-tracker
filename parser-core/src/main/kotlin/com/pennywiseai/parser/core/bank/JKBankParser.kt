@@ -34,9 +34,7 @@ class JKBankParser : BaseIndianBankParser() {
 
         // DLT patterns (AD-JKBANK-S, etc.)
         val dltPatterns = listOf(
-            Regex("^[A-Z]{2}-JKBANK.*$"),
             Regex("^[A-Z]{2}-JKB.*$"),
-            Regex("^[A-Z]{2}-JKBNK.*$"),
             Regex("^JKBANK-[A-Z]+$"),
             Regex("^JKB-[A-Z]+$")
         )

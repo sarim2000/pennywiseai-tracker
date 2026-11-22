@@ -19,12 +19,9 @@ class PNBBankParser : BaseIndianBankParser() {
                 normalizedSender.contains("PNBBNK") ||
                 normalizedSender.contains("PUNBN") ||
                 normalizedSender.contains("PNBSMS") || // Matches V?-PNBSMS-S
-                normalizedSender.matches(Regex("^[A-Z]{2}-PNBBNK-S$")) ||
                 normalizedSender.matches(Regex("^[A-Z]{2}-PNB-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-PNBBNK$")) ||
                 normalizedSender.matches(Regex("^[A-Z]{2}-PNB$")) ||
                 normalizedSender.matches(Regex("^(?:[A-Z]{2}-)?PNBCCD(?:-[ST])?$")) || // Credit card alerts
-                normalizedSender == "PNBBNK" ||
                 normalizedSender == "PNB"
     }
 

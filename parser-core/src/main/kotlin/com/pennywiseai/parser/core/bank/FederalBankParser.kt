@@ -26,16 +26,7 @@ class FederalBankParser : BaseIndianBankParser() {
             normalizedSender.contains("FEDERAL") ||
             normalizedSender.contains("FEDFIB") ||
             normalizedSender.contains("FEDSMS") ||
-            normalizedSender.contains("FEDSCP") ||
-            // DLT patterns for transactions (-S suffix)
-            normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK-S$")) ||
-            normalizedSender.matches(Regex("^[A-Z]{2}-FEDSCP-S$")) ||
-            // FedFiB patterns
-            normalizedSender.matches(Regex("^[A-Z]{2}-FedFiB-[A-Z]$")) ||
-            // Other DLT patterns
-            normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK-[TPG]$")) ||
-            // Legacy patterns
-            normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK$"))
+            normalizedSender.contains("FEDSCP")
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {

@@ -14,11 +14,7 @@ class LaxmiBankParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
-        return upperSender == "LAXMI_ALERT" ||
-                upperSender.contains("LAXMI") ||
-                upperSender.contains("LAXMISUNRISE") ||
-                // DLT patterns for Nepal might be different
-                upperSender.matches(Regex("""^[A-Z]{2}-LAXMI-[A-Z]$"""))
+        return upperSender.contains("LAXMI")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

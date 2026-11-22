@@ -25,8 +25,7 @@ class StandardCharteredBankParser : BankParser() {
                 upperSender.contains("STANCHART") ||
                 upperSender.contains("STANDARDCHARTERED") ||
                 upperSender.contains("STANDARD CHARTERED") ||
-                upperSender == "9220" ||
-                upperSender.matches(Regex("""^[A-Z]{2}-SCBANK-[A-Z]$"""))
+                upperSender == "9220"
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {

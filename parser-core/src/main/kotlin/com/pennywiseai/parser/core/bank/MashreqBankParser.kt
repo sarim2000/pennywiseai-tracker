@@ -66,10 +66,7 @@ class MashreqBankParser : UAEBankParser() {
         val upperSender = sender.uppercase()
         // "SHREQ" is the common tail of every Mashreq header — MASHREQ, MSHREQ, and the
         // bare "Shreq" alphanumeric header some users see — so one check covers them all.
-        return upperSender.contains("SHREQ") ||
-                // DLT patterns for UAE
-                upperSender.matches(Regex("^[A-Z]{2}-MASHREQ-[A-Z]$")) ||
-                upperSender.matches(Regex("^[A-Z]{2}-MSHREQ-[A-Z]$"))
+        return upperSender.contains("SHREQ")
     }
     
     // extractAmount handled by UAEBankParser

@@ -15,23 +15,8 @@ class SBIBankParser : BaseIndianBankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        return normalizedSender.contains("SBI") ||
-            normalizedSender.contains("SBIINB") ||
-            normalizedSender.contains("SBIUPI") ||
-            normalizedSender.contains("SBICRD") ||
-            normalizedSender.contains("ATMSBI") ||
-            // Direct sender IDs
-            normalizedSender == "SBIBK" ||
-            normalizedSender == "SBIBNK" ||
-            // SBI Card RCS sender
-            normalizedSender.contains("SBI CARDS") ||
-            // DLT patterns for transactions (-S suffix)
-            normalizedSender.matches(Regex("^[A-Z]{2}-SBIBK-S$")) ||
-            // Other DLT patterns (OTP, Promotional, Govt)
-            normalizedSender.matches(Regex("^[A-Z]{2}-SBIBK-[TPG]$")) ||
-            // Legacy patterns without suffix
-            normalizedSender.matches(Regex("^[A-Z]{2}-SBIBK$")) ||
-            normalizedSender.matches(Regex("^[A-Z]{2}-SBI$"))
+        // Covers SBIINB, SBIUPI, SBICRD, ATMSBI, the SBI Cards RCS sender and the DLT headers
+        return normalizedSender.contains("SBI")
     }
 
     // Check if this is a credit card message

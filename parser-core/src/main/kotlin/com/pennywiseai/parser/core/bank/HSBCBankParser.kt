@@ -13,11 +13,7 @@ class HSBCBankParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        return normalizedSender.contains("HSBC") ||
-                normalizedSender.contains("HSBCIN") ||
-                // DLT patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-HSBCIN-[A-Z]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-HSBC-[A-Z]$"))
+        return normalizedSender.contains("HSBC")
     }
 
     override fun parse(

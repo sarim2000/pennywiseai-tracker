@@ -311,6 +311,7 @@
     <string name="rules_reset">Rejesha</string>
     <string name="rules_auto_categorization_title">Kupanga Kategoria Kiotomatiki</string>
     <string name="rules_auto_categorization_body">Washa kanuni ili kupanga miamala yako kwenye kategoria moja kwa moja kulingana na mifumo</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
     <string name="rules_group_daily">Matumizi ya Kila Siku</string>
     <string name="rules_group_income">Mapato &amp; Cashback</string>
     <string name="rules_group_recurring">Malipo Yanayojirudia</string>

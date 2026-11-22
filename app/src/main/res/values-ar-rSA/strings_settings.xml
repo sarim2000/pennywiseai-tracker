@@ -304,6 +304,7 @@
     <string name="settings_hub_money">أموالك</string>
     <string name="settings_hub_privacy_data">الخصوصية والبيانات</string>
     <string name="settings_hub_advanced">خيارات متقدمة</string>
+    <!-- Settings hub: the profile block and shortcut tiles -->
     <!-- Settings hub: what each page holds. Keep to one line. -->
     <string name="settings_tracking_title">التتبع التلقائي</string>
     <string name="settings_tracking_summary">الرسائل القصيرة وإشعارات تطبيقات البنوك</string>

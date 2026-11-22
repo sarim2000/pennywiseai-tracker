@@ -131,7 +131,7 @@ class BudgetHistoryViewModel @Inject constructor(
         val monthEnd = yearMonth.atEndOfMonth()
         val displayedCap = if (isCurrentMonth &&
             !today.isBefore(displayedWindow.start) && !today.isAfter(displayedWindow.end)
-        ) today else monthEnd
+        ) today else minOf(monthEnd, displayedWindow.end)
         val displayedIsLive = isCurrentMonth &&
             !today.isBefore(displayedWindow.start) && !today.isAfter(displayedWindow.end)
 

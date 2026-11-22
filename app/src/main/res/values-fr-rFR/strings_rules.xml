@@ -313,6 +313,7 @@
     <string name="rules_reset">Réinitialiser</string>
     <string name="rules_auto_categorization_title">Catégorisation automatique</string>
     <string name="rules_auto_categorization_body">Activer les règles pour catégoriser automatiquement vos transactions en fonction des pratiques</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
     <string name="rules_group_daily">Dépenses journalières</string>
     <string name="rules_group_income">Revenus &amp; Remboursement</string>
     <string name="rules_group_recurring">Paiements récurrents</string>

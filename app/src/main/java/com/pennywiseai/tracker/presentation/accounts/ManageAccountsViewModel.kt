@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.domain.model.AccountType
@@ -69,7 +70,7 @@ class ManageAccountsViewModel @Inject constructor(
     private val database: com.pennywiseai.tracker.data.database.PennyWiseDatabase,
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
-    private val ignoredAccountsStore: com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
 ) : ViewModel() {
     private val bankAccountMerges = BankAccountMergeStore(context)
 
@@ -293,7 +294,7 @@ class ManageAccountsViewModel @Inject constructor(
     }
 
     fun toggleAccountVisibility(bankName: String, accountLast4: String) {
-        val key = com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore.keyFor(bankName, accountLast4)
+        val key = IgnoredAccountsStore.keyFor(bankName, accountLast4)
         val hidden = _uiState.value.hiddenAccounts.toMutableSet()
 
         if (hidden.contains(key)) {
@@ -309,7 +310,7 @@ class ManageAccountsViewModel @Inject constructor(
     }
 
     fun isAccountHidden(bankName: String, accountLast4: String): Boolean {
-        val key = "${bankName}_$accountLast4"
+        val key = IgnoredAccountsStore.keyFor(bankName, accountLast4)
         return _uiState.value.hiddenAccounts.contains(key)
     }
 
@@ -454,7 +455,7 @@ class ManageAccountsViewModel @Inject constructor(
                 }
 
                 // Remove from hidden accounts if present
-                val key = "${bankName}_$accountLast4"
+                val key = IgnoredAccountsStore.keyFor(bankName, accountLast4)
                 val hidden = _uiState.value.hiddenAccounts.toMutableSet()
                 hidden.remove(key)
                 ignoredAccountsStore.replaceAll(hidden)
@@ -584,7 +585,7 @@ class ManageAccountsViewModel @Inject constructor(
                 }
 
                 // Clear any "hidden" preference for the now-gone source.
-                val key = "${source.bankName}_${source.accountLast4}"
+                val key = IgnoredAccountsStore.keyFor(source.bankName, source.accountLast4)
                 val hidden = _uiState.value.hiddenAccounts.toMutableSet()
                 if (hidden.remove(key)) {
                     ignoredAccountsStore.replaceAll(hidden)
@@ -707,8 +708,8 @@ class ManageAccountsViewModel @Inject constructor(
                     }
 
                     // Update hidden accounts preference if bank name changed
-                    val oldKey = "${oldBankName}_$accountLast4"
-                    val newKey = "${newBankName}_$accountLast4"
+                    val oldKey = IgnoredAccountsStore.keyFor(oldBankName, accountLast4)
+                    val newKey = IgnoredAccountsStore.keyFor(newBankName, accountLast4)
                     val hidden = _uiState.value.hiddenAccounts.toMutableSet()
                     if (hidden.contains(oldKey)) {
                         hidden.remove(oldKey)

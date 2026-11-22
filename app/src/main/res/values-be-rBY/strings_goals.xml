@@ -19,6 +19,8 @@
     <string name="goals_archived">У архіве</string>
     <string name="goals_due_on">Да %1$s</string>
     <string name="goals_ring_description">Адкладзена %1$d%%</string>
+    <!-- Goal card in the Plan tab. %1$s = target amount, %2$s = due date -->
+    <!-- %1$s = amount -->
     <plurals name="goals_months_left">
         <item quantity="one">Застаўся %d месяц</item>
         <item quantity="few">Засталося %d месяцы</item>

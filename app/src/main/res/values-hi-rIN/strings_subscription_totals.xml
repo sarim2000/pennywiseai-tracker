@@ -2,4 +2,7 @@
 <resources>
     <!-- ══ Home subscriptions card: next due charge ══ -->
     <!-- %1$s is the merchant, %2$s is when it is due (one of the strings below). -->
+    <!-- ══ Plan tab: Bills section ══ -->
+    <!-- After the monthly total, e.g. "$59.46 a month" -->
+    <!-- %1$s = when it's due (e.g. "Due tomorrow"), %2$s = the account it's paid from -->
 </resources>

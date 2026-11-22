@@ -139,7 +139,9 @@ fun Mascot(
     val currentMotion by rememberUpdatedState(motion)
     LaunchedEffect(mood) { state.changeMood(mood, currentMotion, blendSpec, lifecycle) }
     // Only a new cue restarts the change: one dropped (a reaction ending) plays out.
-    val cueRequest = remember { CueRequests(cue) }.idFor(cue)
+    val cueRequests = remember { CueRequests(cue) }
+    val cueRequest = cueRequests.idFor(cue)
+    SideEffect { cueRequests.commit(cue) }
     LaunchedEffect(shape, cueRequest) { state.change(shape, cue, { currentMotion }, morphSpec) }
 
     val colors = if (detailed) mascotColors(tint, containerColor) else null

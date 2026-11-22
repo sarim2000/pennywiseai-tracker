@@ -225,17 +225,23 @@ class MascotMorphTest {
     @Test
     fun `only a new cue asks for a change, so a dropped one plays out`() {
         val requests = CueRequests(null)
-        val owl = requests.idFor(null)
-        val hidden = requests.idFor(MascotCue.CoverEyes)
+        // As Mascot does: read in composition, recorded once it commits.
+        fun composed(cue: MascotCue?) = requests.idFor(cue).also { requests.commit(cue) }
+        val owl = composed(null)
+        val hidden = composed(MascotCue.CoverEyes)
         assertTrue(hidden != owl)
         // The reaction ends: no new request, the wings come down on their own clock.
-        assertEquals(hidden, requests.idFor(null))
+        assertEquals(hidden, composed(null))
         // Hidden again, or shown: each a new request.
-        val again = requests.idFor(MascotCue.CoverEyes)
+        val again = composed(MascotCue.CoverEyes)
         assertTrue(again != hidden)
-        assertTrue(requests.idFor(MascotCue.Peek) != again)
+        // A composition asking for Peek that is thrown away records nothing, so the
+        // committed CoverEyes doesn't restart.
+        requests.idFor(MascotCue.Peek)
+        assertEquals(again, composed(MascotCue.CoverEyes))
+        assertTrue(composed(MascotCue.Peek) != again)
         // The same cue asked for again while it stands is no new request.
-        val peek = requests.idFor(MascotCue.Peek)
-        assertEquals(peek, requests.idFor(MascotCue.Peek))
+        val peek = composed(MascotCue.Peek)
+        assertEquals(peek, composed(MascotCue.Peek))
     }
 }

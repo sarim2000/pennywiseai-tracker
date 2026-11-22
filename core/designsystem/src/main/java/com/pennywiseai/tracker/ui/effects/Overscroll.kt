@@ -68,12 +68,6 @@ fun parabolaScrollEasing(
     }
 }
 
-/**
- * Linear, you probably wouldn't think of using it.
- */
-val LinearScrollEasing: (currentOffset: Float, newOffset: Float) -> Float =
-    { currentOffset, newOffset -> currentOffset + newOffset }
-
 internal val DefaultParabolaScrollEasing: (currentOffset: Float, newOffset: Float) -> Float
     @Composable
         get() {
@@ -96,22 +90,6 @@ fun Modifier.overScrollVertical(
     springDamp: Float = OutBoundSpringDamp,
 ): Modifier = overScrollOutOfBound(
     isVertical = true,
-    nestedScrollToParent,
-    scrollEasing,
-    springStiff,
-    springDamp
-)
-
-/**
- * @see overScrollOutOfBound
- */
-fun Modifier.overScrollHorizontal(
-    nestedScrollToParent: Boolean = true,
-    scrollEasing: ((currentOffset: Float, newOffset: Float) -> Float)? = null,
-    springStiff: Float = OutBoundSpringStiff,
-    springDamp: Float = OutBoundSpringDamp,
-): Modifier = overScrollOutOfBound(
-    isVertical = false,
     nestedScrollToParent,
     scrollEasing,
     springStiff,

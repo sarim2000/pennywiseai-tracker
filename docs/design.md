@@ -408,7 +408,7 @@ it by `Dimensions.Component.bottomBarHeight`.
      `on*` role.
      Data meters (`WavyMeter`, the big `GoalRing`) fill from empty once, the
      first time they show loaded data (`animateMeterFraction`, saveable; dense
-     list rows start settled), then ease to new values; a value-following colour
+     list rows start settled, Plan's budget cards opt in), then ease to new values; a value-following colour
      takes `WavyMeter`'s `color = { shown -> … }` form.
   2. **One beat per change** — no staggering digits or sibling figures.
   3. **Short travel.** Slides are a fraction of the screen (a few dp for

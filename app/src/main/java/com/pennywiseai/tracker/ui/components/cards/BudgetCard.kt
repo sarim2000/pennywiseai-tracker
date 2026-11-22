@@ -167,7 +167,7 @@ internal fun BudgetStatusContent(
                 },
                 trackColor = scheme.surfaceContainerHighest,
                 dense = dense || compact,
-                // Home's one-line rows start settled; Plan's cards fill in.
+                // Plan's budget cards fill in even with the calm (dense) wave; Home's one-line rows start settled.
                 fillIn = !compact
             )
         }

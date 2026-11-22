@@ -431,7 +431,7 @@ private fun BreakdownSheet(
                                 if (hasLimit && !AmountPrivacy.hidden) {
                                     WavyMeter(
                                         fraction = cat.percentageUsed / 100f,
-                                        color = usedColor(cat.percentageUsed),
+                                        color = { usedColor(it * 100f) },
                                         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                                         dense = true
                                     )

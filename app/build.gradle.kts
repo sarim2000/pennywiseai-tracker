@@ -124,17 +124,9 @@ android {
                 "proguard-rules.pro"
             )
 
-            // Only apply signing config to standard flavor
-            for (flavor in productFlavors) {
-                if (flavor.name == "standard") {
-                    // Check if release signing config exists
-                    val releaseSigningConfig = signingConfigs.findByName("release")
-                    // Only use release signing if keystore is configured
-                    if (releaseSigningConfig != null && releaseSigningConfig.storeFile != null) {
-                        signingConfig = releaseSigningConfig
-                    }
-                }
-            }
+            // Use release signing only if a keystore is configured (signingConfigs
+            // above skips creating it for F-Droid builds)
+            signingConfigs.findByName("release")?.takeIf { it.storeFile != null }?.let { signingConfig = it }
 
             // Include debug symbols for native crashes
             ndk {

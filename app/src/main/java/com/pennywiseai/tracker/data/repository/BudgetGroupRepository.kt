@@ -768,20 +768,24 @@ class BudgetGroupRepository @Inject constructor(
      * A budget with rollover on, or one with no categories (it tracks all
      * spending, card spend included), is added up with [budgetSpend], as its
      * card and carry are, so every screen shows the same spent.
+     *
+     * [convert]: unified mode's converter into the figure's currency; spending it
+     * has no rate for is left out, as on the Budgets card.
      */
     private suspend fun getBudgetWindowFilteredSpend(
         group: BudgetWithCategories,
         transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
-        parentOf: Map<String, String>
+        parentOf: Map<String, String>,
+        convert: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal? = asIs
     ): BigDecimal {
         if (group.budget.rolloverEnabled || group.categories.isEmpty()) {
-            return budgetSpend(group, transactions, parentOf, asIs).amount
+            return budgetSpend(group, transactions, parentOf, convert).amount
         }
         val (categoryAmounts, _, typeAmounts) = aggregateBudgetCategorySpending(
             parentOf = parentOf,
             transactions = transactions,
-            convertSplit = { _, amount -> amount },
-            convertIncome = { tx -> tx.amount }
+            convertSplit = convert,
+            convertIncome = { tx -> convert(tx.currency, tx.amount) }
         )
         // Sum the configured rows (parent rows already include their children — #374).
         val catNames = group.categories.withoutCoveredChildren(parentOf)
@@ -865,14 +869,16 @@ class BudgetGroupRepository @Inject constructor(
      * [currency]'s transactions, as the budget's own spend does (the same match as
      * [TransactionSplitDao.getTransactionsWithSplitsFiltered]): other currencies
      * aren't in its spend, so they don't change what it carries either.
+     * [baseCurrency]: the currency its limit is stored in.
      */
     private suspend fun carryIn(
         currency: String,
         group: BudgetWithCategories,
         previous: List<TransactionWithSplits>?,
         parentOf: Map<String, String>,
-        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
-    ): BudgetCarry = budgetCarry(group, previous?.countedIn(currency, convert), currency, currency, parentOf, convert.orAsIs())
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null,
+        baseCurrency: String = currency
+    ): BudgetCarry = budgetCarry(group, previous?.countedIn(currency, convert), currency, baseCurrency, parentOf, convert.orAsIs())
 
     /**
      * Budget History's transactions in [window]: every currency in unified mode
@@ -911,6 +917,7 @@ class BudgetGroupRepository @Inject constructor(
      *
      * [convert]: unified mode, how every currency's spending (and the carry's) converts
      * into [currency], as on the Budgets card; null counts [currency] only.
+     * [baseCurrency]: the currency limits are stored in (unified mode can show another).
      */
     suspend fun getBudgetHistoryForMonth(
         budget: BudgetEntity,
@@ -918,7 +925,8 @@ class BudgetGroupRepository @Inject constructor(
         month: Int,
         currency: String,
         convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null,
-        today: LocalDate = LocalDate.now()
+        today: LocalDate = LocalDate.now(),
+        baseCurrency: String = currency
     ): List<PastWindowSpending> {
         val startDay = userPreferencesRepository.getBudgetCycleStartDay()
         val ym = YearMonth.of(year, month)
@@ -935,19 +943,17 @@ class BudgetGroupRepository @Inject constructor(
             val effectiveEnd = if (cap.isBefore(w.end)) cap else w.end
             // Use the per-category-filtered total so the per-row spend
             // matches the per-category breakdown shown in the
-            // "View breakdown" bottom sheet. A rollover budget counts as its
-            // card and its carry do (every currency in unified mode).
-            val spent = if (budget.rolloverEnabled) {
-                budgetSpend(group, historyTransactions(w, effectiveEnd, currency, convert), parentOf, convert.orAsIs()).amount
-            } else {
-                getBudgetWindowFilteredSpend(group, historyTransactions(w, effectiveEnd, currency, null), parentOf)
-            }
+            // "View breakdown" bottom sheet. Every currency in unified mode,
+            // converted as the Budgets card does (#1410).
+            val spent = getBudgetWindowFilteredSpend(
+                group, historyTransactions(w, effectiveEnd, currency, convert), parentOf, convert.orAsIs()
+            )
             PastWindowSpending(
                 window = w,
                 spent = spent,
                 capDate = effectiveEnd,
                 isLive = isLive,
-                carry = carrySource(budget, w, startDay)?.let { carryIn(currency, group, it, parentOf, convert) }
+                carry = carrySource(budget, w, startDay)?.let { carryIn(currency, group, it, parentOf, convert, baseCurrency) }
             )
         }
     }
@@ -957,18 +963,21 @@ class BudgetGroupRepository @Inject constructor(
      * Budget History "View breakdown" bottom sheet — same shape as the
      * Budget Groups page's per-card category list, but scoped to one
      * window (one week for Weekly, one cycle for Monthly, the literal
-     * range for One-time). [convert]: as in [getBudgetHistoryForMonth].
+     * range for One-time). [convert], [baseCurrency]: as in [getBudgetHistoryForMonth].
      */
     suspend fun getBudgetWindowBreakdown(
         budget: BudgetEntity,
         window: BudgetWindow,
         currency: String,
-        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null,
+        baseCurrency: String = currency
     ): WindowBreakdown {
-        // Rollover budgets count every currency in unified mode, as their card does.
+        // Every currency in unified mode, as the card counts it (#1410).
         val rollover = budget.rolloverEnabled
-        val txs = historyTransactions(window, window.end, currency, convert.takeIf { rollover })
-        val converter = convert.takeIf { rollover }.orAsIs()
+        val txs = historyTransactions(window, window.end, currency, convert)
+        val converter = convert.orAsIs()
+        // Limits are stored in the base currency; no rate counts as 0, as on the card.
+        suspend fun limit(amount: BigDecimal) = converter(baseCurrency, amount) ?: BigDecimal.ZERO
         val parentOf = parentOf()
         val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
             parentOf = parentOf,
@@ -991,7 +1000,7 @@ class BudgetGroupRepository @Inject constructor(
                 }
                 val boost = if (cat.matchType != null) BigDecimal.ZERO
                 else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
-                val effectiveBudget = cat.budgetAmount + boost
+                val effectiveBudget = limit(cat.budgetAmount) + boost
                 val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
                     (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
                 } else 0f
@@ -1014,11 +1023,11 @@ class BudgetGroupRepository @Inject constructor(
         }
         val counted = group ?: BudgetWithCategories(budget, emptyList())
         val carry = carrySource(budget, window, userPreferencesRepository.getBudgetCycleStartDay())?.let {
-            carryIn(currency, counted, it, parentOf, convert)
+            carryIn(currency, counted, it, parentOf, convert, baseCurrency)
         }
         val totalBudget = (group?.budget?.limitAmount ?: BigDecimal.ZERO).let { gLimit ->
             (carry ?: BudgetCarry.none(currency)).appliedTo(
-                if (gLimit > BigDecimal.ZERO) gLimit
+                if (gLimit > BigDecimal.ZERO) limit(gLimit)
                 else categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
             )
         }
@@ -1027,7 +1036,7 @@ class BudgetGroupRepository @Inject constructor(
             categorySpending.isNotEmpty() -> categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
             // No per-cat breakdown → report the window total, added up
             // with budgetSpend for a tracking-all budget, as its card is.
-            else -> getBudgetWindowFilteredSpend(counted, txs, parentOf)
+            else -> getBudgetWindowFilteredSpend(counted, txs, parentOf, converter)
         }
         return WindowBreakdown(
             window = window,

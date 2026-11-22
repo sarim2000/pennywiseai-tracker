@@ -436,6 +436,29 @@ class BudgetRolloverRoutingTest {
     }
 
     @Test
+    fun `in unified mode budget history counts other currencies like the card without rollover too`() = runBlocking {
+        val convert: suspend (String, BigDecimal) -> BigDecimal? = { from, amount -> conversion.convertAmountOrNull(amount, from, "JOD") }
+        // A category budget and one tracking all spending (#1410).
+        for (group in listOf(budget(rollover = false), budget(rollover = false).copy(categories = emptyList()))) {
+            val repo = repository(group, listOf(spend("30"), spend("20", "USD")))
+            val card = summary(repo, unified = true)
+            assertEquals(0, BigDecimal("40").compareTo(card.totalActual))
+            val thisWeek = repo.getBudgetHistoryForMonth(group.budget, today.year, today.monthValue, "JOD", convert)
+                .single { it.window.start == today }
+            assertEquals(0, card.totalActual.compareTo(thisWeek.spent))
+            val breakdown = repo.getBudgetWindowBreakdown(group.budget, resolveBudgetWindow(group.budget, today, 1), "JOD", convert)
+            assertEquals(0, card.totalActual.compareTo(breakdown.totalActual))
+            breakdown.categorySpending.forEach { assertEquals(0, card.totalActual.compareTo(it.actualAmount)) }
+            // Outside unified mode the USD purchase is in neither, as before.
+            val nativeWeek = repo.getBudgetHistoryForMonth(group.budget, today.year, today.monthValue, "JOD")
+                .single { it.window.start == today }
+            assertEquals(0, BigDecimal("30").compareTo(summary(repo, unified = false).totalActual))
+            assertEquals(0, BigDecimal("30").compareTo(nativeWeek.spent))
+            assertEquals(0, BigDecimal("30").compareTo(repo.getBudgetWindowBreakdown(group.budget, thisWeek.window, "JOD").totalActual))
+        }
+    }
+
+    @Test
     fun `budget history carries nothing into weeks that haven't started`() = runBlocking {
         val group = budget()
         val repo = repository(group, listOf(spend("60", at = lastWeek), spend("30")))

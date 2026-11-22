@@ -2,14 +2,13 @@ package com.pennywiseai.tracker.ui.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.atan2
-import kotlin.math.cbrt
 import kotlin.math.cos
 import kotlin.math.hypot
-import kotlin.math.pow
 import kotlin.math.sin
 
 // Kept out of Theme.kt on purpose: LightColorScheme/DarkColorScheme call withReadableInk()
@@ -104,41 +103,33 @@ fun Color.readableOn(
     }
 }
 
-/** An sRGB colour in Oklab polar form, for moving its lightness while its hue holds. */
-private class Oklab(val l: Float, val chroma: Float, val hue: Float) {
+/** An sRGB colour in Oklab polar form ([ColorSpaces.Oklab]), for moving its lightness while its hue holds. */
+private class Oklab private constructor(val l: Float, val chroma: Float, val hue: Float) {
 
     /** [t] of the way to white (or black): lightness moves, chroma is kept where sRGB has room. */
     fun toward(toWhite: Boolean, t: Float, alpha: Float): Color {
         val lightness = l + ((if (toWhite) 1f else 0f) - l) * t
         val outAlpha = alpha + (1f - alpha) * t
-        if (inGamut(lightness, chroma)) return srgb(lightness, chroma, outAlpha)
-        var lo = 0f
-        var hi = chroma
-        repeat(GAMUT_STEPS) {
-            val mid = (lo + hi) / 2
-            if (inGamut(lightness, mid)) lo = mid else hi = mid
+        var c = chroma
+        if (!inGamut(lightness, c)) {
+            var lo = 0f
+            var hi = chroma
+            repeat(GAMUT_STEPS) {
+                val mid = (lo + hi) / 2
+                if (inGamut(lightness, mid)) lo = mid else hi = mid
+            }
+            c = lo
         }
-        return srgb(lightness, lo, outAlpha)
+        return lab(lightness, c, outAlpha).convert(ColorSpaces.Srgb)
     }
 
-    private fun linear(lightness: Float, c: Float): FloatArray {
-        val a = c * cos(hue)
-        val b = c * sin(hue)
-        val l = (lightness + 0.3963377774f * a + 0.2158037573f * b).cube()
-        val m = (lightness - 0.1055613458f * a - 0.0638541728f * b).cube()
-        val s = (lightness - 0.0894841775f * a - 1.2914855480f * b).cube()
-        return floatArrayOf(
-            4.0767416621f * l - 3.3077115913f * m + 0.2309699292f * s,
-            -1.2684380046f * l + 2.6097574011f * m - 0.3413193965f * s,
-            -0.0041960863f * l - 0.7034186147f * m + 1.7076147010f * s,
-        )
-    }
+    private fun lab(lightness: Float, c: Float, alpha: Float = 1f) =
+        Color(lightness, c * cos(hue), c * sin(hue), alpha, ColorSpaces.Oklab)
 
-    private fun inGamut(lightness: Float, c: Float) = linear(lightness, c).all { it in -GAMUT_SLACK..1f + GAMUT_SLACK }
-
-    private fun srgb(lightness: Float, c: Float, alpha: Float): Color {
-        val (r, g, b) = linear(lightness, c).map { it.coerceIn(0f, 1f).toSrgb() }
-        return Color(r, g, b, alpha)
+    // Linear extended sRGB isn't clamped to 0..1, so it shows how far out of gamut a colour is.
+    private fun inGamut(lightness: Float, c: Float): Boolean {
+        val rgb = lab(lightness, c).convert(ColorSpaces.LinearExtendedSrgb)
+        return listOf(rgb.red, rgb.green, rgb.blue).all { it in -GAMUT_SLACK..1f + GAMUT_SLACK }
     }
 
     companion object {
@@ -146,21 +137,9 @@ private class Oklab(val l: Float, val chroma: Float, val hue: Float) {
         private const val GAMUT_SLACK = 1e-4f
 
         fun of(color: Color): Oklab {
-            val r = color.red.toLinear()
-            val g = color.green.toLinear()
-            val b = color.blue.toLinear()
-            val l = cbrt(0.4122214708f * r + 0.5363325363f * g + 0.0514459929f * b)
-            val m = cbrt(0.2119034982f * r + 0.6806995451f * g + 0.1073969566f * b)
-            val s = cbrt(0.0883024619f * r + 0.2817188376f * g + 0.6299787005f * b)
-            val lightness = 0.2104542553f * l + 0.7936177850f * m - 0.0040720468f * s
-            val a = 1.9779984951f * l - 2.4285922050f * m + 0.4505937099f * s
-            val bb = 0.0259040371f * l + 0.7827717662f * m - 0.8086757660f * s
-            return Oklab(lightness, hypot(a, bb), atan2(bb, a))
+            val lab = color.convert(ColorSpaces.Oklab)
+            return Oklab(lab.red, hypot(lab.green, lab.blue), atan2(lab.blue, lab.green))
         }
-
-        private fun Float.cube() = this * this * this
-        private fun Float.toLinear() = if (this <= 0.04045f) this / 12.92f else ((this + 0.055f) / 1.055f).pow(2.4f)
-        private fun Float.toSrgb() = if (this <= 0.0031308f) this * 12.92f else 1.055f * pow(1f / 2.4f) - 0.055f
     }
 }
 

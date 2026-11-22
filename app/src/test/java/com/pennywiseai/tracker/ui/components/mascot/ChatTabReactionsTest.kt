@@ -291,6 +291,19 @@ class ChatTabReactionsTest {
     }
 
     @Test
+    fun `a toggle answers over a running scan, then the bubble comes back`() {
+        val scan = MutableStateFlow<SmsScanStatus>(SmsScanStatus.Running)
+        val job = start(scan)
+        reactions.onMoment(MascotMoment.AmountsHidden)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.AmountsHidden), shown)
+        advanceTimeBy(TOGGLE_HOLD_MS + 1)
+        runCurrent()
+        assertEquals(SCANNING, shown)
+        job.cancel()
+    }
+
+    @Test
     fun `a scan's beat runs out on time while the bar is away`() {
         val scan = MutableStateFlow<SmsScanStatus>(SmsScanStatus.Running)
         val job = start(scan)

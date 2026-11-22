@@ -487,7 +487,7 @@ fun SubscriptionsScreen(
             // Loading State
             if (uiState.isLoading) {
                 items(5) {
-                    SubscriptionItemSkeleton()
+                    TransactionItemSkeleton()
                 }
             }
         }
@@ -1237,11 +1237,4 @@ private fun EditSubscriptionDialog(
             DatePicker(state = datePickerState)
         }
     }
-}
-
-@Composable
-private fun SubscriptionItemSkeleton(
-    modifier: Modifier = Modifier
-) {
-    TransactionItemSkeleton(modifier = modifier)
 }

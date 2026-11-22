@@ -1015,27 +1015,41 @@ class TransactionsViewModel @Inject constructor(
     ) {
         if (!hasAppliedInitialFilters) {
             // Only apply filters once, when first navigating to the screen
-            clearCategoryFilter()
-            updateSearchQuery("")
-            selectPeriod(TimePeriod.THIS_MONTH)
-            setTransactionTypeFilter(navigatedType(type))
-            setSortOption(SortOption.DATE_NEWEST)
-            setAccountFilter(account)
-            setTagFilter(tag)
-
-            // Typed nav keys carry names as they are: "Savings 10%" isn't URL-encoded.
-            category?.let { setCategoryFilter(it) }
-            merchant?.let { updateSearchQuery(it) }
-
-            period?.let { periodName ->
-                applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
-            }
-
-            // Only set currency if it's provided (from navigation)
-            currency?.let { selectCurrency(it) }
-
+            resetToNavigated(category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type)
             hasAppliedInitialFilters = true
         }
+    }
+
+    /** Resets the list's filters, then applies the ones a navigation carries. */
+    private fun resetToNavigated(
+        category: String?,
+        merchant: String?,
+        period: String?,
+        currency: String?,
+        startDateEpochDay: Long?,
+        endDateEpochDay: Long?,
+        account: String?,
+        tag: String?,
+        type: String?
+    ) {
+        clearCategoryFilter()
+        updateSearchQuery("")
+        selectPeriod(TimePeriod.THIS_MONTH)
+        setTransactionTypeFilter(navigatedType(type))
+        setSortOption(SortOption.DATE_NEWEST)
+        setAccountFilter(account)
+        setTagFilter(tag)
+
+        // Typed nav keys carry names as they are: "Savings 10%" isn't URL-encoded.
+        category?.let { setCategoryFilter(it) }
+        merchant?.let { updateSearchQuery(it) }
+
+        period?.let { periodName ->
+            applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
+        }
+
+        // Only set currency if it's provided (from navigation)
+        currency?.let { selectCurrency(it) }
     }
 
     /**
@@ -1090,23 +1104,7 @@ class TransactionsViewModel @Inject constructor(
         appliedNavigationParams = currentParams
 
         // Reset filters for new navigation
-        clearCategoryFilter()
-        updateSearchQuery("")
-        selectPeriod(TimePeriod.THIS_MONTH)
-        setTransactionTypeFilter(navigatedType(type))
-        setSortOption(SortOption.DATE_NEWEST)
-        setAccountFilter(account)
-        setTagFilter(tag)
-
-        category?.let { setCategoryFilter(it) }
-        merchant?.let { updateSearchQuery(it) }
-
-        period?.let { periodName ->
-            applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
-        }
-
-        // Only set currency if it's provided (from navigation)
-        currency?.let { selectCurrency(it) }
+        resetToNavigated(category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type)
     }
 
     /**

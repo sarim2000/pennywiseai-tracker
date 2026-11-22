@@ -34,7 +34,6 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
-import com.pennywiseai.tracker.data.repository.LlmRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
@@ -104,7 +103,6 @@ class HomeViewModel @Inject constructor(
     private val loanRepository: LoanRepository,
     private val periodReviewLoader: PeriodReviewLoader,
     goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository,
-    private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val profileRepository: ProfileRepository,
@@ -1265,16 +1263,6 @@ class HomeViewModel @Inject constructor(
                 isBalanceReady = true,
                 isApproximateBalance = hasApproximateBalance
             )
-        }
-    }
-
-    fun updateSystemPrompt() {
-        viewModelScope.launch {
-            try {
-                llmRepository.updateSystemPrompt()
-            } catch (e: Exception) {
-                // Handle error silently or add error state if needed
-            }
         }
     }
 

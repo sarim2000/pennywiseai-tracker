@@ -73,8 +73,8 @@ object ParseViews {
                         button.report-btn:hover { background: var(--error-container); color: var(--on-error-container); border-color: transparent; filter: none; }
 
                         /* Report dialog: M3 basic dialog over a scrim. The scrim role is black in both themes. */
-                        .modal { display: none; position: fixed; inset: 0; background: rgb(0 0 0 / .45); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
-                        .modal.show { display: flex; }
+                        dialog.modal { border: 0; padding: 0; background: transparent; color: inherit; width: calc(100% - 32px); max-width: 520px; }
+                        dialog.modal::backdrop { background: rgb(0 0 0 / .45); }
                         .modal-content { background: var(--surface-high); color: var(--on-bg); border-radius: var(--r-xl); padding: 24px; width: 100%; max-width: 520px; max-height: calc(100vh - 32px); overflow-y: auto; }
                         .modal h3 { margin: 0 0 16px 0; font-size: 24px; font-weight: 700; }
                         .modal h4 { margin: 0 0 4px; font-size: 16px; font-weight: 600; color: var(--on-bg); }
@@ -174,10 +174,10 @@ object ParseViews {
                     }
 
                     // Report Modal
-                    div(classes = "modal") {
+                    // Native modal <dialog>: showModal() moves focus in, makes the page
+                    // behind inert, closes on Escape and gives focus back on close.
+                    dialog(classes = "modal") {
                         id = "reportModal"
-                        attributes["role"] = "dialog"
-                        attributes["aria-modal"] = "true"
                         attributes["aria-labelledby"] = "reportTitle"
                         div(classes = "modal-content") {
                             h3 { id = "reportTitle"; +"Report Parsing Issue" }
@@ -196,6 +196,7 @@ object ParseViews {
                                 label { htmlFor = "expected_amount"; +"Expected Amount" }
                                 input(type = InputType.number, name = "expected_amount") {
                                     id = "expected_amount"
+                                    attributes["autofocus"] = ""
                                     placeholder = "Enter amount (leave empty if not a transaction)"
                                     step = "0.01"
                                 }
@@ -313,7 +314,7 @@ object ParseViews {
 
                             function showReportModal() {
                                 // Show the modal
-                                document.getElementById('reportModal').classList.add('show');
+                                document.getElementById('reportModal').showModal();
 
                                 // Display parsed data in the modal
                                 const parsedDetails = document.getElementById('parsedDetails');
@@ -372,11 +373,15 @@ object ParseViews {
                             }
 
                             function hideReportModal() {
-                                document.getElementById('reportModal').classList.remove('show');
+                                document.getElementById('reportModal').close();
+                            }
+
+                            // Runs for Cancel, Escape and the auto-close after a submit.
+                            document.getElementById('reportModal').addEventListener('close', function() {
                                 document.getElementById('reportForm').reset();
                                 document.getElementById('reportStatus').innerHTML = '';
                                 document.getElementById('parsedDetails').innerHTML = '';
-                            }
+                            });
 
                             async function submitReport() {
                                 const senderId = document.getElementById('parsed_sender').value;

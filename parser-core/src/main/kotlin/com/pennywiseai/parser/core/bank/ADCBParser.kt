@@ -25,54 +25,7 @@ class ADCBParser : FABParser() {
 
     override fun extractAmount(message: String): BigDecimal? {
         // Try patterns in order of specificity - most transaction-specific first
-        val patterns = listOf(
-            // 1. "was used for CURRENCYamount" - debit card usage (handle both spaced and non-spaced)
-            Regex("""was used for\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-
-            // 2. "used for CURRENCYamount" - debit card usage (shorter version)
-            Regex("""used for\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-
-            // 3. "CURRENCYamount withdrawn from" - ATM withdrawals
-            Regex(
-                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+withdrawn from""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 4. "CURRENCYamount has been deposited via ATM" - ATM deposits
-            Regex(
-                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+has been deposited via ATM""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 5. "CURRENCYamount transferred via" - transfers
-            Regex(
-                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+transferred via""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 6. "Cr. transaction of CURRENCY amount" - credit transactions
-            Regex(
-                """Cr\. transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 7. "Dr. transaction of CURRENCY amount" - debit transactions
-            Regex(
-                """Dr\.?\s*transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 8. "Transaction of CURRENCY amount" - failed transactions
-            Regex(
-                """Transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 9. "Amount Paid: CURRENCY amount" - TouchPoints redemption
-            Regex("""Amount Paid:\s*([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in patterns) {
+        for (pattern in ADCB_AMOUNT_PATTERNS) {
             val match = pattern.find(message)
             if (match != null) {
                 val currencyCode = match.groupValues[1].trim()
@@ -406,51 +359,7 @@ class ADCBParser : FABParser() {
         // Focus on the same contexts as extractAmount to ensure consistency
 
         // Look for currency codes in transaction-specific contexts
-        val transactionCurrencyPatterns = listOf(
-            // "was used for CURRENCYamount" - debit card usage
-            Regex("""was used for\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
-
-            // "used for CURRENCYamount" - debit card usage (shorter version)
-            Regex("""used for\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
-
-            // "CURRENCYamount withdrawn from" - ATM withdrawals (handle both spaced and non-spaced)
-            Regex(
-                """\b([A-Z]{3})\s*[0-9,]+(?:\.\d{2})?\s+withdrawn from""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // "CURRENCYamount has been deposited via ATM" - ATM deposits
-            Regex(
-                """\b([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?\s+has been deposited via ATM""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // "CURRENCYamount transferred via" - transfers
-            Regex(
-                """\b([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?\s+transferred via""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // "Cr. transaction of CURRENCY amount" - credit transactions
-            Regex(
-                """Cr\.?\s*transaction of\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // "Dr. transaction of CURRENCY amount" - debit transactions
-            Regex(
-                """Dr\.?\s*transaction of\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // "Transaction of CURRENCY amount" - failed transactions
-            Regex("""Transaction of\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
-
-            // "Amount Paid: CURRENCY amount" - TouchPoints redemption
-            Regex("""Amount Paid:\s*([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in transactionCurrencyPatterns) {
+        for (pattern in ADCB_CURRENCY_PATTERNS) {
             pattern.find(message)?.let { match ->
                 val currencyCode = match.groupValues[1].uppercase()
                 // Validate it's a 3-letter code (standard ISO currency format) but not month names
@@ -525,5 +434,96 @@ class ADCBParser : FABParser() {
             "for clarifications please call",
             "for assistance please call"
         ).map { Regex(it, RegexOption.IGNORE_CASE) }
+
+        val ADCB_CURRENCY_PATTERNS = listOf(
+            // "was used for CURRENCYamount" - debit card usage
+            Regex("""was used for\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
+
+            // "used for CURRENCYamount" - debit card usage (shorter version)
+            Regex("""used for\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
+
+            // "CURRENCYamount withdrawn from" - ATM withdrawals (handle both spaced and non-spaced)
+            Regex(
+                """\b([A-Z]{3})\s*[0-9,]+(?:\.\d{2})?\s+withdrawn from""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // "CURRENCYamount has been deposited via ATM" - ATM deposits
+            Regex(
+                """\b([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?\s+has been deposited via ATM""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // "CURRENCYamount transferred via" - transfers
+            Regex(
+                """\b([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?\s+transferred via""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // "Cr. transaction of CURRENCY amount" - credit transactions
+            Regex(
+                """Cr\.?\s*transaction of\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // "Dr. transaction of CURRENCY amount" - debit transactions
+            Regex(
+                """Dr\.?\s*transaction of\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // "Transaction of CURRENCY amount" - failed transactions
+            Regex("""Transaction of\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
+
+            // "Amount Paid: CURRENCY amount" - TouchPoints redemption
+            Regex("""Amount Paid:\s*([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE)
+        )
+
+        val ADCB_AMOUNT_PATTERNS = listOf(
+            // 1. "was used for CURRENCYamount" - debit card usage (handle both spaced and non-spaced)
+            Regex("""was used for\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+
+            // 2. "used for CURRENCYamount" - debit card usage (shorter version)
+            Regex("""used for\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+
+            // 3. "CURRENCYamount withdrawn from" - ATM withdrawals
+            Regex(
+                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+withdrawn from""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 4. "CURRENCYamount has been deposited via ATM" - ATM deposits
+            Regex(
+                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+has been deposited via ATM""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 5. "CURRENCYamount transferred via" - transfers
+            Regex(
+                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+transferred via""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 6. "Cr. transaction of CURRENCY amount" - credit transactions
+            Regex(
+                """Cr\. transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 7. "Dr. transaction of CURRENCY amount" - debit transactions
+            Regex(
+                """Dr\.?\s*transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 8. "Transaction of CURRENCY amount" - failed transactions
+            Regex(
+                """Transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 9. "Amount Paid: CURRENCY amount" - TouchPoints redemption
+            Regex("""Amount Paid:\s*([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        )
     }
 }

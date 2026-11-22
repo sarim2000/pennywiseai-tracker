@@ -80,18 +80,7 @@ open class FABParser : UAEBankParser() {
 
     override fun extractAmount(message: String): BigDecimal? {
         // FAB patterns: Support global currencies - "AED 8.00", "THB ###.##", "USD 10.00", etc.
-        val patterns = listOf(
-            Regex("""funds transfer request of\s+(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""for\s+(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+\*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9*,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""Amount\s*(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+\*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""Amount\s*(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9*,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""payment.*?(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+\*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""payment.*?(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9*,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in patterns) {
+        for (pattern in AMOUNT_PATTERNS) {
             pattern.find(message)?.let { match ->
                 val currencyCode = match.groupValues[1].uppercase()
                 var amountStr = match.groupValues[2].replace(",", "")
@@ -99,14 +88,14 @@ open class FABParser : UAEBankParser() {
                 // Handle asterisks as placeholders - replace with 0s or treat as missing amount
                 if (amountStr.contains("*")) {
                     // If it's a pattern like *0.00 or *50.00, extract the numeric part
-                    if (amountStr.matches(Regex("""\*\d+(?:\.\d{2})?"""))) {
+                    if (amountStr.matches(MASKED_LEADING_ASTERISK)) {
                         amountStr = amountStr.substring(1) // Remove the asterisk
-                    } else if (amountStr.matches(Regex("""\*+\.\d{2}"""))) {
+                    } else if (amountStr.matches(MASKED_WHOLE_PART)) {
                         // If it's all asterisks before decimal, treat as 0
                         amountStr = "0" + amountStr.substring(amountStr.indexOf('.'))
                     } else {
                         // Try to extract any numeric pattern from the asterisk string
-                        val numericMatch = Regex("""(\d+(?:\.\d{2})?)""").find(amountStr)
+                        val numericMatch = MASKED_NUMERIC_PART.find(amountStr)
                         if (numericMatch != null) {
                             amountStr = numericMatch.value
                         } else {
@@ -495,5 +484,19 @@ open class FABParser : UAEBankParser() {
             "atyourservice@bankfab.com",
             "has been blocked on"  // Email-only messages
         ).map { Regex(it, RegexOption.IGNORE_CASE) }
+
+        val AMOUNT_PATTERNS = listOf(
+            Regex("""funds transfer request of\s+(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""for\s+(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+\*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9*,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""Amount\s*(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+\*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""Amount\s*(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9*,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""payment.*?(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+\*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""payment.*?(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9*,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        )
+        val MASKED_LEADING_ASTERISK = Regex("""\*\d+(?:\.\d{2})?""")
+        val MASKED_WHOLE_PART = Regex("""\*+\.\d{2}""")
+        val MASKED_NUMERIC_PART = Regex("""(\d+(?:\.\d{2})?)""")
     }
 }

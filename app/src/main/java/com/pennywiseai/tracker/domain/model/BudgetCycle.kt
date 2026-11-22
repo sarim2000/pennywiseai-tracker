@@ -182,21 +182,6 @@ object BudgetCycle {
     }
 
     /**
-     * The cycle immediately after [cycle]. The next start is always one [nextCycleStart]
-     * step past [cycle.first], so cycles never overlap and never have gaps.
-     */
-    fun nextCycle(
-        cycle: Pair<LocalDate, LocalDate>,
-        startDay: Int,
-        locale: Locale = weekendLocale()
-    ): Pair<LocalDate, LocalDate> {
-        val safeStart = clampStartDay(startDay)
-        val nextStart = nextCycleStart(cycle.first, safeStart, locale)
-        val end = nextCycleStart(nextStart, safeStart, locale).minusDays(1)
-        return nextStart to end
-    }
-
-    /**
      * The first day of the cycle that *starts* on or after [reference] for the given
      * [startDay]. If [reference] is on or after its own month's cycle start then the
      * answer is next month; otherwise it is the same month's cycle start.
@@ -217,23 +202,6 @@ object BudgetCycle {
         } else {
             candidate
         }
-    }
-
-    /**
-     * Returns the [YearMonth] in which the cycle that *contains* [today] starts.
-     * This is the value callers should pass to historical month navigation (the
-     * Budget Groups screen) so the user lands on their actual current cycle, not
-     * on the calendar month that happens to contain today's date.
-     */
-    fun currentCycleStartYearMonth(
-        today: LocalDate,
-        startDay: Int,
-        locale: Locale = weekendLocale()
-    ): YearMonth {
-        val safeStart = clampStartDay(startDay)
-        val ym = YearMonth.from(today)
-        val candidate = cycleStartForMonth(ym, safeStart, locale)
-        return if (!today.isBefore(candidate)) ym else ym.minusMonths(1)
     }
 
     /**

@@ -2560,7 +2560,6 @@
     <ID>TooManyFunctions:BaseIranianBankParser.kt$BaseIranianBankParser : BankParser</ID>
     <ID>TooManyFunctions:BaseThailandBankParser.kt$BaseThailandBankParser : BankParser</ID>
     <ID>TooManyFunctions:BigDecimal.kt$BigDecimal : NumberComparable</ID>
-    <ID>TooManyFunctions:BudgetCycle.kt$BudgetCycle</ID>
     <ID>TooManyFunctions:BudgetDao.kt$BudgetDao</ID>
     <ID>TooManyFunctions:BudgetGroupEditViewModel.kt$BudgetGroupEditViewModel : ViewModel</ID>
     <ID>TooManyFunctions:BudgetGroupRepository.kt$BudgetGroupRepository</ID>

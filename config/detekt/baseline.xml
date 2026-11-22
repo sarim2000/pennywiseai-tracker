@@ -1782,7 +1782,6 @@
     <ID>NewLineAtEndOfFile:EverestBankParser.kt$com.pennywiseai.parser.core.bank.EverestBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:ExchangeRateDao.kt$com.pennywiseai.tracker.data.database.dao.ExchangeRateDao.kt</ID>
     <ID>NewLineAtEndOfFile:ExchangeRateEntity.kt$com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity.kt</ID>
-    <ID>NewLineAtEndOfFile:ExchangeRateProvider.kt$com.pennywiseai.tracker.data.currency.ExchangeRateProvider.kt</ID>
     <ID>NewLineAtEndOfFile:ExpandableList.kt$com.pennywiseai.tracker.ui.components.ExpandableList.kt</ID>
     <ID>NewLineAtEndOfFile:ExportTransactionsDialog.kt$com.pennywiseai.tracker.presentation.transactions.ExportTransactionsDialog.kt</ID>
     <ID>NewLineAtEndOfFile:FABParser.kt$com.pennywiseai.parser.core.bank.FABParser.kt</ID>
@@ -2432,7 +2431,6 @@
     <ID>SwallowedException:Converters.kt$Converters$e: Exception</ID>
     <ID>SwallowedException:CsvTransactionImporter.kt$CsvTransactionImporter$e: Exception</ID>
     <ID>SwallowedException:CurrencyFormatter.kt$CurrencyFormatter$e: Exception</ID>
-    <ID>SwallowedException:ExchangeRateProvider.kt$FreeExchangeRateProvider$e: Exception</ID>
     <ID>SwallowedException:ExchangeRatesViewModel.kt$ExchangeRatesViewModel$e: Exception</ID>
     <ID>SwallowedException:FederalBankParser.kt$FederalBankParser$e: Exception</ID>
     <ID>SwallowedException:GenericTransactionExtractor.kt$GenericTransactionExtractor$e: IllegalArgumentException</ID>

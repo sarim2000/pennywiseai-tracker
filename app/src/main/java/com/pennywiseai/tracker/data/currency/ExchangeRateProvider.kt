@@ -3,12 +3,12 @@ package com.pennywiseai.tracker.data.currency
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.HttpTimeout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -17,20 +17,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
 import javax.inject.Inject
 
 /**
  * Interface for exchange rate providers
  */
 interface ExchangeRateProvider {
-    suspend fun fetchExchangeRate(fromCurrency: String, toCurrency: String): BigDecimal?
-    suspend fun fetchAllExchangeRates(baseCurrency: String): Map<String, BigDecimal>?
     suspend fun fetchAllExchangeRatesWithMetadata(baseCurrency: String): ExchangeRateResponseWithMetadata?
-    fun getProviderName(): String
-    suspend fun getSupportedCurrencies(): List<String>
 }
 
 /**
@@ -56,27 +49,6 @@ class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
             })
         }
     } }
-
-    override suspend fun fetchExchangeRate(fromCurrency: String, toCurrency: String): BigDecimal? {
-        if (fromCurrency.equals(toCurrency, ignoreCase = true)) {
-            return BigDecimal.ONE
-        }
-
-        return try {
-            // For direct conversion, fetch all rates for the base currency
-            val rates = fetchAllExchangeRates(fromCurrency)
-            rates?.get(toCurrency.uppercase())
-        } catch (e: Exception) {
-            currentCoroutineContext().ensureActive()
-            println("Failed to fetch exchange rate from API: ${e.message}")
-            null
-        }
-    }
-
-    override suspend fun fetchAllExchangeRates(baseCurrency: String): Map<String, BigDecimal>? {
-        val response = fetchAllExchangeRatesWithMetadata(baseCurrency)
-        return response?.rates
-    }
 
     override suspend fun fetchAllExchangeRatesWithMetadata(baseCurrency: String): ExchangeRateResponseWithMetadata? {
         return try {
@@ -108,26 +80,6 @@ class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
             currentCoroutineContext().ensureActive()
             println("Failed to fetch exchange rates from API: ${e.message}")
             null
-        }
-    }
-
-    override fun getProviderName(): String {
-        return "ExchangeRate-API"
-    }
-
-    override suspend fun getSupportedCurrencies(): List<String> {
-        return try {
-            val rates = fetchAllExchangeRates("USD")
-            rates?.keys?.toList() ?: listOf(
-                "AED", "USD", "EUR", "GBP", "INR", "THB", "MYR", "SGD", "KWD", "KRW",
-                "CAD", "MXN", "AUD", "JPY", "CNY", "NPR", "ETB"
-            )
-        } catch (e: Exception) {
-            currentCoroutineContext().ensureActive()
-            listOf(
-                "AED", "USD", "EUR", "GBP", "INR", "THB", "MYR", "SGD", "KWD", "KRW",
-                "CAD", "MXN", "AUD", "JPY", "CNY", "NPR", "ETB"
-            )
         }
     }
 }

@@ -25,7 +25,6 @@ import com.pennywiseai.tracker.data.export.ExportResult
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.SupportNudgeCard
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
-import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
@@ -212,12 +211,9 @@ fun ExportTransactionsDialog(
                     }
 
                     is ExportState.Exporting -> {
-                        val progressColors = readableProgressColors()
                         LinearWavyProgressIndicator(
                             progress = { state.progress },
                             modifier = Modifier.fillMaxWidth(),
-                            color = progressColors.indicator,
-                            trackColor = progressColors.track,
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -269,7 +265,7 @@ fun ExportTransactionsDialog(
                                 Text(
                                     text = stringResource(R.string.txn_export_file_size, formatFileSize(state.fileSizeBytes)),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                                 )
                             }
                         }

@@ -323,18 +323,14 @@ private fun LinkCardDialog(
                                     Text(
                                         text = CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if (selectedAccount == account.accountLast4) {
-                                            MaterialTheme.colorScheme.onPrimaryContainer
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
-                                        }
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 if (selectedAccount == account.accountLast4) {
                                     Icon(
                                         Icons.Default.CheckCircle,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(Dimensions.Icon.medium)
                                     )
                                 }

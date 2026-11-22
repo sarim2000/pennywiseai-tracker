@@ -4,6 +4,7 @@ import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.core.NumberFormatStyle
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
@@ -57,6 +58,18 @@ object CurrencyFormatter {
      * shared's [MinorUnits] so Android and iOS always agree on it.
      */
     private fun fractionDigits(currencyCode: String?): Int = currencyCode?.let(MinorUnits::digits) ?: 2
+
+    /**
+     * [formatter], copied from a cached prototype, set to show all [digits] decimals when
+     * [amount] has a fraction at that precision ("$448.60", not "$448.6") and none when it
+     * is whole ("$461"). The prototypes keep the minimum at 0 so whole amounts stay bare.
+     */
+    private fun copyFor(prototype: NumberFormat, amount: BigDecimal, digits: Int): NumberFormat {
+        val copy = prototype.clone() as NumberFormat
+        val rounded = amount.setScale(digits, RoundingMode.HALF_EVEN)
+        if (rounded.remainder(BigDecimal.ONE).signum() != 0) copy.minimumFractionDigits = digits
+        return copy
+    }
 
     /**
      * Currency symbol mapping for display
@@ -200,7 +213,7 @@ object CurrencyFormatter {
                 // If currency not supported, use symbol mapping
                 ?: return "${CURRENCY_SYMBOLS[currencyCode] ?: currencyCode}${formatAmount(amount, currencyCode)}"
             // NumberFormat isn't thread-safe: format with a copy, never the cached one.
-            (prototype.clone() as NumberFormat).format(amount)
+            copyFor(prototype, amount, fractionDigits(currencyCode)).format(amount)
         } catch (e: Exception) {
             // Fallback to symbol + amount
             val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
@@ -235,7 +248,7 @@ object CurrencyFormatter {
             }
         }
 
-        // Show decimals only if they exist
+        // Whole amounts show no decimals; copyFor shows them all when there's a fraction
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = fractionDigits(currencyCode)
         return formatter
@@ -346,7 +359,7 @@ object CurrencyFormatter {
                 maximumFractionDigits = decimals
             }
         }
-        return (prototype.clone() as NumberFormat).format(amount)
+        return copyFor(prototype, amount, decimals).format(amount)
     }
 
     /**

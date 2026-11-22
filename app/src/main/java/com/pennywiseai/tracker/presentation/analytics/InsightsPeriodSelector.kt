@@ -5,12 +5,12 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
@@ -28,12 +28,15 @@ import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonShapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -66,6 +69,11 @@ internal fun InsightsPeriodSelector(
     var menuOpen by remember { mutableStateOf(false) }
     val scrollable = LocalDensity.current.fontScale >= 1.5f
     val scrollState = rememberScrollState()
+    val moreSelected = selected in MorePeriods
+    val checkedIndex = if (moreSelected) QuickPeriods.size else QuickPeriods.indexOf(selected)
+    // One spring per button drives both its width and its check icon, so the two move together.
+    val progress = List(QuickPeriods.size + 1) { index -> selectionProgress(index == checkedIndex) }
+    val settled = isSelectionSettled(progress, checkedIndex)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -76,18 +84,22 @@ internal fun InsightsPeriodSelector(
         QuickPeriods.forEachIndexed { index, period ->
             PeriodToggle(
                 checked = selected == period,
+                progress = progress[index],
+                settled = settled,
                 label = period.label,
                 shapes = if (index == 0) ButtonGroupDefaults.connectedLeadingButtonShapes()
                 else ButtonGroupDefaults.connectedMiddleButtonShapes(),
                 onClick = { onSelect(period) },
                 scrollableLabel = scrollable,
-                modifier = if (scrollable) Modifier else Modifier.weight(selectedWeight(selected == period))
+                modifier = if (scrollable) Modifier else Modifier.weight(selectedWeight(progress[index]))
             )
         }
-        val moreSelected = selected in MorePeriods
-        Box(modifier = if (scrollable) Modifier else Modifier.weight(selectedWeight(moreSelected))) {
+        val moreProgress = progress[QuickPeriods.size]
+        Box(modifier = if (scrollable) Modifier else Modifier.weight(selectedWeight(moreProgress))) {
             PeriodToggle(
                 checked = moreSelected,
+                progress = moreProgress,
+                settled = settled,
                 label = if (moreSelected) selectedMoreLabel else stringResource(R.string.analytics_period_more),
                 shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                 onClick = { menuOpen = true },
@@ -118,20 +130,36 @@ internal fun InsightsPeriodSelector(
     }
 }
 
-/** The checked button widens (Expressive), so its check icon doesn't squeeze the label. */
+/** 0 = unchecked, 1 = checked; springs (and may overshoot) between them. */
 @Composable
-private fun selectedWeight(checked: Boolean): Float =
+private fun selectionProgress(checked: Boolean): Float =
     animateFloatAsState(
-        targetValue = if (checked) SELECTED_WEIGHT else 1f,
+        targetValue = if (checked) 1f else 0f,
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-        label = "periodWeight",
+        label = "periodSelection",
     ).value
+
+/** The checked button widens (Expressive), so its check icon doesn't squeeze the label. */
+internal fun selectedWeight(progress: Float): Float = 1f + (SELECTED_WEIGHT - 1f) * progress
+
+/**
+ * How much of the check icon's slot is open. It tracks the width, so a button's label keeps
+ * between the room it has at rest unchecked and at rest checked, instead of the icon landing
+ * at full size while the button is still narrow (the label wrapped and the row grew).
+ */
+internal fun checkIconFraction(progress: Float): Float = progress.coerceIn(0f, 1f)
+
+/** True once every button has reached its rest width. */
+internal fun isSelectionSettled(progress: List<Float>, checkedIndex: Int): Boolean =
+    progress.withIndex().all { (index, value) -> value == if (index == checkedIndex) 1f else 0f }
 
 private const val SELECTED_WEIGHT = 1.45f
 
 @Composable
 private fun PeriodToggle(
     checked: Boolean,
+    progress: Float,
+    settled: Boolean,
     label: String,
     shapes: ToggleButtonShapes,
     onClick: () -> Unit,
@@ -139,6 +167,10 @@ private fun PeriodToggle(
     modifier: Modifier = Modifier,
     trailingDropDown: Boolean = false
 ) {
+    // Lines the label takes at rest; held while the buttons resize. The spring overshoots, so a
+    // button is briefly narrower than at rest, and reflowing its label there changes the row's
+    // height and jolts everything below it.
+    var restLines by remember { mutableIntStateOf(1) }
     ToggleButton(
         checked = checked,
         onCheckedChange = { onClick() },
@@ -147,17 +179,29 @@ private fun PeriodToggle(
             .heightIn(min = Dimensions.Component.buttonHeight)
             .semantics { role = if (trailingDropDown) Role.DropdownList else Role.RadioButton }
     ) {
-        if (checked && !trailingDropDown) {
-            Icon(
-                Icons.Default.Check,
-                contentDescription = null,
-                modifier = Modifier.size(ButtonDefaults.IconSize)
-            )
-            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+        val iconFraction = checkIconFraction(progress)
+        if (!trailingDropDown && iconFraction > 0f) {
+            Box(
+                modifier = Modifier
+                    .width((ButtonDefaults.IconSize + ButtonDefaults.IconSpacing) * iconFraction)
+                    .clipToBounds()
+                    .graphicsLayer { alpha = iconFraction }
+            ) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .wrapContentWidth(Alignment.Start, unbounded = true)
+                        .size(ButtonDefaults.IconSize)
+                )
+            }
         }
         Text(
             text = label,
             textAlign = TextAlign.Center,
+            softWrap = settled || restLines > 1,
+            maxLines = if (settled) Int.MAX_VALUE else restLines,
+            onTextLayout = { if (settled) restLines = it.lineCount },
             modifier = if (scrollableLabel) Modifier.widthIn(max = Dimensions.Component.minTouchTarget * 5)
             else Modifier.weight(1f, fill = false)
         )

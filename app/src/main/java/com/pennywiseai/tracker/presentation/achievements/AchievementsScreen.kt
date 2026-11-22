@@ -77,6 +77,7 @@ fun AchievementsScreen(
 
     Box(Modifier.fillMaxSize()) {
         PennyWiseScaffold(
+            revealAmountsAction = false, // shows no amounts
             title = stringResource(R.string.achievements_title),
             navigationIcon = {
                 IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {

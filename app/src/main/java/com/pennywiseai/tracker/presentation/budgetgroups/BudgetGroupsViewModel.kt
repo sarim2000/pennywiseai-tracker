@@ -102,7 +102,7 @@ class BudgetGroupsViewModel @Inject constructor(
         decided.map { win -> UnderBudgetCardState(win = win, ready = true) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UnderBudgetCardState())
 
-    /** Re-reads today. The Budgets screen calls this from its resume path. */
+    /** Called on resume; a new day recounts, the same day does nothing. */
     fun refreshDate() {
         val now = LocalDate.now()
         today.value = now
@@ -169,7 +169,7 @@ class BudgetGroupsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            selectedYearMonth.flatMapLatest { yearMonth ->
+            combine(selectedYearMonth, today) { yearMonth, _ -> yearMonth }.flatMapLatest { yearMonth ->
                 budgetSummaryProvider.summary(yearMonth).map { yearMonth to it }
             }.collect { (yearMonth, summary) ->
                 _uiState.value = _uiState.value.copy(

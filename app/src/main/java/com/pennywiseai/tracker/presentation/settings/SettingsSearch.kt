@@ -262,17 +262,21 @@ internal fun searchWords(query: String): List<String> = normalizeForSearch(query
  * then the rest by weight), best first: the exact title, a title starting with the
  * query, then by how well each word matched. A word starting a word beats one inside
  * a word ("curr" puts Currency above Recurring), and an earlier field beats a later
- * one. List order breaks ties.
- * ponytail: substring match, no typo tolerance ("bakup" finds nothing); fuzzy
- * matching if people ask for it.
+ * one. List order breaks ties. Only when nothing matches as typed, words may match
+ * a word start with a typo or two ([typoBudget]), so "bakup" finds Backup but
+ * "date" doesn't also list "Data".
  */
 internal fun <T> List<T>.matchingSearch(query: String, fields: (T) -> List<String>): List<T> {
     val words = searchWords(query)
     if (words.isEmpty()) return emptyList()
+    val items = map { it to fields(it).map(::normalizeForSearch) }
+    return items.ranked(words, typos = false).ifEmpty { items.ranked(words, typos = true) }
+}
+
+private fun <T> List<Pair<T, List<String>>>.ranked(words: List<String>, typos: Boolean): List<T> {
     val needle = words.joinToString(" ")
-    return mapNotNull { item ->
-        val texts = fields(item).map(::normalizeForSearch)
-        val cost = words.sumOf { word -> wordCost(word, texts) ?: return@mapNotNull null }
+    return mapNotNull { (item, texts) ->
+        val cost = words.sumOf { word -> wordCost(word, texts, typos) ?: return@mapNotNull null }
         val title = texts.first()
         item to when {
             title == needle -> -2
@@ -283,13 +287,46 @@ internal fun <T> List<T>.matchingSearch(query: String, fields: (T) -> List<Strin
 }
 
 /** How well [word] matches its best field in [texts]; null when it is in none. */
-private fun wordCost(word: String, texts: List<String>): Int? = texts.indices.mapNotNull { i ->
-    when {
-        texts[i].startsWith(word) || " $word" in texts[i] -> i
-        word in texts[i] -> texts.size + i
-        else -> null
+private fun wordCost(word: String, texts: List<String>, typos: Boolean): Int? {
+    val exact = texts.indices.mapNotNull { i ->
+        when {
+            texts[i].startsWith(word) || " $word" in texts[i] -> i
+            word in texts[i] -> texts.size + i
+            else -> null
+        }
+    }.minOrNull()
+    if (exact != null || !typos) return exact
+    val budget = typoBudget(word)
+    if (budget == 0) return null
+    return texts.indexOfFirst { text -> text.split(' ').any { typoDistance(word, it) <= budget } }
+        .takeIf { it >= 0 }
+        ?.let { 2 * texts.size + it }
+}
+
+/** Typos a query word this long may have: none up to 3 letters (short words would match too much), 2 from 8. */
+private fun typoBudget(word: String) = when {
+    word.length <= 3 -> 0
+    word.length <= 7 -> 1
+    else -> 2
+}
+
+/**
+ * Fewest edits (insert, delete, replace, swap two neighbours) turning [word] into the
+ * start of [token], so "bakc" finds "backup" while it is still being typed.
+ */
+private fun typoDistance(word: String, token: String): Int {
+    val d = Array(word.length + 1) { i -> IntArray(token.length + 1) { j -> if (i == 0) j else if (j == 0) i else 0 } }
+    for (i in 1..word.length) {
+        for (j in 1..token.length) {
+            val replace = if (word[i - 1] == token[j - 1]) 0 else 1
+            d[i][j] = minOf(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + replace)
+            if (i > 1 && j > 1 && word[i - 1] == token[j - 2] && word[i - 2] == token[j - 1]) {
+                d[i][j] = minOf(d[i][j], d[i - 2][j - 2] + 1)
+            }
+        }
     }
-}.minOrNull()
+    return d[word.length].min()
+}
 
 /**
  * The hub's search field, in place of the bar's title. [focus] requests focus when the

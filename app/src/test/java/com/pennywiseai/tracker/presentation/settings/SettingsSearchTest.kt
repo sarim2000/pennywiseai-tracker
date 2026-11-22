@@ -98,6 +98,24 @@ class SettingsSearchTest {
     }
 
     @Test
+    fun `small typos match when nothing matches as typed`() {
+        val items = rows("Folder backup", "Default currency", "الإعدادات", "Dark", "Date format")
+        assertEquals(listOf("Folder backup"), items.search("bakup")) // missing letter
+        assertEquals(listOf("Folder backup"), items.search("bakcup")) // swapped letters
+        assertEquals(listOf("Folder backup"), items.search("bakc")) // typo while still typing
+        assertEquals(listOf("Default currency"), items.search("curency defalt"))
+        assertEquals(listOf("الإعدادات"), items.search("الاعددات"))
+        // Short words get no slack, or "dar" would find "Date" too.
+        assertEquals(listOf("Dark"), items.search("dar"))
+        assertTrue(items.search("drk").isEmpty())
+        // Any exact hit turns typo matching off, so "date" doesn't also list "Data".
+        assertEquals(listOf("Date format"), rows("Data", "Date format").search("date"))
+        // Typo hits keep the field order: title before page name.
+        val typo = listOf(listOf("Export data", "", "", "Backup"), listOf("Backup now", "", "", "Data"))
+        assertEquals(listOf("Backup now", "Export data"), typo.search("bakup"))
+    }
+
+    @Test
     fun `amoled terms find dark, the choice that shows the control`() {
         val index = settingsSearchIndex()
         assertTrue(index.none { it.title == R.string.appearance_amoled_title })

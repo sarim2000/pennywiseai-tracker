@@ -278,7 +278,11 @@ internal fun ActivityQuickFilters(
     }
 }
 
-/** One of the type chips: outlined at rest, tonal with a check when picked. */
+/**
+ * One of the type chips: outlined at rest, tonal when picked. No check icon, so
+ * picking a type doesn't widen its chip and shove the rest of the row along;
+ * the fill already marks the pick.
+ */
 @Composable
 private fun QuickChip(selected: Boolean, text: String, onClick: () -> Unit) {
     FilterChip(
@@ -286,15 +290,9 @@ private fun QuickChip(selected: Boolean, text: String, onClick: () -> Unit) {
         onClick = onClick,
         shapes = FilterChipDefaults.shapes(shape = MaterialTheme.shapes.medium),
         label = { Text(text = text, maxLines = 1) },
-        leadingIcon = if (selected) {
-            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small)) }
-        } else {
-            null
-        },
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-            selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer
+            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
         ),
         border = FilterChipDefaults.filterChipBorder(enabled = true, selected = selected)
     )

@@ -18,7 +18,7 @@ import java.time.LocalDate
 class BudgetCurrencyMoveTest {
 
     private val dao = mockk<BudgetDao>(relaxed = true)
-    private val repository = BudgetGroupRepository(dao, mockk(), mockk(), mockk())
+    private val repository = BudgetGroupRepository(dao, mockk(), mockk(), mockk(), mockk(), mockk(), mockk())
 
     private fun budget(id: Long, limit: String, currency: String) = BudgetEntity(
         id = id,

@@ -74,6 +74,10 @@ class BudgetGroupsViewModel @Inject constructor(
             initialValue = YearMonth.now()
         )
 
+    // The summary reads today once per subscription: a new day resubscribes, so
+    // days left moves on without a relaunch, as on Home.
+    private val today = MutableStateFlow(LocalDate.now())
+
     init {
         // Default to today's calendar month. A user on startDay=25 viewing
         // the page on Jul 1 should land on the July view (the cycle started
@@ -115,7 +119,7 @@ class BudgetGroupsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            selectedYearMonth.flatMapLatest { yearMonth ->
+            combine(selectedYearMonth, today) { yearMonth, _ -> yearMonth }.flatMapLatest { yearMonth ->
                 budgetSummaryProvider.summary(yearMonth).map { yearMonth to it }
             }.collect { (yearMonth, summary) ->
                 _uiState.value = _uiState.value.copy(
@@ -126,6 +130,11 @@ class BudgetGroupsViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /** Called on resume; a new day recounts, the same day does nothing. */
+    fun refreshDate() {
+        today.value = LocalDate.now()
     }
 
     fun toggleFilter() {

@@ -457,8 +457,9 @@ it by `Dimensions.Component.bottomBarHeight`.
   only slide. The typing/streaming reply shares one keyed slot.
 - **Amounts roll like an odometer** (`AnimatedCurrencyText`, planned by
   `odometerPlan` in `OdometerDiff.kt`): only the digit slots that changed roll,
-  up when the amount grew and down when it shrank, staggered from the units up,
-  on `slowEffectsSpec` (no overshoot). It stays one `Text`, so `maxLines`,
+  up when the amount grew and down when it shrank, all in one beat (rule 2: no
+  staggered digits, which would show a number neither side has), on
+  `slowEffectsSpec` (no overshoot). It stays one `Text`, so `maxLines`,
   `autoSize` and TalkBack are the plain text's; the roll is drawn over it from
   that layout. It swaps instead of rolling on first show, when either side is
   the privacy mask (hiding amounts isn't a value change), under reduced motion,

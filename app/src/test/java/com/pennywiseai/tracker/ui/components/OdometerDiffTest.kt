@@ -53,13 +53,6 @@ class OdometerDiffTest {
     }
 
     @Test
-    fun `units roll first, higher digits follow`() {
-        val plan = checkNotNull(odometerPlan("₹1,199", "₹1,200"))
-        val ranks = plan.moves.filter { it.change == Roll }.map { it.newIndex to it.rank }
-        assertEquals(listOf(3 to 2, 4 to 1, 5 to 0), ranks)
-    }
-
-    @Test
     fun `non-Latin digits roll too`() {
         assertEquals(listOf(Same, Roll), changes("١٢", "١٣"))
     }

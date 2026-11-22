@@ -16,13 +16,12 @@ internal enum class GlyphChange {
 
 /**
  * Character [newIndex] of the new string and, when it has one, its counterpart
- * [oldIndex] in the old string. [rank] orders the moving slots from the least
- * significant digit (0) up, for a right-to-left stagger.
+ * [oldIndex] in the old string.
  */
-internal data class GlyphMove(val newIndex: Int, val oldIndex: Int?, val change: GlyphChange, val rank: Int = 0)
+internal data class GlyphMove(val newIndex: Int, val oldIndex: Int?, val change: GlyphChange)
 
 /** Character [oldIndex] of the old string, which has no counterpart and rolls out. */
-internal data class GlyphExit(val oldIndex: Int, val rank: Int)
+internal data class GlyphExit(val oldIndex: Int)
 
 /**
  * How [AnimatedCurrencyText] moves from one formatted amount to the next.
@@ -66,17 +65,15 @@ internal fun odometerPlan(old: String, new: String, decimalSeparator: Char? = nu
 
     val moves = arrayOfNulls<GlyphMove>(new.length)
     val exits = ArrayList<GlyphExit>()
-    val rankOf = { index: Int -> (newParts.core.last - index).coerceAtLeast(0) }
-    val oldRankOf = { index: Int -> (oldParts.core.last - index).coerceAtLeast(0) }
     for ((o, n) in pairs) {
         when {
-            n == null -> exits += GlyphExit(o!!, oldRankOf(o))
-            o == null -> moves[n] = GlyphMove(n, null, GlyphChange.Enter, rankOf(n))
+            n == null -> exits += GlyphExit(o!!)
+            o == null -> moves[n] = GlyphMove(n, null, GlyphChange.Enter)
             old[o] == new[n] -> moves[n] = GlyphMove(n, o, GlyphChange.Same)
-            old[o].isDigit() && new[n].isDigit() -> moves[n] = GlyphMove(n, o, GlyphChange.Roll, rankOf(n))
+            old[o].isDigit() && new[n].isDigit() -> moves[n] = GlyphMove(n, o, GlyphChange.Roll)
             else -> {
-                moves[n] = GlyphMove(n, null, GlyphChange.Enter, rankOf(n))
-                exits += GlyphExit(o, oldRankOf(o))
+                moves[n] = GlyphMove(n, null, GlyphChange.Enter)
+                exits += GlyphExit(o)
             }
         }
     }

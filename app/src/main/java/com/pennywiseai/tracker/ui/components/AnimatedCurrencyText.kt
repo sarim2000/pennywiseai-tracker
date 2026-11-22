@@ -139,19 +139,18 @@ private sealed interface Piece {
         val left: Float,
         val oldLeft: Float,
         val shift: Float,
-        val delay: Float,
     ) : Piece {
         override val newRange = newIndex..newIndex
         override val oldRange = oldIndex..oldIndex
     }
 
     /** A new glyph rolling in from blank. */
-    class Enter(newIndex: Int, val delay: Float) : Piece {
+    class Enter(newIndex: Int) : Piece {
         override val newRange = newIndex..newIndex
     }
 
     /** An old glyph rolling out; [shift] is the start-anchor offset. */
-    class Exit(oldIndex: Int, val shift: Float, val delay: Float) : Piece {
+    class Exit(oldIndex: Int, val shift: Float) : Piece {
         override val oldRange = oldIndex..oldIndex
     }
 }
@@ -217,13 +216,13 @@ private class Odometer(private val scope: CoroutineScope, private val measurer: 
                     }
                 }
                 GlyphChange.Roll -> pieces += Piece.Turn(
-                    move.newIndex, move.oldIndex!!, box.left, oldLeft!!, shift, delayOf(move.rank),
+                    move.newIndex, move.oldIndex!!, box.left, oldLeft!!, shift,
                 )
-                GlyphChange.Enter -> pieces += Piece.Enter(move.newIndex, delayOf(move.rank))
+                GlyphChange.Enter -> pieces += Piece.Enter(move.newIndex)
             }
         }
         for (exit in plan.exits) {
-            if (old.getBoundingBox(exit.oldIndex).width > 0f) pieces += Piece.Exit(exit.oldIndex, anchor, delayOf(exit.rank))
+            if (old.getBoundingBox(exit.oldIndex).width > 0f) pieces += Piece.Exit(exit.oldIndex, anchor)
         }
         roll = Roll(
             newWidth = new.size.width,
@@ -283,6 +282,8 @@ private class Odometer(private val scope: CoroutineScope, private val measurer: 
             drawContent()
             return
         }
+        // One beat for every slot (design rule 2): a staggered roll would show the
+        // units' new digit beside the old hundreds, a number neither side has.
         val p = progress
         val top = new.getLineTop(0)
         val bottom = new.getLineBottom(0)
@@ -300,22 +301,19 @@ private class Odometer(private val scope: CoroutineScope, private val measurer: 
                 is Piece.Slide -> translate(left = piece.shift * (1f - p)) { newMask?.let { drawText(it, color) } }
                 is Piece.Turn -> {
                     val dx = piece.shift * (1f - p)
-                    val t = stagger(p, piece.delay)
                     clipRect(clip.left, top, clip.right, bottom) {
-                        translate(piece.left + dx - piece.oldLeft, travel * t) { oldMask?.let { drawText(it, color) } }
-                        translate(dx, -travel * (1f - t)) { newMask?.let { drawText(it, color) } }
+                        translate(piece.left + dx - piece.oldLeft, travel * p) { oldMask?.let { drawText(it, color) } }
+                        translate(dx, -travel * (1f - p)) { newMask?.let { drawText(it, color) } }
                     }
                 }
                 is Piece.Enter -> {
-                    val t = stagger(p, piece.delay)
                     clipRect(clip.left, top, clip.right, bottom) {
-                        translate(top = -travel * (1f - t)) { newMask?.let { drawText(it, color, alpha = t) } }
+                        translate(top = -travel * (1f - p)) { newMask?.let { drawText(it, color, alpha = p) } }
                     }
                 }
                 is Piece.Exit -> {
-                    val t = stagger(p, piece.delay)
                     clipRect(clip.left, top, clip.right, bottom) {
-                        translate(piece.shift, travel * t) { oldMask?.let { drawText(it, color, alpha = 1f - t) } }
+                        translate(piece.shift, travel * p) { oldMask?.let { drawText(it, color, alpha = 1f - p) } }
                     }
                 }
             }
@@ -337,14 +335,6 @@ internal data class RollClip(val left: Float, val right: Float)
 
 /** Paints a character nothing, without changing how the text measures or shapes. */
 private val Hidden = SpanStyle(color = Color.Transparent)
-
-/** Each step of rank waits a little longer, so the roll ripples from the units up. */
-private fun delayOf(rank: Int): Float = STAGGER * rank.coerceAtMost(MAX_STAGGER_STEPS)
-
-private fun stagger(progress: Float, delay: Float): Float = ((progress - delay) / (1f - delay)).coerceIn(0f, 1f)
-
-private const val STAGGER = 0.05f
-private const val MAX_STAGGER_STEPS = 6
 
 private fun fitsOneLine(layout: TextLayoutResult) = layout.lineCount == 1 && !layout.hasVisualOverflow
 

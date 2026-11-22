@@ -33,7 +33,7 @@ class RoomSharedTransactionRepository(
         dao.insert(transaction.toEntity())
 
     override suspend fun insertAll(transactions: List<SharedTransaction>) {
-        transactions.forEach { dao.insert(it.toEntity()) }
+        dao.insertAll(transactions.map { it.toEntity() })
     }
 
     override suspend fun update(transaction: SharedTransaction) {

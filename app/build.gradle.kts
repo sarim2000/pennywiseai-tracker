@@ -11,12 +11,19 @@ plugins {
     alias(libs.plugins.dependency.analysis)
 }
 
+// Empty when local.properties is missing (CI/CD builds)
+val localPropertiesFile = rootProject.file("local.properties")
+val localProperties = Properties().apply {
+    localPropertiesFile.takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+
 android {
     namespace = "com.pennywiseai.tracker"
     compileSdk = 37
 
     buildFeatures {
         buildConfig = true
+        compose = true
     }
 
     defaultConfig {
@@ -28,34 +35,20 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Load RSA public key from local.properties
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            val localProperties = Properties()
-            localProperties.load(localPropertiesFile.inputStream())
-
-            val rsaPublicKey = localProperties.getProperty("RSA_PUBLIC_KEY", "")
-            buildConfigField("String", "RSA_PUBLIC_KEY", "\"$rsaPublicKey\"")
-            // Cloudflare Worker that frees a license key's activation so it
-            // can move to a new phone. Empty = "Move to this device" hidden.
-            val licenseMoveUrl = localProperties.getProperty("LICENSE_MOVE_URL", "")
-            buildConfigField("String", "LICENSE_MOVE_URL", "\"$licenseMoveUrl\"")
-        } else {
-            // Fallback empty key for CI/CD builds
-            buildConfigField("String", "RSA_PUBLIC_KEY", "\"\"")
-            buildConfigField("String", "LICENSE_MOVE_URL", "\"\"")
-        }
+        // RSA public key from local.properties (empty for CI/CD builds)
+        val rsaPublicKey = localProperties.getProperty("RSA_PUBLIC_KEY", "")
+        buildConfigField("String", "RSA_PUBLIC_KEY", "\"$rsaPublicKey\"")
+        // Cloudflare Worker that frees a license key's activation so it
+        // can move to a new phone. Empty = "Move to this device" hidden.
+        val licenseMoveUrl = localProperties.getProperty("LICENSE_MOVE_URL", "")
+        buildConfigField("String", "LICENSE_MOVE_URL", "\"$licenseMoveUrl\"")
     }
 
     signingConfigs {
         // Only create signing config for non-F-Droid builds
         if (!gradle.startParameter.taskNames.any { it.contains("fdroid", ignoreCase = true) }) {
-            val localPropertiesFile = rootProject.file("local.properties")
             if (localPropertiesFile.exists()) {
                 create("release") {
-                    val localProperties = Properties()
-                    localProperties.load(localPropertiesFile.inputStream())
-
                     val keystorePath = localProperties.getProperty("RELEASE_STORE_FILE", "")
                     if (keystorePath.isNotEmpty()) {
                         storeFile = file(keystorePath)
@@ -154,9 +147,6 @@ android {
                 "org/bouncycastle/**",
             )
         }
-    }
-    buildFeatures {
-        compose = true
     }
 
     testOptions {

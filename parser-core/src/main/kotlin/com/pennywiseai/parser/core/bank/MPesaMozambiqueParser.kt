@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
@@ -194,9 +195,9 @@ class MPesaMozambiqueParser : BankParser() {
 
     override fun cleanMerchantName(merchant: String): String {
         return merchant
-            .replace(Regex("""\s*\(.*?\)\s*$"""), "")  // Remove trailing parentheses
+            .replace(CompiledPatterns.Cleaning.TRAILING_PARENTHESES, "")  // Remove trailing parentheses
             .replace(Regex("""\.\s*$"""), "")            // Remove trailing period
-            .replace(Regex("""\s*-\s*$"""), "")          // Remove trailing dash
+            .replace(CompiledPatterns.Cleaning.TRAILING_DASH, "")  // Remove trailing dash
             .trim()
     }
 }

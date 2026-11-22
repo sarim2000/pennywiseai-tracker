@@ -77,7 +77,10 @@ data class OnBoardingUiState(
     val accounts: List<AccountBalanceEntity> = emptyList(),
     val selectedAccountKey: String? = null,
     val isCompleting: Boolean = false
-)
+) {
+    /** Back (the on-screen arrow and system Back) returns a step; on the first step it leaves the app. */
+    val canGoBack: Boolean get() = currentStep != OnBoardingStep.WELCOME && !isScanning
+}
 
 @HiltViewModel
 class OnBoardingViewModel @Inject constructor(

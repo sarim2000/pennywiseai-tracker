@@ -76,8 +76,7 @@ class BackupImporter @Inject constructor(
             // a transaction now in the DB points at, so a merge restores the
             // photos of the rows it kept (row ids get remapped; paths don't).
             if (result is ImportResult.Success && backup.receipts.isNotEmpty()) {
-                val referenced = database.transactionDao().getAllTransactions().first()
-                    .mapNotNullTo(HashSet()) { it.receiptPath }
+                val referenced = database.transactionDao().getReceiptPaths().toHashSet()
                 val restored = BackupReceipts.restore(context.filesDir, backup.receipts, referenced)
                 Log.i("BackupImporter", "Restored ${restored.written} of ${backup.receipts.size} receipts")
                 if (restored.skipped > 0) result = result.copy(skippedReceipts = restored.skipped)

@@ -76,6 +76,10 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE is_deleted = 0 ORDER BY date_time DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
 
+    /** Receipt photo paths of non-deleted transactions, for the backup restore (#839). */
+    @Query("SELECT receipt_path FROM transactions WHERE is_deleted = 0 AND receipt_path IS NOT NULL")
+    suspend fun getReceiptPaths(): List<String>
+
     @Query("SELECT * FROM transactions WHERE id = :transactionId")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
 

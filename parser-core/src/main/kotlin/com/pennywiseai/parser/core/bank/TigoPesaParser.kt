@@ -45,12 +45,12 @@ class TigoPesaParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("TIGOPESA") ||
-                normalizedSender.contains("TIGO PESA") ||
-                normalizedSender.contains("MIXX BY YAS") ||
-                normalizedSender.contains("MIXXBYYAS") ||
-                normalizedSender == "TIGO" ||
-                // Handle sender format like "TIGOPESA(smsfp)"
-                normalizedSender.startsWith("TIGOPESA")
+            normalizedSender.contains("TIGO PESA") ||
+            normalizedSender.contains("MIXX BY YAS") ||
+            normalizedSender.contains("MIXXBYYAS") ||
+            normalizedSender == "TIGO" ||
+            // Handle sender format like "TIGOPESA(smsfp)"
+            normalizedSender.startsWith("TIGOPESA")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

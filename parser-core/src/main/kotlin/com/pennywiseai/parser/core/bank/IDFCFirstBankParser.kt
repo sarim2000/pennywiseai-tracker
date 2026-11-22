@@ -24,8 +24,8 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("IDFCBK") ||
-                normalizedSender.contains("IDFCFB") ||
-                normalizedSender.contains("IDFC")
+            normalizedSender.contains("IDFCFB") ||
+            normalizedSender.contains("IDFC")
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -138,7 +138,7 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
         // Skip bill reminders and due date notifications
         if (lowerMessage.contains("reminder") ||
             lowerMessage.contains("is due on") ||
-            lowerMessage.contains("bill of rs") && lowerMessage.contains("due")
+            (lowerMessage.contains("bill of rs") && lowerMessage.contains("due"))
         ) {
             return false
         }

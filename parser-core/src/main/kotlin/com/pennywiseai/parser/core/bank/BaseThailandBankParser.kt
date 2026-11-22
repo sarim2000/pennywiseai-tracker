@@ -44,39 +44,39 @@ abstract class BaseThailandBankParser : BankParser() {
         return when {
             // Credit card spending (check before expense — "ยอดใช้จ่าย" contains "ใช้จ่าย")
             lowerMessage.contains("credit card spending") ||
-            lowerMessage.contains("ยอดใช้จ่ายต่างประเทศ") ||
-            lowerMessage.contains("ยอดใช้จ่าย") -> TransactionType.CREDIT
+                lowerMessage.contains("ยอดใช้จ่ายต่างประเทศ") ||
+                lowerMessage.contains("ยอดใช้จ่าย") -> TransactionType.CREDIT
 
             // Thai expense keywords
             lowerMessage.contains("เงินออก") ||
-            lowerMessage.contains("ถอนเงิน") ||
-            lowerMessage.contains("ถอนเงินสด") ||
-            lowerMessage.contains("โอนเงินออก") ||
-            lowerMessage.contains("โอนเงินผ่าน") ||
-            lowerMessage.contains("ใช้จ่ายบัตร") ||
-            lowerMessage.contains("ใช้จ่าย") ||
-            // English expense keywords
-            lowerMessage.contains("withdrawal") ||
-            lowerMessage.contains("payment") ||
-            lowerMessage.contains("you spent") ||
-            lowerMessage.contains("transfer out") ||
-            lowerMessage.contains("card payment") ||
-            lowerMessage.contains("card transaction") ||
-            lowerMessage.contains("atm withdrawal") -> TransactionType.EXPENSE
+                lowerMessage.contains("ถอนเงิน") ||
+                lowerMessage.contains("ถอนเงินสด") ||
+                lowerMessage.contains("โอนเงินออก") ||
+                lowerMessage.contains("โอนเงินผ่าน") ||
+                lowerMessage.contains("ใช้จ่ายบัตร") ||
+                lowerMessage.contains("ใช้จ่าย") ||
+                // English expense keywords
+                lowerMessage.contains("withdrawal") ||
+                lowerMessage.contains("payment") ||
+                lowerMessage.contains("you spent") ||
+                lowerMessage.contains("transfer out") ||
+                lowerMessage.contains("card payment") ||
+                lowerMessage.contains("card transaction") ||
+                lowerMessage.contains("atm withdrawal") -> TransactionType.EXPENSE
 
             // Thai income keywords
             lowerMessage.contains("เงินเข้า") ||
-            lowerMessage.contains("เงินฝาก") ||
-            lowerMessage.contains("รับเงิน") ||
-            lowerMessage.contains("โอนเงินเข้า") ||
-            lowerMessage.contains("รับเงินพร้อมเพย์") ||
-            lowerMessage.contains("รับเงินโอน") ||
-            lowerMessage.contains("เงินฝากเข้า") ||
-            // English income keywords
-            lowerMessage.contains("deposit") ||
-            lowerMessage.contains("receive") ||
-            lowerMessage.contains("transfer in") ||
-            lowerMessage.contains("transfer received") -> TransactionType.INCOME
+                lowerMessage.contains("เงินฝาก") ||
+                lowerMessage.contains("รับเงิน") ||
+                lowerMessage.contains("โอนเงินเข้า") ||
+                lowerMessage.contains("รับเงินพร้อมเพย์") ||
+                lowerMessage.contains("รับเงินโอน") ||
+                lowerMessage.contains("เงินฝากเข้า") ||
+                // English income keywords
+                lowerMessage.contains("deposit") ||
+                lowerMessage.contains("receive") ||
+                lowerMessage.contains("transfer in") ||
+                lowerMessage.contains("transfer received") -> TransactionType.INCOME
 
             else -> null
         }
@@ -199,9 +199,9 @@ abstract class BaseThailandBankParser : BankParser() {
         )
 
         return name.length >= 2 &&
-                name.any { it.isLetter() } &&
-                name.uppercase() !in commonWords &&
-                !name.all { it.isDigit() } &&
-                !name.contains("@")
+            name.any { it.isLetter() } &&
+            name.uppercase() !in commonWords &&
+            !name.all { it.isDigit() } &&
+            !name.contains("@")
     }
 }

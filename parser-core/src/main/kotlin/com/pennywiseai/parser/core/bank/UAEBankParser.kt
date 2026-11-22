@@ -11,15 +11,13 @@ import java.math.BigDecimal
  */
 abstract class UAEBankParser : BankParser() {
 
-
-
     /**
      * Checks if the message contains a credit/debit card purchase pattern.
      * Common across UAE banks.
      */
     protected open fun containsCardPurchase(message: String): Boolean {
         return message.contains("Credit Card Purchase", ignoreCase = true) ||
-                message.contains("Debit Card Purchase", ignoreCase = true)
+            message.contains("Debit Card Purchase", ignoreCase = true)
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -49,20 +47,20 @@ abstract class UAEBankParser : BankParser() {
                 for (i in 1 until found.groups.size) {
                     val groupVal = found.groupValues[i]
                     val upperVal = groupVal.uppercase()
-                    if (upperVal.length == 3 && 
-                        upperVal.all { it.isLetter() } && 
+                    if (upperVal.length == 3 &&
+                        upperVal.all { it.isLetter() } &&
                         !isMonthAbbreviation(upperVal)) {
                         return upperVal
                     }
                 }
             }
         }
-        
+
         // Final fallback
         val simplePattern = Regex("""\b([A-Z]{3})\s+\d""", RegexOption.IGNORE_CASE)
-        simplePattern.find(message)?.let { 
-             val code = it.groupValues[1].uppercase()
-             if (!isMonthAbbreviation(code)) return code
+        simplePattern.find(message)?.let {
+            val code = it.groupValues[1].uppercase()
+            if (!isMonthAbbreviation(code)) return code
         }
 
         return null
@@ -88,7 +86,7 @@ abstract class UAEBankParser : BankParser() {
                 }
 
                 var amountStr = match.groupValues[2].replace(",", "")
-                
+
                 // Handle masked amounts if present (e.g. *123.45 or ***.45)
                 if (amountStr.contains("*")) {
                     amountStr = amountStr.replace("*", "")
@@ -119,13 +117,13 @@ abstract class UAEBankParser : BankParser() {
             lowerMessage.contains("credit card purchase") -> TransactionType.CREDIT
             containsCardPurchase(message) -> TransactionType.EXPENSE
 
-            //Cheque transactions
+            // Cheque transactions
             lowerMessage.contains("cheque credited") -> TransactionType.INCOME
             lowerMessage.contains("cheque returned") -> TransactionType.EXPENSE
 
             // ATM withdrawals are expenses
-            lowerMessage.contains("atm cash withdrawal") || 
-            (lowerMessage.contains("atm") && lowerMessage.contains("withdrawn")) -> TransactionType.EXPENSE
+            lowerMessage.contains("atm cash withdrawal") ||
+                (lowerMessage.contains("atm") && lowerMessage.contains("withdrawn")) -> TransactionType.EXPENSE
 
             // Income transactions
             lowerMessage.contains("inward remittance") -> TransactionType.INCOME
@@ -141,9 +139,9 @@ abstract class UAEBankParser : BankParser() {
 
             // Standard keywords
             lowerMessage.contains("credit") && !lowerMessage.contains("credit card") &&
-                    !lowerMessage.contains("debit") &&
-                    !lowerMessage.contains("purchase") &&
-                    !lowerMessage.contains("payment") -> TransactionType.INCOME
+                !lowerMessage.contains("debit") &&
+                !lowerMessage.contains("purchase") &&
+                !lowerMessage.contains("payment") -> TransactionType.INCOME
 
             lowerMessage.contains("debit") && !lowerMessage.contains("credit") -> TransactionType.EXPENSE
             lowerMessage.contains("purchase") -> TransactionType.EXPENSE

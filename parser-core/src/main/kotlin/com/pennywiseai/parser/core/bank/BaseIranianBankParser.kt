@@ -47,13 +47,13 @@ abstract class BaseIranianBankParser : BankParser() {
 
         return when {
             lowerMessage.contains("برداشت") ||
-            lowerMessage.contains("پرداخت") ||
-            lowerMessage.contains("خرید") ||
-            lowerMessage.contains("انتقال") ||
-            lowerMessage.contains("مصرف") -> TransactionType.EXPENSE
+                lowerMessage.contains("پرداخت") ||
+                lowerMessage.contains("خرید") ||
+                lowerMessage.contains("انتقال") ||
+                lowerMessage.contains("مصرف") -> TransactionType.EXPENSE
 
             lowerMessage.contains("واریز") ||
-            (lowerMessage.contains("credited") && !lowerMessage.contains("block")) -> TransactionType.INCOME
+                (lowerMessage.contains("credited") && !lowerMessage.contains("block")) -> TransactionType.INCOME
 
             else -> null
         }
@@ -148,9 +148,9 @@ abstract class BaseIranianBankParser : BankParser() {
         )
 
         return name.length >= 2 &&
-                name.any { it.isLetter() } &&
-                name.uppercase() !in commonWords &&
-                !name.all { it.isDigit() } &&
-                !name.contains("@")
+            name.any { it.isLetter() } &&
+            name.uppercase() !in commonWords &&
+            !name.all { it.isDigit() } &&
+            !name.contains("@")
     }
 }

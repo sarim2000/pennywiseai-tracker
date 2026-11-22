@@ -453,7 +453,7 @@ class TransactionsViewModel @Inject constructor(
 
     /**
      * Soft-delete every currently-selected transaction. Undo restores them all
-     * via the same per-row undoDelete path the single-row flow uses.
+     * through the same restore use case the single-row undo uses.
      */
     fun bulkDelete() {
         val ids = _selectedIds.value
@@ -973,16 +973,6 @@ class TransactionsViewModel @Inject constructor(
             _deletedTransaction.value = transaction
             deleteTransactionUseCase(transaction)
             refreshWidgets()
-        }
-    }
-
-    fun undoDelete() {
-        _deletedTransaction.value?.let { transaction ->
-            viewModelScope.launch {
-                restoreTransactionUseCase(transaction)
-                _deletedTransaction.value = null
-                refreshWidgets()
-            }
         }
     }
 

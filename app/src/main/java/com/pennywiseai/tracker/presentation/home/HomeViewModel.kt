@@ -1337,16 +1337,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun undoDelete() {
-        _deletedTransaction.value?.let { transaction ->
-            viewModelScope.launch {
-                restoreTransactionUseCase(transaction)
-                _deletedTransaction.value = null
-                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
-            }
-        }
-    }
-
     fun undoDeleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             restoreTransactionUseCase(transaction)

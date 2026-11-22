@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.core.entitlement.FreeTierLimits
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
@@ -32,6 +33,7 @@ class RulesViewModel @Inject constructor(
     private val initializeRuleTemplatesUseCase: InitializeRuleTemplatesUseCase,
     private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
     entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
@@ -40,8 +42,6 @@ class RulesViewModel @Inject constructor(
      * and the inline quota caption on the Rules screen.
      */
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
-
-    private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -93,16 +93,13 @@ class RulesViewModel @Inject constructor(
         initialValue = true,
     )
 
-    /**
-     * Non-hidden accounts from `hidden_accounts` SharedPreferences key.
-     */
+    /** Accounts the user hasn't ignored ([IgnoredAccountsStore]). */
     val accounts: StateFlow<List<AccountInfo>> = accountBalanceRepository.getAllLatestBalances()
         .map { balances ->
-            val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+            val hiddenAccounts = ignoredAccountsStore.keys()
             balances
                 .filter { balance ->
-                    val key = "${balance.bankName}_${balance.accountLast4}"
-                    !hiddenAccounts.contains(key)
+                    IgnoredAccountsStore.keyFor(balance.bankName, balance.accountLast4) !in hiddenAccounts
                 }
                 .map { balance ->
                     AccountInfo(
@@ -113,7 +110,7 @@ class RulesViewModel @Inject constructor(
                         accountType = balance.accountType
                     )
                 }
-                .distinctBy { "${it.bankName}_${it.accountLast4}" }
+                .distinctBy { IgnoredAccountsStore.keyFor(it.bankName, it.accountLast4) }
         }
         .stateIn(
             scope = viewModelScope,

@@ -22,8 +22,8 @@ All amounts, account suffixes, merchants, and messages are synthetic.
 For Unified Currency with JOD as the display currency, the fixture includes
 offline demo rates of JOD 0.71 per USD and JOD 0.80 per EUR.
 The [chart fixture](../app/src/debug/java/com/pennywiseai/tracker/debug/DemoChartTransactions.kt)
-generates daily activity relative to launch, and both entry points insert the
-same fixture in one Room transaction.
+generates daily activity relative to launch, and the script inserts the whole
+fixture in one Room transaction.
 
 | Screen or workflow | Examples |
 | --- | --- |

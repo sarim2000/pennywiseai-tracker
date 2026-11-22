@@ -666,13 +666,7 @@ class HomeViewModel @Inject constructor(
                 // Update available currencies to include account currencies
                 val currentAvailableCurrencies = _uiState.value.availableCurrencies.toSet()
                 val updatedAvailableCurrencies = (currentAvailableCurrencies + allAccountCurrencies)
-                    .sortedWith { a, b ->
-                        when {
-                            a == baseCurrency -> -1
-                            b == baseCurrency -> 1
-                            else -> a.compareTo(b)
-                        }
-                    }
+                    .sortedWith(compareBy<String> { it != baseCurrency }.thenBy { it })
 
                 // Balance is ready as soon as we have account data.
                 // Conversion failures are non-blocking — convertAmount returns the
@@ -1449,13 +1443,8 @@ class HomeViewModel @Inject constructor(
         // Update available currencies — merge transaction currencies with existing account currencies
         val transactionCurrencies = (currentMonthBreakdownMap.keys + lastMonthBreakdownMap.keys)
         val existingCurrencies = _uiState.value.availableCurrencies
-        val availableCurrencies = (existingCurrencies + transactionCurrencies).distinct().sortedWith { a, b ->
-            when {
-                a == baseCurrency -> -1
-                b == baseCurrency -> 1
-                else -> a.compareTo(b)
-            }
-        }
+        val availableCurrencies = (existingCurrencies + transactionCurrencies).distinct()
+            .sortedWith(compareBy<String> { it != baseCurrency }.thenBy { it })
 
         // Auto-select currency: prefer baseCurrency from preferences, then INR, then first available
         val currentSelectedCurrency = _uiState.value.selectedCurrency

@@ -195,13 +195,7 @@ class TransactionsViewModel @Inject constructor(
         } ?: transactionRepository.getAllCurrencies()
     }
         .combine(userPreferencesRepository.baseCurrency) { currencies, base ->
-            currencies.sortedWith { a, b ->
-                when {
-                    a == base -> -1
-                    b == base -> 1
-                    else -> a.compareTo(b)
-                }
-            }
+            currencies.sortedWith(compareBy<String> { it != base }.thenBy { it })
         }
         .stateIn(
             scope = viewModelScope,

@@ -80,7 +80,7 @@ fun TransactionItem(
         TransactionType.CREDIT -> colorScheme.credit
         TransactionType.TRANSFER -> colorScheme.transfer
         TransactionType.INVESTMENT -> colorScheme.investment
-    }.onRow(containerColor)
+    }
 
     val dateTimeFormatter = if (showDate) AppDates.dayMonthTimeFormatter() else AppDates.pattern("h:mm a")
     val dateTimeText = remember(transaction.dateTime, dateTimeFormatter) {
@@ -178,8 +178,11 @@ fun TransactionItem(
         subtitle = subtitle,
         amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
-        // tertiary is a fill, not ink: some palettes make it the surface colour itself.
-        subtitleColor = (if (unsorted) colorScheme.unsorted else colorScheme.onSurfaceVariant).onRow(containerColor, rowInk),
+        subtitleColor = rowInk ?: if (unsorted) {
+            colorScheme.unsorted
+        } else {
+            colorScheme.onSurfaceVariant
+        },
         shape = listItemPosition.toShape(),
         contentPadding = Dimensions.Padding.card,
         onClick = {
@@ -188,7 +191,6 @@ fun TransactionItem(
         },
         onLongClick = onLongClick,
         containerColor = containerColor,
-        contentColor = rowInk,
         modifier = modifier,
         leadingContent = {
             val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
@@ -224,7 +226,7 @@ fun TransactionItem(
                     Text(
                         text = "($nativeAmount)",
                         style = PennyWiseText.amountSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.onRow(containerColor, rowInk),
+                        color = rowInk ?: colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -349,15 +351,4 @@ fun TransactionAvatar(
             EmojiGlyph(icon.emoji, glyphSize)
         }
     }
-}
-
-/**
- * This ink on a selected row's override fill (primaryContainer), which isn't the surface it was
- * picked for. Also under that row's press and focus layer, which is its content colour.
- * Unchanged when the row has no override fill.
- */
-private fun Color.onRow(containerColor: Color?, contentInk: Color? = null): Color {
-    containerColor ?: return this
-    val layer = contentInk ?: containerColor.bestInk()
-    return readableOn(listOf(containerColor), layers = listOf(layer.stateLayer()))
 }

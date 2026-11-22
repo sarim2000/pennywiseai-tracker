@@ -24,61 +24,11 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 ## Screenshots
 
 <p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="160" alt="Home screen: spending this month, budgets and recent transactions"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2.png" width="160" alt="On-device AI assistant chat"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="160" alt="Analytics: monthly total, trend chart and top categories"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="160" alt="Home screen in dark mode"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="24%" alt="No typing: a bank SMS becomes a categorised transaction"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="24%" alt="Know what's left to spend this month"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="24%" alt="See where your money goes, by category and month"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="24%" alt="Ask the on-device AI about your spending"/>
 </p>
-
-<details>
-<summary>More screenshots (light &amp; dark themes)</summary>
-
-<br/>
-
-<p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="160" alt="Subscriptions: monthly total and active subscriptions"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6.png" width="160" alt="Private by design: on-device AI, no cloud, open source"/>
-</p>
-
-**Light Theme**
-
-<table>
-<tr>
-<td><img src="screenshots/home-light.png" width="160" alt="Home (light theme)"/></td>
-<td><img src="screenshots/analytics-light.png" width="160" alt="Insights (light theme)"/></td>
-<td><img src="screenshots/analytics-scroll-light.png" width="160" alt="Categories (light theme)"/></td>
-<td><img src="screenshots/transaction-detail-light.png" width="160" alt="Transaction details (light theme)"/></td>
-<td><img src="screenshots/chat-light.png" width="160" alt="Ask AI chat (light theme)"/></td>
-</tr>
-<tr>
-<td align="center">Home</td>
-<td align="center">Insights</td>
-<td align="center">Categories</td>
-<td align="center">Details</td>
-<td align="center">Ask (AI)</td>
-</tr>
-</table>
-
-**Dark Theme**
-
-<table>
-<tr>
-<td><img src="screenshots/home-dark.png" width="160" alt="Home (dark theme)"/></td>
-<td><img src="screenshots/analytics-dark.png" width="160" alt="Insights (dark theme)"/></td>
-<td><img src="screenshots/account-detail-dark.png" width="160" alt="Account detail (dark theme)"/></td>
-<td><img src="screenshots/accounts-dark.png" width="160" alt="Accounts (dark theme)"/></td>
-<td><img src="screenshots/chat-dark.png" width="160" alt="Ask AI chat (dark theme)"/></td>
-</tr>
-<tr>
-<td align="center">Home</td>
-<td align="center">Insights</td>
-<td align="center">Account Detail</td>
-<td align="center">Accounts</td>
-<td align="center">Ask (AI)</td>
-</tr>
-</table>
-
-</details>
 
 ## How it works
 

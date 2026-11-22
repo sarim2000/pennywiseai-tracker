@@ -123,11 +123,21 @@ class SettingsSearchTest {
     }
 
     @Test
-    fun `a typo in a word counts as matching it`() {
-        assertTrue(wordMatches("restroe", "restore data from backup"))
-        assertTrue(wordMatches("backup", "restore data from backup"))
-        assertTrue(!wordMatches("restroe", "import data"))
-        assertTrue(!wordMatches("x".repeat(10_000), "import data"))
+    fun `a result shows its subtitle when a word matched there, typos included`() {
+        fun shows(query: String, title: String, subtitle: String, keywords: String = ""): Boolean {
+            val words = searchWords(query)
+            val fields = listOf(title, subtitle, keywords).map(::normalizeForSearch)
+            return showsOwnSubtitle(words, fields[0], fields[1], fields)
+        }
+        assertTrue(shows("restore", "Import data", "Restore data from backup"))
+        assertTrue(shows("restroe", "Import data", "Restore data from backup"))
+        // A typo near the title doesn't hide a word the subtitle has as typed.
+        assertTrue(shows("spent", "Card spending", "Spent this month"))
+        assertTrue(!shows("import", "Import data", "Restore data from backup"))
+        // A word found as typed (here a keyword) isn't also matched with a typo.
+        assertTrue(!shows("night", "Dark", "Easier in low light", keywords = "night mode"))
+        // A pasted wall of text stays cheap and matches nothing.
+        assertTrue(!shows("x".repeat(10_000), "Import data", "Restore data from backup"))
     }
 
     @Test

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldLineLimits
@@ -37,6 +38,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -299,8 +301,17 @@ private fun wordCost(word: String, texts: List<String>, typos: Boolean): Int? {
     return texts.indexOfFirst { typoMatches(word, it) }.takeIf { it >= 0 }?.let { 2 * texts.size + it }
 }
 
-/** Whether [word] is in [text] as typed or, within [typoBudget], starts one of its words. */
-internal fun wordMatches(word: String, text: String) = word in text || typoMatches(word, text)
+/**
+ * Whether a result should show its own [subtitle] rather than its page: some query
+ * word matched there and not in the [title]. All text normalized. A word in none of
+ * the result's [fields] as typed matched with a typo, so it counts its typo matches;
+ * any other word counts only as typed, so "spent" in a subtitle isn't hidden by a
+ * title that says "spend".
+ */
+internal fun showsOwnSubtitle(words: List<String>, title: String, subtitle: String, fields: List<String>) = words.any { word ->
+    fun String.has(word: String) = if (fields.any { word in it }) word in this else word in this || typoMatches(word, this)
+    !title.has(word) && subtitle.has(word)
+}
 
 private fun typoMatches(word: String, text: String): Boolean {
     val budget = typoBudget(word)
@@ -434,6 +445,9 @@ internal fun SettingsSearchResults(query: String, contentPadding: PaddingValues,
             .imePadding(),
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
+        // A new query starts at the top, so its count (the first item, a live region) is
+        // composed and announced. Keyed by query, so coming back from a result keeps the place.
+        state = rememberSaveable(query, saver = LazyListState.Saver) { LazyListState() },
     ) {
         item(key = "count") {
             Text(
@@ -446,9 +460,13 @@ internal fun SettingsSearchResults(query: String, contentPadding: PaddingValues,
             )
         }
         itemsIndexed(results, key = { _, it -> "${it.entry.title}/${it.entry.target}" }) { index, result ->
-            val ownSubtitle = result.subtitle?.let(::normalizeForSearch)
-            val title = normalizeForSearch(result.title)
-            val matchedSubtitle = ownSubtitle != null && words.any { !wordMatches(it, title) && wordMatches(it, ownSubtitle) }
+            val matchedSubtitle = result.subtitle != null &&
+                showsOwnSubtitle(
+                    words,
+                    normalizeForSearch(result.title),
+                    normalizeForSearch(result.subtitle),
+                    result.fields.map(::normalizeForSearch),
+                )
             SettingsNavItem(
                 icon = result.entry.icon,
                 title = result.title,

@@ -1,12 +1,16 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.pennywiseai.tracker.ui.animations.animateMeterFraction
 import com.pennywiseai.tracker.ui.theme.Dimensions
 
 /**
@@ -19,8 +23,10 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
  *
  * [dense] calms the wave for rows in a list, where a full-height crest next to
  * the next row's crest turns the screen into noise.
+ *
+ * It fills from empty once, when it first shows ([fillIn], off by default for dense
+ * rows so a long list doesn't sweep in all at once), then eases to new values.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun WavyMeter(
     fraction: Float,
@@ -28,12 +34,30 @@ fun WavyMeter(
     trackColor: Color,
     modifier: Modifier = Modifier,
     dense: Boolean = false,
+    fillIn: Boolean = !dense,
+) = WavyMeter(fraction, { color }, trackColor, modifier, dense, fillIn)
+
+/**
+ * [WavyMeter] whose [color] follows the value: it gets the fraction on screen, so a
+ * status colour turns at 70% when the bar reaches 70%, not when the target does,
+ * and crossfades on the fast effects spec.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun WavyMeter(
+    fraction: Float,
+    color: @Composable (shown: Float) -> Color,
+    trackColor: Color,
+    modifier: Modifier = Modifier,
+    dense: Boolean = false,
+    fillIn: Boolean = !dense,
 ) {
-    val clamped = fraction.coerceIn(0f, 1f)
+    val shown by animateMeterFraction(fraction.coerceIn(0f, 1f), fillIn = fillIn)
+    val tint by animateColorAsState(color(shown), MaterialTheme.motionScheme.fastEffectsSpec(), label = "meterColor")
     LinearWavyProgressIndicator(
-        progress = { clamped },
+        progress = { shown },
         modifier = modifier.fillMaxWidth(),
-        color = color,
+        color = tint,
         trackColor = trackColor,
         stopSize = Dimensions.Component.wavyMeterStop,
         amplitude = if (dense) DenseAmplitude else WavyProgressIndicatorDefaults.indicatorAmplitude,

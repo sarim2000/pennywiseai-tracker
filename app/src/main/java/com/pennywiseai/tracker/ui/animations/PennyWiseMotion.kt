@@ -6,6 +6,8 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -20,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -179,4 +182,27 @@ fun StaggeredEntrance(
         }
     }
     AnimatedVisibility(visible = visible, modifier = modifier, enter = pwEnter(), content = content)
+}
+
+/**
+ * A data meter's drawn fraction (bar, ring): fills from empty the first time this meter
+ * shows its data, then eases to each new [target]. The "filled" flag is saveable, so
+ * scrolling back, returning to the tab or recomposing doesn't replay it. Starts settled
+ * when [fillIn] is false (dense list rows) or with "Remove animations". Effects spec:
+ * bounded data never overshoots its value.
+ */
+@Composable
+fun animateMeterFraction(
+    target: Float,
+    spec: AnimationSpec<Float> = MaterialTheme.motionScheme.defaultEffectsSpec(),
+    fillIn: Boolean = true,
+): State<Float> {
+    var filled by rememberSaveable { mutableStateOf(!fillIn) }
+    val animationsEnabled = rememberAnimationsEnabled()
+    val shown = remember { Animatable(if (filled || !animationsEnabled) target else 0f) }
+    LaunchedEffect(target) {
+        filled = true
+        shown.animateTo(target, spec)
+    }
+    return shown.asState()
 }

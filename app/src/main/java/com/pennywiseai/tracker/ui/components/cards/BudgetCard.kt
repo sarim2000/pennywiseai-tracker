@@ -156,13 +156,19 @@ internal fun BudgetStatusContent(
         if (spending.hasLimit && !AmountPrivacy.hidden) {
             WavyMeter(
                 fraction = spending.percentageUsed / 100f,
-                color = when {
-                    hero -> scheme.onPrimaryContainer
-                    tracksSpending && (isOver || spending.percentageUsed >= 70f) -> statusColor
-                    else -> color
+                // Reads the drawn fraction, so the bar turns as it passes 70% / 90% (over is 100%+).
+                color = { shown ->
+                    when {
+                        hero -> scheme.onPrimaryContainer
+                        tracksSpending && shown >= 0.9f -> scheme.error
+                        tracksSpending && shown >= 0.7f -> scheme.warning
+                        else -> color
+                    }
                 },
                 trackColor = scheme.surfaceContainerHighest,
-                dense = dense || compact
+                dense = dense || compact,
+                // Home's one-line rows start settled; Plan's cards fill in.
+                fillIn = !compact
             )
         }
         if (compact) {

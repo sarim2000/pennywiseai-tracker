@@ -406,6 +406,10 @@ it by `Dimensions.Component.bottomBarHeight`.
      turning tertiary at 70%, error at 90%) reads the value on screen, not the
      target, and crossfades on `fastEffectsSpec`; text on it uses the matching
      `on*` role.
+     Data meters (`WavyMeter`, the big `GoalRing`) fill from empty once, the
+     first time they show loaded data (`animateMeterFraction`, saveable; dense
+     list rows start settled), then ease to new values; a value-following colour
+     takes `WavyMeter`'s `color = { shown -> … }` form.
   2. **One beat per change** — no staggering digits or sibling figures.
   3. **Short travel.** Slides are a fraction of the screen (a few dp for
      content, a quarter of the bar for chrome, a quarter of the screen for a

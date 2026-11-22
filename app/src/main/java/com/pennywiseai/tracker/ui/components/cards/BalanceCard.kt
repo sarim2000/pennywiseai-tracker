@@ -412,20 +412,16 @@ private fun HeroHeader(
 /** The budget's wavy meter, standing still: warning from 70% used, error from 90%. */
 @Composable
 private fun BudgetMeter(budget: HomeHeroBudget) {
-    val progress by animateFloatAsState(
-        targetValue = budget.fractionUsed,
-        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-        label = "heroBudgetProgress"
-    )
-    val color = when {
-        progress >= DANGER_AT -> MaterialTheme.colorScheme.error
-        progress >= WARNING_AT -> MaterialTheme.colorScheme.warning
-        else -> MaterialTheme.colorScheme.primary
-    }
     // The figures sit right under it, so the meter itself needs no text.
     WavyMeter(
-        fraction = progress,
-        color = color,
+        fraction = budget.fractionUsed,
+        color = { shown ->
+            when {
+                shown >= DANGER_AT -> MaterialTheme.colorScheme.error
+                shown >= WARNING_AT -> MaterialTheme.colorScheme.warning
+                else -> MaterialTheme.colorScheme.primary
+            }
+        },
         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
         modifier = Modifier.clearAndSetSemantics { }
     )

@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -29,6 +28,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.domain.goals.percent
 import com.pennywiseai.tracker.domain.goals.ratioOf
+import com.pennywiseai.tracker.ui.animations.animateMeterFraction
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AmountPrivacy
@@ -59,7 +59,12 @@ fun GoalRing(
 ) {
     // Effects specs throughout: a progress arc never bounces past its value.
     val target = progress.ratioOf(progress.saved)
-    val animated by animateFloatAsState(target, MaterialTheme.motionScheme.slowEffectsSpec(), label = "goalRing")
+    // The big ring fills from empty once; the small ones sit in rows and start settled.
+    val animated by animateMeterFraction(
+        target,
+        MaterialTheme.motionScheme.slowEffectsSpec(),
+        fillIn = size >= Dimensions.Component.minTouchTarget,
+    )
     val percent = ringPercent(animated, target, progress.percent())
 
     // 1 while the added segment stands apart, easing to 0 as it joins the ring.

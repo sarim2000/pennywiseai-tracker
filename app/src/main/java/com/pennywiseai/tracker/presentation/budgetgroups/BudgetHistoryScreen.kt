@@ -142,7 +142,7 @@ fun BudgetHistoryScreen(
                             val fraction = state.totalSpent.toFloat() / state.budgetAmount.toFloat()
                             WavyMeter(
                                 fraction = fraction,
-                                color = usedColor(fraction * 100f),
+                                color = { usedColor(it * 100f) },
                                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                             )
                         }
@@ -456,7 +456,7 @@ private fun BreakdownSheet(
             if (breakdown.hasLimit && !AmountPrivacy.hidden) {
                 WavyMeter(
                     fraction = pctUsed / 100f,
-                    color = usedColor(pctUsed),
+                    color = { usedColor(it * 100f) },
                     trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                 )
             }

@@ -41,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -209,18 +210,23 @@ fun BalanceCard(
                     },
                 )
                 val heroStyle = PennyWiseText.heroAmount
-                AnimatedCurrencyText(
-                    text = if (budget != null) {
-                        hidden(budget.remaining.abs(), budget.currency)
-                    } else {
-                        hidden(currentMonthExpenses, currency)
-                    },
-                    style = heroStyle,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    // A long amount shrinks to fit rather than wrapping mid-number.
-                    autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, heroStyle.fontSize),
-                )
+                // Another currency is a first show, not a change of value: amounts in
+                // two currencies can't be compared, so the figure swaps without rolling.
+                key(budget?.currency ?: currency) {
+                    AnimatedCurrencyText(
+                        text = if (budget != null) {
+                            hidden(budget.remaining.abs(), budget.currency)
+                        } else {
+                            hidden(currentMonthExpenses, currency)
+                        },
+                        style = heroStyle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        // A long amount shrinks to fit rather than wrapping mid-number.
+                        autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, heroStyle.fontSize),
+                        decimalSeparator = CurrencyFormatter.decimalSeparator(budget?.currency ?: currency),
+                    )
+                }
                 // Hidden amounts hide the meter too: a known limit and its fill give the spend away.
                 if (budget != null && !isBalanceHidden) BudgetMeter(budget = budget)
                 HeroFooter(

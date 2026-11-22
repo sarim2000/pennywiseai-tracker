@@ -380,7 +380,6 @@ class BackupImporter @Inject constructor(
             // Get existing data for duplicate checking
             val existingTransactions = database.transactionDao()
                 .getAllTransactions().first()
-            val existingTransactionHashes = existingTransactions.map { it.transactionHash }.toSet()
             val existingHashToIdMap = existingTransactions.associateBy({ it.transactionHash }, { it.id })
 
             val existingCategoryRows = database.categoryDao().getAllCategories().first()
@@ -475,7 +474,8 @@ class BackupImporter @Inject constructor(
             val oldToNewTransactionIdMap = mutableMapOf<Long, Long>()
 
             backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
-                if (!existingTransactionHashes.contains(transaction.transactionHash)) {
+                val localId = existingHashToIdMap[transaction.transactionHash]
+                if (localId == null) {
                     val oldId = transaction.id
                     val newTransaction = transaction.copy(
                         id = 0,
@@ -493,8 +493,7 @@ class BackupImporter @Inject constructor(
                     importedTransactions++
                 } else {
                     // Also map IDs for duplicate transactions so splits/applications reference correct local ID
-                    val localId = existingHashToIdMap[transaction.transactionHash]
-                    if (transaction.id != 0L && localId != null) {
+                    if (transaction.id != 0L) {
                         oldToNewTransactionIdMap[transaction.id] = localId
                     }
                     skippedDuplicates++

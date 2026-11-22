@@ -121,7 +121,7 @@ cd pennywiseai-tracker
 
 ### Project Structure
 
-PennyWise is a multi-module project (`settings.gradle.kts` includes `:app`, `:core:designsystem`, `:parser-core`, `:shared`, and `:iosApp`; the tree below also shows non-module directories):
+PennyWise is a multi-module project (`settings.gradle.kts` includes `:app`, `:core:designsystem`, `:parser-core`, and `:shared`; the tree below also shows non-module directories):
 
 ```
 app/                  # Android app (Compose UI, Room, Hilt)

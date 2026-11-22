@@ -178,7 +178,7 @@ fun MarkAsPaidSheet(
 
             // Hero amount — typography carries the moment. amountHeadline
             // (headlineLarge size) matches the rest of the app's big-number
-            // convention (SummaryCardV2 uses the same size).
+            // convention.
             Text(
                 text = CurrencyFormatter.formatCurrency(subscription.amount, subscription.currency),
                 style = PennyWiseText.amountHeadline,

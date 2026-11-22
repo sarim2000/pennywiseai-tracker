@@ -84,7 +84,7 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
         currencySpentPattern.find(message)?.let { match ->
             val currency = match.groupValues[1].uppercase()
             // Validate: 3 letters, not month abbreviations
-            if (!currency.matches(Regex("^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$"))) {
+            if (!currency.matches(MONTH_ABBREVIATION)) {
                 return currency
             }
         }
@@ -348,5 +348,9 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
         }
 
         return super.extractReference(message)
+    }
+
+    private companion object {
+        val MONTH_ABBREVIATION = Regex("^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$")
     }
 }

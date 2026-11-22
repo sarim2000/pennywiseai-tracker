@@ -132,7 +132,7 @@ class ICICIBankParser : BaseIndianBankParser() {
             val currency = match.groupValues[1].uppercase()
             // Validate it's a valid currency code (3 letters, not month abbreviations)
             if (currency.length == 3 &&
-                !currency.matches(Regex("^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$"))
+                !currency.matches(MONTH_ABBREVIATION)
             ) {
                 return currency
             }
@@ -656,5 +656,9 @@ class ICICIBankParser : BaseIndianBankParser() {
 
         // Fall back to base class for standard checks
         return super.extractTransactionType(message)
+    }
+
+    private companion object {
+        val MONTH_ABBREVIATION = Regex("^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$")
     }
 }

@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
@@ -197,8 +198,8 @@ class LivBankParser : UAEBankParser() {
                 val currencyCode = match.groupValues[1].uppercase()
 
                 // Validate it's a 3-letter code (standard ISO currency format) but not month names
-                if (currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(Regex("""^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""", RegexOption.IGNORE_CASE))
+                if (currencyCode.matches(CompiledPatterns.Currency.ISO_CODE) &&
+                    !isMonthAbbreviation(currencyCode)
                 ) {
                     return currencyCode
                 }

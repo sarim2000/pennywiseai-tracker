@@ -85,7 +85,7 @@ abstract class UAEBankParser : BankParser() {
         return super.extractAmount(message)
     }
 
-    private fun isMonthAbbreviation(code: String): Boolean = code in MONTH_ABBREVIATIONS
+    protected fun isMonthAbbreviation(code: String): Boolean = code in MONTH_ABBREVIATIONS
 
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()

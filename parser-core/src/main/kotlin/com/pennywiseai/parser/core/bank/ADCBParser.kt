@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
@@ -32,14 +33,8 @@ class ADCBParser : FABParser() {
                 val amountStr = match.groupValues[2].trim()
 
                 // Validate currency code (3 letters, not month names)
-                if (currencyCode.length == 3 &&
-                    currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(
-                        Regex(
-                            """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""",
-                            RegexOption.IGNORE_CASE
-                        )
-                    )
+                if (currencyCode.matches(CompiledPatterns.Currency.ISO_CODE) &&
+                    !isMonthAbbreviation(currencyCode)
                 ) {
                     try {
                         val amount = BigDecimal(amountStr.replace(",", ""))
@@ -66,14 +61,8 @@ class ADCBParser : FABParser() {
                 val currencyCode = match.groupValues[1].trim()
                 val amountStr = match.groupValues[2].trim()
 
-                if (currencyCode.length == 3 &&
-                    currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(
-                        Regex(
-                            """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""",
-                            RegexOption.IGNORE_CASE
-                        )
-                    )
+                if (currencyCode.matches(CompiledPatterns.Currency.ISO_CODE) &&
+                    !isMonthAbbreviation(currencyCode)
                 ) {
                     try {
                         val amount = BigDecimal(amountStr.replace(",", ""))
@@ -359,13 +348,8 @@ class ADCBParser : FABParser() {
             pattern.find(message)?.let { match ->
                 val currencyCode = match.groupValues[1].uppercase()
                 // Validate it's a 3-letter code (standard ISO currency format) but not month names
-                if (currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(
-                        Regex(
-                            """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""",
-                            RegexOption.IGNORE_CASE
-                        )
-                    )
+                if (currencyCode.matches(CompiledPatterns.Currency.ISO_CODE) &&
+                    !isMonthAbbreviation(currencyCode)
                 ) {
                     return currencyCode
                 }
@@ -385,13 +369,8 @@ class ADCBParser : FABParser() {
             val currencyPattern = Regex("""([A-Z]{3})\s*[0-9,]+(?:\.\d{2})?""")
             currencyPattern.find(beforeBalance)?.let { match ->
                 val currencyCode = match.groupValues[1].uppercase()
-                if (currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(
-                        Regex(
-                            """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""",
-                            RegexOption.IGNORE_CASE
-                        )
-                    )
+                if (currencyCode.matches(CompiledPatterns.Currency.ISO_CODE) &&
+                    !isMonthAbbreviation(currencyCode)
                 ) {
                     return currencyCode
                 }

@@ -42,20 +42,8 @@ class SmsScanManager @Inject constructor(
         )
     }
 
-    /**
-     * Cancels any ongoing SMS scanning work.
-     */
-    fun cancelSmsScanning() {
-        workManager.cancelUniqueWork(OptimizedSmsReaderWorker.WORK_NAME)
-    }
-
     /** Whether a scan is queued or running, whoever started it. */
     fun isScanRunning(): Flow<Boolean> =
         workManager.getWorkInfosForUniqueWorkFlow(OptimizedSmsReaderWorker.WORK_NAME)
             .map { infos -> infos.any { !it.state.isFinished } }
-
-    /**
-     * Gets the work info for monitoring progress of the SMS scan.
-     */
-    fun getSmsScanWorkInfo() = workManager.getWorkInfosByTagLiveData("optimized_sms_processing")
 }

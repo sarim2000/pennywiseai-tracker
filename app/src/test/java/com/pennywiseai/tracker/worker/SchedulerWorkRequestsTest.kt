@@ -65,16 +65,6 @@ class SchedulerWorkRequestsTest {
         assertEquals(NetworkType.NOT_REQUIRED, request.captured.workSpec.constraints.requiredNetworkType)
     }
 
-    @Test fun smsScan_cancelAndProgressUseTheSameNameAndTag() {
-        val manager = SmsScanManager(context)
-
-        manager.cancelSmsScanning()
-        manager.getSmsScanWorkInfo()
-
-        verify { workManager.cancelUniqueWork("optimized_sms_reader_work") }
-        verify { workManager.getWorkInfosByTagLiveData("optimized_sms_processing") }
-    }
-
     @Test fun webhookEnqueue_keepsUniqueOneShotWorkWithInputData() {
         val request = slot<OneTimeWorkRequest>()
         val scheduler = webhookScheduler(pro = true)

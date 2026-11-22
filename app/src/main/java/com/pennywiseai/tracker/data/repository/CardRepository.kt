@@ -13,40 +13,29 @@ import javax.inject.Singleton
 class CardRepository @Inject constructor(
     private val cardDao: CardDao
 ) {
-    
-    suspend fun insertCard(card: CardEntity): Long {
-        return cardDao.insertCard(card)
-    }
-    
     suspend fun updateCard(card: CardEntity) {
         cardDao.updateCard(card.copy(updatedAt = LocalDateTime.now()))
     }
-    
+
     suspend fun deleteCard(card: CardEntity) {
         cardDao.deleteCard(card)
     }
-    
+
     suspend fun deleteCard(cardId: Long) {
         val card = cardDao.getCardById(cardId)
         if (card != null) {
             cardDao.deleteCard(card)
         }
     }
-    
+
     suspend fun getCard(bankName: String, cardLast4: String): CardEntity? {
         return cardDao.getCard(bankName, cardLast4)
     }
-    
+
     suspend fun getCardById(cardId: Long): CardEntity? {
         return cardDao.getCardById(cardId)
     }
-    
-    suspend fun findCard(cardLast4: String): CardEntity? {
-        // Return first matching card (in case of multiple banks with same last4)
-        val cards = cardDao.getCardsByLast4(cardLast4)
-        return cards.firstOrNull()
-    }
-    
+
     suspend fun findOrCreateCard(
         cardLast4: String,
         bankName: String,
@@ -65,7 +54,7 @@ class CardRepository @Inject constructor(
             }
             return existingCard
         }
-        
+
         // Create new card
         val newCard = CardEntity(
             cardLast4 = cardLast4,
@@ -73,50 +62,27 @@ class CardRepository @Inject constructor(
             bankName = bankName,
             accountLast4 = null // Never self-reference - cards start unlinked
         )
-        
+
         val id = cardDao.insertCard(newCard)
         return newCard.copy(id = id)
     }
-    
-    suspend fun getOrphanedDebitCards(): List<CardEntity> {
-        return cardDao.getOrphanedCards(CardType.DEBIT)
-    }
-    
-    suspend fun getOrphanedCreditCards(): List<CardEntity> {
-        return cardDao.getOrphanedCards(CardType.CREDIT)
-    }
-    
+
     fun getAllCards(): Flow<List<CardEntity>> {
         return cardDao.getAllCards()
     }
-    
+
     suspend fun linkCardToAccount(cardId: Long, accountLast4: String?) {
         cardDao.linkCardToAccount(cardId, accountLast4)
     }
-    
+
     suspend fun unlinkCard(cardId: Long) {
         cardDao.linkCardToAccount(cardId, null)
     }
-    
+
     suspend fun setCardActive(cardId: Long, isActive: Boolean) {
         cardDao.setCardActive(cardId, isActive)
     }
-    
-    /**
-     * Determines the target account for a transaction based on card type.
-     * For debit cards, returns the linked account.
-     * For credit cards or orphaned cards, returns the card's own number.
-     */
-    suspend fun getTargetAccount(cardLast4: String, bankName: String): String {
-        val card = getCard(bankName, cardLast4)
-        
-        return when {
-            card == null -> cardLast4 // Unknown card, use as-is
-            card.cardType == CardType.DEBIT && card.accountLast4 != null -> card.accountLast4
-            else -> cardLast4 // Credit card or orphaned debit card
-        }
-    }
-    
+
     /**
      * Updates the last known balance for a card from a transaction.
      * This is used to track balance for unlinked cards.
@@ -134,7 +100,7 @@ class CardRepository @Inject constructor(
             - New balance: $balance
             - Previous balance: ${card?.lastBalance}
         """.trimIndent())
-        
+
         if (card != null) {
             val updatedCard = card.copy(
                 lastBalance = balance,

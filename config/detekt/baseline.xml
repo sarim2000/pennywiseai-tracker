@@ -1762,7 +1762,6 @@
     <ID>NewLineAtEndOfFile:BrandIcon.kt$com.pennywiseai.tracker.ui.components.BrandIcon.kt</ID>
     <ID>NewLineAtEndOfFile:CardDao.kt$com.pennywiseai.tracker.data.database.dao.CardDao.kt</ID>
     <ID>NewLineAtEndOfFile:CardEntity.kt$com.pennywiseai.tracker.data.database.entity.CardEntity.kt</ID>
-    <ID>NewLineAtEndOfFile:CardRepository.kt$com.pennywiseai.tracker.data.repository.CardRepository.kt</ID>
     <ID>NewLineAtEndOfFile:CategoriesScreen.kt$com.pennywiseai.tracker.presentation.categories.CategoriesScreen.kt</ID>
     <ID>NewLineAtEndOfFile:CategoryChip.kt$com.pennywiseai.tracker.ui.components.CategoryChip.kt</ID>
     <ID>NewLineAtEndOfFile:CategoryRepository.kt$com.pennywiseai.tracker.data.repository.CategoryRepository.kt</ID>

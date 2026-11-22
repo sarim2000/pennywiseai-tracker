@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.presentation.budgetgroups.historyBudgetTotal
 import com.pennywiseai.tracker.presentation.budgetgroups.historyHeaderWindows
 import io.mockk.coEvery
@@ -68,7 +69,7 @@ class BudgetHistoryCycleTest {
             coEvery { getBudgetCycleStartDay() } returns 1
         }
         val categories = mockk<CategoryDao> { coEvery { getAllCategoriesList() } returns emptyList() }
-        BudgetGroupRepository(budgetDao, splitDao, prefs, categories)
+        BudgetGroupRepository(budgetDao, splitDao, prefs, categories, mockk<IgnoredAccountsStore> { every { keysFlow } returns flowOf(emptySet()) }, mockk(), mockk())
     }
 
     private fun history(month: Int, today: LocalDate) =

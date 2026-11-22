@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.shared.domain.money.MinorUnits
+import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
+import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
@@ -12,11 +14,13 @@ import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.database.entity.countedCategory
 import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.spending.BudgetRollover
 import kotlinx.coroutines.flow.Flow
@@ -40,8 +44,25 @@ class BudgetGroupRepository @Inject constructor(
     private val budgetDao: BudgetDao,
     private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: BudgetPreferences,
-    private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao
+    private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val cardDao: CardDao,
+    private val accountBalanceDao: AccountBalanceDao
 ) {
+    /**
+     * [this] without an ignored account's rows (#826): Home, Insights and the Transactions
+     * list leave them out, so a budget counting them showed spend its own drill-down hid.
+     * Cards and balances are only read once something is ignored.
+     */
+    private fun Flow<List<TransactionWithSplits>>.tracked(): Flow<List<TransactionWithSplits>> =
+        ignoredAccountsStore.keysFlow.flatMapLatest { keys ->
+            if (keys.isEmpty()) return@flatMapLatest this
+            combine(this, cardDao.getAllCards(), accountBalanceDao.getAllLatestBalances()) { rows, cards, balances ->
+                val ignored = IgnoredAccountsStore.withLinkedCards(keys, cards, balances)
+                rows.filterNot { IgnoredAccountsStore.isIgnored(ignored, it.transaction.bankName, it.transaction.accountNumber) }
+            }
+        }
+
     // Sub-categories (#374): spend rolls up into the parent, and a budget on a
     // parent covers its children.
     suspend fun hasActiveBudgets(): Boolean = budgetDao.getActiveBudgets().first().isNotEmpty()
@@ -491,7 +512,7 @@ class BudgetGroupRepository @Inject constructor(
                     queryStart.atStartOfDay(),
                     queryEnd.atTime(23, 59, 59),
                     currency
-                ),
+                ).tracked(),
                 carryTransactions(carryWindows.values)
             ) { allTxs0, carryTxs ->
                 val allTxs = allTxs0.forTotals()
@@ -698,7 +719,7 @@ class BudgetGroupRepository @Inject constructor(
             transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
                 unionMinStart.atStartOfDay(),
                 unionMaxEnd.atTime(23, 59, 59)
-            ).map { unionTxs0 ->
+            ).tracked().map { unionTxs0 ->
                 val unionTxs = unionTxs0.forTotals()
                 val windowed = mutableListOf<WindowSpending>()
                 val currentWindows = mutableMapOf<Long, BudgetWindow>()
@@ -844,7 +865,7 @@ class BudgetGroupRepository @Inject constructor(
             transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
                 windows.minOf { it.start }.atStartOfDay(),
                 windows.maxOf { it.end }.atTime(23, 59, 59)
-            )
+            ).tracked()
         }
 
     private fun List<TransactionWithSplits>.within(window: BudgetWindow) = filter {
@@ -887,7 +908,7 @@ class BudgetGroupRepository @Inject constructor(
         transactionSplitDao.getTransactionsWithSplitsAllCurrencies(window.start.atStartOfDay(), end.atTime(23, 59, 59))
     } else {
         transactionSplitDao.getTransactionsWithSplitsFiltered(window.start.atStartOfDay(), end.atTime(23, 59, 59), currency)
-    }.first().forTotals()
+    }.tracked().first().forTotals()
 
     private fun List<TransactionWithSplits>.countedIn(
         currency: String,
@@ -1105,7 +1126,7 @@ class BudgetGroupRepository @Inject constructor(
                         dailyAmounts[dayIndex] += tx.amount.toDouble()
                     } else {
                         txWithSplits.getAmountByCategory().forEach { (cat, amount) ->
-                            val catName = cat.ifEmpty { "Others" }
+                            val catName = countedCategory(cat)
                             if (catName in categoryNames) {
                                 dailyAmounts[dayIndex] += amount.toDouble()
                             }
@@ -1293,7 +1314,7 @@ suspend fun aggregateBudgetCategorySpending(
             continue
         }
         for ((category, amount) in txWithSplits.getAmountByCategory()) {
-            val categoryName = category.ifEmpty { "Others" }
+            val categoryName = countedCategory(category)
             val converted = convertSplit(fromCurrency, amount) ?: run {
                 skippedCategories += categoryName
                 parentOf[categoryName]?.let { skippedCategories += it }

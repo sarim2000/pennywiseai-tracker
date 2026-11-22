@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.transactions
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.database.entity.countedCategory
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import java.math.BigDecimal
@@ -17,9 +18,10 @@ import java.time.LocalDate
 
 /**
  * Whether [name] is one of these categories, in any case: a chat figure counts a row filed as
- * "food" under "Food", and the list its link opens has to show that row too.
+ * "food" under "Food", and the list its link opens has to show that row too. A blank one is
+ * Others ([countedCategory]), where budgets and Analytics count it.
  */
-private fun Set<String>.hasCategory(name: String) = any { it.equals(name, ignoreCase = true) }
+private fun Set<String>.hasCategory(name: String) = countedCategory(name).let { counted -> any { it.equals(counted, ignoreCase = true) } }
 
 /**
  * Rows in [categories]: a split row by its splits' categories, any other by its own, the same
@@ -140,7 +142,7 @@ internal fun filterableCategories(
     val splits = allSplits.filter { it.transactionId in ids }
     // Parents of present sub-categories are filterable too (#374),
     // and the auto-clear in the ViewModel must not drop them.
-    val present = (transactions.map { it.category } + splits.map { it.category }).distinct()
+    val present = (transactions.map { countedCategory(it.category) } + splits.map { countedCategory(it.category) }).distinct()
     return (present + present.mapNotNull { parentOf[it] }).distinct().sorted()
 }
 

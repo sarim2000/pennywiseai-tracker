@@ -86,6 +86,7 @@ import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.*
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.YearMonth
 
 /** Gap between the blocks of a Plan section (switch, hero, list); rows inside a block sit 2dp apart. */
@@ -105,7 +106,7 @@ fun BudgetGroupsScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToGroupEdit: (Long) -> Unit = {},
     onNavigateToHistory: (Long, Int, Int) -> Unit = { _, _, _ -> },
-    onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> },
+    onNavigateToCategory: (BudgetCategoryRows) -> Unit = {},
     onNavigateToGoal: (Long) -> Unit = {},
     onNavigateToGoalEdit: (Long) -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
@@ -242,9 +243,10 @@ fun BudgetGroupsScreen(
                     val month = uiState.summaryMonth ?: selectedMonth
                     onNavigateToHistory(groupId, month.year, month.monthValue)
                 },
-                onCategoryClick = { category ->
-                    val month = uiState.summaryMonth ?: selectedMonth
-                    onNavigateToCategory(category, month.toString(), uiState.summary?.currency ?: uiState.currency)
+                onCategoryClick = { spending, category ->
+                    onNavigateToCategory(
+                        spending.categoryRows(category, uiState.summary?.currency ?: uiState.currency, uiState.isUnifiedMode)
+                    )
                 },
                 onAddRate = onNavigateToExchangeRates
             )
@@ -326,7 +328,7 @@ private fun BudgetGroupsContent(
     onMoveGroupUp: (Long) -> Unit,
     onMoveGroupDown: (Long) -> Unit,
     onNavigateToHistory: (Long) -> Unit,
-    onCategoryClick: (String) -> Unit,
+    onCategoryClick: (BudgetGroupSpending, String) -> Unit,
     onAddRate: () -> Unit = {}
 ) {
     val summary = uiState.summary ?: return
@@ -435,7 +437,7 @@ private fun BudgetGroupsContent(
                 onMoveUp = { onMoveGroupUp(budget.id) },
                 onMoveDown = { onMoveGroupDown(budget.id) },
                 onViewHistory = { onNavigateToHistory(budget.id) },
-                onCategoryClick = onCategoryClick,
+                onCategoryClick = { onCategoryClick(spending, it) },
                 onAddRate = onAddRate
             )
         }
@@ -882,3 +884,28 @@ private fun SpendingPaceChart(
         )
     }
 }
+
+/**
+ * The rows behind a budget's category line: [category] over the days its spend was counted, in
+ * every profile, as a budget isn't kept per profile. With [currencyOnly] only rows written in
+ * [currency], as a budget counts outside unified mode; without it every currency, converted.
+ */
+data class BudgetCategoryRows(
+    val category: String,
+    val start: LocalDate,
+    val end: LocalDate,
+    val currency: String,
+    val currencyOnly: Boolean,
+)
+
+/**
+ * [category]'s line on this card as [BudgetCategoryRows]: the budget's own window, not the list's
+ * This Month, up to the day its spend runs to.
+ */
+internal fun BudgetGroupSpending.categoryRows(category: String, currency: String, unified: Boolean) = BudgetCategoryRows(
+    category = category,
+    start = windowStart,
+    end = minOf(windowEnd, displayedCapDate).coerceAtLeast(windowStart),
+    currency = currency,
+    currencyOnly = !unified,
+)

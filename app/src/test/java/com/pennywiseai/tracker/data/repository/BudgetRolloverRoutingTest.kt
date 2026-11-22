@@ -16,6 +16,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.presentation.budgetgroups.historyBudgetTotal
@@ -120,7 +121,7 @@ class BudgetRolloverRoutingTest {
             coEvery { getBudgetCycleStartDay() } returns 1
         }
         val categories = mockk<CategoryDao> { coEvery { getAllCategoriesList() } returns categoryList }
-        return BudgetGroupRepository(budgetDao, splitDao, prefs, categories)
+        return BudgetGroupRepository(budgetDao, splitDao, prefs, categories, mockk<IgnoredAccountsStore> { every { keysFlow } returns flowOf(emptySet()) }, mockk(), mockk())
     }
 
     // USD converts at half; XYZ has never had a rate.

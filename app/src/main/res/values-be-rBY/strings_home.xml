@@ -26,6 +26,9 @@
     <string name="home_fab_sync">Сінхранізаваць SMS (доўгі націск — поўная перасінхранізацыя)</string>
     <string name="home_fab_sync_hint">Утрымлівайце для поўнай перасінхранізацыі</string>
     <string name="home_resync_title">Прачытаць паведамленні зноў</string>
+    <!-- Home shortcut labels sit under a 64dp shape: keep them to about 10 characters -->
+    <!-- Read out for the Unsorted shortcut with its count badge -->
+    <!-- %1$d is the most shortcuts the row holds (4) -->
     <string name="home_resync_scan_again">Прасканаваць усе паведамленні зноў</string>
     <string name="home_resync_scan_again_desc">Дадае ўсё, што было прапушчана. Вашы праўкі і ўсе існуючыя транзакцыі застануцца як ёсць.</string>
     <string name="home_resync_rebuild">Перабудаваць з нуля</string>
@@ -155,6 +158,7 @@
     <string name="balance_card_summary_expenses">Выдаткі</string>
     <string name="balance_card_summary_lent">Пазычана</string>
     <string name="balance_card_summary_saved">Адкладзена</string>
+    <!-- TalkBack: what tapping a figure does ("double tap to see its transactions") -->
     <!-- Budget card -->
     <string name="budget_card_over_budget">%1$s звыш бюджэту</string>
     <string name="budget_card_remaining">Засталося %1$s</string>
@@ -345,6 +349,16 @@
     <string name="home_payday_card_body">Здаецца, зарплата прыходзіць %1$d-га чысла. Пачынаць кожны бюджэтны месяц з гэтага дня? Гэта можна змяніць у Наладах.</string>
     <string name="home_payday_card_action">Пачынаць %1$d-га</string>
     <string name="home_payday_card_dismiss">Закрыць</string>
+    <!-- Home hero card. %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a formatted amount -->
+    <!-- The budget limit under the progress bar; %1$s is a formatted amount -->
+    <!-- What can still be spent each day; %1$s is a formatted amount -->
+    <!-- Home nudge under the hero: the mascot's one line. %1$s is a formatted amount -->
+    <!-- Home sections -->
+    <!-- Subtitle of a recent transaction still in Others -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">Прагноз: %1$s да %2$s</string>
     <string name="forecast_over_usual">На %1$s больш, чым звычайна</string>

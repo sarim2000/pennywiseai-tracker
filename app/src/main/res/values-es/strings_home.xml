@@ -26,6 +26,9 @@
     <string name="home_fab_sync">Sincronizar SMS (mantén presionado para resincronizar todo)</string>
     <string name="home_fab_sync_hint">Mantén presionado para resincronizar todo</string>
     <string name="home_resync_title">Volver a leer los mensajes</string>
+    <!-- Home shortcut labels sit under a 64dp shape: keep them to about 10 characters -->
+    <!-- Read out for the Unsorted shortcut with its count badge -->
+    <!-- %1$d is the most shortcuts the row holds (4) -->
     <string name="home_resync_scan_again">Escanear todos los mensajes otra vez</string>
     <string name="home_resync_scan_again_desc">Agrega lo que se haya pasado por alto. Tus cambios y todas las transacciones existentes se quedan como están.</string>
     <string name="home_resync_rebuild">Reconstruir desde cero</string>
@@ -144,6 +147,7 @@
     <string name="balance_card_summary_expenses">Gastos</string>
     <string name="balance_card_summary_lent">Prestado</string>
     <string name="balance_card_summary_saved">Ahorrado</string>
+    <!-- TalkBack: what tapping a figure does ("double tap to see its transactions") -->
     <!-- Budget card -->
     <string name="budget_card_over_budget">%1$s por encima del presupuesto</string>
     <string name="budget_card_remaining">Quedan %1$s</string>
@@ -312,6 +316,16 @@
     <string name="home_payday_card_body">Parece que tu sueldo llega el día %1$d del mes. ¿Quieres que cada mes de presupuesto empiece ese día? Puedes cambiarlo en Ajustes.</string>
     <string name="home_payday_card_action">Empezar el día %1$d</string>
     <string name="home_payday_card_dismiss">Descartar</string>
+    <!-- Home hero card. %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a formatted amount -->
+    <!-- The budget limit under the progress bar; %1$s is a formatted amount -->
+    <!-- What can still be spent each day; %1$s is a formatted amount -->
+    <!-- Home nudge under the hero: the mascot's one line. %1$s is a formatted amount -->
+    <!-- Home sections -->
+    <!-- Subtitle of a recent transaction still in Others -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">Vas camino a %1$s para el %2$s</string>
     <string name="forecast_over_usual">%1$s más de lo habitual</string>

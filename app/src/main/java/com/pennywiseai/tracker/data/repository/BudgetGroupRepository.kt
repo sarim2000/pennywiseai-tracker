@@ -927,8 +927,8 @@ class BudgetGroupRepository @Inject constructor(
      * "Frozen as of …".
      *
      * For the current month, the week containing today is live (cap =
-     * today); every other week is frozen at the month end. For a
-     * historical month, every week is frozen at the month end.
+     * today); every other week is frozen at its own end or the month end,
+     * whichever comes first. For a historical month, likewise for every week.
      *
      * [convert]: unified mode, how every currency's spending (and the carry's) converts
      * into [currency], as on the Budgets card; null counts [currency] only.
@@ -966,7 +966,7 @@ class BudgetGroupRepository @Inject constructor(
             PastWindowSpending(
                 window = w,
                 spent = spent,
-                capDate = cap,
+                capDate = effectiveEnd,
                 isLive = isLive,
                 carry = carrySource(budget, w, startDay)?.let { carryIn(currency, group, it, parentOf, convert) }
             )

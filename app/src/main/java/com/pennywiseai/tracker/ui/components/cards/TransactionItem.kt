@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.R
@@ -177,7 +179,7 @@ fun TransactionItem(
         amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
         // tertiary is a fill, not ink: some palettes make it the surface colour itself.
-        subtitleColor = (if (unsorted) colorScheme.tertiary.readableOn(colorScheme.neutralSurfaces) else colorScheme.onSurfaceVariant).onRow(containerColor),
+        subtitleColor = (if (unsorted) colorScheme.unsorted else colorScheme.onSurfaceVariant).onRow(containerColor),
         shape = listItemPosition.toShape(),
         contentPadding = Dimensions.Padding.card,
         onClick = {
@@ -275,8 +277,16 @@ fun isUnsortedCategory(category: String): Boolean =
     !category.isValidCategoryOverride() || category.equals("Others", ignoreCase = true)
 
 /**
+ * What marks a row that needs a category: its "?" badge, label and chip. Tertiary is a
+ * fill and sits on the surface in some accents (Surface dark: 1.1:1), so it's nudged
+ * until it reads on every neutral surface.
+ */
+val ColorScheme.unsorted: Color
+    get() = tertiary.readableOn(neutralSurfaces)
+
+/**
  * A transaction's leading badge: its category glyph on a wash of the category
- * colour, a brand logo when one is bundled, or a "?" on tertiary for a row that
+ * colour, a brand logo when one is bundled, or a "?" on [unsorted] for a row that
  * still needs a category. The row uses a circle; the detail screen passes an
  * Expressive cookie [shape] at a larger [size].
  */
@@ -296,13 +306,13 @@ fun TransactionAvatar(
     val base = modifier.size(size).clip(shape)
     when {
         isUnsortedCategory(category) && icon !is IconResource.DrawableResource -> Box(
-            modifier = base.background(colorScheme.tertiaryContainer),
+            modifier = base.background(colorScheme.unsorted),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Help,
-                contentDescription = categoryLabel(category),
-                tint = colorScheme.onTertiaryContainer,
+                contentDescription = stringResource(R.string.home_section_unsorted),
+                tint = colorScheme.unsorted.bestInk(),
                 modifier = Modifier.size(glyphSize)
             )
         }

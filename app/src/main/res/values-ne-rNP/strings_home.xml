@@ -26,6 +26,9 @@
     <string name="home_fab_sync">SMS सिंक गर्नुहोस् (पूरा रिसिंकको लागि लामो थिच्नुहोस्)</string>
     <string name="home_fab_sync_hint">पूरा रिसिंकको लागि थिचिराख्नुहोस्</string>
     <string name="home_resync_title">सन्देशहरू फेरि पढ्नुहोस्</string>
+    <!-- Home shortcut labels sit under a 64dp shape: keep them to about 10 characters -->
+    <!-- Read out for the Unsorted shortcut with its count badge -->
+    <!-- %1$d is the most shortcuts the row holds (4) -->
     <string name="home_resync_scan_again">सबै सन्देश फेरि स्क्यान गर्नुहोस्</string>
     <string name="home_resync_scan_again_desc">छुटेका जति थपिन्छन्। तपाईंका सम्पादन र भइरहेका सबै लेनदेन जस्ताको तस्तै रहन्छन्।</string>
     <string name="home_resync_rebuild">सुरुदेखि फेरि बनाउनुहोस्</string>
@@ -145,6 +148,7 @@
     <string name="balance_card_summary_expenses">खर्चहरू</string>
     <string name="balance_card_summary_lent">ऋण दिएको</string>
     <string name="balance_card_summary_saved">बचत</string>
+    <!-- TalkBack: what tapping a figure does ("double tap to see its transactions") -->
     <!-- Budget card -->
     <string name="budget_card_over_budget">बजेटभन्दा %1$s बढी</string>
     <string name="budget_card_remaining">%1$s बाँकी</string>
@@ -313,6 +317,16 @@
     <string name="home_payday_card_body">तपाईंको तलब महिनाको %1$d गते आउने देखिन्छ। हरेक बजेट महिना त्यही दिनबाट सुरु गर्ने? तपाईं यसलाई सेटिङमा परिवर्तन गर्न सक्नुहुन्छ।</string>
     <string name="home_payday_card_action">%1$d गतेबाट सुरु गर्नुहोस्</string>
     <string name="home_payday_card_dismiss">हटाउनुहोस्</string>
+    <!-- Home hero card. %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a formatted amount -->
+    <!-- The budget limit under the progress bar; %1$s is a formatted amount -->
+    <!-- What can still be spent each day; %1$s is a formatted amount -->
+    <!-- Home nudge under the hero: the mascot's one line. %1$s is a formatted amount -->
+    <!-- Home sections -->
+    <!-- Subtitle of a recent transaction still in Others -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">%2$s सम्म %1$s को बाटोमा</string>
     <string name="forecast_over_usual">सधैंभन्दा %1$s बढी</string>

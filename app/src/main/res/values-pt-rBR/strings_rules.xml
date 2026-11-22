@@ -314,6 +314,7 @@
     <string name="rules_reset">Redefinir</string>
     <string name="rules_auto_categorization_title">Categorização automática</string>
     <string name="rules_auto_categorization_body">Habilitar regras para categorizar automaticamente suas transações com base nos padrões</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
     <string name="rules_group_daily">Despesas Diárias</string>
     <string name="rules_group_income">Receita &amp; Reembolso</string>
     <string name="rules_group_recurring">Pagamentos Recorrentes</string>

@@ -19,6 +19,8 @@
     <string name="goals_archived">Kwenye kumbukumbu</string>
     <string name="goals_due_on">Mwisho %1$s</string>
     <string name="goals_ring_description">%1$d%% imewekwa akiba</string>
+    <!-- Goal card in the Plan tab. %1$s = target amount, %2$s = due date -->
+    <!-- %1$s = amount -->
     <plurals name="goals_months_left">
         <item quantity="one">Umebaki mwezi %d</item>
         <item quantity="other">Zimebaki miezi %d</item>

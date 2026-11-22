@@ -40,4 +40,13 @@
     <!-- AI chat: the badge by the latest reply's mascot. Saved: the rows of an Add card were just saved -->
     <!-- Developer mode: a screen showing the mascot in every shape and mood, for checking it on a device -->
     <!-- The slider for the figure a shape draws (how full a jar is, where a gauge's needle sits). %1$d is a percentage -->
+    <!-- rd:home -->
+    <!-- Home hero under the budget meter: "₹4,264 spent of ₹40,000"; both are formatted amounts -->
+    <!-- Home row: this month's transactions still in Others -->
+    <!-- rd:insights -->
+    <!-- rd:add -->
+    <!-- rd:browse -->
+    <!-- rd:plan -->
+    <!-- rd:settings -->
+    <!-- rd:lead -->
 </resources>

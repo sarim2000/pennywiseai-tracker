@@ -1408,7 +1408,7 @@ open class UserPreferencesRepository internal constructor(
     override val isAmountHiddenEverywhere: Flow<Boolean> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.BALANCE_HIDDEN] ?: false }
 
-    suspend fun setBalanceHidden(hidden: Boolean) {
+    override suspend fun setBalanceHidden(hidden: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }

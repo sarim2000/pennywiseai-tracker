@@ -16,6 +16,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -74,7 +75,8 @@ class AllSpendingSubCategoryTotalTest {
                     CategoryEntity(id = 1, name = "Food", color = "#000000"),
                     CategoryEntity(id = 2, name = "Snacks", color = "#000000", parentId = 1)
                 )
-            }
+            },
+            mockk<IgnoredAccountsStore> { every { keysFlow } returns flowOf(emptySet()) }, mockk(), mockk()
         )
         val conversion = mockk<CurrencyConversionService> {
             coEvery { convertAmountOrNull(any(), any(), any(), any()) } answers { firstArg() }

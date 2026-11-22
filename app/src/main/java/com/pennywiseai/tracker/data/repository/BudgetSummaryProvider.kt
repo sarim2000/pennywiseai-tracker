@@ -222,18 +222,10 @@ class BudgetSummaryProvider @Inject constructor(
         val convert: suspend (String, BigDecimal) -> BigDecimal? = { fromCurrency, amount ->
             currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
         }
-        // Rollover: added up as the carry is, so what shows spent is what carries.
-        if (group.budget.rolloverEnabled) return budgetSpend(group, transactions, parentOf, convert).let { it.amount to it.incomplete }
-        if (group.categories.isEmpty()) {
-            var skipped = false
-            val total = transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
-                val tx = txWithSplits.transaction.forTotals() ?: return@fold acc
-                // Investments aren't spending (see budgetSpend).
-                if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE) return@fold acc
-                // Skip unconvertible amounts rather than counting them at face value (#670).
-                convert(tx.currency, tx.amount)?.let { acc + it } ?: run { skipped = true; acc }
-            }
-            return total to skipped
+        // Rollover, or all spending (card spend included): added up as the carry and the
+        // native card are, so every screen shows the same spent. No rate: left out, flagged (#670).
+        if (group.budget.rolloverEnabled || group.categories.isEmpty()) {
+            return budgetSpend(group, transactions, parentOf, convert).let { it.amount to it.incomplete }
         }
         val aggregation = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
             transactions = transactions,

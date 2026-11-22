@@ -211,7 +211,9 @@ data class TransactionsWithFilter(
     val startDate: Long? = null,
     val endDate: Long? = null,
     /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
-    val currencyOnly: Boolean = false
+    val currencyOnly: Boolean = false,
+    /** Every profile's rows, whatever profile is selected: the list behind a budget, which counts them all. */
+    val allProfiles: Boolean = false
 ) : NavKey
 
 /**

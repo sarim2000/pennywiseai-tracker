@@ -91,7 +91,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
     val dashboardUrl = AiRelayClient.dashboardUrl(relayUrl)
     fun mmss(seconds: Long) = (seconds / 60).toInt() to (seconds % 60).toInt()
 
-    PennyWiseScaffold(title = stringResource(R.string.ai_access_title), navigationIcon = {
+    PennyWiseScaffold(title = stringResource(R.string.ai_access_title), revealAmountsAction = false, navigationIcon = {
         IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.ai_access_back)) }
     }) { padding ->
         LazyColumn(

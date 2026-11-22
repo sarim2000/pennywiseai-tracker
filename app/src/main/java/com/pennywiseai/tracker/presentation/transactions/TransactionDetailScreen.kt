@@ -53,6 +53,7 @@ import com.pennywiseai.tracker.presentation.split.canSplit
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.LoanOverflowDialog
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
+import com.pennywiseai.tracker.ui.components.RevealAmountsAction
 import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -745,6 +746,8 @@ private fun DetailTopBar(
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.txn_detail_back))
         }
         Spacer(Modifier.weight(1f))
+        // Its own bar, not a shared one, so it adds the eye itself.
+        RevealAmountsAction()
         if (showActions) {
             FilledTonalButton(
                 onClick = onEdit,

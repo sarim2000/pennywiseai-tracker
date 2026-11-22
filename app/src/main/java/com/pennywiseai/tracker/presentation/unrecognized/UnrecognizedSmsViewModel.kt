@@ -51,9 +51,6 @@ class UnrecognizedSmsViewModel @Inject constructor(
         const val TAG = "UnrecognizedSmsViewModel"
     }
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
     private val _showReported = MutableStateFlow(true)
     val showReported: StateFlow<Boolean> = _showReported.asStateFlow()
 

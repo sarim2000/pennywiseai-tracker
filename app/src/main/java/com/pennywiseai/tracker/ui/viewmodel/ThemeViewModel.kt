@@ -9,7 +9,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.preferences.AccentColor
 import com.pennywiseai.tracker.data.preferences.AppFont
-import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -37,16 +36,11 @@ class ThemeViewModel @Inject constructor(
                 accentColor = preferences.accentColor,
                 isAmoledMode = preferences.isAmoledMode,
                 appFont = preferences.appFont,
-                hasSkippedSmsPermission = preferences.hasSkippedSmsPermission,
                 blurEffectsEnabled = preferences.blurEffectsEnabled,
                 redSpending = preferences.redSpending,
                 navBarStyle = preferences.navBarStyle,
                 hiddenNavTabs = preferences.hiddenNavTabs,
-                coverStyle = preferences.coverStyle,
-                hasCompletedOnboarding = preferences.hasCompletedOnboarding,
-                userName = preferences.userName,
-                profileImageUri = preferences.profileImageUri,
-                profileBackgroundColor = preferences.profileBackgroundColor
+                hasCompletedOnboarding = preferences.hasCompletedOnboarding
             )
         }
         .stateIn(
@@ -58,12 +52,6 @@ class ThemeViewModel @Inject constructor(
     fun updateDarkTheme(enabled: Boolean?) {
         viewModelScope.launch {
             userPreferencesRepository.updateDarkThemeEnabled(enabled)
-        }
-    }
-
-    fun updateDynamicColor(enabled: Boolean) {
-        viewModelScope.launch {
-            userPreferencesRepository.updateDynamicColorEnabled(enabled)
         }
     }
 
@@ -115,12 +103,6 @@ class ThemeViewModel @Inject constructor(
         }
     }
 
-    fun updateCoverStyle(style: CoverStyle) {
-        viewModelScope.launch {
-            userPreferencesRepository.updateCoverStyle(style)
-        }
-    }
-
     fun markOnboardingCompleted() {
         viewModelScope.launch {
             userPreferencesRepository.updateHasCompletedOnboarding(true)
@@ -136,16 +118,11 @@ data class ThemeUiState(
     val accentColor: AccentColor = AccentColor.SURFACE,
     val isAmoledMode: Boolean = false,
     val appFont: AppFont = AppFont.DEFAULT,
-    val hasSkippedSmsPermission: Boolean = false,
     val blurEffectsEnabled: Boolean = true,
     val redSpending: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.NORMAL,
     val hiddenNavTabs: Set<String> = emptySet(),
-    val coverStyle: CoverStyle = CoverStyle.AURORA,
-    val hasCompletedOnboarding: Boolean = false,
-    val userName: String = "User",
-    val profileImageUri: String? = null,
-    val profileBackgroundColor: Int = 0
+    val hasCompletedOnboarding: Boolean = false
 )
 
 /**

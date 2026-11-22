@@ -184,29 +184,15 @@ class TransactionsViewModel @Inject constructor(
     val availableCurrencies: StateFlow<List<String>> = combine(selectedPeriod, customDateRange, budgetCycleStartDay) { period, customRange, _ ->
         period to customRange
     }.flatMapLatest { (period, customRange) ->
-        if (period == TimePeriod.ALL) {
-            transactionRepository.getAllCurrencies()
-        } else if (period == TimePeriod.CUSTOM && customRange != null) {
-            val (startDate, endDate) = customRange
-            val startDateTime = startDate.atStartOfDay()
-            val endDateTime = endDate.atTime(23, 59, 59)
-            transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
-        } else if (period.followsBudgetCycle) {
-            val (startDate, endDate) = getCycleRange(period)
-            val startDateTime = startDate.atStartOfDay()
-            val endDateTime = endDate.atTime(23, 59, 59)
-            transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
-        } else {
-            val dateRange = getDateRangeForPeriod(period)
-            if (dateRange != null) {
-                val (startDate, endDate) = dateRange
-                val startDateTime = startDate.atStartOfDay()
-                val endDateTime = endDate.atTime(23, 59, 59)
-                transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
-            } else {
-                transactionRepository.getAllCurrencies()
-            }
+        val range = when {
+            period == TimePeriod.ALL -> null
+            period == TimePeriod.CUSTOM && customRange != null -> customRange
+            period.followsBudgetCycle -> getCycleRange(period)
+            else -> getDateRangeForPeriod(period)
         }
+        range?.let { (startDate, endDate) ->
+            transactionRepository.getCurrenciesForPeriod(startDate.atStartOfDay(), endDate.atTime(23, 59, 59))
+        } ?: transactionRepository.getAllCurrencies()
     }
         .combine(userPreferencesRepository.baseCurrency) { currencies, base ->
             currencies.sortedWith { a, b ->

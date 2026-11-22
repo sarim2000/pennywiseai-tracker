@@ -54,7 +54,6 @@ class AiRelayClient @Inject constructor(@ApplicationContext context: Context) {
     private val relay get() = _relayUrl.value
 
     private val _device = MutableStateFlow(load())
-    val device: StateFlow<Device?> = _device.asStateFlow()
 
     private fun load(): Device? {
         val id = prefs.getString(KEY_ID, null) ?: return null

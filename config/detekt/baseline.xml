@@ -2367,7 +2367,6 @@
     <ID>ReturnCount:TransactionFilters.kt$@JvmName("forTotalsWithSplits") fun TransactionWithSplits.forTotals(): TransactionWithSplits?</ID>
     <ID>ReturnCount:TransactionGoalsViewModel.kt$TransactionGoalsViewModel$fun add(goal: GoalEntity, share: BigDecimal?, note: String, manual: BigDecimal?)</ID>
     <ID>ReturnCount:TransactionsViewModel.kt$TransactionsViewModel$fun bulkMarkAsTransfer()</ID>
-    <ID>ReturnCount:TransactionsViewModel.kt$TransactionsViewModel$fun isShowingLimitedData(): Boolean</ID>
     <ID>ReturnCount:TransactionsViewModel.kt$internal fun computeSelfTransferPairs( txns: List&lt;TransactionEntity&gt;, matchWindowMinutes: Long = 60L ): Map&lt;Long, Long&gt;</ID>
     <ID>ReturnCount:UAEBankParser.kt$UAEBankParser$override fun extractCurrency(message: String): String?</ID>
     <ID>ReturnCount:UCOBankParser.kt$UCOBankParser$override fun extractAccountLast4(message: String): String?</ID>

@@ -106,11 +106,11 @@ class DemoSeedDataTest {
     }
 
     @Test
-    fun prepareSeedsFreshDatabaseAndProvidesOfflineConversionToJod() = withSeeder { db, context, preferences ->
+    fun seedSeedsFreshDatabaseAndProvidesOfflineConversionToJod() = withSeeder { db, context, preferences ->
         assertEquals(0, db.transactionDao().countAllTransactions())
         assertFalse(preferences.userPreferences.first().hasCompletedOnboarding)
 
-        DemoSeeder(context, db, preferences).prepare()
+        assertEquals(DemoSeedStatus.CREATED, DemoSeeder(context, db, preferences).seed(date))
 
         assertTrue(db.transactionDao().countAllTransactions() >= 4_000)
         assertTrue(preferences.userPreferences.first().hasCompletedOnboarding)
@@ -124,7 +124,7 @@ class DemoSeedDataTest {
     }
 
     @Test
-    fun prepareAllowsBuiltInRuleTemplatesAndCustomRulesStillBlockSeed() = withSeeder { db, context, preferences ->
+    fun seedAllowsBuiltInRuleTemplatesAndCustomRulesStillBlockSeed() = withSeeder { db, context, preferences ->
         val rules = db.ruleDao()
         val repository = RuleRepositoryImpl(rules, db.ruleApplicationDao(), RuleEngine())
         InitializeRuleTemplatesUseCase(repository, RuleTemplateService())()
@@ -135,7 +135,7 @@ class DemoSeedDataTest {
         assertEquals(customRule, rules.getRuleById(customRule.id))
         rules.deleteRuleById(customRule.id)
 
-        DemoSeeder(context, db, preferences).prepare()
+        assertEquals(DemoSeedStatus.CREATED, DemoSeeder(context, db, preferences).seed(date))
 
         assertTrue(db.transactionDao().countAllTransactions() >= 4_000)
         assertEquals(templates, rules.getAllRules().first().filter { it.isSystemTemplate })
@@ -154,26 +154,11 @@ class DemoSeedDataTest {
         val edited = template.copy(actions = template.actions.map { it.copy(value = "Groceries") })
         repository.updateRule(edited)
         assertEquals(DemoSeedStatus.HAS_DATA, db.seedDemoData(date) { error("Seed must skip receipt") })
-        DemoSeeder(context, db, preferences).prepare()
+        assertEquals(DemoSeedStatus.HAS_DATA, DemoSeeder(context, db, preferences).seed(date))
 
         assertEquals(edited, repository.getRuleById(template.id))
         assertEquals(0, db.transactionDao().countAllTransactions())
         assertFalse(preferences.userPreferences.first().hasCompletedOnboarding)
-    }
-
-    @Test
-    fun automaticSeedRemembersSkippedFirstLaunchAfterExistingDataIsCleared() = withSeeder { db, context, preferences ->
-        db.chatDao().insertMessage(ChatMessage(id = "existing", message = "Existing test history", isUser = true))
-        DemoSeeder(context, db, preferences).prepare()
-        assertFalse(preferences.userPreferences.first().hasCompletedOnboarding)
-        assertEquals(1, db.chatDao().getMessageCount())
-        db.chatDao().deleteAllMessages()
-
-        val seeder = DemoSeeder(context, db, preferences)
-        seeder.prepare()
-        assertEquals(0, db.transactionDao().countAllTransactions())
-        assertEquals(DemoSeedStatus.CREATED, seeder.seed(date))
-        assertTrue(preferences.userPreferences.first().hasCompletedOnboarding)
     }
 
     @Test
@@ -215,7 +200,6 @@ class DemoSeedDataTest {
     private fun withSeeder(block: suspend (PennyWiseDatabase, Context, UserPreferencesRepository) -> Unit) = runBlocking {
         val scope = CoroutineScope(Dispatchers.IO)
         val context = object : ContextWrapper(InstrumentationRegistry.getInstrumentation().targetContext) {
-            override fun getNoBackupFilesDir() = temporaryFolder.root
             override fun getFilesDir() = temporaryFolder.root
         }
         val store = PreferenceDataStoreFactory.create(scope = scope) {

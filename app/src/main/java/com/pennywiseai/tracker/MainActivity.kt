@@ -24,12 +24,7 @@ import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import java.util.Optional
 import javax.inject.Inject
-
-interface DebugFirstLaunch {
-    suspend fun prepare()
-}
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
@@ -101,7 +96,6 @@ class MainActivity : FragmentActivity() {
 
     @Inject lateinit var appLockRepository: AppLockRepository
     @Inject lateinit var chatDrafts: com.pennywiseai.tracker.data.manager.ChatDraftInbox
-    @Inject lateinit var debugFirstLaunch: Optional<DebugFirstLaunch>
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
@@ -110,18 +104,9 @@ class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen before super.onCreate(). Held until the hide-amounts
         // switch is read, so a hidden balance never flashes on a cold start.
-        val splash = installSplashScreen()
+        installSplashScreen().setKeepOnScreenCondition { !com.pennywiseai.tracker.utils.AmountPrivacy.loaded }
 
         super.onCreate(savedInstanceState)
-        val firstLaunch = debugFirstLaunch.orElse(null)
-        var ready by mutableStateOf(firstLaunch == null)
-        splash.setKeepOnScreenCondition { !ready || !com.pennywiseai.tracker.utils.AmountPrivacy.loaded }
-        if (firstLaunch != null) {
-            lifecycleScope.launch {
-                firstLaunch.prepare()
-                ready = true
-            }
-        }
         enableEdgeToEdge()
 
         // With App Lock on, the Recents card is blank instead of the last screen
@@ -150,7 +135,6 @@ class MainActivity : FragmentActivity() {
         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) { registerQuickAddShortcut() }
 
         setContent {
-            if (!ready) return@setContent
             PennyWiseApp(
                 editTransactionId = editTransactionId,
                 openAddTransaction = openAddTransaction,

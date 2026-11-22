@@ -3,18 +3,11 @@ package com.pennywiseai.tracker.debug
 import android.content.Context
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
-import android.util.Log
 import com.pennywiseai.tracker.BuildConfig
-import com.pennywiseai.tracker.DebugFirstLaunch
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import dagger.Binds
-import dagger.Module
-import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -31,28 +24,8 @@ internal class DemoSeeder @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val database: PennyWiseDatabase,
     private val preferences: UserPreferencesRepository
-) : DebugFirstLaunch {
+) {
     private val mutex = Mutex()
-
-    override suspend fun prepare() {
-        try {
-            withContext(Dispatchers.IO) {
-                mutex.withLock {
-                    val firstLaunchDone = File(context.noBackupFilesDir, "debug-first-launch")
-                    if (firstLaunchDone.exists()) return@withLock
-                    if (!preferences.userPreferences.first().hasCompletedOnboarding) {
-                        seedUnlocked(LocalDate.now())
-                    }
-                    // Remember a skipped launch too, even if the user clears the ledger later.
-                    firstLaunchDone.createNewFile()
-                }
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.e("DemoSeed", "Could not prepare the Debug first launch", e)
-        }
-    }
 
     suspend fun seed(today: LocalDate): DemoSeedStatus = withContext(Dispatchers.IO) {
         mutex.withLock { seedUnlocked(today) }
@@ -66,7 +39,7 @@ internal class DemoSeeder @Inject constructor(
             preferences.markScanTutorialShown()
             preferences.setBalanceHidden(false)
             preferences.setLastSeenAppVersion(BuildConfig.VERSION_NAME)
-            preferences.updateHasCompletedOnboarding(true)
+            preferences.updateHasCompletedOnboarding(true, freshInstall = true)
         }
         return status
     }
@@ -92,11 +65,4 @@ internal class DemoSeeder @Inject constructor(
         }
         return path
     }
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-internal abstract class DemoSeederModule {
-    @Binds
-    abstract fun bindDemoSeeder(seeder: DemoSeeder): DebugFirstLaunch
 }

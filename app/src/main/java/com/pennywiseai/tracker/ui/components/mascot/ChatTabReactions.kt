@@ -238,7 +238,8 @@ internal class ChatTabReactions(
                 if (running && !scanning) clearFlash()
                 scanning = running
                 publish()
-                if (status is SmsScanStatus.Finished && sawRunning && status.newRows > 0) react(SCANNED)
+                // The beat belongs to the scan that just ended: it runs out on time, bar or not.
+                if (status is SmsScanStatus.Finished && sawRunning && status.newRows > 0) react(SCANNED, waitsForBar = false)
                 sawRunning = running
             }
         } finally {
@@ -248,7 +249,7 @@ internal class ChatTabReactions(
         }
     }
 
-    private fun react(reaction: MascotReaction) {
+    private fun react(reaction: MascotReaction, waitsForBar: Boolean = true) {
         val showing = flash
         // The latest toggle answers for the switch as it is now.
         val takesOver = showing == null || reaction.rank > showing.rank ||
@@ -256,7 +257,7 @@ internal class ChatTabReactions(
         if (!takesOver) return
         flash = reaction
         publish()
-        if (barShown) {
+        if (barShown || !waitsForBar) {
             startHold()
         } else {
             holding = false

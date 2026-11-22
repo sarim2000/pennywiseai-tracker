@@ -59,7 +59,6 @@ import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.components.mascot.REACTION_HOLD_MS
 import com.pennywiseai.tracker.ui.components.mascot.typingGaze
-import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -620,12 +619,9 @@ private fun ModelRequiredPrompt(
         }
         Spacer(modifier = Modifier.height(Spacing.sm))
         if (isDownloading) {
-            val progressColors = readableProgressColors()
             LinearWavyProgressIndicator(
                 progress = { downloadProgress / 100f },
-                modifier = Modifier.fillMaxWidth(),
-                color = progressColors.indicator,
-                trackColor = progressColors.track
+                modifier = Modifier.fillMaxWidth()
             )
             OutlinedButton(onClick = onCancel, shapes = ButtonDefaults.shapes()) {
                 Icon(
@@ -695,7 +691,6 @@ private fun ModelRequiredBanner(
                     OutlinedButton(
                         onClick = onCancel,
                         modifier = Modifier.padding(start = Spacing.sm),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onTertiaryContainer),
                         shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.chat_cancel))
@@ -703,10 +698,7 @@ private fun ModelRequiredBanner(
                 }
                 LinearWavyProgressIndicator(
                     progress = { downloadProgress / 100f },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    // The default secondaryContainer track can match the bar on this card (1.3:1 in some palettes).
-                    trackColor = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.2f)
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         } else {
@@ -1310,12 +1302,12 @@ private fun PendingActionCard(
             Text(text = headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = fg)
             Text(text = detail, style = MaterialTheme.typography.bodySmall, color = fg)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(contentColor = fg), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_cancel)) }
+                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_cancel)) }
                 Button(
                     onClick = onConfirm,
                     enabled = enabled,
                     modifier = Modifier.weight(1f),
-                    colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError) else ButtonDefaults.buttonColors(),
+                    colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors(),
                     shapes = ButtonDefaults.shapes()
                 ) { Text(button) }
             }

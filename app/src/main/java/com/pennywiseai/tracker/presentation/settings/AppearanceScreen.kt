@@ -109,6 +109,7 @@ fun AppearanceScreen(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         topBar = {
             CustomTitleTopAppBar(
+                revealAmountsAction = false, // shows no amounts
                 title = stringResource(R.string.appearance_title),
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,

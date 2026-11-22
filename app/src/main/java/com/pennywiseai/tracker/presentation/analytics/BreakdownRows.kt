@@ -39,10 +39,8 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.inkOnWash
 import com.pennywiseai.tracker.utils.AmountPrivacy
 
 /**
@@ -153,7 +151,7 @@ internal fun CategoryBadge(name: String, colorHex: String?) {
         CategoryIcon(
             category = name,
             size = Dimensions.Icon.inline,
-            tint = MaterialTheme.colorScheme.inkOnWash(color, Dimensions.Alpha.ghost, GRAPHIC_CONTRAST),
+            tint = color,
             modifier = Modifier.clearAndSetSemantics {}
         )
     }
@@ -165,7 +163,7 @@ internal fun TintBadge(icon: ImageVector, color: Color) {
     IconTile(
         icon = icon,
         containerColor = color.copy(alpha = Dimensions.Alpha.ghost),
-        contentColor = MaterialTheme.colorScheme.inkOnWash(color, Dimensions.Alpha.ghost, GRAPHIC_CONTRAST),
+        contentColor = color,
         size = Dimensions.Icon.avatar,
         glyphSize = Dimensions.Icon.inline
     )

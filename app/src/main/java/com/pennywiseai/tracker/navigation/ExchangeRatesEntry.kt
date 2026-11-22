@@ -19,6 +19,7 @@ fun ExchangeRatesEntry(onNavigateBack: () -> Unit) {
     ExchangeRatesScreen(
         topBar = { title, scrollBehaviorSmall, scrollBehaviorLarge, hazeState, actions ->
             CustomTitleTopAppBar(
+                revealAmountsAction = false, // shows no amounts
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = title,

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.animations.pwFadeIn
+import com.pennywiseai.tracker.ui.animations.pwFadeOut
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,8 +17,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import com.pennywiseai.tracker.ui.animations.pwFadeIn
-import com.pennywiseai.tracker.ui.animations.pwFadeOut
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
@@ -67,7 +67,7 @@ fun PreferenceSwitch(
         ) {
             if (leadingIcon != null) {
                 CompositionLocalProvider(
-                    LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant
+                    LocalContentColor provides MaterialTheme.colorScheme.secondary
                 ) { leadingIcon() }
             }
             RowLabels(title = title, subtitle = subtitle.ifBlank { null })

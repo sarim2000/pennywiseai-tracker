@@ -74,19 +74,11 @@ fun TrackingProblemCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (onCheckup != null) {
-                TextButton(
-                    onClick = onCheckup,
-                    colors = ButtonDefaults.textButtonColors(contentColor = ink),
-                    shapes = ButtonDefaults.shapes(),
-                ) {
+                TextButton(onClick = onCheckup, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.sms_checkup_title))
                 }
             }
-            TextButton(
-                onClick = onFix,
-                colors = ButtonDefaults.textButtonColors(contentColor = ink),
-                shapes = ButtonDefaults.shapes(),
-            ) {
+            TextButton(onClick = onFix, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.home_tracking_card_fix))
             }
             IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {

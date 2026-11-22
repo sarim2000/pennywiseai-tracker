@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
@@ -123,7 +124,8 @@ class BudgetGroupEditViewModel @Inject constructor(
     private val budgetGroupRepository: BudgetGroupRepository,
     private val categoryRepository: CategoryRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val currencyConversionService: CurrencyConversionService
 ) : ViewModel() {
 
     private val groupId: Long = savedStateHandle.get<Long>("groupId") ?: -1L
@@ -137,10 +139,10 @@ class BudgetGroupEditViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            // A limit is entered and stored in the base currency in both modes: every
+            // budget screen reads it so, converting it when unified shows another (#1417).
+            val currency = userPreferencesRepository.baseCurrency.first()
             val unifiedMode = userPreferencesRepository.unifiedCurrencyMode.first()
-            val displayCurrency = userPreferencesRepository.displayCurrency.first()
-            val currency = if (unifiedMode) displayCurrency else baseCurrency
             val currencies = CurrencyFormatter.getSupportedCurrencies()
 
             val today = LocalDate.now()
@@ -153,7 +155,16 @@ class BudgetGroupEditViewModel @Inject constructor(
             // of cadence — it's a quick glance, not the authoritative spend
             // figure. The authoritative spend figure is what the home card
             // shows, which honours the budget's own period window.
-            val transactions = transactionRepository.getTransactionsWithSplitsFiltered(startDate, endDate, currency).first()
+            // Unified mode counts every currency, as the budget does, converted into the
+            // form's; spending with no rate is left out.
+            val transactions = if (unifiedMode) {
+                transactionRepository.getTransactionsWithSplitsFiltered(startDate, endDate).first()
+            } else {
+                transactionRepository.getTransactionsWithSplitsFiltered(startDate, endDate, currency).first()
+            }
+            suspend fun inFormCurrency(amount: BigDecimal, from: String): BigDecimal? =
+                if (from.equals(currency, ignoreCase = true)) amount
+                else currencyConversionService.convertAmountOrNull(amount, from, currency)
             // Mirror the main budget screen's routing: type-bucket-eligible
             // outflows (INVESTMENT) are summed per type, everything else per
             // category. Keeps the edit screen's "current spending" hint accurate
@@ -161,13 +172,15 @@ class BudgetGroupEditViewModel @Inject constructor(
             val categorySpending = mutableMapOf<String, BigDecimal>()
             val typeSpending = mutableMapOf<String, BigDecimal>()
             transactions.forEach { txWithSplits ->
-                val type = txWithSplits.transaction.transactionType
+                val tx = txWithSplits.transaction
+                val type = tx.transactionType
                 if (type == TransactionType.INCOME || type == TransactionType.TRANSFER) return@forEach
                 if (type in BudgetGroupRepository.BUDGET_TYPE_BUCKETS) {
-                    typeSpending[type.name] = (typeSpending[type.name] ?: BigDecimal.ZERO) +
-                        txWithSplits.transaction.amount
+                    val amount = inFormCurrency(tx.amount, tx.currency) ?: return@forEach
+                    typeSpending[type.name] = (typeSpending[type.name] ?: BigDecimal.ZERO) + amount
                 } else {
-                    txWithSplits.getAmountByCategory().forEach { (category, amount) ->
+                    txWithSplits.getAmountByCategory().forEach { (category, splitAmount) ->
+                        val amount = inFormCurrency(splitAmount, tx.currency) ?: return@forEach
                         val categoryName = category.ifEmpty { "Others" }
                         categorySpending[categoryName] = (categorySpending[categoryName] ?: BigDecimal.ZERO) + amount
                     }
@@ -199,7 +212,9 @@ class BudgetGroupEditViewModel @Inject constructor(
                         categories = assignedCategories,
                         categorySpending = categorySpending,
                         typeSpending = typeSpending,
-                        currency = b.currency,
+                        // Read as the base currency whatever the column says, as every
+                        // budget screen reads it; saving puts the column right.
+                        currency = currency,
                         availableCurrencies = currencies,
                         // Editing: trust the budget's own persisted period
                         // type + anchor + dates. We re-derive the displayed

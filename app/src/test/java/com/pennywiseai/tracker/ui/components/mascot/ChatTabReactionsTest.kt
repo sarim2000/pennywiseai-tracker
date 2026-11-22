@@ -283,6 +283,28 @@ class ChatTabReactionsTest {
         reactions.onMoment(MascotMoment.GoalReached)
         runCurrent()
         assertEquals(SCANNING, shown)
+        // Dropped, not just hidden behind the bubble: nothing is left once the scan ends.
+        scan.value = SmsScanStatus.Finished(newRows = 0)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `a scan's beat runs out on time while the bar is away`() {
+        val scan = MutableStateFlow<SmsScanStatus>(SmsScanStatus.Running)
+        val job = start(scan)
+        reactions.onBarShown(false)
+        scan.value = SmsScanStatus.Finished(newRows = 2)
+        runCurrent()
+        assertEquals(SCANNED, shown)
+        advanceTimeBy(REACTION_HOLD_MS + 1)
+        runCurrent()
+        assertNull(shown)
+        // Coming back a minute later doesn't replay it.
+        reactions.onBarShown(true)
+        runCurrent()
+        assertNull(shown)
         job.cancel()
     }
 

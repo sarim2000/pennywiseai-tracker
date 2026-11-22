@@ -21,16 +21,14 @@ fun Application.configureFeedback(feedbackService: FeedbackService) {
 
         // Roadmap page
         get("/roadmap") {
-            setFingerprintCookie(call)
-            val fingerprint = FingerprintService.getFingerprint(call)
+            val fingerprint = setFingerprintCookie(call)
             val items = feedbackService.getFeedbackItems(fingerprint, forRoadmap = true)
             call.respondRoadmapPage(items)
         }
 
         // HTMX: Submit feedback
         post("/htmx/feedback") {
-            setFingerprintCookie(call)
-            val fingerprint = FingerprintService.getFingerprint(call)
+            val fingerprint = setFingerprintCookie(call)
             val params = call.receiveParameters()
 
             val request = CreateFeedbackRequest(
@@ -62,8 +60,7 @@ fun Application.configureFeedback(feedbackService: FeedbackService) {
 
         // HTMX: Vote toggle
         post("/htmx/vote/{id}") {
-            setFingerprintCookie(call)
-            val fingerprint = FingerprintService.getFingerprint(call)
+            val fingerprint = setFingerprintCookie(call)
             val feedbackId = call.parameters["id"] ?: return@post call.respond(HttpStatusCode.BadRequest)
 
             val result = feedbackService.toggleVote(feedbackId, fingerprint)
@@ -79,8 +76,7 @@ fun Application.configureFeedback(feedbackService: FeedbackService) {
 
         // HTMX: Feedback list with filters
         get("/htmx/feedback-list") {
-            setFingerprintCookie(call)
-            val fingerprint = FingerprintService.getFingerprint(call)
+            val fingerprint = setFingerprintCookie(call)
             val typeFilter = call.request.queryParameters["type"]?.let {
                 try { FeedbackItemType.valueOf(it.uppercase()) } catch (e: Exception) { null }
             }
@@ -98,8 +94,7 @@ fun Application.configureFeedback(feedbackService: FeedbackService) {
 
         // JSON API: Get feedback items
         get("/api/feedback") {
-            setFingerprintCookie(call)
-            val fingerprint = FingerprintService.getFingerprint(call)
+            val fingerprint = setFingerprintCookie(call)
             val typeFilter = call.request.queryParameters["type"]?.let {
                 try { FeedbackItemType.valueOf(it.uppercase()) } catch (e: Exception) { null }
             }
@@ -111,8 +106,7 @@ fun Application.configureFeedback(feedbackService: FeedbackService) {
 
         // JSON API: Submit feedback
         post("/api/feedback") {
-            setFingerprintCookie(call)
-            val fingerprint = FingerprintService.getFingerprint(call)
+            val fingerprint = setFingerprintCookie(call)
             val request = call.receive<CreateFeedbackRequest>()
 
             val result = feedbackService.createFeedback(request, fingerprint)
@@ -136,19 +130,21 @@ fun Application.configureFeedback(feedbackService: FeedbackService) {
     }
 }
 
-private fun setFingerprintCookie(call: ApplicationCall) {
+/** Returns the caller's fingerprint, setting the cookie first when it is missing or malformed. */
+private fun setFingerprintCookie(call: ApplicationCall): String {
     val existingCookie = call.request.cookies[FingerprintService.getCookieName()]
-    if (existingCookie == null || existingCookie.length != 64) {
-        val fingerprint = FingerprintService.generateFingerprint(call)
-        call.response.cookies.append(
-            Cookie(
-                name = FingerprintService.getCookieName(),
-                value = fingerprint,
-                maxAge = FingerprintService.getCookieMaxAge(),
-                path = "/",
-                httpOnly = true,
-                secure = false // Set to true in production with HTTPS
-            )
+    if (existingCookie != null && existingCookie.length == 64) return existingCookie
+
+    val fingerprint = FingerprintService.generateFingerprint(call)
+    call.response.cookies.append(
+        Cookie(
+            name = FingerprintService.getCookieName(),
+            value = fingerprint,
+            maxAge = FingerprintService.getCookieMaxAge(),
+            path = "/",
+            httpOnly = true,
+            secure = false // Set to true in production with HTTPS
         )
-    }
+    )
+    return fingerprint
 }

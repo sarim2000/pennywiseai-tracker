@@ -1794,7 +1794,6 @@
     <ID>NewLineAtEndOfFile:CitiBankParser.kt$com.pennywiseai.parser.core.bank.CitiBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:CityUnionBankParser.kt$com.pennywiseai.parser.core.bank.CityUnionBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:CollapsibleFilterRow.kt$com.pennywiseai.tracker.ui.components.CollapsibleFilterRow.kt</ID>
-    <ID>NewLineAtEndOfFile:Constants.kt$com.pennywiseai.parser.core.Constants.kt</ID>
     <ID>NewLineAtEndOfFile:CredParser.kt$com.pennywiseai.parser.core.bank.CredParser.kt</ID>
     <ID>NewLineAtEndOfFile:CurrencyConversionService.kt$com.pennywiseai.tracker.data.currency.CurrencyConversionService.kt</ID>
     <ID>NewLineAtEndOfFile:CurrencyFormatter.kt$com.pennywiseai.tracker.utils.CurrencyFormatter.kt</ID>

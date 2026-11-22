@@ -1851,7 +1851,6 @@
     <ID>NewLineAtEndOfFile:YesBankParser.kt$com.pennywiseai.parser.core.bank.YesBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:ZemenBankParser.kt$com.pennywiseai.parser.core.bank.ZemenBankParser.kt</ID>
     <ID>PrintStackTrace:DeviceEncryption.kt$DeviceEncryption$e</ID>
-    <ID>RethrowCaughtException:BackupImporter.kt$BackupImporter$throw e</ID>
     <ID>ReturnCount:ADCBParser.kt$ADCBParser$override fun extractAmount(message: String): BigDecimal?</ID>
     <ID>ReturnCount:ADCBParser.kt$ADCBParser$override fun extractCurrency(message: String): String?</ID>
     <ID>ReturnCount:ADCBParser.kt$ADCBParser$override fun extractMerchant(message: String, sender: String): String?</ID>

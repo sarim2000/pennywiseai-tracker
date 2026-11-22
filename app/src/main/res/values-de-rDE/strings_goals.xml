@@ -19,6 +19,8 @@
     <string name="goals_archived">Archiviert</string>
     <string name="goals_due_on">Fällig am %1$s</string>
     <string name="goals_ring_description">%1$d%% gespart</string>
+    <!-- Goal card in the Plan tab. %1$s = target amount, %2$s = due date -->
+    <!-- %1$s = amount -->
     <plurals name="goals_months_left">
         <item quantity="one">Noch %d Monat</item>
         <item quantity="other">Noch %d Monate</item>

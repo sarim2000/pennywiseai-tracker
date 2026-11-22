@@ -307,6 +307,7 @@
     <string name="rules_reset">Restablecer</string>
     <string name="rules_auto_categorization_title">Clasificación automática</string>
     <string name="rules_auto_categorization_body">Activa reglas para clasificar tus transacciones automáticamente según patrones</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
     <string name="rules_group_daily">Gastos diarios</string>
     <string name="rules_group_income">Ingresos y cashback</string>
     <string name="rules_group_recurring">Pagos recurrentes</string>

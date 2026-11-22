@@ -26,6 +26,9 @@
     <string name="home_fab_sync">SMS सिंक करें (पूरा रीसिंक करने के लिए देर तक दबाएँ)</string>
     <string name="home_fab_sync_hint">पूरा रीसिंक करने के लिए दबाए रखें</string>
     <string name="home_resync_title">संदेश फिर से पढ़ें</string>
+    <!-- Home shortcut labels sit under a 64dp shape: keep them to about 10 characters -->
+    <!-- Read out for the Unsorted shortcut with its count badge -->
+    <!-- %1$d is the most shortcuts the row holds (4) -->
     <string name="home_resync_scan_again">सभी संदेश फिर से स्कैन करें</string>
     <string name="home_resync_scan_again_desc">जो छूट गया था, वह जुड़ जाएगा। आपके बदलाव और सभी मौजूदा लेन-देन जैसे हैं वैसे ही रहेंगे।</string>
     <string name="home_resync_rebuild">शुरू से दोबारा बनाएं</string>
@@ -144,6 +147,7 @@
     <string name="balance_card_summary_expenses">खर्च</string>
     <string name="balance_card_summary_lent">उधार दिया</string>
     <string name="balance_card_summary_saved">बचत</string>
+    <!-- TalkBack: what tapping a figure does ("double tap to see its transactions") -->
     <!-- Budget card -->
     <string name="budget_card_over_budget">बजट से %1$s ज़्यादा</string>
     <string name="budget_card_remaining">%1$s बाकी</string>
@@ -312,6 +316,16 @@
     <string name="home_payday_card_body">लगता है आपका वेतन महीने की %1$d तारीख को आता है। क्या हर बजट महीना उसी दिन से शुरू करें? आप इसे सेटिंग्स में बदल सकते हैं।</string>
     <string name="home_payday_card_action">%1$d तारीख से शुरू करें</string>
     <string name="home_payday_card_dismiss">हटाएं</string>
+    <!-- Home hero card. %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a formatted amount -->
+    <!-- The budget limit under the progress bar; %1$s is a formatted amount -->
+    <!-- What can still be spent each day; %1$s is a formatted amount -->
+    <!-- Home nudge under the hero: the mascot's one line. %1$s is a formatted amount -->
+    <!-- Home sections -->
+    <!-- Subtitle of a recent transaction still in Others -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">%2$s तक %1$s होने की राह पर</string>
     <string name="forecast_over_usual">आम से %1$s ज़्यादा</string>

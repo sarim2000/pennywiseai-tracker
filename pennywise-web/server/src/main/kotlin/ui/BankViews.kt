@@ -740,9 +740,8 @@ object BankViews {
 
     fun buildSitemap(): String {
         val urls = buildList {
-            // "/" and "/tools/parse" render the same page; only the canonical one is
-            // listed, otherwise the two compete with each other for the same query.
             add("/" to "1.0")
+            add("/tools/parse" to "0.9")
             add("/pro" to "1.0")
             add("/terms" to "0.3")
             GuideViews.paths.forEach { add(it to if (it == "/guide") "0.9" else "0.7") }

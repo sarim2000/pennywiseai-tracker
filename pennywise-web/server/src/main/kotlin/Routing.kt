@@ -11,6 +11,7 @@ import kotlinx.html.*
 import io.ktor.server.plugins.cors.routing.*
 import com.pennywiseai.parser.core.bank.BankParserRegistry
 import com.pennywiseai.parser.core.bank.*
+import com.example.ui.LandingViews.respondLandingPage
 import com.example.ui.ParseViews.respondParsePage
 import com.example.ui.ParseViews.renderParseResult
 import com.example.ui.BankViews
@@ -77,8 +78,7 @@ fun Application.configureRouting() {
         // Serve static resources
         staticResources("/static", "static")
 
-        // Serve HTMX page at root
-        get("/") { call.respondParsePage() }
+        get("/") { call.respondLandingPage() }
         get("/pro") { call.respondProPage() }
         get("/terms") { call.respondTermsPage() }
         get("/guide") { call.respondGuideHub() }

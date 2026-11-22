@@ -2737,6 +2737,7 @@
     <ID>UnusedPrivateProperty:InAppUpdateManager.kt$InAppUpdateManager$@ApplicationContext private val context: Context</ID>
     <ID>UnusedPrivateProperty:RulesViewModel.kt$RulesViewModel$private val ruleTemplateService: RuleTemplateService</ID>
     <ID>UnusedPrivateProperty:SouthIndianBankParser.kt$SouthIndianBankParser$val dateTime = extractDateTime(smsBody) ?: Instant.fromEpochMilliseconds(timestamp) .toLocalDateTime(TimeZone.currentSystemDefault())</ID>
+    <ID>UnusedPrivateProperty:TransactionRepository.kt$TransactionRepository$private val userPreferencesRepository: BudgetPreferences</ID>
     <ID>UnusedPrivateProperty:UpgradeSheet.kt$val scope = rememberCoroutineScope()</ID>
     <ID>UseCheckOrError:LlmServiceImpl.kt$LlmServiceImpl$throw IllegalStateException("No active conversation")</ID>
     <ID>UseCheckOrError:RulesViewModel.kt$RulesViewModel$throw IllegalStateException("Couldn't open the file for writing.")</ID>

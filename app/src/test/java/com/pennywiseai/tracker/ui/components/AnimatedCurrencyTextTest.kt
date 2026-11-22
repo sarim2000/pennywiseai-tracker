@@ -32,4 +32,16 @@ class AnimatedCurrencyTextTest {
         assertTrue(clip.right >= newWidth)
         assertTrue(clip.right >= oldWidth + anchor)
     }
+
+    @Test
+    fun `a figure rolls in from the same slots at zero`() {
+        assertEquals("₹00,000.00", zeroed("₹21,675.50"))
+        assertEquals("-AED 0.000", zeroed("-AED 1.250"))
+        // Every non-zero digit turns, upward, and nothing enters or leaves.
+        val plan = odometerPlan(zeroed("$1,204"), "$1,204", '.')!!
+        assertTrue(plan.rollsUp)
+        assertTrue(plan.exits.isEmpty())
+        assertEquals(3, plan.moves.count { it.change == GlyphChange.Roll })
+        assertTrue(plan.moves.none { it.change == GlyphChange.Enter })
+    }
 }

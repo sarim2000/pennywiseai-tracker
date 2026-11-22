@@ -399,7 +399,9 @@ it by `Dimensions.Component.bottomBarHeight`.
   1. **Chrome moves, money settles.** Position/size/shape use spatial specs
      (`fast` < 48dp parts, `default` cards/sheets/panels, `slow` full screens);
      amounts, percents, arcs, bars, alpha and colour use effects specs. A number
-     never passes through a value it doesn't have. An amount's own drift and
+     never passes through a value it doesn't have; the one exception is an
+     amount rolling in from zero the first time its screen shows it, which
+     reads as the odometer arriving, not as a figure. An amount's own drift and
      size settle, and a programmatic scroll to a scroll boundary, are effects
      too: an overshooting spring would jiggle the figure or hit the clamp.
      Status colour that follows a counting value (the budget pill and bar
@@ -461,14 +463,18 @@ it by `Dimensions.Component.bottomBarHeight`.
   staggered digits, which would show a number neither side has), on
   `slowEffectsSpec` (no overshoot). It stays one `Text`, so `maxLines`,
   `autoSize` and TalkBack are the plain text's; the roll is drawn over it from
-  that layout. It swaps instead of rolling on first show, when either side is
-  the privacy mask (hiding amounts isn't a value change), under reduced motion,
+  that layout. **The first time it shows on a screen it rolls in from zero**
+  (every digit from 0 up to its own, in the same one beat; it waits, blank, for
+  the screen's heavy first frames to pass), once: the flag is
+  saveable, so a rotation or coming back to the tab doesn't replay it, and an
+  amount first shown hidden rolls in when revealed. It swaps instead of rolling
+  when either side is the privacy mask (hiding amounts isn't a value change), under reduced motion,
   when the text doesn't fit one line, when `autoSize` picks another size, and
   when a new amount arrives mid-roll. Pass `decimalSeparator =
   CurrencyFormatter.decimalSeparator(currency)`: without it `KWD 12.345` →
   `KWD 13` can't be told from a thousands group and rolls the wrong way. Key
-  it by currency (`key(currency) { … }`): another currency is a first show,
-  not a smaller or larger number.
+  it by currency (`key(currency) { … }`): another currency is a first show
+  (it rolls in from zero), not a smaller or larger number.
 - **"Receipt settled"** (`SettledCheck`): only after the user's own save is
   written — never on load, import or a failed save — the item's avatar gives
   way to a check (fade + cookie→circle morph, no scale), with

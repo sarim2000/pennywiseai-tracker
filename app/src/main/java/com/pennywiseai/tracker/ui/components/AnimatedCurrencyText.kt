@@ -14,7 +14,9 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
@@ -22,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
@@ -44,8 +47,9 @@ import kotlinx.coroutines.launch
  * use tabular figures, so a digit slot keeps its width.
  *
  * It is still one [Text] — one semantics node, its own `maxLines` and `autoSize`
- * — and the roll is only drawn over it, from that text's own layout. A roll is
- * skipped (the value just swaps) on the first show,
+ * — and the roll is only drawn over it, from that text's own layout. The first
+ * time it shows on a screen it rolls in from zero, once (saved across rotation
+ * and tab returns). A roll is skipped (the value just swaps)
  * while amounts are hidden, with animations off, whenever the text doesn't sit
  * on one unclipped line or the auto-sized font size changes with the value,
  * and when a new amount arrives while a roll is still running.
@@ -65,8 +69,12 @@ fun AnimatedCurrencyText(
     decimalSeparator: Char? = null,
 ) {
     val animationsEnabled = rememberAnimationsEnabled()
+    // The first time the amount shows on this screen it rolls in from zero, once:
+    // saved, so a rotation or coming back to the tab doesn't replay it. Above the
+    // mask, so an amount first shown hidden rolls in when it's revealed.
+    var rolledIn by rememberSaveable { mutableStateOf(false) }
     // Hiding/showing amounts is a privacy toggle, not a value change: the mask
-    // never rolls, and the amount it reveals is a first show, so it doesn't either.
+    // never rolls.
     if (AmountPrivacy.MASK in text || !animationsEnabled) {
         Text(
             text = text,
@@ -90,6 +98,8 @@ fun AnimatedCurrencyText(
     SideEffect {
         odometer.rollSpec = rollSpec
         odometer.decimalSeparator = decimalSeparator
+        odometer.rollIn = !rolledIn
+        odometer.onRolledIn = { rolledIn = true }
     }
     val textColor = color.takeOrElse { style.color.takeOrElse { LocalContentColor.current } }
     Text(
@@ -159,15 +169,28 @@ private class Odometer(private val scope: CoroutineScope, private val measurer: 
     var rollSpec: FiniteAnimationSpec<Float> = snap()
     var decimalSeparator: Char? = null
 
+    /** Whether the first layout rolls in from zero instead of just showing. */
+    var rollIn = false
+    var onRolledIn: () -> Unit = {}
+
     private var layout: TextLayoutResult? = null
     private var roll by mutableStateOf<Roll?>(null)
     private var progress by mutableFloatStateOf(1f)
+    private var holding by mutableStateOf(false)
     private var rollJob: Job? = null
 
     fun onLayout(new: TextLayoutResult) {
         val old = layout
         layout = new
-        if (old == null) return // first show: nothing to roll from
+        if (old == null) {
+            // First show: roll in from the same amount with every digit at 0, so each
+            // slot turns up to its digit in the one beat a change uses.
+            if (rollIn) {
+                onRolledIn()
+                startRoll(relaid(new, AnnotatedString(zeroed(new.layoutInput.text.text))), new, rollingIn = true)
+            }
+            return
+        }
         if (old.layoutInput.text == new.layoutInput.text) {
             // Laid out again in place: a roll stays valid only while the glyphs
             // it was planned on haven't moved.
@@ -185,7 +208,7 @@ private class Odometer(private val scope: CoroutineScope, private val measurer: 
     }
 
     /** An ineligible amount just swaps. */
-    private fun startRoll(old: TextLayoutResult, new: TextLayoutResult) {
+    private fun startRoll(old: TextLayoutResult, new: TextLayoutResult, rollingIn: Boolean = false) {
         val plan = odometerPlan(old.layoutInput.text.text, new.layoutInput.text.text, decimalSeparator)
         if (plan == null || !plan.changed || !fitsOneLine(old) || !fitsOneLine(new) ||
             old.layoutInput.style.fontSize != new.layoutInput.style.fontSize
@@ -235,7 +258,14 @@ private class Odometer(private val scope: CoroutineScope, private val measurer: 
         )
         progress = 0f
         rollJob?.cancel()
+        // A screen's first frames are its heaviest: a roll-in waits, blank, for frames
+        // to come steadily, or it's spent before it's drawn and "0,000" sits there.
+        holding = rollingIn
         rollJob = scope.launch {
+            if (rollingIn) {
+                awaitSteadyFrames()
+                holding = false
+            }
             animate(0f, 1f, animationSpec = rollSpec) { value, _ -> progress = value }
             roll = null
         }
@@ -244,6 +274,7 @@ private class Odometer(private val scope: CoroutineScope, private val measurer: 
     private fun stopRoll() {
         rollJob?.cancel()
         roll = null
+        holding = false
         progress = 1f
     }
 
@@ -252,27 +283,34 @@ private class Odometer(private val scope: CoroutineScope, private val measurer: 
      * transparent: same input, so the same glyph positions, kerning and shaping.
      */
     private fun masks(layout: TextLayoutResult, ranges: List<IntRange>): Map<IntRange, TextLayoutResult> {
-        val input = layout.layoutInput
-        val text = input.text
+        val text = layout.layoutInput.text
         return ranges.associateWith { range ->
-            val masked = buildAnnotatedString {
-                append(text)
-                if (range.first > 0) addStyle(Hidden, 0, range.first)
-                if (range.last + 1 < text.length) addStyle(Hidden, range.last + 1, text.length)
-            }
-            measurer.measure(
-                text = masked,
-                style = input.style,
-                overflow = input.overflow,
-                softWrap = input.softWrap,
-                maxLines = input.maxLines,
-                placeholders = input.placeholders,
-                constraints = input.constraints,
-                layoutDirection = input.layoutDirection,
-                density = input.density,
-                fontFamilyResolver = input.fontFamilyResolver,
+            relaid(
+                layout,
+                buildAnnotatedString {
+                    append(text)
+                    if (range.first > 0) addStyle(Hidden, 0, range.first)
+                    if (range.last + 1 < text.length) addStyle(Hidden, range.last + 1, text.length)
+                },
             )
         }
+    }
+
+    /** [text] measured exactly as [layout]'s own text was. */
+    private fun relaid(layout: TextLayoutResult, text: AnnotatedString): TextLayoutResult {
+        val input = layout.layoutInput
+        return measurer.measure(
+            text = text,
+            style = input.style,
+            overflow = input.overflow,
+            softWrap = input.softWrap,
+            maxLines = input.maxLines,
+            placeholders = input.placeholders,
+            constraints = input.constraints,
+            layoutDirection = input.layoutDirection,
+            density = input.density,
+            fontFamilyResolver = input.fontFamilyResolver,
+        )
     }
 
     fun ContentDrawScope.draw(color: Color) {
@@ -282,6 +320,7 @@ private class Odometer(private val scope: CoroutineScope, private val measurer: 
             drawContent()
             return
         }
+        if (holding) return
         // One beat for every slot (design rule 2): a staggered roll would show the
         // units' new digit beside the old hundreds, a number neither side has.
         val p = progress
@@ -332,6 +371,30 @@ internal fun rollClip(newWidth: Float, oldWidth: Float, anchor: Float, pad: Floa
 )
 
 internal data class RollClip(val left: Float, val right: Float)
+
+/**
+ * Returns once frames arrive at a steady pace ([STEADY_FRAMES] in a row, each
+ * within [STEADY_FRAME_NANOS] of the last), so what follows is actually drawn.
+ * Gives up after [MAX_WAIT_FRAMES] on a device that never gets there.
+ */
+private suspend fun awaitSteadyFrames() {
+    var last = withFrameNanos { it }
+    var steady = 0
+    var frames = 0
+    while (steady < STEADY_FRAMES && frames < MAX_WAIT_FRAMES) {
+        val now = withFrameNanos { it }
+        steady = if (now - last <= STEADY_FRAME_NANOS) steady + 1 else 0
+        last = now
+        frames++
+    }
+}
+
+private const val STEADY_FRAMES = 3
+private const val STEADY_FRAME_NANOS = 50_000_000L
+private const val MAX_WAIT_FRAMES = 12
+
+/** [text] with every digit turned to 0: what a figure rolls in from. Same length, same slots. */
+internal fun zeroed(text: String): String = text.map { if (it.isDigit()) '0' else it }.joinToString("")
 
 /** Paints a character nothing, without changing how the text measures or shapes. */
 private val Hidden = SpanStyle(color = Color.Transparent)

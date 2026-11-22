@@ -211,7 +211,7 @@ fun BalanceCard(
                 )
                 val heroStyle = PennyWiseText.heroAmount
                 // Another currency is a first show, not a change of value: amounts in
-                // two currencies can't be compared, so the figure swaps without rolling.
+                // two currencies can't be compared, so the figure rolls in from zero.
                 key(budget?.currency ?: currency) {
                     AnimatedCurrencyText(
                         text = if (budget != null) {

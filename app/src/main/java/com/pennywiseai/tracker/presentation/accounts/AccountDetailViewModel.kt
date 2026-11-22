@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
-import com.pennywiseai.tracker.data.currency.CurrencyConversionService.TransactionData
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences

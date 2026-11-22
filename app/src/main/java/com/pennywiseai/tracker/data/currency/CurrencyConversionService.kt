@@ -10,7 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -311,13 +310,6 @@ class CurrencyConversionService @Inject constructor(
         maxOf(nextUpdateTimeUnix, (System.currentTimeMillis() + TimeConstants.MILLIS_PER_HOUR) / 1000)
 
     /**
-     * Get the base currency for the app
-     */
-    private suspend fun getBaseCurrency(): String {
-        return userPreferencesRepository.baseCurrency.first() ?: "INR"
-    }
-
-    /**
      * Non-fetching lookup: the rate from the in-memory cache (if valid) or a fresh
      * (non-expired) DB row. Returns null without touching the network.
      */
@@ -465,24 +457,6 @@ class CurrencyConversionService @Inject constructor(
     }
 
     /**
-     * Get information about rate freshness for debugging
-     */
-    suspend fun getRateFreshnessInfo(): RateFreshnessInfo {
-        val currentTime = LocalDateTime.now()
-        val usdRates = exchangeRateDao.getExchangeRatesForCurrency("USD", currentTime)
-        val latestRate = exchangeRateDao.getLatestRate()
-
-        return RateFreshnessInfo(
-            hasValidUsdRates = usdRates.isNotEmpty(),
-            validUsdRatesCount = usdRates.size,
-            latestUpdateTime = latestRate?.updatedAt,
-            latestExpiryTime = usdRates.map { it.expiresAt }.maxOrNull(),
-            isStale = areOverallRatesStale(),
-            currentTime = currentTime
-        )
-    }
-
-    /**
      * Update cache with new rate. rateCache is a ConcurrentHashMap and
      * lastCacheUpdate is @Volatile, so this is safe from concurrent callers
      * without taking fetchMutex (which is reserved for fetch serialization;
@@ -500,42 +474,6 @@ class CurrencyConversionService @Inject constructor(
      */
     private fun isCacheValid(): Boolean {
         return lastCacheUpdate.isAfter(LocalDateTime.now().minusHours(1))
-    }
-
-    /**
-     * Clear expired rates from database
-     */
-    suspend fun cleanupExpiredRates() {
-        val expiryTime = LocalDateTime.now().minusDays(7) // Keep rates for 7 days
-        exchangeRateDao.deleteExpiredRates(expiryTime)
-    }
-
-    /**
-     * Get all available currencies with exchange rates
-     */
-    suspend fun getAvailableCurrencies(): List<String> {
-        return exchangeRateDao.getAvailableCurrencies()
-    }
-
-    /**
-     * Convert multiple amounts to base currency
-     */
-    suspend fun convertToBaseCurrency(
-        transactions: List<TransactionData>,
-        baseCurrency: String
-    ): Map<String, BigDecimal> {
-        val convertedAmounts = mutableMapOf<String, BigDecimal>()
-
-        transactions.forEach { transaction ->
-            val convertedAmount = convertAmount(
-                amount = transaction.amount,
-                fromCurrency = transaction.currency,
-                toCurrency = baseCurrency
-            )
-            convertedAmounts[transaction.id] = convertedAmount
-        }
-
-        return convertedAmounts
     }
 
     /**
@@ -596,19 +534,4 @@ class CurrencyConversionService @Inject constructor(
     fun getAllRatesFlow(): Flow<List<ExchangeRateEntity>> {
         return exchangeRateDao.getAllRatesFlow()
     }
-
-    data class TransactionData(
-        val id: String,
-        val amount: BigDecimal,
-        val currency: String
-    )
-
-    data class RateFreshnessInfo(
-        val hasValidUsdRates: Boolean,
-        val validUsdRatesCount: Int,
-        val latestUpdateTime: LocalDateTime?,
-        val latestExpiryTime: LocalDateTime?,
-        val isStale: Boolean,
-        val currentTime: LocalDateTime
-    )
 }

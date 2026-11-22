@@ -1204,7 +1204,6 @@
     <ID>MagicNumber:CurrencyConversionService.kt$CurrencyConversionService$100</ID>
     <ID>MagicNumber:CurrencyConversionService.kt$CurrencyConversionService$1000</ID>
     <ID>MagicNumber:CurrencyConversionService.kt$CurrencyConversionService$24</ID>
-    <ID>MagicNumber:CurrencyConversionService.kt$CurrencyConversionService$7</ID>
     <ID>MagicNumber:CurrencyFormatter.kt$CurrencyFormatter$10_000_000</ID>
     <ID>MagicNumber:CurrencyFormatter.kt$CurrencyFormatter$1_000</ID>
     <ID>MagicNumber:CurrencyFormatter.kt$CurrencyFormatter$1_000_000</ID>
@@ -2717,7 +2716,6 @@
     <ID>UnusedParameter:SubscriptionsScreen.kt$onNavigateBack: () -&gt; Unit = {}</ID>
     <ID>UnusedParameter:TransactionFilterHeader.kt$customRangeLabel: String?</ID>
     <ID>UnusedPrivateMember:AnalyticsScreen.kt$@Composable private fun CategoryListItem( category: CategoryData, currency: String )</ID>
-    <ID>UnusedPrivateMember:CurrencyConversionService.kt$CurrencyConversionService$private suspend fun getBaseCurrency(): String</ID>
     <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createEmiDetectionRule(): TransactionRule</ID>
     <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createFuelDetectionRule(): TransactionRule</ID>
     <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createHealthcareDetectionRule(): TransactionRule</ID>
@@ -2738,6 +2736,7 @@
     <ID>UnusedPrivateProperty:BudgetGroupEditScreen.kt$val catInfo = CategoryMapping.categories[option.displayName] ?: CategoryMapping.categories["Others"]!!</ID>
     <ID>UnusedPrivateProperty:BudgetGroupEditScreen.kt$val categoryInfo = CategoryMapping.categories[categoryName] ?: CategoryMapping.categories["Others"]!!</ID>
     <ID>UnusedPrivateProperty:BudgetGroupsScreen.kt$val categoryInfo = CategoryMapping.categories[catSpending.categoryName] ?: CategoryMapping.categories["Others"]!!</ID>
+    <ID>UnusedPrivateProperty:CurrencyConversionService.kt$CurrencyConversionService$private val userPreferencesRepository: CurrencyPreferences</ID>
     <ID>UnusedPrivateProperty:FABParser.kt$FABParser$val currencyCode = match.groupValues[1].uppercase()</ID>
     <ID>UnusedPrivateProperty:InAppReviewManager.kt$InAppReviewManager$@ApplicationContext private val context: Context</ID>
     <ID>UnusedPrivateProperty:InAppReviewManager.kt$InAppReviewManager$private val userPreferencesRepository: UserPreferencesRepository</ID>

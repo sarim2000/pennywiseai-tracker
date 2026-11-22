@@ -14,7 +14,9 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
@@ -111,32 +113,37 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     { fromCurrency, amount ->
                         currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
                     }
+                val convertIncome: suspend (TransactionEntity) -> BigDecimal? = { tx ->
+                    currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                }
+
+                suspend fun incomeIn(rows: List<TransactionWithSplits>): BigDecimal {
+                    var income = BigDecimal.ZERO
+                    for (txWithSplits in rows) {
+                        val tx = txWithSplits.transaction
+                        if (tx.transactionType != TransactionType.INCOME) continue
+                        // Only exclude a Refund from income when it's actually being
+                        // deducted from a category by aggregateBudgetCategorySpending
+                        // (i.e. budgetCategory is set). An "orphaned" DEDUCT_SPENT
+                        // with no category isn't subtracted from spend, so dropping it
+                        // from income too would understate netSavings.
+                        if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
+                            tx.budgetCategory != null
+                        ) continue
+                        // Skip unconvertible income so it doesn't inflate netSavings
+                        // at face value (#670).
+                        income += convertIncome(tx) ?: continue
+                    }
+                    return income
+                }
+
                 val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
                     transactions = raw.allTransactions,
                     convertSplit = convertSplit,
-                    convertIncome = { tx ->
-                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
-                    }
+                    convertIncome = convertIncome
                 )
 
-                var totalIncome = BigDecimal.ZERO
-                for (txWithSplits in raw.allTransactions) {
-                    val tx = txWithSplits.transaction
-                    if (tx.transactionType != TransactionType.INCOME) continue
-                    // Only exclude a Refund from income when it's actually being
-                    // deducted from a category by aggregateBudgetCategorySpending
-                    // (i.e. budgetCategory is set). An "orphaned" DEDUCT_SPENT
-                    // with no category isn't subtracted from spend, so dropping it
-                    // from income too would understate netSavings.
-                    if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
-                        tx.budgetCategory != null
-                    ) continue
-                    // Skip unconvertible income so it doesn't inflate netSavings
-                    // at face value (#670).
-                    totalIncome += currencyConversionService.convertAmountOrNull(
-                        tx.amount, tx.currency, displayCurrency
-                    ) ?: continue
-                }
+                val totalIncome = incomeIn(raw.allTransactions)
 
                 val groupSpendingList = raw.budgetsWithCategories.map { group ->
                     val isTrackingAll = group.categories.isEmpty()
@@ -217,9 +224,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 val (prevCategoryAmounts, _, prevTypeAmounts) = aggregateBudgetCategorySpending(
                     transactions = raw.prevCycleTransactions,
                     convertSplit = convertSplit,
-                    convertIncome = { tx ->
-                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
-                    }
+                    convertIncome = convertIncome
                 )
 
                 // Split LIMIT-group buckets into category vs type buckets so the
@@ -238,17 +243,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     acc + (prevTypeAmounts[t] ?: BigDecimal.ZERO)
                 }
 
-                var prevIncome = BigDecimal.ZERO
-                for (txWithSplits in raw.prevCycleTransactions) {
-                    val tx = txWithSplits.transaction
-                    if (tx.transactionType != TransactionType.INCOME) continue
-                    if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
-                        tx.budgetCategory != null
-                    ) continue
-                    prevIncome += currencyConversionService.convertAmountOrNull(
-                        tx.amount, tx.currency, displayCurrency
-                    ) ?: continue
-                }
+                val prevIncome = incomeIn(raw.prevCycleTransactions)
 
                 val prevSavings = prevIncome - prevLimitSpent
                 val savingsDelta = netSavings - prevSavings

@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
@@ -183,6 +184,7 @@ private fun LargerTopAppBar(
                 // The bar's 4dp inset, so the title and the avatar both sit on the 16dp content
                 // margin. Home's greeting (extraInfoCard) brings its own content padding.
                 modifier = modifier.padding(horizontal = Spacing.xs),
+                titleAlpha = CollapsingTitleFade.expanded(collapsedFraction),
                 extraInfoCard = extraInfoCard,
             )
             if (subtitle != null) {
@@ -192,7 +194,9 @@ private fun LargerTopAppBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(start = Dimensions.Padding.content)
+                    modifier = Modifier
+                        .padding(start = Dimensions.Padding.content)
+                        .graphicsLayer { alpha = CollapsingTitleFade.expanded(collapsedFraction) }
                 )
             }
         }
@@ -207,6 +211,10 @@ private fun LargerTopAppBar(
                 isHomeScreen = isHomeScreen,
                 titleMaxLines = 2,
                 modifier = modifier,
+                // M3 also draws this slot in the bar's collapsed top row (fading in late), still
+                // in our large style: a ghost behind the regular bar's centred title. Fading the
+                // large title out early hides that copy as well.
+                titleAlpha = CollapsingTitleFade.expanded(collapsedFraction),
                 extraInfoCard = extraInfoCard,
             )
         },
@@ -217,7 +225,9 @@ private fun LargerTopAppBar(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     // Lines up with the title's start inset.
-                    modifier = Modifier.padding(start = Spacing.smd)
+                    modifier = Modifier
+                        .padding(start = Spacing.smd)
+                        .graphicsLayer { alpha = CollapsingTitleFade.expanded(collapsedFraction) }
                 )
             }
         },
@@ -301,6 +311,7 @@ private fun TitleForLargeTopAppBar(
     trailing: @Composable () -> Unit = {},
     isHomeScreen: Boolean,
     titleMaxLines: Int = 1,
+    titleAlpha: Float = 1f,
     extraInfoCard: @Composable () -> Unit = {},
 ) {
     Column(
@@ -319,7 +330,11 @@ private fun TitleForLargeTopAppBar(
                     .padding(start = Spacing.smd),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .graphicsLayer { alpha = titleAlpha }
+                ) {
                     if (overline != null) {
                         Text(
                             text = overline,
@@ -414,11 +429,14 @@ private fun RegularTopAppBar(
             // claimed to have no action button — so the nine screens that
             // claimed an action button while rendering none ended up with the
             // title visibly off to the right.
+            // Shows only once the large title has faded out, so the two never overlap.
+            val titleModifier = Modifier.graphicsLayer { alpha = CollapsingTitleFade.collapsed(collapsedFraction) }
             val barTitle: @Composable () -> Unit = {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleLarge,
                     textAlign = TextAlign.Center,
+                    modifier = titleModifier,
                 )
             }
             if (subtitle == null) {
@@ -440,7 +458,7 @@ private fun RegularTopAppBar(
                 TopAppBar(
                     title = barTitle,
                     subtitle = {
-                        Text(text = subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(text = subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = titleModifier)
                     },
                     titleHorizontalAlignment = Alignment.CenterHorizontally,
                     colors = barColors,
@@ -456,6 +474,23 @@ private fun RegularTopAppBar(
             }
         }
     }
+}
+
+/**
+ * How the large and the collapsed title hand over while the bar collapses. The two bars are
+ * stacked and already fade as a whole (`1 - f` and `f`); with only that, both titles sit at
+ * mid opacity in the same band mid-collapse and read as a doubled title. On top of it, the
+ * large title is gone by [HANDOFF] and the collapsed one starts there — a fade-through, so
+ * at most one title is ever visible. The bars' chrome (back arrow, actions) keeps its fade.
+ */
+internal object CollapsingTitleFade {
+    const val HANDOFF = 0.5f
+
+    /** Extra alpha for the large title at [collapsedFraction]: 1 when expanded, 0 from [HANDOFF]. */
+    fun expanded(collapsedFraction: Float): Float = (1f - collapsedFraction / HANDOFF).coerceIn(0f, 1f)
+
+    /** Extra alpha for the collapsed bar's title: 0 up to [HANDOFF], 1 when collapsed. */
+    fun collapsed(collapsedFraction: Float): Float = ((collapsedFraction - HANDOFF) / (1f - HANDOFF)).coerceIn(0f, 1f)
 }
 
 /** Home's start-aligned title: avatar plus the user's name. */

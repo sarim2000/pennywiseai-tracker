@@ -1448,10 +1448,8 @@
     <ID>MagicNumber:RecurringSuggestions.kt$RecurringSuggestions$20</ID>
     <ID>MagicNumber:RecurringSuggestions.kt$RecurringSuggestions$3</ID>
     <ID>MagicNumber:RecurringSuggestions.kt$RecurringSuggestions$30</ID>
-    <ID>MagicNumber:RecurringSuggestions.kt$RecurringSuggestions$3L</ID>
     <ID>MagicNumber:RecurringSuggestions.kt$RecurringSuggestions$4</ID>
     <ID>MagicNumber:RecurringSuggestions.kt$RecurringSuggestions$5</ID>
-    <ID>MagicNumber:RecurringSuggestions.kt$RecurringSuggestions$6L</ID>
     <ID>MagicNumber:RecurringSuggestions.kt$RecurringSuggestions$7</ID>
     <ID>MagicNumber:RecurringSuggestionsUseCase.kt$RecurringSuggestionsUseCase$12</ID>
     <ID>MagicNumber:RecurringSuggestionsUseCase.kt$RecurringSuggestionsUseCase$31</ID>
@@ -1576,8 +1574,6 @@
     <ID>MagicNumber:SubscriptionCost.kt$SubscriptionCost$52</ID>
     <ID>MagicNumber:SubscriptionCost.kt$SubscriptionCost$6</ID>
     <ID>MagicNumber:SubscriptionRepository.kt$SubscriptionRepository$30</ID>
-    <ID>MagicNumber:SubscriptionRepository.kt$SubscriptionRepository$3L</ID>
-    <ID>MagicNumber:SubscriptionRepository.kt$SubscriptionRepository$6L</ID>
     <ID>MagicNumber:SubscriptionTabContent.kt$0.7f</ID>
     <ID>MagicNumber:SubscriptionsScreen.kt$5</ID>
     <ID>MagicNumber:SubscriptionsScreen.kt$86_400_000</ID>

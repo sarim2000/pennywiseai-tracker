@@ -161,7 +161,7 @@ object RecurringSuggestions {
         val latestDate = latest.dateTime.toLocalDate()
         for (cadence in CADENCES) {
             // Stale: the next payment is long overdue, so it was probably cancelled.
-            if (today.isAfter(advance(latestDate, cadence.cycle).plusDays(cadence.graceDays))) continue
+            if (today.isAfter(RecurringCharge.advance(latestDate, cadence.cycle).plusDays(cadence.graceDays))) continue
             val payments = mutableListOf(latest)
             var frequent = false
             for (charge in newestFirst.drop(1)) {
@@ -174,8 +174,8 @@ object RecurringSuggestions {
                 // latest: the second keeps a bill on the 31st (Feb 28, then
                 // Jan 31) from drifting off its day, the first lets a 28-day
                 // plan drift a little every month.
-                val fromPrevious = advance(previous, cadence.cycle, reverse = true)
-                val fromLatest = advance(latestDate, cadence.cycle, reverse = true, times = payments.size)
+                val fromPrevious = RecurringCharge.advance(previous, cadence.cycle, -1)
+                val fromLatest = RecurringCharge.advance(latestDate, cadence.cycle, -1L * payments.size)
                 val cycleDays = ChronoUnit.DAYS.between(fromPrevious, previous)
                 when {
                     Math.abs(ChronoUnit.DAYS.between(fromPrevious, date)) <= cadence.toleranceDays ||
@@ -217,20 +217,8 @@ object RecurringSuggestions {
                 RecurringSuggestion.Payment(it.id, it.dateTime.toLocalDate(), it.amount)
             },
             // A payment that's a few days late is still expected: due today, not overdue.
-            nextDueDate = maxOf(advance(latest.dateTime.toLocalDate(), cadence.cycle), today),
+            nextDueDate = maxOf(RecurringCharge.advance(latest.dateTime.toLocalDate(), cadence.cycle), today),
         )
-    }
-
-    /** Same calendar arithmetic as [com.pennywiseai.tracker.data.repository.SubscriptionRepository.advance]. */
-    private fun advance(date: LocalDate, cycle: String, reverse: Boolean = false, times: Int = 1): LocalDate {
-        val sign = (if (reverse) -1L else 1L) * times
-        return when (cycle) {
-            "Weekly" -> date.plusWeeks(sign)
-            "Quarterly" -> date.plusMonths(3L * sign)
-            "Semi-Annual" -> date.plusMonths(6L * sign)
-            "Annual" -> date.plusYears(sign)
-            else -> date.plusMonths(sign)
-        }
     }
 
     private const val MAX_ANCHORS = 3

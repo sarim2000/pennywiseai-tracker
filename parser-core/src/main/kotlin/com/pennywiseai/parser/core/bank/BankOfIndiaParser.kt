@@ -377,24 +377,7 @@ class BankOfIndiaParser : BaseIndianBankParser() {
             }
         }
 
-        // Skip OTP and verification messages
-        if (lowerMessage.contains("otp") ||
-            lowerMessage.contains("one time password") ||
-            lowerMessage.contains("verification code")
-        ) {
-            return false
-        }
-
-        // Skip promotional messages
-        if (lowerMessage.contains("offer") ||
-            lowerMessage.contains("discount") ||
-            lowerMessage.contains("cashback offer") ||
-            lowerMessage.contains("win ")
-        ) {
-            return false
-        }
-
-        // Fall back to base class for standard checks
+        // The base class skips OTP, promotional and other non-transaction messages.
         return super.isTransactionMessage(message)
     }
 }

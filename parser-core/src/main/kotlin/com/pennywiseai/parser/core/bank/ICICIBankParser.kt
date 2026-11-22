@@ -602,17 +602,6 @@ class ICICIBankParser : BaseIndianBankParser() {
             return false // Skip this confirmation message
         }
 
-        // Skip payment due reminders
-        if (lowerMessage.contains("is due by")) {
-            return false // Skip payment due reminders
-        }
-
-        // Skip future debit notifications - these are not actual transactions yet
-        // Examples: "will be debited on", "will be debited with", "account will be debited"
-        if (lowerMessage.contains("will be debited")) {
-            return false // This is a future debit notification, not an actual transaction
-        }
-
         // Skip credit card bill payment confirmations - these are transfers between own accounts
         // Example: "Payment of Rs 26,266.00 has been received on your ICICI Bank Credit Card XX9006..."
         if (lowerMessage.contains("has been received on your icici bank credit card")) {

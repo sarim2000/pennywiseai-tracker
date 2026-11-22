@@ -526,13 +526,8 @@ class HDFCBankParser : BaseIndianBankParser() {
             }
         }
 
-        // Skip payment request messages
-        if (lowerMessage.contains("has requested") ||
-            lowerMessage.contains("payment request") ||
-            lowerMessage.contains("to pay, download") ||
-            lowerMessage.contains("collect request") ||
-            lowerMessage.contains("ignore if already paid")
-        ) {
+        // Skip payment request messages (the shared skip-list below covers the rest)
+        if (lowerMessage.contains("to pay, download")) {
             return false
         }
 

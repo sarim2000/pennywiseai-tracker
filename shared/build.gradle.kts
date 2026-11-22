@@ -54,9 +54,6 @@ kotlin {
             // Bank SMS parsers are platform code in parser-core (no common API),
             // so the one bridge file compiles into each platform source set.
             kotlin.srcDir("src/bankParserMain/kotlin")
-            dependencies {
-                implementation(libs.pdfbox.android)
-            }
         }
         if (org.jetbrains.kotlin.konan.target.HostManager.hostIsMac) {
             iosMain {

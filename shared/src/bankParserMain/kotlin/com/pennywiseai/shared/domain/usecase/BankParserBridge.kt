@@ -42,11 +42,8 @@ private fun guessSenders(body: String): Pair<List<Pair<BankParser, String>>, Lis
         SIGN_OFF.findAll(body.takeLast(40)).map { it.groupValues[1] }.toList().asReversed())
         .map { it.uppercase() }
         .flatMap { word -> BankParserFactory.getParsers(word).map { it to word } }
-    val named = BankParserFactory.getAllParsers()
-        .mapNotNull { parser ->
-            Regex("""\b${Regex.escape(parser.getBankName())}\b""", RegexOption.IGNORE_CASE).find(body)
-                ?.let { parser to it.range }
-        }
+    val named = BANK_NAME_PATTERNS
+        .mapNotNull { (parser, pattern) -> pattern.find(body)?.let { parser to it.range } }
         // Named first first; a name inside a longer one ("Indian Bank" in "South Indian Bank") yields to it.
         .sortedWith(compareBy<Pair<BankParser, IntRange>> { it.second.first }.thenByDescending { it.second.last })
         .map { (parser, _) -> parser to parser.getBankName() }
@@ -57,6 +54,14 @@ private fun guessSenders(body: String): Pair<List<Pair<BankParser, String>>, Lis
 
 private val HEADER = Regex("""^\s*([A-Za-z][A-Za-z0-9]{1,14})\s*(?::|-\s)""")
 private val SIGN_OFF = Regex("""-\s*([A-Za-z][A-Za-z0-9]{1,14})\b""")
+
+// One word-bounded pattern per registered bank, built once: bank names are constants and
+// getAllParsers() returns the same parser instances every time.
+private val BANK_NAME_PATTERNS: List<Pair<BankParser, Regex>> by lazy {
+    BankParserFactory.getAllParsers().map { parser ->
+        parser to Regex("""\b${Regex.escape(parser.getBankName())}\b""", RegexOption.IGNORE_CASE)
+    }
+}
 
 /** The first parser that reads the body wins; one that throws is skipped, never aborting the rest. */
 private fun attempt(candidates: List<Pair<BankParser, String>>, body: String, receivedAt: Long): BankParseAttempt {

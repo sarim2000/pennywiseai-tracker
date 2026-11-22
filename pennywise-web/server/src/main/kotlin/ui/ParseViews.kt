@@ -467,8 +467,10 @@ object ParseViews {
                     parsed.merchant?.let { field("Merchant", it) }
                     parsed.reference?.let { field("Reference", it) }
                     parsed.accountLast4?.let { field("Account last 4", it) }
-                    parsed.balance?.let { field("Balance", "${parsed.currency} ${it.toPlainString()}") }
-                    parsed.creditLimit?.let { field("Available limit", "${parsed.currency} ${it.toPlainString()}") }
+                    // The account can be kept in another currency than the spend (a USD purchase on an INR card).
+                    val accountCurrency = parsed.accountCurrency ?: parsed.currency
+                    parsed.balance?.let { field("Balance", "$accountCurrency ${it.toPlainString()}") }
+                    parsed.creditLimit?.let { field("Available limit", "$accountCurrency ${it.toPlainString()}") }
                     field("From card", if (parsed.isFromCard) "Yes" else "No")
                 }
             }

@@ -11,7 +11,6 @@ import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
-import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -209,8 +208,6 @@ object AiToolLogic {
         require(rule.actions.none { it.actionType == ActionType.BLOCK }) { "AI apps can't create rules that block transactions." }
         return rule
     }
-
-    private fun money(m: Money) = money(m.amount, m.currency)
 
     private fun money(amount: BigDecimal, currency: String) = buildJsonObject {
         put("amount", amount.setScale(MinorUnits.digits(currency), RoundingMode.HALF_UP).toPlainString())

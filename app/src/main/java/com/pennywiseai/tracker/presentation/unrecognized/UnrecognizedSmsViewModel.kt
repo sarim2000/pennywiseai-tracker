@@ -54,7 +54,9 @@ class UnrecognizedSmsViewModel @Inject constructor(
     private val _showReported = MutableStateFlow(true)
     val showReported: StateFlow<Boolean> = _showReported.asStateFlow()
 
+    // One Room observer for the three flows below, instead of one each.
     private val allMessages = unrecognizedSmsRepository.getAllVisible()
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5000), replay = 1)
 
     val unrecognizedMessages: StateFlow<List<UnrecognizedSmsEntity>> =
         combine(allMessages, _showReported) { messages, showReported ->

@@ -104,8 +104,8 @@ class AiTools @Inject constructor(
         }
     }
 
-    private suspend fun findCategory(name: String?): CategoryEntity? =
-        name?.trim()?.let { n -> categories.getAllCategories().first().firstOrNull { it.name.equals(n, ignoreCase = true) } }
+    private fun findCategory(name: String?, all: List<CategoryEntity>): CategoryEntity? =
+        name?.trim()?.let { n -> all.firstOrNull { it.name.equals(n, ignoreCase = true) } }
 
     /**
      * Remembers each merchant's category for future SMS and moves its past transactions out of
@@ -116,12 +116,14 @@ class AiTools @Inject constructor(
     private suspend fun categorizeMerchants(items: JsonArray): JsonObject {
         if (items.size > MAX_BATCH) throw Refused("Send at most $MAX_BATCH at a time.")
         val others = BuiltinCategoryNames.current("Others")
+        // Read once: the batch writes mappings and moves rows but never adds a category.
+        val all = categories.getAllCategories().first()
         val results = items.map { item ->
             val o = item as? JsonObject ?: JsonObject(emptyMap())
             val merchant = o.string("merchant")?.trim()
-            val category = findCategory(o.string("category"))
+            val category = findCategory(o.string("category"), all)
             val fromName = o.string("from_category")
-            val from = if (fromName == null) others else findCategory(fromName)?.name
+            val from = if (fromName == null) others else findCategory(fromName, all)?.name
             val problem = when {
                 merchant == null -> "merchant is missing"
                 LearnCategoryUseCase.isPlaceholderMerchant(merchant) -> "\"$merchant\" names a payment channel, not a payee, so it can't be remembered"
@@ -162,7 +164,7 @@ class AiTools @Inject constructor(
 
     private suspend fun createCategory(name: String, isIncome: Boolean): JsonObject {
         if (name.isEmpty()) throw Refused("Give the category a name.")
-        findCategory(name)?.let { throw Refused("A category named \"${it.name}\" already exists.") }
+        findCategory(name, categories.getAllCategories().first())?.let { throw Refused("A category named \"${it.name}\" already exists.") }
         categories.createCategory(name, DEFAULT_CATEGORY_COLOR, isIncome)
         return buildJsonObject { put("created", name); put("kind", if (isIncome) "income" else "expense") }
     }

@@ -288,7 +288,8 @@ private fun EditRateDialog(
 ) {
     val rateState = rememberTextFieldState(rate.rate.setScale(6, java.math.RoundingMode.HALF_UP).toPlainString())
     val rateText = rateState.text.toString()
-    val isError = rateText.toBigDecimalOrNull() == null || (rateText.toBigDecimalOrNull() ?: BigDecimal.ZERO) <= BigDecimal.ZERO
+    val parsedRate = rateText.toBigDecimalOrNull()
+    val isError = parsedRate == null || parsedRate <= BigDecimal.ZERO
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -340,7 +341,7 @@ private fun EditRateDialog(
                         onSetCustomRate(newRate)
                     }
                 },
-                enabled = !isError && rateText.isNotBlank(),
+                enabled = !isError,
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.exchange_rates_set_custom))

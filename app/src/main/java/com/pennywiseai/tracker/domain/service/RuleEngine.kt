@@ -57,26 +57,6 @@ class RuleEngine @Inject constructor() {
     }
 
     /**
-     * Evaluates rules for a specific transaction type.
-     * This is a convenience method that pre-filters rules based on transaction type.
-     */
-    fun evaluateRulesForType(
-        transaction: TransactionEntity,
-        smsText: String?,
-        rules: List<TransactionRule>,
-        type: TransactionType
-    ): Pair<TransactionEntity, List<RuleApplication>> {
-        // Pre-filter rules that apply to this transaction type. This is an optimization
-        // for the common AND-only case; the shared helper conservatively passes through
-        // rules with OR logic or non-pre-filterable TYPE operators for full evaluation.
-        val applicableRules = rules.filter { rule ->
-            isRuleApplicableToTransactionType(rule, type)
-        }
-
-        return evaluateRules(transaction, smsText, applicableRules)
-    }
-
-    /**
      * Checks if a transaction should be blocked based on blocking rules.
      * Returns the first blocking rule that matches, or null if no blocking rules match.
      */

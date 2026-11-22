@@ -440,52 +440,6 @@ class RuleEngineTest {
         assertEquals(TransactionType.CREDIT, result.transactionType)
     }
 
-    @Test
-    fun `evaluateRulesForType applies a TYPE EXPENSE rule to expense transactions`() {
-        val txn = transaction(transactionType = TransactionType.EXPENSE)
-        val rule = TransactionRule(
-            name = "Expense-only rule",
-            conditions = listOf(
-                RuleCondition(TransactionField.TYPE, ConditionOperator.EQUALS, "EXPENSE")
-            ),
-            actions = listOf(
-                RuleAction(TransactionField.CATEGORY, ActionType.SET, "General")
-            )
-        )
-
-        val (_, applications) = engine.evaluateRulesForType(
-            txn,
-            smsText = null,
-            rules = listOf(rule),
-            type = TransactionType.EXPENSE
-        )
-
-        assertTrue(applications.isNotEmpty())
-    }
-
-    @Test
-    fun `evaluateRulesForType filters out a TYPE EXPENSE rule for income transactions`() {
-        val txn = transaction(transactionType = TransactionType.INCOME)
-        val rule = TransactionRule(
-            name = "Expense-only rule",
-            conditions = listOf(
-                RuleCondition(TransactionField.TYPE, ConditionOperator.EQUALS, "EXPENSE")
-            ),
-            actions = listOf(
-                RuleAction(TransactionField.CATEGORY, ActionType.SET, "General")
-            )
-        )
-
-        val (_, applications) = engine.evaluateRulesForType(
-            txn,
-            smsText = null,
-            rules = listOf(rule),
-            type = TransactionType.INCOME
-        )
-
-        assertTrue(applications.isEmpty())
-    }
-
     // --- factory helpers (shared) ---
 
     @Test

@@ -27,6 +27,9 @@
     <string name="home_fab_sync">مزامنة الرسائل القصيرة (اضغط مطولًا لإعادة المزامنة بالكامل)</string>
     <string name="home_fab_sync_hint">اضغط مطولًا لإعادة المزامنة بالكامل</string>
     <string name="home_resync_title">قراءة الرسائل مجددًا</string>
+    <!-- Home shortcut labels sit under a 64dp shape: keep them to about 10 characters -->
+    <!-- Read out for the Unsorted shortcut with its count badge -->
+    <!-- %1$d is the most shortcuts the row holds (4) -->
     <string name="home_resync_scan_again">فحص جميع الرسائل مجددًا</string>
     <string name="home_resync_scan_again_desc">يضيف أي شيء فاتنا. تبقى تعديلاتك وجميع المعاملات الحالية كما هي.</string>
     <string name="home_resync_rebuild">إعادة البناء من البداية</string>
@@ -167,6 +170,7 @@
     <string name="balance_card_summary_expenses">المصروفات</string>
     <string name="balance_card_summary_lent">أقرضت</string>
     <string name="balance_card_summary_saved">ادّخرت</string>
+    <!-- TalkBack: what tapping a figure does ("double tap to see its transactions") -->
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">تجاوزت الميزانية بـ %1$s</string>
@@ -406,6 +410,16 @@
     <string name="home_payday_card_body">يبدو أن راتبك يصل في اليوم %1$d من الشهر. هل تريد أن يبدأ كل شهر في ميزانيتك من هذا اليوم؟ يمكنك تغييره من الإعدادات.</string>
     <string name="home_payday_card_action">ابدأ من اليوم %1$d</string>
     <string name="home_payday_card_dismiss">إخفاء</string>
+    <!-- Home hero card. %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a formatted amount -->
+    <!-- The budget limit under the progress bar; %1$s is a formatted amount -->
+    <!-- What can still be spent each day; %1$s is a formatted amount -->
+    <!-- Home nudge under the hero: the mascot's one line. %1$s is a formatted amount -->
+    <!-- Home sections -->
+    <!-- Subtitle of a recent transaction still in Others -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">المتوقع %1$s بحلول %2$s</string>
     <string name="forecast_over_usual">%1$s فوق المعتاد</string>

@@ -168,10 +168,6 @@ class ReceiptManager @Inject constructor(
         )
     }
 
-    fun deleteAllReceipts() {
-        if (receiptsDir.exists()) receiptsDir.deleteRecursively()
-    }
-
     /** A stored receipt's file, or null when [receiptPath] points anywhere but directly into `receipts/`. */
     fun storedReceiptFile(receiptPath: String): File? = BackupReceipts.safeReceiptFile(context.filesDir, receiptPath)
 

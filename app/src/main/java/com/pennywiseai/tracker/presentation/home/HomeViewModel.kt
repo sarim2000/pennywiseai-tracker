@@ -51,13 +51,11 @@ import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.BillSource
 import com.pennywiseai.tracker.domain.spending.CardBillsLoader
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
-import com.pennywiseai.tracker.domain.spending.SubscriptionCost
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.canReadSms
-import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -983,45 +981,11 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // Load all active subscriptions with conversion for unified mode
-            combine(
-                subscriptionRepository.getActiveSubscriptions(),
-                userPreferencesRepository.unifiedCurrencyMode,
-                userPreferencesRepository.displayCurrency
-            ) { subscriptions, isUnified, displayCurrency ->
-                Triple(subscriptions, isUnified, displayCurrency)
-            }.collect { (allActive, isUnified, displayCurrency) ->
+            subscriptionRepository.getActiveSubscriptions().collect { allActive ->
                 // Money going out only: an income "subscription" (salary, rent received)
-                // isn't a bill, and a weekly or annual charge is folded to its monthly
-                // share so the card's "Monthly total" is one.
-                val subscriptions = allActive.filter { it.direction == SubscriptionDirection.EXPENSE }
-                // Unified mode collapses to one converted figure. Native mode keeps
-                // currencies apart — summing ₹ + $ into one figure mislabels it — so
-                // we expose a per-currency map the card renders as "₹499 · $10".
-                val monthlyCosts = subscriptions.map { it to SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle) }
-                val totalAmount = if (isUnified) {
-                    var total = java.math.BigDecimal.ZERO
-                    for ((sub, monthly) in monthlyCosts) {
-                        total += currencyConversionService.convertAmountOrNull(
-                            monthly, sub.currency, displayCurrency
-                        ) ?: continue // never-rated pair — skip, don't face-value (#670)
-                    }
-                    total
-                } else {
-                    java.math.BigDecimal.ZERO
-                }
-                val totalByCurrency: Map<String, Money> = if (isUnified) {
-                    emptyMap()
-                } else {
-                    monthlyCosts.sumByCurrency({ it.first.currency }, { it.second })
-                }
+                // isn't a bill.
                 _uiState.value = _uiState.value.copy(
-                    upcomingSubscriptions = subscriptions,
-                    upcomingSubscriptionsTotal = totalAmount,
-                    upcomingSubscriptionsByCurrency = totalByCurrency,
-                    nextDueSubscription = subscriptions
-                        .filter { it.nextPaymentDate != null }
-                        .minByOrNull { it.nextPaymentDate!! }
+                    upcomingSubscriptions = allActive.filter { it.direction == SubscriptionDirection.EXPENSE }
                 )
             }
         }
@@ -1653,12 +1617,6 @@ data class HomeUiState(
     val monthlyChangePercent: Int? = null,
     val recentItems: List<HomeRecentItem> = emptyList(),
     val upcomingSubscriptions: List<SubscriptionEntity> = emptyList(),
-    /** Unified-mode total, converted to the display currency. */
-    val upcomingSubscriptionsTotal: BigDecimal = BigDecimal.ZERO,
-    /** Native-mode totals, kept per-currency so a ₹ + $ mix isn't summed. */
-    val upcomingSubscriptionsByCurrency: Map<String, Money> = emptyMap(),
-    /** The soonest-due active EXPENSE subscription, for the card's "Next:" line. */
-    val nextDueSubscription: SubscriptionEntity? = null,
     val budgetSummary: BudgetOverallSummary? = null,
     val accountBalances: List<AccountBalanceEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),

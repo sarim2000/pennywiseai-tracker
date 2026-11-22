@@ -36,6 +36,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
+import com.pennywiseai.tracker.ui.components.RevealAmountsAction
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -74,11 +75,17 @@ fun AnalyticsSummaryCard(
             modifier = Modifier.padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.smd)
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // The eye sits here, as on Home's hero, instead of in a crowded top bar.
+            // It draws nothing while amounts show, so the row is just the label then.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+                RevealAmountsAction()
+            }
             // Settles on a period change, and shrinks to fit rather than clipping:
             // a clipped total reads as a smaller, wrong figure.
             val totalStyle = MaterialTheme.typography.displayMediumEmphasized.money()

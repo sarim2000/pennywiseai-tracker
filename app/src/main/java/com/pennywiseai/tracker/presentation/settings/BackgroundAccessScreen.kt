@@ -51,6 +51,7 @@ import com.pennywiseai.tracker.utils.startFirstAvailable
 @Composable
 fun BackgroundAccessScreen(onNavigateBack: () -> Unit) {
     PennyWiseScaffold(
+        revealAmountsAction = false, // shows no amounts
         title = stringResource(R.string.background_access_title),
         navigationIcon = {
             IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {

@@ -123,6 +123,7 @@ fun AnalyticsScreen(
         )
     }
     val hasData = uiState.topMerchants.isNotEmpty() || uiState.categoryBreakdown.isNotEmpty()
+    val showHero = uiState.totalSpending > BigDecimal.ZERO || uiState.transactionCount > 0
 
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -139,6 +140,9 @@ fun AnalyticsScreen(
                 title = stringResource(R.string.nav_analytics),
                 overline = stringResource(R.string.analytics_overline),
                 hazeState = hazeState,
+                // The summary card carries the eye; a fourth bar item truncates the title.
+                // The bar keeps it only for amounts shown without that card.
+                revealAmountsAction = hasData && !showHero,
                 actionContent = {
                     IconButton(onClick = onNavigateToInsights, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.Insights, contentDescription = stringResource(R.string.insights_title))
@@ -184,7 +188,7 @@ fun AnalyticsScreen(
                 AnalyticsFilters(viewModel, availableCategories = uiState.availableCategories)
             }
 
-            if (uiState.totalSpending > BigDecimal.ZERO || uiState.transactionCount > 0) {
+            if (showHero) {
                 item(key = "hero") {
                     val history = uiState.periodHistory
                     val heroPeriod = if (

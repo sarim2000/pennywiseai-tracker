@@ -1,5 +1,5 @@
 <a name="top"></a>
-[![PennyWise AI Banner](banner.png)](https://github.com/sarim2000/pennywiseai-tracker)
+[![PennyWise: no typing, your bank SMS does it](banner.png)](https://github.com/sarim2000/pennywiseai-tracker)
 
 [![GitHub release](https://img.shields.io/github/v/release/sarim2000/pennywiseai-tracker)](https://github.com/sarim2000/pennywiseai-tracker/releases)
 [![F-Droid](https://img.shields.io/f-droid/v/com.pennywiseai.tracker?color=1976d2)](https://f-droid.org/packages/com.pennywiseai.tracker/)

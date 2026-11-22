@@ -13,7 +13,6 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.repository.RuleRepository
-import com.pennywiseai.tracker.domain.service.RuleTemplateService
 import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCase
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
 import com.pennywiseai.tracker.domain.usecase.DryRunResult
@@ -31,7 +30,6 @@ import javax.inject.Inject
 class RulesViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val ruleRepository: RuleRepository,
-    private val ruleTemplateService: RuleTemplateService,
     private val initializeRuleTemplatesUseCase: InitializeRuleTemplatesUseCase,
     private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,

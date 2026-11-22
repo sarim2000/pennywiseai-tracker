@@ -743,7 +743,6 @@
     <ID>LongParameterList:RecentTransactionsWidgetUpdateWorker.kt$RecentTransactionsWidgetUpdateWorker$( @Assisted appContext: Context, @Assisted workerParams: WorkerParameters, private val transactionRepository: TransactionRepository, private val userPreferencesRepository: UserPreferencesRepository, private val currencyConversionService: CurrencyConversionService, private val accountBalanceRepository: AccountBalanceRepository, private val ignoredAccountsStore: IgnoredAccountsStore, private val loanRepository: LoanRepository, private val categoryRepository: CategoryRepository )</ID>
     <ID>LongParameterList:RulesScreen.kt$( rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule, onToggle: (Boolean) -&gt; Unit, onEdit: () -&gt; Unit, onDuplicate: () -&gt; Unit, onDelete: () -&gt; Unit, onApplyToPast: () -&gt; Unit )</ID>
     <ID>LongParameterList:RulesScreen.kt$( rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule, progress: Pair&lt;Int, Int&gt;?, result: BatchApplyResult?, dryRunResult: DryRunResult?, isLoading: Boolean, onDismiss: () -&gt; Unit, onPreview: () -&gt; Unit, onApplyToAll: () -&gt; Unit, onApplyToUncategorized: () -&gt; Unit )</ID>
-    <ID>LongParameterList:RulesViewModel.kt$RulesViewModel$( @param:ApplicationContext private val context: Context, private val ruleRepository: RuleRepository, private val ruleTemplateService: RuleTemplateService, private val initializeRuleTemplatesUseCase: InitializeRuleTemplatesUseCase, private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase, private val accountBalanceRepository: AccountBalanceRepository, entitlementGate: EntitlementGate, )</ID>
     <ID>LongParameterList:ScanTransactionWriter.kt$ScanTransactionWriter$( private val transactionRepository: TransactionRepository, private val subscriptionRepository: SubscriptionRepository, private val accountBalanceRepository: AccountBalanceRepository, private val cardRepository: CardRepository, private val ruleRepository: RuleRepository, private val ruleEngine: RuleEngine, private val tagRepository: TagRepository, private val unrecognizedSmsRepository: UnrecognizedSmsRepository, private val ignoredAccountsStore: IgnoredAccountsStore, private val database: PennyWiseDatabase, private val bankAccountMerges: BankAccountMergeStore, private val scanContext: ScanRunContext, )</ID>
     <ID>LongParameterList:SectionHeaderV2.kt$( title: String, modifier: Modifier = Modifier, subtitle: String? = null, leading: @Composable (() -&gt; Unit)? = null, action: @Composable (() -&gt; Unit)? = null, /** Set to `Spacing.none` for the first header on a screen, where the * scaffold's content padding already provides the gap. */ topSpacing: Dp = Spacing.sm )</ID>
     <ID>LongParameterList:SettingsAdvancedPages.kt$( downloadState: DownloadState, downloadProgress: Int, downloadedMB: Long, totalMB: Long, onDownload: () -&gt; Unit, onCancel: () -&gt; Unit, onDelete: () -&gt; Unit )</ID>
@@ -1815,7 +1814,6 @@
     <ID>NewLineAtEndOfFile:RuleDao.kt$com.pennywiseai.tracker.data.database.dao.RuleDao.kt</ID>
     <ID>NewLineAtEndOfFile:RuleEntity.kt$com.pennywiseai.tracker.data.database.entity.RuleEntity.kt</ID>
     <ID>NewLineAtEndOfFile:RuleModule.kt$com.pennywiseai.tracker.di.RuleModule.kt</ID>
-    <ID>NewLineAtEndOfFile:RuleTemplateService.kt$com.pennywiseai.tracker.domain.service.RuleTemplateService.kt</ID>
     <ID>NewLineAtEndOfFile:RulesScreen.kt$com.pennywiseai.tracker.presentation.rules.RulesScreen.kt</ID>
     <ID>NewLineAtEndOfFile:RulesViewModel.kt$com.pennywiseai.tracker.presentation.rules.RulesViewModel.kt</ID>
     <ID>NewLineAtEndOfFile:SpotlightTutorial.kt$com.pennywiseai.tracker.ui.components.SpotlightTutorial.kt</ID>
@@ -2640,7 +2638,6 @@
     <ID>TooManyFunctions:RuleEngine.kt$RuleEngine</ID>
     <ID>TooManyFunctions:RuleRepository.kt$RuleRepository</ID>
     <ID>TooManyFunctions:RuleRepositoryImpl.kt$RuleRepositoryImpl : RuleRepository</ID>
-    <ID>TooManyFunctions:RuleTemplateService.kt$RuleTemplateService</ID>
     <ID>TooManyFunctions:RulesViewModel.kt$RulesViewModel : ViewModel</ID>
     <ID>TooManyFunctions:SBIBankParser.kt$SBIBankParser : BaseIndianBankParser</ID>
     <ID>TooManyFunctions:SNBAlAhliBankParser.kt$SNBAlAhliBankParser : BankParser</ID>
@@ -2710,15 +2707,6 @@
     <ID>UnusedParameter:SubscriptionsScreen.kt$onNavigateBack: () -&gt; Unit = {}</ID>
     <ID>UnusedParameter:TransactionFilterHeader.kt$customRangeLabel: String?</ID>
     <ID>UnusedPrivateMember:AnalyticsScreen.kt$@Composable private fun CategoryListItem( category: CategoryData, currency: String )</ID>
-    <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createEmiDetectionRule(): TransactionRule</ID>
-    <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createFuelDetectionRule(): TransactionRule</ID>
-    <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createHealthcareDetectionRule(): TransactionRule</ID>
-    <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createInvestmentDetectionRule(): TransactionRule</ID>
-    <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createRentPaymentRule(): TransactionRule</ID>
-    <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createSalaryDetectionRule(): TransactionRule</ID>
-    <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createSubscriptionDetectionRule(): TransactionRule</ID>
-    <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createTransferCategorizationRule(): TransactionRule</ID>
-    <ID>UnusedPrivateMember:RuleTemplateService.kt$RuleTemplateService$private fun createUpiCashbackRule(): TransactionRule</ID>
     <ID>UnusedPrivateMember:ShareCard.kt$@Preview(name = "Subscriptions", widthDp = 400, heightDp = 500) @Composable private fun ShareCardSubscriptionsPreview()</ID>
     <ID>UnusedPrivateMember:ShareCard.kt$@Preview(name = "Thumbnail (chat size)", widthDp = 130, heightDp = 165) @Composable private fun ShareCardThumbnailPreview()</ID>
     <ID>UnusedPrivateMember:ShareCard.kt$@Preview(name = "Transactions", widthDp = 400, heightDp = 500) @Composable private fun ShareCardTransactionsPreview()</ID>
@@ -2735,7 +2723,6 @@
     <ID>UnusedPrivateProperty:InAppReviewManager.kt$InAppReviewManager$@ApplicationContext private val context: Context</ID>
     <ID>UnusedPrivateProperty:InAppReviewManager.kt$InAppReviewManager$private val userPreferencesRepository: UserPreferencesRepository</ID>
     <ID>UnusedPrivateProperty:InAppUpdateManager.kt$InAppUpdateManager$@ApplicationContext private val context: Context</ID>
-    <ID>UnusedPrivateProperty:RulesViewModel.kt$RulesViewModel$private val ruleTemplateService: RuleTemplateService</ID>
     <ID>UnusedPrivateProperty:SouthIndianBankParser.kt$SouthIndianBankParser$val dateTime = extractDateTime(smsBody) ?: Instant.fromEpochMilliseconds(timestamp) .toLocalDateTime(TimeZone.currentSystemDefault())</ID>
     <ID>UnusedPrivateProperty:TransactionRepository.kt$TransactionRepository$private val userPreferencesRepository: BudgetPreferences</ID>
     <ID>UnusedPrivateProperty:UpgradeSheet.kt$val scope = rememberCoroutineScope()</ID>

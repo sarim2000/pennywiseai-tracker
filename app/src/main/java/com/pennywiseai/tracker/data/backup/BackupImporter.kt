@@ -60,7 +60,6 @@ class BackupImporter @Inject constructor(
             var result = when (strategy) {
                 ImportStrategy.REPLACE_ALL -> replaceAllData(backup)
                 ImportStrategy.MERGE -> mergeData(backup)
-                ImportStrategy.SELECTIVE -> mergeData(backup) // For now, same as merge
             }
             // A backup from before transfer_pair_id can hold pairs marked back then.
             if (result is ImportResult.Success) {

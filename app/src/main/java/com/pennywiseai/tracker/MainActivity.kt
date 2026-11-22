@@ -153,6 +153,7 @@ class MainActivity : FragmentActivity() {
                     chatDrafts.requestOpen()
                 },
                 updateReady = updateReady,
+                onUpdateCheck = { inAppUpdateManager.checkForUpdate(this) },
                 onUpdateRestart = inAppUpdateManager::completeUpdate,
                 onUpdateLater = inAppUpdateManager::dismissRestart
             )
@@ -174,13 +175,6 @@ class MainActivity : FragmentActivity() {
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
-    }
-
-    // Each time the app opens, not just when Home first shows: a warm start back into
-    // any screen offers a new version too, and a finished download asks for a restart.
-    override fun onResume() {
-        super.onResume()
-        inAppUpdateManager.onResume(this)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

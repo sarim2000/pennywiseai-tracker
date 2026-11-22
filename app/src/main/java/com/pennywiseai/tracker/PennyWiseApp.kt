@@ -24,6 +24,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -62,6 +63,7 @@ fun PennyWiseApp(
     openChat: Long? = null,
     onOpenChatHandled: (() -> Unit)? = null,
     updateReady: Boolean = false,
+    onUpdateCheck: () -> Unit = {},
     onUpdateRestart: () -> Unit = {},
     onUpdateLater: () -> Unit = {}
 ) {
@@ -256,6 +258,12 @@ fun PennyWiseApp(
         coverForLock(checks, isLockEnabled, isLocked, unlockedOnScreen, onLockScreen)
     }
 
+    // Play's update sheet and the restart dialog wait for Home: not over onboarding, the
+    // lock screen, or a form opened from a widget or notification (Restart would lose it).
+    // `unlocked` drops on each resume until a fresh lock check, so this re-runs per open.
+    val updateSafe = themeUiState.hasCompletedOnboarding && currentRoute == Home && unlocked && !covered
+    LaunchedEffect(updateSafe) { if (updateSafe) onUpdateCheck() }
+
     PennyWiseTheme(
         darkTheme = darkTheme,
         dynamicColor = themeUiState.isDynamicColorEnabled,
@@ -278,11 +286,12 @@ fun PennyWiseApp(
                     onWidgetPlanHandled = { widgetPlan = null }
                 )
             }
-            // A Play update finished downloading. App-wide, so it shows on whatever screen
-            // the app opens to, and a dialog, so it can't queue a screen's snackbar (Undo).
-            if (updateReady && !covered && !onLockScreen) {
+            // A Play update finished downloading. A dialog, so it can't queue Home's Undo snackbar.
+            if (updateReady && updateSafe) {
                 AlertDialog(
                     onDismissRequest = onUpdateLater,
+                    // Back is "Later"; a stray tap outside isn't.
+                    properties = DialogProperties(dismissOnClickOutside = false),
                     title = { Text(stringResource(R.string.update_ready_title)) },
                     text = { Text(stringResource(R.string.update_ready_body)) },
                     confirmButton = {

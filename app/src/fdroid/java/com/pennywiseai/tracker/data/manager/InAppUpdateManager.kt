@@ -11,7 +11,7 @@ import javax.inject.Singleton
 class InAppUpdateManager @Inject constructor() {
     val restartPrompt: StateFlow<Boolean> = MutableStateFlow(false)
 
-    fun onResume(activity: Activity) {}
+    fun checkForUpdate(activity: Activity) {}
 
     fun completeUpdate() {}
 

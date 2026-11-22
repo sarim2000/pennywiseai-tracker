@@ -226,11 +226,4 @@ object BankParserFactory {
      * Returns all available bank parsers.
      */
     fun getAllParsers(): List<BankParser> = parsers
-
-    /**
-     * Checks if the sender belongs to any known bank.
-     */
-    fun isKnownBankSender(sender: String): Boolean {
-        return parsers.any { it.canHandle(sender) }
-    }
 }

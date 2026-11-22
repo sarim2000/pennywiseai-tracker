@@ -6,11 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
-import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
-import com.pennywiseai.tracker.data.repository.overlaps
-import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
 import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -39,14 +36,7 @@ data class BudgetGroupsUiState(
     val selectedYear: Int = LocalDate.now().year,
     val selectedMonth: Int = LocalDate.now().monthValue,
     val currency: String = "INR",
-    val baseCurrency: String = "INR",
-    val isUnifiedMode: Boolean = false,
-    /**
-     * True when the list is filtered to budgets whose window overlaps
-     * the selected year-month. False shows every active budget. Toggled
-     * by the Overlap/All chip in the UI.
-     */
-    val filterByWindowOverlap: Boolean = true
+    val isUnifiedMode: Boolean = false
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -87,13 +77,6 @@ class BudgetGroupsViewModel @Inject constructor(
         // July view show the (Jun 25..Jul 24) cycle window — same data as
         // before, just labelled with today's month.
         _selectedYearMonth.value = YearMonth.now()
-        viewModelScope.launch {
-            userPreferencesRepository.budgetCycleStartDay.collect {
-                // No-op: the default is today regardless of start day. Kept
-                // as a hook for future logic (e.g. "snap to cycle" if the
-                // user explicitly navigates back to the current cycle).
-            }
-        }
         loadBudgetData()
     }
 
@@ -110,7 +93,6 @@ class BudgetGroupsViewModel @Inject constructor(
                 val currency = if (params.unifiedMode) params.displayCurrency else params.baseCurrency
                 _uiState.value = _uiState.value.copy(
                     currency = currency,
-                    baseCurrency = params.baseCurrency,
                     isUnifiedMode = params.unifiedMode,
                     selectedYear = params.yearMonth.year,
                     selectedMonth = params.yearMonth.monthValue
@@ -137,16 +119,6 @@ class BudgetGroupsViewModel @Inject constructor(
         today.value = LocalDate.now()
     }
 
-    fun toggleFilter() {
-        _uiState.value = _uiState.value.copy(
-            filterByWindowOverlap = !_uiState.value.filterByWindowOverlap
-        )
-    }
-
-    fun setFilterByWindowOverlap(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(filterByWindowOverlap = enabled)
-    }
-
     fun selectPreviousMonth() {
         _selectedYearMonth.value = selectedYearMonth.value.minusMonths(1)
     }
@@ -161,10 +133,6 @@ class BudgetGroupsViewModel @Inject constructor(
         if (!next.isAfter(current)) {
             _selectedYearMonth.value = next
         }
-    }
-
-    fun selectCurrentMonth() {
-        _selectedYearMonth.value = YearMonth.now()
     }
 
     fun deleteGroup(budgetId: Long) {
@@ -202,43 +170,6 @@ class BudgetGroupsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Filter the [BudgetOverallSummary.groups] by the Overlap toggle.
-     * When [filterByWindowOverlap] is true, a budget is shown only if any
-     * of its resolved windows (against the selected year-month) intersect
-     * that month. Weekly always shows (its window is the current week);
-     * One-time Nov 5–Dec 4 shows for November and December; Monthly
-     * Sep 25–Oct 24 shows for September and October.
-     */
-    fun visibleGroups(summary: BudgetOverallSummary?, filterByWindowOverlap: Boolean): List<BudgetGroupSpending> {
-        if (summary == null) return emptyList()
-        if (!filterByWindowOverlap) return summary.groups
-        val ym = YearMonth.of(_uiState.value.selectedYear, _uiState.value.selectedMonth)
-        val monthStart = ym.atDay(1)
-        val monthEnd = ym.atEndOfMonth()
-        val monthWindow = com.pennywiseai.tracker.data.repository.BudgetWindow(
-            start = monthStart, end = monthEnd, days = monthEnd.dayOfMonth
-        )
-        return summary.groups.filter { g ->
-            val candidate = g.periodType.let { _ ->
-                // Use the displayed window + previousWindows to find any
-                // overlap with the month. Weekly historical has multiple
-                // windows in `previousWindows`; current view has just
-                // the displayed window.
-                val allWindows = buildList {
-                    add(com.pennywiseai.tracker.data.repository.BudgetWindow(
-                        start = g.windowStart, end = g.windowEnd, days = g.windowDays
-                    ))
-                    g.previousWindows.forEach { add(it.window) }
-                }
-                allWindows.any { it.overlaps(monthWindow) }
-            }
-            candidate
-        }
-    }
-
-    // Unused — kept for backwards compat with code that referenced it.
-    @Suppress("unused")
     private data class Params(
         val baseCurrency: String,
         val unifiedMode: Boolean,

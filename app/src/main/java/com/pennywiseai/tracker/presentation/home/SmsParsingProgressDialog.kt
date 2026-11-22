@@ -312,33 +312,3 @@ private fun formatDuration(milliseconds: Long): String {
         else -> stringResource(R.string.duration_seconds, seconds)
     }
 }
-
-@Composable
-fun SmsParsingProgressIndicator(
-    workInfo: WorkInfo?,
-    modifier: Modifier = Modifier
-) {
-    if (workInfo != null && workInfo.state == WorkInfo.State.RUNNING) {
-        val totalMessages = workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, 0)
-        val processedMessages = workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_PROCESSED, 0)
-
-        if (totalMessages > 0) {
-            Column(
-                modifier = modifier,
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
-                LinearWavyProgressIndicator(
-                    progress = { processedMessages.toFloat() / totalMessages.toFloat() },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Text(
-                    text = stringResource(R.string.sms_scan_indicator, processedMessages, totalMessages),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}

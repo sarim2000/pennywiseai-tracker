@@ -6,7 +6,8 @@ import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.loan.LoanMath
+import com.pennywiseai.tracker.domain.loan.SplitRules
 import com.pennywiseai.tracker.domain.model.rule.RuleApplication
 import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
@@ -14,9 +15,7 @@ import com.pennywiseai.tracker.domain.model.rule.applyTagActions
 import com.pennywiseai.tracker.domain.model.rule.tagChanges
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
 data class BatchApplyResult(
@@ -58,6 +57,14 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
     }
 
     /**
+     * The row a rule result really writes: a split bill (#346) keeps its type and
+     * currency (see SplitRules.keepSplitBill), and a loan-linked row keeps its money
+     * direction (#876, see LoanMath.keepLoanDirection).
+     */
+    private fun kept(transaction: TransactionEntity, ruleResult: TransactionEntity): TransactionEntity =
+        LoanMath.keepLoanDirection(transaction, SplitRules.keepSplitBill(transaction, ruleResult))
+
+    /**
      * Apply a specific rule to all past transactions
      */
     suspend fun applyRuleToAllTransactions(
@@ -65,7 +72,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
         onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }
     ): BatchApplyResult {
         val allTransactions = transactionRepository.getAllTransactionsList()
-        return processTransactionsWithRule(allTransactions, rule, onProgress)
+        return processTransactions(allTransactions, listOf(rule), onProgress)
     }
 
     /**
@@ -76,7 +83,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
         onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }
     ): BatchApplyResult {
         val uncategorizedTransactions = transactionRepository.getUncategorizedTransactions()
-        return processTransactionsWithRule(uncategorizedTransactions, rule, onProgress)
+        return processTransactions(uncategorizedTransactions, listOf(rule), onProgress)
     }
 
     /**
@@ -87,75 +94,12 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
     ): BatchApplyResult {
         val activeRules = ruleRepository.getActiveRules()
         val allTransactions = transactionRepository.getAllTransactionsList()
-
-        var totalUpdated = 0
-        var totalDeleted = 0
-        val errors = mutableListOf<String>()
-
-        allTransactions.forEachIndexed { index, transaction ->
-            onProgress(index + 1, allTransactions.size)
-
-            try {
-                // Skip already deleted transactions
-                if (transaction.isDeleted) {
-                    return@forEachIndexed
-                }
-
-                // Get SMS body if available
-                val smsBody = transaction.smsBody
-
-                // Check if any rule would block this transaction
-                val blockingRule = ruleEngine.shouldBlockTransaction(
-                    transaction,
-                    smsBody,
-                    activeRules
-                )
-
-                if (blockingRule != null) {
-                    // Soft delete the transaction
-                    val deletedTransaction = transaction.copy(isDeleted = true)
-                    transactionRepository.updateTransaction(deletedTransaction)
-                    totalDeleted++
-                } else {
-                    // Apply rules to transaction
-                    val (ruleResult, rawApplications) = ruleEngine.evaluateRules(
-                        transaction,
-                        smsBody,
-                        activeRules
-                    )
-
-                    // A field change is real by construction; a tag action is recorded
-                    // even when it changes nothing, so ask the tag write whether it did.
-                    // Otherwise the completion count disagrees with the preview.
-                    // A split bill (#346) keeps its type and currency; see SplitRules.keepSplitBill.
-                    // A loan-linked row keeps its money direction (#876); see LoanMath.keepLoanDirection.
-                    // What it undid isn't recorded as applied.
-                    val updatedTransaction = com.pennywiseai.tracker.domain.loan.LoanMath.keepLoanDirection(transaction, com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult))
-                    val ruleApplications = rawApplications.landedOn(updatedTransaction, ruleResult)
-                    val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
-                    if (entityChanged) updateWithBalances(transaction, updatedTransaction)
-                    val tagsChanged = persistTagActions(transaction.id, ruleApplications)
-                    if (entityChanged || tagsChanged) {
-                        ruleRepository.saveRuleApplications(ruleApplications)
-                        totalUpdated++
-                    }
-                }
-            } catch (e: Exception) {
-                errors.add("Error processing transaction ${transaction.id}: ${e.message}")
-            }
-        }
-
-        return BatchApplyResult(
-            totalProcessed = allTransactions.size,
-            totalUpdated = totalUpdated,
-            totalDeleted = totalDeleted,
-            errors = errors
-        )
+        return processTransactions(allTransactions, activeRules, onProgress)
     }
 
-    private suspend fun processTransactionsWithRule(
+    private suspend fun processTransactions(
         transactions: List<TransactionEntity>,
-        rule: TransactionRule,
+        rules: List<TransactionRule>,
         onProgress: (processed: Int, total: Int) -> Unit
     ): BatchApplyResult {
         var totalUpdated = 0
@@ -174,33 +118,31 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                 // Get SMS body if available
                 val smsBody = transaction.smsBody
 
-                // Check if this transaction should be blocked
-                val shouldBlock = ruleEngine.shouldBlockTransaction(
+                // Check if any rule would block this transaction
+                val blockingRule = ruleEngine.shouldBlockTransaction(
                     transaction,
                     smsBody,
-                    listOf(rule)
-                ) != null
+                    rules
+                )
 
-                if (shouldBlock) {
+                if (blockingRule != null) {
                     // Soft delete the transaction
                     val deletedTransaction = transaction.copy(isDeleted = true)
                     transactionRepository.updateTransaction(deletedTransaction)
                     totalDeleted++
                 } else {
-                    // Apply regular rule actions
+                    // Apply rules to transaction
                     val (ruleResult, rawApplications) = ruleEngine.evaluateRules(
                         transaction,
                         smsBody,
-                        listOf(rule)
+                        rules
                     )
 
                     // A field change is real by construction; a tag action is recorded
                     // even when it changes nothing, so ask the tag write whether it did.
                     // Otherwise the completion count disagrees with the preview.
-                    // A split bill (#346) keeps its type and currency; see SplitRules.keepSplitBill.
-                    // A loan-linked row keeps its money direction (#876); see LoanMath.keepLoanDirection.
-                    // What it undid isn't recorded as applied.
-                    val updatedTransaction = com.pennywiseai.tracker.domain.loan.LoanMath.keepLoanDirection(transaction, com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult))
+                    // What kept() undid isn't recorded as applied.
+                    val updatedTransaction = kept(transaction, ruleResult)
                     val ruleApplications = rawApplications.landedOn(updatedTransaction, ruleResult)
                     val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
                     if (entityChanged) updateWithBalances(transaction, updatedTransaction)
@@ -262,9 +204,8 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
             val (ruleResult, rawApplications) = ruleEngine.evaluateRules(
                 transaction, smsBody, listOf(rule)
             )
-            // Preview what apply will really write: a split bill keeps its type (#346),
-            // a loan-linked row its money direction (#876).
-            val updated = com.pennywiseai.tracker.domain.loan.LoanMath.keepLoanDirection(transaction, com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult))
+            // Preview what apply will really write.
+            val updated = kept(transaction, ruleResult)
             val applications = rawApplications.landedOn(updated, ruleResult)
 
             // A field change is a real change by construction (the engine only records

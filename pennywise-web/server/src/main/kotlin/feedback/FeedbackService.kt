@@ -152,20 +152,12 @@ class FeedbackService(private val connection: Connection) {
     suspend fun getFeedbackItems(
         fingerprint: String,
         typeFilter: FeedbackItemType? = null,
-        statusFilter: FeedbackStatus? = null,
         forRoadmap: Boolean = false
     ): List<FeedbackItem> = withContext(Dispatchers.IO) {
         val conditions = mutableListOf<String>()
-        val params = mutableListOf<Any>()
 
         if (typeFilter != null) {
             conditions.add("item_type = ?")
-            params.add(typeFilter.name)
-        }
-
-        if (statusFilter != null) {
-            conditions.add("status = ?")
-            params.add(statusFilter.name)
         }
 
         if (forRoadmap) {
@@ -192,9 +184,8 @@ class FeedbackService(private val connection: Connection) {
         val statement = connection.prepareStatement(sql)
         try {
             statement.setString(1, fingerprint)
-            var paramIndex = 2
-            for (param in params) {
-                statement.setString(paramIndex++, param as String)
+            if (typeFilter != null) {
+                statement.setString(2, typeFilter.name)
             }
 
             val rs = statement.executeQuery()

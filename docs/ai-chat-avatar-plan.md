@@ -103,7 +103,7 @@ Besides plain saves, the tab answers a few things the user just finished: progre
 
 ### Event source **(Codex)**
 - **No "newest Room row" observer and no universal repository hook.** Many paths insert rows (imports, backups, recurring, autopay, loans), and most of them must not react.
-- **One app-scoped `TransactionEvents`:** a `MutableSharedFlow(replay = 0)` carrying `type`, `count` and `origin` only. No amounts, no merchants, no mascot enums. It is not persisted, so the backup format is untouched (constraint 3).
+- **One app-scoped `TransactionEvents`:** a `MutableSharedFlow(replay = 0)` carrying `type`, `count`, `origin` and, for a single save, its currency-tagged `Money` (for the tab's amount chip; a batch carries none). No merchants, no mascot enums. It is not persisted, so the backup format is untouched (constraint 3).
 - **Emit only after a confirmed insert.** The DAO's conflict-ignore returns `-1`, so check the result.
 
 | Path | Emit? | Where |
@@ -199,7 +199,7 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
 - [ ] Battery check: no frames between blinks (Layout Inspector / `dumpsys gfxinfo`)
 
 ### M2 — Transaction reactions on the tab
-- [x] `data/events/TransactionEvents.kt` (not `core`: `core` may not import `TransactionType`): `MutableSharedFlow(replay = 0)`, Hilt `@Singleton`, payload `type`, `count`, `origin`. It drops saves made while the app is in the background (`AppForegroundState`) at the source
+- [x] `data/events/TransactionEvents.kt` (not `core`: `core` may not import `TransactionType`): `MutableSharedFlow(replay = 0)`, Hilt `@Singleton`, payload `type`, `count`, `origin`, plus a single save's `Money`. It drops saves made while the app is in the background (`AppForegroundState`) at the source
 - [x] Emit from:
   - [x] Success branch of `SmsTransactionProcessor.saveParsedTransaction`
   - [x] `AddTransactionUseCase.execute`

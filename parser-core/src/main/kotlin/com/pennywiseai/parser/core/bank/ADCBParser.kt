@@ -329,7 +329,6 @@ class ADCBParser : FABParser() {
         val adcbTransactionKeywords = listOf(
             "your debit card",
             "your credit card",
-            "was used for",
             "used for",
             "withdrawn from",
             "deposited via atm",
@@ -339,10 +338,7 @@ class ADCBParser : FABParser() {
             "cr.transaction",
             "dr.transaction",
             "transaction.*was successful",
-            "touchpoints redemption",
-            "debit card.*used for",  // "Debit card XXX0830 linked to acc. XXX810001 used for"
-            "touchpoints redemption request",
-            "account number XXX.*was successful"
+            "touchpoints redemption"
         )
 
         if (adcbTransactionKeywords.any { lowerMessage.contains(it) }) {

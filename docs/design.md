@@ -389,7 +389,7 @@ it by `Dimensions.Component.bottomBarHeight`.
   a bounce past 100% reads as wrong. `tween` stays only inside
   `infiniteRepeatable` loops or where a duration is load-bearing.
 - **Motion language.** Generic transitions live in
-  `ui/animations/PennyWiseMotion.kt` (`pwEnter`/`pwExit`, `pwFadeIn`/`pwFadeOut`,
+  `ui/animations/PennyWiseMotion.kt` (`pwEnter`, `pwFadeIn`/`pwFadeOut`,
   `pwExpand`/`pwCollapse`, `pwPush`/`pwPop`, `StaggeredEntrance`,
   `rememberEntranceDone`, `staggerDelayMs`, `rememberAnimationsEnabled`);
   use them before hand-building a fade/slide/expand. No default-spec

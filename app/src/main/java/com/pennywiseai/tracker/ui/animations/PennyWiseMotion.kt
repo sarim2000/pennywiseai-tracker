@@ -50,10 +50,6 @@ fun pwEnter(travel: Dp = EnterTravel): EnterTransition {
         slideInVertically(motion.defaultSpatialSpec()) { px }
 }
 
-/** Content leaving: a quick effects fade, no travel. */
-@Composable
-fun pwExit(): ExitTransition = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec())
-
 /** Plain fade in — for icons and small parts (no scale-in: Material reads scale as elevation). */
 @Composable
 fun pwFadeIn(): EnterTransition = fadeIn(MaterialTheme.motionScheme.fastEffectsSpec())

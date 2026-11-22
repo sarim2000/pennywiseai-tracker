@@ -96,14 +96,17 @@ private fun DrawScope.drawWing(body: Path, up: Float, side: Float, ink: CueInk) 
     val rootY = lerp(WING_DOWN_ROOT.y, WING_UP_ROOT.y, up)
     val wing = ink.scratch
     wingPath(wing)
+    // Part of the lowered wing is already inside the body, so its edge fades in as it lifts
+    // rather than popping in on the first frame (and out on the last).
+    val edge = smoothstep(0f, WING_EDGE_FADE, up)
     clipPath(body) {
         translate(rootX, rootY) {
             rotate(-side * lerp(WING_DOWN_ANGLE, WING_UP_ANGLE, up), pivot = Offset.Zero) {
                 drawPath(wing, ink.body)
                 if (ink.glyph) {
-                    drawPath(wing, ink.mark, style = Stroke(WING_EDGE_GLYPH), blendMode = ink.markBlend)
+                    drawPath(wing, ink.mark, alpha = edge, style = Stroke(WING_EDGE_GLYPH), blendMode = ink.markBlend)
                 } else {
-                    drawPath(wing, ink.mark, alpha = WING_EDGE_ALPHA, style = Stroke(WING_EDGE, cap = StrokeCap.Round), blendMode = ink.markBlend)
+                    drawPath(wing, ink.mark, alpha = WING_EDGE_ALPHA * edge, style = Stroke(WING_EDGE, cap = StrokeCap.Round), blendMode = ink.markBlend)
                 }
             }
         }
@@ -138,6 +141,9 @@ private const val WING_WIDTH = 28f
 private const val WING_EDGE_GLYPH = 2.6f
 private const val WING_EDGE = 1.6f
 private const val WING_EDGE_ALPHA = 0.4f
+
+/** How far up the wing is when its edge is fully drawn. */
+private const val WING_EDGE_FADE = 0.2f
 
 /** Up from 0 to 1 and back between [from] and [to], 0 outside. */
 private fun bump(from: Float, to: Float, t: Float): Float =

@@ -418,6 +418,14 @@ private fun Legend() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        // The days go unshaded while amounts are hidden; say so, or the grid looks broken.
+        if (AmountPrivacy.hidden) {
+            Text(
+                stringResource(R.string.calendar_amounts_hidden),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

@@ -68,6 +68,7 @@ fun AddAccountScreen(
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
+                revealAmountsAction = false, // shows no amounts
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = stringResource(R.string.add_account_title),
@@ -152,7 +153,7 @@ fun AddAccountScreen(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
                 disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                 disabledIndicatorColor = Color.Transparent,
                 disabledLabelColor = MaterialTheme.colorScheme.primary,

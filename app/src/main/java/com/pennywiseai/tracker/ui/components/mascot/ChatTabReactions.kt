@@ -166,7 +166,8 @@ private const val GOAL_FILL = 0.55f
  * reaction of a higher rank takes over, with a hold of its own: a goal reached over the
  * save that reached it, the owl covering its eyes over anything (and a later toggle over
  * an earlier one). A scan takes over from a
- * reaction, and the scan's bubble carries no chip.
+ * reaction, all but a toggle, which shows over the bubble for its hold; the scan's bubble
+ * carries no chip.
  *
  * Saves and moments come in through [onSave] and [onMoment] while the Chat tab is
  * visible, for as long as [scope] lives (the Chat tab's ViewModel), so one made on a screen
@@ -203,8 +204,10 @@ internal class ChatTabReactions(
 
     /** A moment just finished in the foreground (gated at the source). */
     fun onMoment(moment: MascotMoment) {
-        if (scanning) return
-        react(reactionFor(moment))
+        val reaction = reactionFor(moment)
+        // The user's own toggle still answers during a scan; anything else waits it out unseen.
+        if (scanning && reaction.rank < RANK_TOGGLE) return
+        react(reaction)
     }
 
     /**
@@ -238,7 +241,8 @@ internal class ChatTabReactions(
                 if (running && !scanning) clearFlash()
                 scanning = running
                 publish()
-                if (status is SmsScanStatus.Finished && sawRunning && status.newRows > 0) react(SCANNED)
+                // The beat belongs to the scan that just ended: it runs out on time, bar or not.
+                if (status is SmsScanStatus.Finished && sawRunning && status.newRows > 0) react(SCANNED, waitsForBar = false)
                 sawRunning = running
             }
         } finally {
@@ -248,7 +252,7 @@ internal class ChatTabReactions(
         }
     }
 
-    private fun react(reaction: MascotReaction) {
+    private fun react(reaction: MascotReaction, waitsForBar: Boolean = true) {
         val showing = flash
         // The latest toggle answers for the switch as it is now.
         val takesOver = showing == null || reaction.rank > showing.rank ||
@@ -256,7 +260,7 @@ internal class ChatTabReactions(
         if (!takesOver) return
         flash = reaction
         publish()
-        if (barShown) {
+        if (barShown || !waitsForBar) {
             startHold()
         } else {
             holding = false
@@ -288,7 +292,7 @@ internal class ChatTabReactions(
     }
 
     private fun publish() {
-        _shown.value = if (scanning) SCANNING else flash
+        _shown.value = if (scanning && flash?.rank != RANK_TOGGLE) SCANNING else flash
     }
 }
 

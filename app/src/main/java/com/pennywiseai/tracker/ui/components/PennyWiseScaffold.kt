@@ -29,6 +29,8 @@ fun PennyWiseScaffold(
     // A transparent container (Plan's sections) matches no scheme role, and contentColorFor
     // then falls back to black; the page behind it is the background.
     contentColor: Color = if (containerColor.alpha == 0f) MaterialTheme.colorScheme.onBackground else contentColorFor(containerColor),
+    /** [RevealAmountsAction] first in the default bar's actions. Off behind a lock. */
+    revealAmountsAction: Boolean = true,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
@@ -37,7 +39,10 @@ fun PennyWiseScaffold(
             TopAppBar(
                 title = { if (title.isNotEmpty()) Text(title) },
                 navigationIcon = navigationIcon ?: {},
-                actions = actions,
+                actions = {
+                    if (revealAmountsAction) RevealAmountsAction()
+                    actions()
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     // The page's own colour: surface is the card tone, a band over the page.
                     containerColor = if (transparentTopBar) Color.Transparent else containerColor

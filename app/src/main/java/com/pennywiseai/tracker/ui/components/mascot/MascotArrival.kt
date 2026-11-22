@@ -66,10 +66,13 @@ enum class MascotCue {
 internal class CueRequests(private var last: MascotCue?) {
     private var id = 0
 
-    fun idFor(cue: MascotCue?): Int {
-        if (cue != null && cue != last) id++
+    /** The number for [cue], read in composition without recording it: that one may be dropped. */
+    fun idFor(cue: MascotCue?): Int = if (cue != null && cue != last) id + 1 else id
+
+    /** Records [cue] once the composition that asked for it has committed. */
+    fun commit(cue: MascotCue?) {
+        id = idFor(cue)
         last = cue
-        return id
     }
 }
 

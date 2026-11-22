@@ -26,7 +26,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -37,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
@@ -87,6 +87,7 @@ import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.*
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.YearMonth
 
 /** Gap between the blocks of a Plan section (switch, hero, list); rows inside a block sit 2dp apart. */
@@ -106,7 +107,7 @@ fun BudgetGroupsScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToGroupEdit: (Long) -> Unit = {},
     onNavigateToHistory: (Long, Int, Int) -> Unit = { _, _, _ -> },
-    onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> },
+    onNavigateToCategory: (BudgetCategoryRows) -> Unit = {},
     onNavigateToGoal: (Long) -> Unit = {},
     onNavigateToGoalEdit: (Long) -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
@@ -117,6 +118,11 @@ fun BudgetGroupsScreen(
     focusBudgetId: Long? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // A new day moves days left on, as Home does.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshDate()
+        onPauseOrDispose { }
+    }
     val goalsSection: (@Composable () -> Unit)? = if (planTab != null) null else {
         {
             com.pennywiseai.tracker.presentation.goals.GoalsSection(
@@ -243,9 +249,10 @@ fun BudgetGroupsScreen(
                     val month = uiState.summaryMonth ?: selectedMonth
                     onNavigateToHistory(groupId, month.year, month.monthValue)
                 },
-                onCategoryClick = { category ->
-                    val month = uiState.summaryMonth ?: selectedMonth
-                    onNavigateToCategory(category, month.toString(), uiState.summary?.currency ?: uiState.currency)
+                onCategoryClick = { spending, category ->
+                    onNavigateToCategory(
+                        spending.categoryRows(category, uiState.summary?.currency ?: uiState.currency, uiState.isUnifiedMode)
+                    )
                 },
                 onAddRate = onNavigateToExchangeRates
             )
@@ -327,7 +334,7 @@ private fun BudgetGroupsContent(
     onMoveGroupUp: (Long) -> Unit,
     onMoveGroupDown: (Long) -> Unit,
     onNavigateToHistory: (Long) -> Unit,
-    onCategoryClick: (String) -> Unit,
+    onCategoryClick: (BudgetGroupSpending, String) -> Unit,
     onAddRate: () -> Unit = {}
 ) {
     val summary = uiState.summary ?: return
@@ -436,7 +443,7 @@ private fun BudgetGroupsContent(
                 onMoveUp = { onMoveGroupUp(budget.id) },
                 onMoveDown = { onMoveGroupDown(budget.id) },
                 onViewHistory = { onNavigateToHistory(budget.id) },
-                onCategoryClick = onCategoryClick,
+                onCategoryClick = { onCategoryClick(spending, it) },
                 onAddRate = onAddRate
             )
         }
@@ -476,8 +483,7 @@ private fun BudgetGroupsContent(
                         deleteGroupId = null
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
+                        containerColor = MaterialTheme.colorScheme.error
                     ),
                     shapes = ButtonDefaults.shapes()
                 ) {
@@ -565,7 +571,7 @@ private fun BudgetCard(
             onClick = { expanded = !expanded },
             modifier = Modifier.semantics { stateDescription = detailAction }
         ) {
-            BudgetStatusContent(groupSpending, currency, hero = hero, dense = !hero, containerColor = color) {
+            BudgetStatusContent(groupSpending, currency, hero = hero, dense = !hero) {
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
@@ -634,7 +640,7 @@ private fun BudgetDetails(
                             .background(categoryColor.copy(alpha = Dimensions.Alpha.categoryTint)),
                         contentAlignment = Alignment.Center
                     ) {
-                        CategoryIcon(category = category.categoryName, size = Dimensions.Icon.inline, washAlpha = Dimensions.Alpha.categoryTint)
+                        CategoryIcon(category = category.categoryName, size = Dimensions.Icon.inline, tint = categoryColor)
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         Text(categoryLabel(category.categoryName), style = PennyWiseText.rowTitle)
@@ -766,12 +772,6 @@ private fun SpendingPaceChart(
         paceValues.getOrNull(cumulativeSpending.lastIndex.coerceAtMost(paceValues.lastIndex))?.let { pace -> actual > pace }
     } ?: false
     val spendingColor = if (isOverPace) themeColors.error else themeColors.primary
-    // The pace line stays muted but visible: 3:1 on the card and on the spending wash it crosses.
-    val card = themeColors.surfaceContainerLow
-    val paceColor = themeColors.onSurfaceVariant.copy(alpha = 0.4f).compositeOver(card).readableOn(
-        listOf(card, spendingColor.copy(alpha = 0.2f).compositeOver(card)),
-        GRAPHIC_CONTRAST
-    )
     val today = rememberToday()
     val pace = if (today in spending.windowStart..spending.windowEnd) {
         val elapsed = java.time.temporal.ChronoUnit.DAYS.between(spending.windowStart, today).toInt() + 1
@@ -803,7 +803,7 @@ private fun SpendingPaceChart(
                 Line(
                     label = stringResource(R.string.budgets_chart_pace),
                     values = paceValues,
-                    color = SolidColor(paceColor),
+                    color = SolidColor(themeColors.onSurfaceVariant),
                     drawStyle = DrawStyle.Stroke(width = Dimensions.Component.dividerThicknessEmphasis),
                     strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
                     curvedEdges = false,
@@ -890,3 +890,28 @@ private fun SpendingPaceChart(
         )
     }
 }
+
+/**
+ * The rows behind a budget's category line: [category] over the days its spend was counted, in
+ * every profile, as a budget isn't kept per profile. With [currencyOnly] only rows written in
+ * [currency], as a budget counts outside unified mode; without it every currency, converted.
+ */
+data class BudgetCategoryRows(
+    val category: String,
+    val start: LocalDate,
+    val end: LocalDate,
+    val currency: String,
+    val currencyOnly: Boolean,
+)
+
+/**
+ * [category]'s line on this card as [BudgetCategoryRows]: the budget's own window, not the list's
+ * This Month, up to the day its spend runs to.
+ */
+internal fun BudgetGroupSpending.categoryRows(category: String, currency: String, unified: Boolean) = BudgetCategoryRows(
+    category = category,
+    start = windowStart,
+    end = minOf(windowEnd, displayedCapDate).coerceAtLeast(windowStart),
+    currency = currency,
+    currencyOnly = !unified,
+)

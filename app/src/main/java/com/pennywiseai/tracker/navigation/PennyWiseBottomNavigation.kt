@@ -100,7 +100,6 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.ui.theme.tabular
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
@@ -330,8 +329,8 @@ fun PennyWiseBottomNavigation(
 }
 
 /**
- * The Ask tab as the bar's big squircle: the owl, drawn in full in onPrimaryContainer,
- * on a primary container. M3 Expressive shape morphs carry its state: it rounds into a circle
+ * The Ask tab as the bar's big squircle: the owl, drawn in full, on a primary
+ * container. M3 Expressive shape morphs carry its state: it rounds into a circle
  * while Ask is open and squares off while held.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -431,10 +430,11 @@ private fun FloatingNavPill(
                     .offset(x = indicatorOffset)
                     .size(indicatorWidth, Dimensions.Component.floatingNavIndicatorHeight)
                     .clip(CircleShape)
-                    // Solid primary: the icons are icon-only and the owl takes the accent in
-                    // both states, so this is what says which tab is open. A tint of primary
-                    // sat at ~1.3:1 on the pill; primary reads at 4.5:1 on any surface.
-                    .background(MaterialTheme.colorScheme.primary)
+                    // A tint of primary rather than secondaryContainer, which
+                    // all but vanishes against the pill in light themes.
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = Dimensions.Alpha.selectedIndicator)
+                    )
             )
         }
 
@@ -443,7 +443,7 @@ private fun FloatingNavPill(
                 val selected = index == selectedIndex
                 val label = stringResource(item.titleRes)
                 val iconTint by animateColorAsState(
-                    targetValue = if (selected) MaterialTheme.colorScheme.onPrimary
+                    targetValue = if (selected) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
                     label = "navIconTint"
@@ -571,10 +571,11 @@ private fun ChatReactionChip(
             AnimatedVisibility(
                 visible = visible && chip != null,
                 enter = if (animate) {
-                    fadeIn(motion.fastEffectsSpec()) + slideInVertically(motion.fastSpatialSpec()) { travel }
+                    // The chip carries an amount, so its short drift settles on effects: no overshoot.
+                    fadeIn(motion.fastEffectsSpec()) + slideInVertically(motion.fastEffectsSpec()) { travel }
                 } else EnterTransition.None,
                 exit = if (animate) {
-                    fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { travel }
+                    fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastEffectsSpec()) { travel }
                 } else ExitTransition.None
             ) {
                 when (shownChip) {
@@ -621,13 +622,8 @@ private fun AmountPill(amount: ReactionAmount) {
         TransactionType.EXPENSE, TransactionType.CREDIT -> "-" to colorScheme.spending
         TransactionType.TRANSFER, TransactionType.INVESTMENT -> "" to colorScheme.onSurface
     }
-    ChipPill(
-        text = CurrencyFormatter.signed(
-            sign,
-            CurrencyFormatter.formatCurrency(amount.money.amount, amount.money.currency)
-        ),
-        color = color,
-    )
+    // Hidden, it's the bare mask: a sign in front would still say which way the money went.
+    ChipPill(text = amount.money.format(signPrefix = sign), color = color)
 }
 
 /** The chip's pill: one line of [text] in [color] that steps down to fit rather than cut off. */

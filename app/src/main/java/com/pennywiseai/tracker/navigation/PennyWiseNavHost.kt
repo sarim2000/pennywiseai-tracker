@@ -336,9 +336,7 @@ fun PennyWiseNavHost(
                                 backStack.navigate(BudgetHistory(groupId, year, month))
                             },
                             onNavigateToExchangeRates = { backStack.navigate(ExchangeRates) },
-                            onNavigateToCategory = { category, yearMonth, currency ->
-                                backStack.navigate(TransactionsWithFilter(category, yearMonth, currency))
-                            },
+                            onNavigateToCategory = { rows -> backStack.navigate(transactionsFor(rows)) },
                             onNavigateToGoal = { goalId ->
                                 backStack.navigate(GoalDetail(goalId))
                             },
@@ -557,6 +555,7 @@ fun PennyWiseNavHost(
                             initialCustomStartEpochDay = args.startDate,
                             initialCustomEndEpochDay = args.endDate,
                             currencyOnly = args.currencyOnly,
+                            profilePinned = args.allProfiles,
                             onNavigateBack = { backStack.pop(args) },
                             onTransactionClick = { transactionId ->
                                 backStack.navigate(TransactionDetail(transactionId))

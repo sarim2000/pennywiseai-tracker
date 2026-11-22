@@ -17,10 +17,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
-import com.pennywiseai.tracker.ui.components.rememberHeatmapSteps
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.readableOn
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -44,8 +42,6 @@ fun SpendingHeatmap(data: List<BalancePoint>, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
     val dayLabels = remember(locale) { DayOfWeek.entries.map { it.getDisplayName(TextStyle.NARROW, locale) } }
     val colors = MaterialTheme.colorScheme
-    // The grid sits on the Insights chart card (surfaceContainerLow).
-    val steps = rememberHeatmapSteps(colors.surfaceContainerHighest, listOf(colors.surfaceContainerLow))
     val textStyle = MaterialTheme.typography.labelSmall
     val gap = Spacing.xs
 
@@ -54,10 +50,10 @@ fun SpendingHeatmap(data: List<BalancePoint>, modifier: Modifier = Modifier) {
         return when {
             date < firstDate || date > endDate -> colors.surfaceContainerLow
             intensity == 0.0 -> colors.surfaceContainerHighest
-            intensity < 0.25 -> steps[0]
-            intensity < 0.5 -> steps[1]
-            intensity < 0.75 -> steps[2]
-            else -> steps[3]
+            intensity < 0.25 -> colors.primary.copy(alpha = 0.25f)
+            intensity < 0.5 -> colors.primary.copy(alpha = 0.5f)
+            intensity < 0.75 -> colors.primary.copy(alpha = 0.75f)
+            else -> colors.primary
         }
     }
 
@@ -95,8 +91,7 @@ fun SpendingHeatmap(data: List<BalancePoint>, modifier: Modifier = Modifier) {
                                 Text(
                                     text = date.dayOfMonth.toString(),
                                     style = textStyle,
-                                    color = (if (strong) colors.onPrimary else colors.onSurfaceVariant)
-                                        .readableOn(listOf(cellColor(date)))
+                                    color = if (strong) colors.onPrimary else colors.onSurfaceVariant
                                 )
                             }
                         }

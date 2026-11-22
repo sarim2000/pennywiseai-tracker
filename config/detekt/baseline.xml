@@ -634,7 +634,7 @@
     <ID>LongParameterList:AccountItem.kt$( account: com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity, linkedCards: List&lt;com.pennywiseai.tracker.data.database.entity.CardEntity&gt; = emptyList(), isHidden: Boolean, isUnanchored: Boolean = false, onToggleVisibility: () -&gt; Unit, onUpdateBalance: () -&gt; Unit, onViewHistory: () -&gt; Unit, onUnlinkCard: (cardId: Long) -&gt; Unit = {}, onDeleteAccount: () -&gt; Unit = {}, onEditAccount: () -&gt; Unit = {}, onSetProfile: (Long) -&gt; Unit = {}, onSetAlias: (String?) -&gt; Unit = {}, onSetLowBalanceThreshold: (BigDecimal?) -&gt; Unit = {} )</ID>
     <ID>LongParameterList:AccountItem.kt$( currentThreshold: BigDecimal?, accountLabel: String, currency: String, currentBalance: BigDecimal, onDismiss: () -&gt; Unit, onConfirm: (BigDecimal?) -&gt; Unit )</ID>
     <ID>LongParameterList:AddReviewCard.kt$( rows: List&lt;ReviewRow&gt;, categories: List&lt;CategoryEntity&gt;, enabled: Boolean, saved: Boolean, onToggle: (Int) -&gt; Unit, onEdit: (Int, TransactionDraft) -&gt; Unit, onConfirm: () -&gt; Unit, onDismiss: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
-    <ID>LongParameterList:AddSubscriptionUseCase.kt$AddSubscriptionUseCase$( merchantName: String, amount: BigDecimal, nextPaymentDate: LocalDate, billingCycle: String, category: String, autoRenewal: Boolean = true, paymentReminder: Boolean = true, notes: String? = null, currency: String = "INR", direction: SubscriptionDirection = SubscriptionDirection.EXPENSE, bankName: String? = null, accountLast4: String? = null )</ID>
+    <ID>LongParameterList:AddSubscriptionUseCase.kt$AddSubscriptionUseCase$( merchantName: String, amount: BigDecimal, nextPaymentDate: LocalDate, billingCycle: String, category: String, notes: String? = null, currency: String = "INR", direction: SubscriptionDirection = SubscriptionDirection.EXPENSE, bankName: String? = null, accountLast4: String? = null, totalPayments: Int? = null, paymentsMade: Int = 0 )</ID>
     <ID>LongParameterList:AddToGoalSheet.kt$( transaction: TransactionEntity, goals: List&lt;GoalProgress&gt;, state: AddToGoalState, onDismiss: () -&gt; Unit, onSave: (goal: GoalEntity, share: BigDecimal?, note: String, manual: BigDecimal?) -&gt; Unit, onCreateGoal: () -&gt; Unit, onEdited: () -&gt; Unit, )</ID>
     <ID>LongParameterList:AddTransactionUseCase.kt$AddTransactionUseCase$( amount: BigDecimal, date: LocalDateTime, notes: String? = null, reference: String? = null, tags: List&lt;String&gt; = emptyList(), currency: String = "INR", fromBankName: String, fromLast4: String, toBankName: String, toLast4: String )</ID>
     <ID>LongParameterList:AddTransactionUseCase.kt$AddTransactionUseCase$( amount: BigDecimal, fromBankName: String, fromLast4: String, toBankName: String, toLast4: String, date: LocalDateTime )</ID>
@@ -2676,8 +2676,6 @@
     <ID>TooManyFunctions:ZemenBankParser.kt$ZemenBankParser : BankParser</ID>
     <ID>UnusedParameter:AccountCarousel.kt$isUnifiedMode: Boolean = false</ID>
     <ID>UnusedParameter:AccountCarousel.kt$selectedCurrency: String</ID>
-    <ID>UnusedParameter:AddSubscriptionUseCase.kt$AddSubscriptionUseCase$autoRenewal: Boolean = true</ID>
-    <ID>UnusedParameter:AddSubscriptionUseCase.kt$AddSubscriptionUseCase$paymentReminder: Boolean = true</ID>
     <ID>UnusedParameter:AnalyticsScreen.kt$onNavigateToChat: () -&gt; Unit = {}</ID>
     <ID>UnusedParameter:BalanceCard.kt$balanceHistory: List&lt;BigDecimal&gt;</ID>
     <ID>UnusedParameter:BalanceCard.kt$onShowBreakdown: () -&gt; Unit</ID>

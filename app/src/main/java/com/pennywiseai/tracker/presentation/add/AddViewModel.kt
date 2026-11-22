@@ -829,8 +829,6 @@ class AddViewModel @Inject constructor(
                     nextPaymentDate = state.nextPaymentDate,
                     billingCycle = state.billingCycle,
                     category = state.category,
-                    autoRenewal = false, // Not implemented yet
-                    paymentReminder = false, // Not implemented yet
                     notes = state.notes.takeIf { it.isNotBlank() },
                     currency = state.currency,
                     direction = state.direction,

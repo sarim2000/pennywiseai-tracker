@@ -100,7 +100,6 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.ui.theme.tabular
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
@@ -572,10 +571,11 @@ private fun ChatReactionChip(
             AnimatedVisibility(
                 visible = visible && chip != null,
                 enter = if (animate) {
-                    fadeIn(motion.fastEffectsSpec()) + slideInVertically(motion.fastSpatialSpec()) { travel }
+                    // The chip carries an amount, so its short drift settles on effects: no overshoot.
+                    fadeIn(motion.fastEffectsSpec()) + slideInVertically(motion.fastEffectsSpec()) { travel }
                 } else EnterTransition.None,
                 exit = if (animate) {
-                    fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { travel }
+                    fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastEffectsSpec()) { travel }
                 } else ExitTransition.None
             ) {
                 when (shownChip) {
@@ -622,13 +622,8 @@ private fun AmountPill(amount: ReactionAmount) {
         TransactionType.EXPENSE, TransactionType.CREDIT -> "-" to colorScheme.spending
         TransactionType.TRANSFER, TransactionType.INVESTMENT -> "" to colorScheme.onSurface
     }
-    ChipPill(
-        text = CurrencyFormatter.signed(
-            sign,
-            CurrencyFormatter.formatCurrency(amount.money.amount, amount.money.currency)
-        ),
-        color = color,
-    )
+    // Hidden, it's the bare mask: a sign in front would still say which way the money went.
+    ChipPill(text = amount.money.format(signPrefix = sign), color = color)
 }
 
 /** The chip's pill: one line of [text] in [color] that steps down to fit rather than cut off. */

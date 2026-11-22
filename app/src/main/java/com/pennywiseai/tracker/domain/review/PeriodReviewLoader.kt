@@ -12,7 +12,7 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
-import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
+import com.pennywiseai.tracker.domain.model.isTracked
 import com.pennywiseai.tracker.utils.dateQueryWindow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -169,10 +169,7 @@ class PeriodReviewLoader @Inject constructor(
         balances: List<AccountBalanceEntity>,
     ): (TransactionEntity) -> Boolean {
         val profileKeys = buildProfileAccountKeys(balances)
-        return { tx ->
-            !IgnoredAccountsStore.isIgnored(ignored, tx.bankName, tx.accountNumber) &&
-                filterTransactionsByProfile(listOf(tx), profileId, profileKeys).isNotEmpty()
-        }
+        return { it.isTracked(profileId, ignored, profileKeys) }
     }
 
     private suspend fun settlementLoss(

@@ -10,7 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
-import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
+import com.pennywiseai.tracker.domain.model.effectiveProfileId
 
 object ConscienceEligibility {
     /**
@@ -20,7 +20,7 @@ object ConscienceEligibility {
      */
     fun inScope(ignoredKeys: Set<String>, profileAccountKeys: Map<Long, Set<String>>): (TransactionEntity) -> Boolean = { tx ->
         !IgnoredAccountsStore.isIgnored(ignoredKeys, tx.bankName, tx.accountNumber) &&
-            filterTransactionsByProfile(listOf(tx), ProfileEntity.BUSINESS_ID, profileAccountKeys).isEmpty()
+            tx.effectiveProfileId(profileAccountKeys) != ProfileEntity.BUSINESS_ID
     }
 
     /**

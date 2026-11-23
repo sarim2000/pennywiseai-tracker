@@ -332,7 +332,8 @@ object SharedComponents {
         .btn:active { border-radius: var(--r-sm); }
         .btn-lg { height: 56px; padding: 0 28px; font-size: 16px; }
         .btn svg { width: 20px; height: 20px; flex: none; }
-        a.btn-filled, button.btn-filled, a.btn-primary { background: var(--primary); color: var(--on-primary); }
+        /* span: a button look inside a card that is itself the link (the landing's Pro card). */
+        a.btn-filled, button.btn-filled, span.btn-filled, a.btn-primary { background: var(--primary); color: var(--on-primary); }
         a.btn-tonal, button.btn-tonal { background: var(--secondary-container); color: var(--on-secondary-container); }
         a.btn-outlined, button.btn-outlined, a.btn-secondary { background: transparent; color: var(--on-bg); border-color: var(--outline-variant); }
         a.btn:hover, button.btn:hover { filter: brightness(1.06); }

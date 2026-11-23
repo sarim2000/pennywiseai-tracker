@@ -34,15 +34,19 @@ class ChartMarksTest {
 
     @Test
     fun tonalBars_reach3To1_andStayApartFromTheLatest() {
+        // As the two charts call it: the Insights card on every neutral surface, and the
+        // period chart on surfaceContainerLow alone (readableOn picks its direction from these).
         val failures = schemes.flatMap { (name, scheme) ->
-            val cards = scheme.neutralSurfaces
-            val (older, latest) = tonalBarColors(scheme.primary, scheme.primaryContainer, cards)
-            buildList {
-                cards.forEach { card ->
-                    if (contrastRatio(older, card) < GRAPHIC_CONTRAST) add("$name: older bar on $card")
-                    if (contrastRatio(latest, card) < GRAPHIC_CONTRAST) add("$name: latest bar on $card")
+            listOf(scheme.neutralSurfaces, listOf(scheme.surfaceContainerLow)).flatMap { cards ->
+                val (older, latest) = tonalBarColors(scheme.primary, scheme.primaryContainer, cards)
+                buildList {
+                    cards.forEach { card ->
+                        if (contrastRatio(older, card) < GRAPHIC_CONTRAST) add("$name ${cards.size} cards: older bar on $card")
+                        if (contrastRatio(latest, card) < GRAPHIC_CONTRAST) add("$name ${cards.size} cards: latest bar on $card")
+                    }
+                    val gap = contrastRatio(older, latest)
+                    if (gap < 1.5f) add("$name ${cards.size} cards: bars $gap apart")
                 }
-                if (contrastRatio(older, latest) < 1.5f) add("$name: bars ${contrastRatio(older, latest)} apart")
             }
         }
         assertTrue(failures.joinToString("\n"), failures.isEmpty())

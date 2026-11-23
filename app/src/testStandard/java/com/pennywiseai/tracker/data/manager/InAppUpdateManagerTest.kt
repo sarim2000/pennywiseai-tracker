@@ -7,22 +7,36 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class InAppUpdateManagerTest {
+    private fun offer(
+        availableVersion: Int = 200,
+        declinedVersion: Int = -1,
+        startedVersion: Int = -1,
+        installStatus: Int = InstallStatus.UNKNOWN,
+        updateAvailable: Boolean = true
+    ) = shouldOffer(updateAvailable, installStatus, availableVersion, declinedVersion, startedVersion)
+
     @Test
-    fun `offers a new version once, then only a newer one`() {
-        assertTrue(shouldOffer(true, InstallStatus.UNKNOWN, availableVersion = 200, offeredVersion = -1))
-        assertFalse(shouldOffer(true, InstallStatus.UNKNOWN, availableVersion = 200, offeredVersion = 200))
-        assertTrue(shouldOffer(true, InstallStatus.UNKNOWN, availableVersion = 201, offeredVersion = 200))
+    fun `a declined version is not offered again, a newer one is`() {
+        assertTrue(offer())
+        assertFalse(offer(declinedVersion = 200))
+        assertTrue(offer(availableVersion = 201, declinedVersion = 200))
+    }
+
+    @Test
+    fun `a sheet already shown this process is not shown again`() {
+        assertFalse(offer(startedVersion = 200))
+        assertTrue(offer(availableVersion = 201, startedVersion = 200))
     }
 
     @Test
     fun `never offers while Play is already fetching or installing`() {
         for (status in listOf(InstallStatus.PENDING, InstallStatus.DOWNLOADING, InstallStatus.INSTALLING)) {
-            assertFalse(shouldOffer(true, status, availableVersion = 200, offeredVersion = -1))
+            assertFalse(offer(installStatus = status))
         }
     }
 
     @Test
     fun `no offer without an allowed update`() {
-        assertFalse(shouldOffer(false, InstallStatus.UNKNOWN, availableVersion = 200, offeredVersion = -1))
+        assertFalse(offer(updateAvailable = false))
     }
 }

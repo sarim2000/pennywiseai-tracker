@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -99,6 +100,11 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var chatDrafts: com.pennywiseai.tracker.data.manager.ChatDraftInbox
     @Inject lateinit var inAppUpdateManager: com.pennywiseai.tracker.data.manager.InAppUpdateManager
 
+    // Play's update sheet reports "No thanks" here, so only a real decline is remembered.
+    private val updateFlow = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+        inAppUpdateManager.onUpdateFlowResult(it.resultCode)
+    }
+
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
     }
@@ -153,7 +159,7 @@ class MainActivity : FragmentActivity() {
                     chatDrafts.requestOpen()
                 },
                 updateReady = updateReady,
-                onUpdateCheck = { inAppUpdateManager.checkForUpdate(this) },
+                onUpdateCheck = { inAppUpdateManager.checkForUpdate(this, updateFlow) },
                 onUpdateRestart = inAppUpdateManager::completeUpdate,
                 onUpdateLater = inAppUpdateManager::dismissRestart
             )

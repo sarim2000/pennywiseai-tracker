@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.data.manager
 import android.app.Activity
 import android.content.Context
 import android.util.Log
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
 import androidx.core.content.edit
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
@@ -35,6 +37,10 @@ class InAppUpdateManager @Inject constructor(
     // (a file picker or the camera resumes too); the next cold start asks again.
     private var restartDeclined = false
 
+    // The version whose sheet is up (or was accepted) in this process: not offered again
+    // until the next cold start, and recorded as declined only on "No thanks".
+    private var startedVersion = NONE
+
     private fun downloaded() {
         if (!restartDeclined) _restartPrompt.value = true
     }
@@ -43,11 +49,7 @@ class InAppUpdateManager @Inject constructor(
     private val listener = InstallStateUpdatedListener { state ->
         when (state.installStatus()) {
             InstallStatus.DOWNLOADED -> downloaded()
-            InstallStatus.FAILED -> {
-                // A failed download isn't a "No thanks": offer that version again.
-                prefs.edit { remove(KEY_OFFERED_VERSION) }
-                Log.w(TAG, "Update failed with error code: ${state.installErrorCode()}")
-            }
+            InstallStatus.FAILED -> Log.w(TAG, "Update failed with error code: ${state.installErrorCode()}")
             else -> {}
         }
     }
@@ -57,10 +59,11 @@ class InAppUpdateManager @Inject constructor(
     }
 
     /**
-     * Call each time Home shows, unlocked and onboarded: offers a new version once
-     * (remembered across launches), and re-raises a download that's waiting.
+     * Call each time Home shows, unlocked and onboarded: offers a new version until
+     * the user declines it (remembered across launches), and re-raises a download
+     * that's waiting. [launcher] reports the sheet's result to [onUpdateFlowResult].
      */
-    fun checkForUpdate(activity: Activity) {
+    fun checkForUpdate(activity: Activity, launcher: ActivityResultLauncher<IntentSenderRequest>) {
         // Activity-scoped: removed once the activity stops, so it never fires on a dead one.
         appUpdateManager.appUpdateInfo.addOnSuccessListener(activity) { info ->
             if (info.installStatus() == InstallStatus.DOWNLOADED) {
@@ -72,25 +75,36 @@ class InAppUpdateManager @Inject constructor(
                     info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE),
                 installStatus = info.installStatus(),
                 availableVersion = info.availableVersionCode(),
-                offeredVersion = prefs.getInt(KEY_OFFERED_VERSION, NONE)
+                declinedVersion = prefs.getInt(KEY_DECLINED_VERSION, NONE),
+                startedVersion = startedVersion
             )
             if (!offer || activity.isFinishing || activity.isDestroyed) return@addOnSuccessListener
             // Only a flow that started counts, so a failed launch is retried next time.
             val started = try {
                 appUpdateManager.startUpdateFlowForResult(
                     info,
-                    activity,
-                    AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build(),
-                    UPDATE_REQUEST_CODE
+                    launcher,
+                    AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build()
                 )
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to start update flow", e)
                 false
             }
-            if (started) prefs.edit { putInt(KEY_OFFERED_VERSION, info.availableVersionCode()) }
+            if (started) startedVersion = info.availableVersionCode()
         }.addOnFailureListener {
             // Every non-Play install (sideloaded, debug) lands here: not an error.
             Log.d(TAG, "Update check unavailable: ${it.message}")
+        }
+    }
+
+    /**
+     * Play's sheet closed. Only "No thanks" ([Activity.RESULT_CANCELED]) is remembered
+     * across launches; a failed flow, or an app killed with the sheet up, offers again
+     * on the next cold start.
+     */
+    fun onUpdateFlowResult(resultCode: Int) {
+        if (resultCode == Activity.RESULT_CANCELED && startedVersion != NONE) {
+            prefs.edit { putInt(KEY_DECLINED_VERSION, startedVersion) }
         }
     }
 
@@ -108,18 +122,23 @@ class InAppUpdateManager @Inject constructor(
 
     internal companion object {
         private const val TAG = "InAppUpdateManager"
-        private const val UPDATE_REQUEST_CODE = 123
         private const val PREFS = "in_app_update"
-        private const val KEY_OFFERED_VERSION = "offered_version_code"
+        private const val KEY_DECLINED_VERSION = "declined_version_code"
         private const val NONE = -1
 
         /**
-         * Offer a version once: "No thanks" holds until a newer one appears. Never
-         * while Play is already fetching or installing one.
+         * Offer a version once per process: "No thanks" holds until a newer one
+         * appears. Never while Play is already fetching or installing one.
          */
-        fun shouldOffer(updateAvailable: Boolean, installStatus: Int, availableVersion: Int, offeredVersion: Int): Boolean =
-            updateAvailable &&
-                installStatus !in setOf(InstallStatus.PENDING, InstallStatus.DOWNLOADING, InstallStatus.INSTALLING) &&
-                availableVersion != offeredVersion
+        fun shouldOffer(
+            updateAvailable: Boolean,
+            installStatus: Int,
+            availableVersion: Int,
+            declinedVersion: Int,
+            startedVersion: Int
+        ): Boolean = updateAvailable &&
+            installStatus !in setOf(InstallStatus.PENDING, InstallStatus.DOWNLOADING, InstallStatus.INSTALLING) &&
+            availableVersion != declinedVersion &&
+            availableVersion != startedVersion
     }
 }

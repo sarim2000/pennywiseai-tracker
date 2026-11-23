@@ -453,7 +453,8 @@ it by `Dimensions.Component.bottomBarHeight`.
   `slowSpatialSpec()` (an overshoot past the far corner can't be seen). It clips;
   nothing scales. Dialogs and sheets are other windows and just swap; with
   "Remove animations", or while App Lock's cover is up (the still draws above
-  it), the whole theme just swaps.
+  it), the whole theme just swaps. A change with no touch in the last second
+  behind it (a backup restore) spreads from the centre.
 - **Lazy list rows animate.** Keyed `items(…, key = …)` rows pass
   `Modifier.animateItem()` on the item's root composable, so rows slide on
   insert, remove and filter instead of jumping. It needs a stable, unique

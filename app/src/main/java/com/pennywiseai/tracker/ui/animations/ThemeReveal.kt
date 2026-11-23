@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.animations
 
+import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MotionScheme
@@ -55,6 +56,7 @@ fun <T> ThemeReveal(
     val layer = rememberGraphicsLayer()
     // Read in draw, never as state: a touch doesn't recompose anything.
     val origin = remember { Holder(Offset.Unspecified) }
+    val touchedAt = remember { Holder(0L) }
     val size = remember { Holder(Size.Zero) }
     // Fixed for one reveal, so a tap mid-reveal doesn't move the circle.
     val center = remember { Holder(Offset.Zero) }
@@ -74,7 +76,7 @@ fun <T> ThemeReveal(
         // A change mid-reveal cancels this one: drop its still, or the next reveal
         // would flash it at radius 0 before taking its own.
         try {
-            center.value = origin.value.takeIf { it.isSpecified } ?: size.value.center
+            center.value = revealOrigin(origin.value, touchedAt.value, SystemClock.uptimeMillis(), size.value)
             radius.snapTo(0f)
             // The layer still holds the last frame drawn with the old theme.
             still = layer.toImageBitmap()
@@ -96,7 +98,12 @@ fun <T> ThemeReveal(
                     while (true) {
                         // Initial pass and nothing consumed: every tap still reaches its target.
                         val event = awaitPointerEvent(PointerEventPass.Initial)
-                        if (event.type == PointerEventType.Press) origin.value = event.changes.first().position
+                        if (event.type == PointerEventType.Press || event.type == PointerEventType.Release) {
+                            // A click lands on release, so that's the touch a change follows.
+                            val change = event.changes.first()
+                            origin.value = change.position
+                            touchedAt.value = change.uptimeMillis
+                        }
                     }
                 }
             }
@@ -117,6 +124,17 @@ fun <T> ThemeReveal(
 private class Holder<V>(var value: V)
 
 private val Size.center get() = Offset(width / 2f, height / 2f)
+
+/** How long after a touch a theme change still counts as caused by it. */
+internal const val TOUCH_CAUSE_MS = 1_000L
+
+/**
+ * Where the circle starts: the last touch if it was just now, so it caused this
+ * change, else the centre. A change with no touch behind it (a backup restore, a
+ * keyboard) shouldn't spread from some tap made minutes ago.
+ */
+internal fun revealOrigin(touch: Offset, touchedAt: Long, now: Long, size: Size): Offset =
+    touch.takeIf { it.isSpecified && now - touchedAt <= TOUCH_CAUSE_MS } ?: size.center
 
 /** The radius that covers [size] from [from]: the distance to its farthest corner. */
 internal fun farthestCorner(from: Offset, size: Size): Float {

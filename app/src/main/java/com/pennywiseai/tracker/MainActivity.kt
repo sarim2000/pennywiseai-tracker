@@ -60,6 +60,7 @@ class MainActivity : FragmentActivity() {
         /** The pie widget: this cycle's spending in the pie's currency, under the pie's type filter. */
         const val EXTRA_OPEN_SPENDING_CURRENCY = "com.pennywiseai.tracker.OPEN_SPENDING_CURRENCY"
         const val EXTRA_OPEN_SPENDING_TYPE = "com.pennywiseai.tracker.OPEN_SPENDING_TYPE"
+        const val EXTRA_OPEN_SPENDING_CURRENCY_ONLY = "com.pennywiseai.tracker.OPEN_SPENDING_CURRENCY_ONLY"
 
         /** A question said to the quick add mic: Chat opens with it in the box, not sent. */
         const val EXTRA_CHAT_TEXT = "com.pennywiseai.tracker.CHAT_TEXT"
@@ -204,6 +205,9 @@ class MainActivity : FragmentActivity() {
                     period = com.pennywiseai.tracker.presentation.common.TimePeriod.THIS_MONTH.name,
                     currency = spendingCurrency,
                     type = intent.getStringExtra(EXTRA_OPEN_SPENDING_TYPE),
+                    // Pinned outside unified mode, so the list stays on the pie's currency
+                    // even when that isn't the base currency the list would open on.
+                    currencyOnly = intent.getBooleanExtra(EXTRA_OPEN_SPENDING_CURRENCY_ONLY, false),
                 )
             intent.getBooleanExtra(EXTRA_OPEN_UNRECOGNIZED, false) ->
                 com.pennywiseai.tracker.navigation.UnrecognizedSms

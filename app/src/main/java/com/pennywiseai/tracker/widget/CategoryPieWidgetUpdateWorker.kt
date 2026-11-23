@@ -216,7 +216,8 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                     currency = currency,
                     total = total.toPlainString(),
                     slices = slices,
-                    spendingType = if (creditAsExpense) TransactionTypeFilter.SPENDING.name else TransactionTypeFilter.EXPENSE.name
+                    spendingType = if (creditAsExpense) TransactionTypeFilter.SPENDING.name else TransactionTypeFilter.EXPENSE.name,
+                    currencyOnly = !isUnifiedMode
                 )
             )
             CategoryPieWidget().updateAll(applicationContext)

@@ -30,5 +30,7 @@ data class CategoryPieWidgetData(
     val total: String = "",
     val slices: List<CategoryPieSlice> = emptyList(),
     /** The list filter that holds the rows the pie counts: Spending when card spend counts, else Expense. */
-    val spendingType: String = TransactionTypeFilter.EXPENSE.name
+    val spendingType: String = TransactionTypeFilter.EXPENSE.name,
+    /** True when the pie counts only rows written in [currency]; false when unified mode converts every currency into it. */
+    val currencyOnly: Boolean = false
 )

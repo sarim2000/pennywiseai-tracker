@@ -227,6 +227,7 @@ class CategoryPieWidget : GlanceAppWidget() {
             this.data = "pennywise-widget://pie-widget".toUri()
             putExtra(MainActivity.EXTRA_OPEN_SPENDING_CURRENCY, data.currency)
             putExtra(MainActivity.EXTRA_OPEN_SPENDING_TYPE, data.spendingType)
+            putExtra(MainActivity.EXTRA_OPEN_SPENDING_CURRENCY_ONLY, data.currencyOnly)
         }
     )
 

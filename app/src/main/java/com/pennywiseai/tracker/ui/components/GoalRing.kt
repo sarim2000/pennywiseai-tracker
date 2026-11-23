@@ -131,14 +131,19 @@ fun GoalRing(
             val reachedInk = color.bestInk()
             val aheadInk = MaterialTheme.colorScheme.onSurfaceVariant
             Canvas(Modifier.size(size)) {
-                // On the stroke's centre line, clockwise from the top like the sweep (not mirrored in RTL either).
-                val radius = (this.size.minDimension - stroke.toPx()) / 2
+                // Clockwise from the top like the sweep (not mirrored in RTL either). An ahead dot
+                // sits on the track's centre line. The wavy fill's crests reach that line but its
+                // troughs dip about half a stroke inside it, and where they fall depends on the
+                // wave's phase, so a reached dot sits a quarter stroke in to stay on the fill.
+                val trackRadius = (this.size.minDimension - stroke.toPx()) / 2
                 val dot = Dimensions.Component.goalRingMilestoneDot.toPx() / 2
                 GOAL_MILESTONES.forEach { milestone ->
                     val at = milestone / 100f
+                    val reached = animated >= at
+                    val radius = if (reached) trackRadius - stroke.toPx() / 4 else trackRadius
                     val angle = Math.toRadians(360.0 * at - 90.0)
                     drawCircle(
-                        color = if (animated >= at) reachedInk else aheadInk,
+                        color = if (reached) reachedInk else aheadInk,
                         radius = dot,
                         center = center + androidx.compose.ui.geometry.Offset(
                             (radius * kotlin.math.cos(angle)).toFloat(),

@@ -24,8 +24,8 @@ object ParseViews {
                 // which is why nav additions never reached the site's most-visited page.
                 commonHead(
                     "Bank SMS parser — see what PennyWise reads",
-                    "Paste any bank SMS and see precisely which transaction details " +
-                        "PennyWise extracts from it. Runs the same parser that ships in the app.",
+                    "Paste a bank SMS and see which transaction details PennyWise " +
+                        "extracts from it. This web demo covers fewer banks than the app.",
                     "/tools/parse",
                     htmx = true,
                 )

@@ -15,7 +15,7 @@ data class WeeklyGuessQuestion(
     val weekEnd: LocalDate,
     val category: String,
     val currency: String,
-    /** What the bank messages recorded: Review's net spend in [category], never zero. */
+    /** What was recorded (bank messages and anything added by hand): Review's net spend in [category], never zero. */
     val actual: BigDecimal,
     /** The slider's top: about twice a usual week, and always room above [actual]. */
     val max: BigDecimal,

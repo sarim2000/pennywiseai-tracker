@@ -175,7 +175,7 @@ internal fun WeeklyGuessSheet(
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    text = stringResource(R.string.weekly_guess_week, DateRangeUtils.formatDateRange(question.weekStart, question.weekEnd)),
+                    text = DateRangeUtils.formatDateRange(question.weekStart, question.weekEnd),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -330,7 +330,7 @@ private fun GuessReveal(
                 autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, recordedStyle.fontSize),
             )
             Text(
-                text = stringResource(R.string.weekly_guess_your_guess) + " · " + CurrencyFormatter.formatCurrency(guess, currency),
+                text = stringResource(R.string.weekly_guess_your_guess_amount, CurrencyFormatter.formatCurrency(guess, currency)),
                 style = MaterialTheme.typography.titleMedium.money(),
             )
             Text(

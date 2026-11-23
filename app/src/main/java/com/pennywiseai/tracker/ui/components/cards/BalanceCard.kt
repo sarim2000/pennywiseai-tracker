@@ -68,11 +68,15 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.clickableFillFor
 import com.pennywiseai.tracker.ui.theme.expense
+import com.pennywiseai.tracker.ui.theme.expense_dark
+import com.pennywiseai.tracker.ui.theme.expense_light
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.ui.theme.income_dark
+import com.pennywiseai.tracker.ui.theme.income_light
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.onColoredFill
 import com.pennywiseai.tracker.ui.theme.onSurfaceWash
-import com.pennywiseai.tracker.ui.theme.readableOn
+import com.pennywiseai.tracker.ui.theme.readableToneOn
 import com.pennywiseai.tracker.ui.theme.stateLayer
 import com.pennywiseai.tracker.ui.theme.tabular
 import com.pennywiseai.tracker.ui.theme.warning
@@ -192,10 +196,10 @@ fun BalanceCard(
         // 3:1) keeps the hue there and says the direction without colour.
         val change = when {
             monthlyChangePercent == 0 || isBalanceHidden -> null
-            monthlyChange >= BigDecimal.ZERO -> ChangeTrend(outer.expense, up = true)
-            else -> ChangeTrend(outer.income, up = false)
+            monthlyChange >= BigDecimal.ZERO -> ChangeTrend(outer.expense, ExpenseTones, up = true)
+            else -> ChangeTrend(outer.income, IncomeTones, up = false)
         }
-        val changeColor = change?.color?.textOn(fill) ?: MaterialTheme.colorScheme.onSurfaceVariant
+        val changeColor = change?.let { it.color.textOn(fill, it.tones) } ?: MaterialTheme.colorScheme.onSurfaceVariant
         val changeIcon: (@Composable () -> Unit)? = change?.let { trend -> { ChangeArrow(trend, fill) } }
         val showCurrencyChip = availableCurrencies.size > 1 && !isUnifiedMode
 
@@ -565,7 +569,7 @@ private fun MonthDetails(
         // Spending sparkline
         if (!isBalanceHidden && spendingHistory.isNotEmpty()) {
             Spacer(modifier = Modifier.height(Spacing.md))
-            val expenseColor = MaterialTheme.colorScheme.expense.markOn(fill)
+            val expenseColor = MaterialTheme.colorScheme.expense.markOn(fill, ExpenseTones)
             val comparisonColor = MaterialTheme.colorScheme.outline
             BalanceSparkline(
                 data = spendingHistory,
@@ -704,18 +708,27 @@ private fun HeroLink(label: String, onClick: () -> Unit) {
     }
 }
 
-/** A series colour as a mark on the hero's [fill]: its hue, nudged to 3:1 there and under the card's press layer. */
-@Composable
-private fun Color.markOn(fill: Color) =
-    readableOn(listOf(fill), GRAPHIC_CONTRAST, listOf(MaterialTheme.colorScheme.onSurface.stateLayer()))
+/** Expense's light and dark bases: on a coloured card the one that suits the card's tone can still read as red. */
+private val ExpenseTones = listOf(expense_light, expense_dark)
 
-/** A semantic colour as text on the hero's [fill], at rest and under the card's press layer. */
-@Composable
-private fun Color.textOn(fill: Color) =
-    readableOn(listOf(fill), layers = listOf(MaterialTheme.colorScheme.onSurface.stateLayer()))
+/** Income's light and dark bases, as [ExpenseTones]. */
+private val IncomeTones = listOf(income_light, income_dark)
 
-/** Which way spending moved on last month, in its semantic colour (expense up, income down). */
-private class ChangeTrend(val color: Color, val up: Boolean)
+/**
+ * A semantic colour as a mark on the hero's [fill], at 3:1 there and under the card's press
+ * layer: unchanged where it reads, else the most colourful of [tones] that does.
+ */
+@Composable
+private fun Color.markOn(fill: Color, tones: List<Color>) =
+    readableToneOn(fill, tones, GRAPHIC_CONTRAST, listOf(MaterialTheme.colorScheme.onSurface.stateLayer()))
+
+/** A semantic colour as text on the hero's [fill], as [markOn] but at 4.5:1. */
+@Composable
+private fun Color.textOn(fill: Color, tones: List<Color>) =
+    readableToneOn(fill, tones, layers = listOf(MaterialTheme.colorScheme.onSurface.stateLayer()))
+
+/** Which way spending moved on last month, in its semantic colour (expense up, income down) and that colour's [tones]. */
+private class ChangeTrend(val color: Color, val tones: List<Color>, val up: Boolean)
 
 /** The change's direction as an arrow: a mark, so it keeps more of [ChangeTrend.color]'s hue than text can. */
 @Composable
@@ -724,7 +737,7 @@ private fun ChangeArrow(trend: ChangeTrend, fill: Color) {
         imageVector = if (trend.up) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
         // The sentence beside it says which way.
         contentDescription = null,
-        tint = trend.color.markOn(fill),
+        tint = trend.color.markOn(fill, trend.tones),
         modifier = Modifier.size(Dimensions.Icon.small)
     )
 }

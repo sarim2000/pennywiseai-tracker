@@ -108,6 +108,29 @@ fun Color.readableOn(
     return nudged
 }
 
+/**
+ * A semantic colour as text or a mark on a coloured [fill]: this colour (the scheme's own
+ * tone) when it already reads there at [minimum], under [layers] too. Otherwise it and each
+ * of [alternatives] (the tone's light and dark bases) are nudged until they do, and the one
+ * that keeps the most chroma wins. On a pale card dark theme's pink nudged dark turns
+ * brown, while light theme's red still reads as red.
+ */
+fun Color.readableToneOn(
+    fill: Color,
+    alternatives: List<Color>,
+    minimum: Float = TEXT_CONTRAST,
+    layers: List<Color> = emptyList(),
+): Color {
+    val nudged = readableOn(listOf(fill), minimum, layers)
+    if (nudged == this) return this
+    return (alternatives.map { it.readableOn(listOf(fill), minimum, layers) } + nudged).maxBy { it.oklabChroma() }
+}
+
+private fun Color.oklabChroma(): Float {
+    val lab = convert(ColorSpaces.Oklab)
+    return hypot(lab.green, lab.blue)
+}
+
 /** An sRGB colour in Oklab polar form ([ColorSpaces.Oklab]), for moving its lightness while its hue holds. */
 private class Oklab private constructor(val l: Float, val chroma: Float, val hue: Float) {
 

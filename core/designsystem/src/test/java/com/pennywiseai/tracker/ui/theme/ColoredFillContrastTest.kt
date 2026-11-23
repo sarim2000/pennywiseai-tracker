@@ -14,7 +14,8 @@ import kotlin.math.hypot
  * Home's hero is a primaryContainer card with a surface wash (Safe to spend, the currency
  * chip) on it. In every scheme, light, dark and AMOLED: the card's roles from
  * [onColoredFill] read on the card, the wash's from [onSurfaceWash] read on the wash, and a
- * semantic colour nudged onto the card reads there, at rest and under the card's press layer. Teal Turquoise, whose primary is its
+ * semantic colour toned onto the card reads there, at rest and under the card's press layer. The
+ * budget meter on it is checked in the app's MeterContrastTest. Teal Turquoise, whose primary is its
  * primaryContainer, hid the hero's links and drew white on pale teal before these.
  */
 class ColoredFillContrastTest {
@@ -48,21 +49,16 @@ class ColoredFillContrastTest {
                 check("card onSurface", card.onSurface, fill, TEXT_CONTRAST)
                 check("card primary (link)", card.primary, fill, TEXT_CONTRAST, listOf(cardLayer, card.primary.stateLayer()))
                 check("card outline", card.outline, fill, GRAPHIC_CONTRAST)
-                listOf("expense" to outer.expense, "income" to outer.income, "loan" to outer.loan).forEach { (label, semantic) ->
-                    check("$label text on card", semantic.readableOn(listOf(fill), layers = listOf(cardLayer)), fill, TEXT_CONTRAST)
-                    check("$label mark on card", semantic.readableOn(listOf(fill), GRAPHIC_CONTRAST, listOf(cardLayer)), fill, GRAPHIC_CONTRAST)
+                // As BalanceCard draws them: the scheme's tone, or the most colourful of its bases that reads.
+                listOf("expense" to outer.expense, "income" to outer.income).forEach { (label, semantic) ->
+                    val tones = if (label == "expense") expenseTones else incomeTones
+                    check("$label text on card", semantic.readableToneOn(fill, tones, layers = listOf(cardLayer)), fill, TEXT_CONTRAST)
+                    check("$label mark on card", semantic.readableToneOn(fill, tones, GRAPHIC_CONTRAST, listOf(cardLayer)), fill, GRAPHIC_CONTRAST)
                 }
-                // The budget meter (WavyMeter nudges its colour on its track and the card) in each state,
-                // at rest: under the press layer its states went one white on mid-tone fills (Dawn Subtle).
-                val track = card.onSurface.copy(alpha = Dimensions.Alpha.meterTrack).compositeOver(fill)
-                listOf("primary" to card.primary, "warning" to card.warning, "error" to card.error).forEach { (label, c) ->
-                    val meter = c.readableOn(listOf(track, fill), GRAPHIC_CONTRAST)
-                    check("$label meter on track", meter, track, GRAPHIC_CONTRAST, emptyList())
-                    check("$label meter on card", meter, fill, GRAPHIC_CONTRAST, emptyList())
-                }
-                // Income and expense marks (sparkline, summary bars) stay apart in hue, pressed too.
-                val income = outer.income.readableOn(listOf(fill), GRAPHIC_CONTRAST, listOf(cardLayer))
-                val expense = outer.expense.readableOn(listOf(fill), GRAPHIC_CONTRAST, listOf(cardLayer))
+                check("loan text on card", outer.loan.readableOn(listOf(fill), layers = listOf(cardLayer)), fill, TEXT_CONTRAST)
+                // Income and expense marks (the sparkline, the trend arrow) stay apart in hue, pressed too.
+                val income = outer.income.readableToneOn(fill, incomeTones, GRAPHIC_CONTRAST, listOf(cardLayer))
+                val expense = outer.expense.readableToneOn(fill, expenseTones, GRAPHIC_CONTRAST, listOf(cardLayer))
                 if (oklabDistance(income, expense) < DISTINCT_HUES) add("$name: income and expense marks too close")
                 // The chip and Safe to spend press with their own layer, and take the card's when it's pressed.
                 val washLayers = listOf(cardLayer, washLayer)
@@ -92,7 +88,22 @@ class ColoredFillContrastTest {
         assertTrue("still red: $mark", mark.red - mark.blue > 0.15f)
     }
 
+    @Test
+    fun readableToneOn_keepsAToneThatReads_andOtherwiseTheMostColourfulBase() {
+        // Default light: expense already reads on the pale blue hero, so it stays exactly.
+        val paleBlue = LightColorScheme.primaryContainer
+        assertTrue(LightColorScheme.expense.readableToneOn(paleBlue, expenseTones, GRAPHIC_CONTRAST) == LightColorScheme.expense)
+        // Tako dark's pale orange hero: dark theme's pink nudged dark went brown; light theme's red reads as it is.
+        val takoDark = ThemeStyle.TAKO.fixedColorScheme(darkTheme = true)!!
+        val line = takoDark.expense.readableToneOn(takoDark.primaryContainer, expenseTones, GRAPHIC_CONTRAST)
+        assertTrue(contrastRatio(line, takoDark.primaryContainer) >= GRAPHIC_CONTRAST)
+        assertTrue("still red: $line", line == expense_light)
+    }
+
     private companion object {
+        val expenseTones = listOf(expense_light, expense_dark)
+        val incomeTones = listOf(income_light, income_dark)
+
         /** Oklab distance two series colours keep: well past a just-noticeable difference (~0.02). */
         const val DISTINCT_HUES = 0.1f
     }

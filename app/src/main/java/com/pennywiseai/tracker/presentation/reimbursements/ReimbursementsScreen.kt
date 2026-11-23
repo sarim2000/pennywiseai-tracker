@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
@@ -48,7 +49,7 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
@@ -126,11 +127,22 @@ fun ReimbursementsScreen(
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Text(
-                            CurrencyFormatter.formatByCurrency(uiState.pendingTotals),
-                            style = PennyWiseText.amountMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
+                        // A line per currency, each shrinking to fit rather than wrapping
+                        // mid-number. Hidden amounts show one mask, not one per currency.
+                        val totals = if (AmountPrivacy.hidden) {
+                            listOf(AmountPrivacy.MASK)
+                        } else {
+                            uiState.pendingTotals.values.sortedByDescending { it.amount.abs() }.map { it.format() }
+                        }
+                        totals.forEach { total ->
+                            Text(
+                                total,
+                                style = PennyWiseText.amountMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, PennyWiseText.amountMedium.fontSize),
+                            )
+                        }
                         Text(
                             pluralStringResource(R.plurals.reimburse_pending_count, uiState.pending.size, uiState.pending.size),
                             style = MaterialTheme.typography.bodyMedium,

@@ -44,4 +44,16 @@ class AnimatedCurrencyTextTest {
         assertEquals(3, plan.moves.count { it.change == GlyphChange.Roll })
         assertTrue(plan.moves.none { it.change == GlyphChange.Enter })
     }
+
+    @Test
+    fun `a figure in another script rolls in from that script's zeros`() {
+        // fa-IR formats with Persian digits (U+06F0..U+06F9) and U+066C grouping.
+        val persian = "۱۲٬۰۵۰"
+        assertEquals("۰۰٬۰۰۰", zeroed(persian))
+        // Its zeros stay put; only the non-zero digits turn.
+        val plan = odometerPlan(zeroed(persian), persian)!!
+        assertEquals(3, plan.moves.count { it.change == GlyphChange.Roll })
+        assertTrue(plan.exits.isEmpty())
+        assertTrue(plan.moves.none { it.change == GlyphChange.Enter })
+    }
 }

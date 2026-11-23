@@ -393,8 +393,12 @@ private const val STEADY_FRAMES = 3
 private const val STEADY_FRAME_NANOS = 50_000_000L
 private const val MAX_WAIT_FRAMES = 12
 
-/** [text] with every digit turned to 0: what a figure rolls in from. Same length, same slots. */
-internal fun zeroed(text: String): String = text.map { if (it.isDigit()) '0' else it }.joinToString("")
+/**
+ * [text] with every digit turned to 0: what a figure rolls in from. Same length,
+ * same slots. Each digit keeps its own script's zero (a Persian 5 becomes a
+ * Persian 0), so a zero stays put and every slot keeps its glyph width.
+ */
+internal fun zeroed(text: String): String = text.map { if (it.isDigit()) it - it.digitToInt() else it }.joinToString("")
 
 /** Paints a character nothing, without changing how the text measures or shapes. */
 private val Hidden = SpanStyle(color = Color.Transparent)

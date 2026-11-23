@@ -152,6 +152,13 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             }
         }
 
+        // Challenge widget: a challenge started, given up, finished or moved on from in Plan.
+        applicationScope.launch {
+            userPreferencesRepository.challenges.drop(1).collect {
+                com.pennywiseai.tracker.widget.ChallengeWidgetUpdateWorker.enqueueOneShot(this@PennyWiseApplication)
+            }
+        }
+
         // Keep CurrencyFormatter's number-format style in sync with the user's
         // preference. CurrencyFormatter is a stateless object used from non-Compose
         // contexts (widgets, workers) too, so we push the value into its @Volatile

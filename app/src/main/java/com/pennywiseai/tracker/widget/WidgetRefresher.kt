@@ -26,6 +26,8 @@ object WidgetRefresher {
         BudgetWidgetUpdateWorker.enqueueOneShot(context)
         // Goals: a transaction edit or delete can change a linked contribution.
         GoalWidgetUpdateWorker.enqueueOneShot(context)
+        // Challenge: an expense spoils its day; an edit or delete can clear it.
+        ChallengeWidgetUpdateWorker.enqueueOneShot(context)
     }
 
     /**

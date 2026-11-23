@@ -11,6 +11,26 @@
     <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
     <string name="widget_add_to_home_screen">Add to home screen</string>
 
+    <!-- Challenge widget: the running Plan challenge (its title reuses the challenge_* strings) -->
+    <string name="widget_name_challenge">Challenge</string>
+    <string name="widget_description_challenge">Your Plan challenge: its days and how many are left</string>
+    <string name="widget_challenge_empty">No challenge running</string>
+    <string name="widget_challenge_empty_hint">A few no-spend days is a good start</string>
+    <!-- %d: days left in the challenge, today included -->
+    <plurals name="widget_challenge_days_left">
+        <item quantity="one">%d day left</item>
+        <item quantity="other">%d days left</item>
+    </plurals>
+    <!-- The challenge's days are over; the last one counts once late bank messages are in -->
+    <string name="widget_challenge_settling">Last day counts tomorrow</string>
+    <!-- Bank messages can't be read, so no day counts -->
+    <string name="widget_challenge_paused">Paused</string>
+    <!-- %1$s: the clean days, e.g. "1 of 3 days" -->
+    <string name="widget_challenge_ended">Ended with %1$s</string>
+    <string name="widget_challenge_preview_title" translatable="false">3 no-spend days</string>
+    <string name="widget_challenge_preview_done" translatable="false">1 of 3 days done</string>
+    <string name="widget_challenge_preview_left" translatable="false">4 days left</string>
+
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Add Transaction</string>
     <string name="ai_session_tile">PennyWise AI</string>

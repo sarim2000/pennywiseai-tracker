@@ -306,6 +306,19 @@
             </intent-filter>
         </activity>
 
+        <!-- Tracking check-up: is SMS tracking healthy, and when did it last read one -->
+        <receiver
+            android:name=".widget.TrackingCheckupWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name_tracking">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tracking_checkup_widget_info" />
+        </receiver>
+
         <!-- Add Transaction Quick Widget -->
         <receiver
             android:name=".widget.AddTransactionWidgetReceiver"

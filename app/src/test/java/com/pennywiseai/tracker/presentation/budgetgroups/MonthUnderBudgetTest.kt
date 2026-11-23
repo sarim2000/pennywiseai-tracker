@@ -14,17 +14,27 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.YearMonth
 
 /** The card (and its one-time confetti) only for a month every spending limit survived. */
 class MonthUnderBudgetTest {
     private val october = BudgetWindow(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-31"), 31)
 
-    private fun group(spent: String, limit: String = "500", type: BudgetGroupType = BudgetGroupType.LIMIT) = BudgetGroupSpending(
+    private val september = LocalDateTime.parse("2026-09-01T10:00")
+
+    private fun group(
+        spent: String,
+        limit: String = "500",
+        type: BudgetGroupType = BudgetGroupType.LIMIT,
+        createdAt: LocalDateTime = september,
+        updatedAt: LocalDateTime = createdAt,
+    ) = BudgetGroupSpending(
         group = BudgetWithCategories(
             BudgetEntity(
                 name = "Budget", limitAmount = BigDecimal(limit), periodType = BudgetPeriodType.MONTHLY,
                 startDate = LocalDate.parse("2026-10-01"), endDate = LocalDate.parse("2026-10-31"), groupType = type,
+                createdAt = createdAt, updatedAt = updatedAt,
             ),
             emptyList(),
         ),
@@ -116,6 +126,26 @@ class MonthUnderBudgetTest {
         val win = monthUnderBudget(cycle, summary(onCycle), emptySet())
         assertEquals(MonthUnderBudget(cycle.start, cycle.end, "JOD"), win)
         assertEquals("budget_month:2026-10:JOD", win?.key)
+    }
+
+    @Test
+    fun `a budget made after the cycle ended neither counts nor blocks`() {
+        val madeNov3 = LocalDateTime.parse("2026-11-03T09:00")
+        // A first budget on the 3rd isn't cheered for last month.
+        assertNull(monthUnderBudget(october, summary(group("100", createdAt = madeNov3)), emptySet()))
+        // Nor does one made since hide a held one; one made on the last day still counts.
+        assertEquals("JOD", monthUnderBudget(october, summary(group("100"), group("900", createdAt = madeNov3)), emptySet())?.currency)
+        val madeOct31 = LocalDateTime.parse("2026-10-31T22:00")
+        assertNull(monthUnderBudget(october, summary(group("900", createdAt = madeOct31)), emptySet()))
+    }
+
+    @Test
+    fun `a limit edited after the cycle ended can't be judged`() {
+        // Raised on Nov 2 to cover October's overspend: today's limit says nothing about October's.
+        val raised = group("900", limit = "1000", updatedAt = LocalDateTime.parse("2026-11-02T08:00"))
+        assertNull(monthUnderBudget(october, summary(group("100"), raised), emptySet()))
+        val editedInOctober = group("100", updatedAt = LocalDateTime.parse("2026-10-20T08:00"))
+        assertEquals("JOD", monthUnderBudget(october, summary(editedInOctober), emptySet())?.currency)
     }
 
     @Test

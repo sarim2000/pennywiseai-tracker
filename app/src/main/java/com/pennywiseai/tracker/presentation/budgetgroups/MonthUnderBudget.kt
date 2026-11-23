@@ -73,11 +73,17 @@ fun monthUnderBudget(cycle: BudgetWindow, previous: BudgetOverallSummary, dismis
     // One-time budget is clipped to the month, so neither says whether it held. A budget
     // with its own start day is on a different cycle, still running or judged elsewhere.
     // ponytail: weekly and one-time limits neither count nor block; judge their own windows if asked.
+    // Budgets are today's rows, not a record of the cycle: one made after it ended wasn't
+    // there to keep (a first budget on the 3rd isn't cheered for last month).
     val limits = previous.groups.filter {
         it.group.budget.groupType == BudgetGroupType.LIMIT && it.periodType == BudgetPeriodType.MONTHLY &&
-            it.hasLimit && it.windowEnd == cycle.end
+            it.hasLimit && it.windowEnd == cycle.end && !it.group.budget.createdAt.toLocalDate().isAfter(cycle.end)
     }
+    // One edited since may have had a lower limit then (raised to make room), so the
+    // cycle can't be judged. ponytail: a budget deleted since leaves no trace to check.
+    val editedSince = limits.any { it.group.budget.updatedAt.toLocalDate().isAfter(cycle.end) }
     val kept = limits.isNotEmpty() &&
+        !editedSince &&
         limits.any { it.totalActual.signum() > 0 } &&
         limits.all { it.held() }
     return MonthUnderBudget(cycle.start, cycle.end, previous.currency)

@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -258,11 +259,14 @@ private fun CategoryItem(
                 .padding(Dimensions.Padding.content),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Category with colored dot
+            // Category with colored dot. A hidden one is dimmed so it reads as tucked away;
+            // only its name and dot, so the show/hide and edit controls stay at full strength.
             CategoryChip(
                 category = category,
                 showText = true,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .alpha(if (category.isHidden) Dimensions.Alpha.medium else 1f)
             )
 
             // Hide / unhide toggle — available for every category, including

@@ -54,6 +54,17 @@ class UpcomingPaymentsTest {
     ) = UpcomingPayments.of(subscriptions, recurring, cardBills, listOf(card), today, end, isExcluded)
 
     @Test
+    fun `each occurrence carries its schedule's id`() {
+        val weekly = sub("Gym", "2026-10-25", cycle = "Weekly")
+        val rent = template("Rent", "2026-11-01").copy(id = 42)
+
+        val bills = upcoming(subscriptions = listOf(weekly), recurring = listOf(rent))
+
+        assertEquals(setOf(weekly.id), bills.filter { it.source == BillSource.Subscription }.map { it.seriesId }.toSet())
+        assertEquals(listOf(42L), bills.filter { it.source == BillSource.Recurring }.map { it.seriesId })
+    }
+
+    @Test
     fun `only active expense subscriptions with a date count`() {
         val bills = upcoming(
             subscriptions = listOf(

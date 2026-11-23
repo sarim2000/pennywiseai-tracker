@@ -85,7 +85,7 @@ object UpcomingPayments {
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
                     .toList()
-                (overdue + due).map { Bill(s.merchantName, Money(s.amount, s.currency), it, source = BillSource.Subscription) }
+                (overdue + due).map { Bill(s.merchantName, Money(s.amount, s.currency), it, source = BillSource.Subscription, seriesId = s.id) }
             }
 
     /**
@@ -106,7 +106,7 @@ object UpcomingPayments {
                     .dropWhile { it.isBefore(start) }
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
-                    .map { Bill(t.merchantName, Money(t.amount, t.currency), it, source = BillSource.Recurring) }
+                    .map { Bill(t.merchantName, Money(t.amount, t.currency), it, source = BillSource.Recurring, seriesId = t.id) }
                     .toList()
             }
 

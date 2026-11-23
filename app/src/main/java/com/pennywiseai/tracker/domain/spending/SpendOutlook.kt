@@ -78,6 +78,12 @@ data class Bill(
     val dueDate: LocalDate,
     /** What the bill is for, so a screen can open it; null when not known. */
     val source: BillSource? = null,
+    /**
+     * The subscription's or recurring template's id: every occurrence of one schedule
+     * shares it, and two schedules alike in name, amount and currency still differ.
+     * Null for a card bill ([source] names the card) or when not known.
+     */
+    val seriesId: Long? = null,
 ) {
     val isCardBill: Boolean get() = source is BillSource.Card
 }

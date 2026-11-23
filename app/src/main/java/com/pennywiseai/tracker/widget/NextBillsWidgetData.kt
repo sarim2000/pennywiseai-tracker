@@ -5,7 +5,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.domain.spending.Bill
-import com.pennywiseai.tracker.domain.spending.BillSource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
@@ -49,16 +48,13 @@ const val NEXT_BILLS_MAX = 3
 
 /**
  * The next [max] payments, soonest first, each once: a daily or weekly schedule
- * shows its next occurrence, not the same payment three times. Nothing is added up.
+ * shows its next occurrence, not the same payment three times. A schedule is its
+ * [Bill.seriesId] (a card bill, its card), so two separate payments alike in name,
+ * amount and currency are both listed. Nothing is added up.
  */
 fun nextBills(bills: List<Bill>, max: Int = NEXT_BILLS_MAX): List<NextBillItem> =
     bills.sortedBy { it.dueDate }
-        .distinctBy { bill ->
-            when (val source = bill.source) {
-                is BillSource.Card -> source
-                else -> listOf(source, bill.name.trim().lowercase(), bill.amount.currency, bill.amount.amount.stripTrailingZeros())
-            }
-        }
+        .distinctBy { it.source to it.seriesId }
         .take(max)
         .map {
             NextBillItem(

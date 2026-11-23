@@ -14,13 +14,17 @@ class NextBillsWidgetDataTest {
 
     private val today = LocalDate.of(2026, 11, 23)
 
+    private var nextId = 1L
+
+    /** A new schedule each call, unless [id] names one; a card bill has none, as loaded. */
     private fun bill(
         name: String,
         amount: String,
         currency: String,
         inDays: Long,
         source: BillSource? = BillSource.Subscription,
-    ) = Bill(name, Money(BigDecimal(amount), currency), today.plusDays(inDays), source)
+        id: Long = nextId++,
+    ) = Bill(name, Money(BigDecimal(amount), currency), today.plusDays(inDays), source, seriesId = id.takeIf { source !is BillSource.Card })
 
     @Test
     fun `nothing due gives no rows`() {
@@ -63,7 +67,7 @@ class NextBillsWidgetDataTest {
 
     @Test
     fun `a daily payment shows once, at its next date`() {
-        val daily = (0L..5L).map { bill("Parking", "5", "USD", it, BillSource.Recurring) }
+        val daily = (0L..5L).map { bill("Parking", "5", "USD", it, BillSource.Recurring, id = 100) }
         val items = nextBills(daily + bill("Streaming", "12.99", "USD", 2) + bill("Gym", "30", "USD", 3))
 
         assertEquals(listOf("Parking", "Streaming", "Gym"), items.map { it.name })
@@ -80,6 +84,20 @@ class NextBillsWidgetDataTest {
         )
 
         assertEquals(listOf("Bank ••2222", "Bank ••1111"), items.map { it.name })
+    }
+
+    @Test
+    fun `two separate payments alike in name, amount and currency are both listed`() {
+        val items = nextBills(listOf(bill("Gym", "30", "USD", 2), bill("Gym", "30", "USD", 9)))
+
+        assertEquals(listOf(2L, 9L).map { today.plusDays(it).toEpochDay() }, items.map { it.dueEpochDay })
+    }
+
+    @Test
+    fun `an overdue subscription shows once, on its overdue date`() {
+        val items = nextBills(listOf(bill("Streaming", "12.99", "USD", -3, id = 100), bill("Streaming", "12.99", "USD", 27, id = 100)))
+
+        assertEquals(listOf(today.minusDays(3).toEpochDay()), items.map { it.dueEpochDay })
     }
 
     @Test

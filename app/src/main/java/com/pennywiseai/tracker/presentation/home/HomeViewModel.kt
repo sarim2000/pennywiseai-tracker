@@ -76,6 +76,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -91,6 +92,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -242,6 +244,13 @@ class HomeViewModel @Inject constructor(
     // Resolved against the selected/display currency in updateUIStateForCurrency so the
     // Lent pill stays in sync when the user switches currency tabs.
     private var currentMonthLentByCurrency: Map<String, BigDecimal> = emptyMap()
+
+    // Which inputs of the hero's month figures have arrived: the maps above start empty,
+    // and an empty map reads as a real ₹0. isMonthReady holds the card back until all three have.
+    private var currentMonthLoaded = false
+    private var lastMonthLoaded = false
+    private var loanLossLoaded = false
+    private val monthLoaded get() = currentMonthLoaded && lastMonthLoaded && loanLossLoaded
 
     // Track if user has manually selected a currency to prevent auto-reset
     private var hasUserSelectedCurrency = false
@@ -400,8 +409,8 @@ class HomeViewModel @Inject constructor(
         combine(
             _currentCycleWindow,
             today,
-            _uiState.map { it.budgetSummary }.distinctUntilChanged(),
-        ) { window, day, budgets -> Triple(window.second, day, budgets?.safeToSpendCap(day)) },
+            _uiState.loadedBudgets(),
+        ) { window, day, budgets -> Triple(window.second, day, budgets.safeToSpendCap(day)) },
         combine(
             userPreferencesRepository.unifiedCurrencyMode,
             userPreferencesRepository.displayCurrency,
@@ -780,6 +789,7 @@ class HomeViewModel @Inject constructor(
                 // so settlement losses silently stopped reaching "Spent" after #571.
                 .collect { (settledLoans, keep) ->
                     currentMonthLoanLossByCurrency = loanRepository.settlementLossByCurrency(settledLoans, keep)
+                    loanLossLoaded = true
                     updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
                 }
         }
@@ -1642,8 +1652,10 @@ class HomeViewModel @Inject constructor(
         // Store the breakdown map for later use when switching currencies
         if (isCurrentMonth) {
             currentMonthBreakdownMap = breakdownByCurrency
+            currentMonthLoaded = true
         } else {
             lastMonthBreakdownMap = breakdownByCurrency
+            lastMonthLoaded = true
         }
 
         // Update available currencies — merge transaction currencies with existing account currencies
@@ -1701,7 +1713,9 @@ class HomeViewModel @Inject constructor(
                     lastMonthExpenses = lastBreakdown.expenses,
                     lastMonthSamePointExpenses = lastSamePoint,
                     selectedCurrency = selectedCurrency,
-                    availableCurrencies = availableCurrencies
+                    availableCurrencies = availableCurrencies,
+                    // Read now, not at launch: an earlier, slower conversion landing last can't hide the card again.
+                    isMonthReady = monthLoaded
                 )
                 calculateMonthlyChange()
             }
@@ -1730,7 +1744,8 @@ class HomeViewModel @Inject constructor(
                 lastMonthExpenses = lastBreakdown.expenses,
                 lastMonthSamePointExpenses = lastMonthSamePointBreakdownMap[selectedCurrency]?.expenses ?: BigDecimal.ZERO,
                 selectedCurrency = selectedCurrency,
-                availableCurrencies = availableCurrencies
+                availableCurrencies = availableCurrencies,
+                isMonthReady = monthLoaded
             )
             calculateMonthlyChange()
         }
@@ -1807,6 +1822,7 @@ data class HomeUiState(
     val upcomingSubscriptionsByCurrency: Map<String, Money> = emptyMap(),
     /** The soonest-due active EXPENSE subscription, for the card's "Next:" line. */
     val nextDueSubscription: SubscriptionEntity? = null,
+    /** Null until the budgets load; with no budget it's a summary with no groups. */
     val budgetSummary: BudgetOverallSummary? = null,
     val accountBalances: List<AccountBalanceEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),
@@ -1825,12 +1841,31 @@ data class HomeUiState(
     val transactionHeatmap: Map<Long, Int> = emptyMap(),
     val isBalanceHidden: Boolean = true,
     val isBalanceReady: Boolean = false,
+    /** This cycle's totals, its settlement losses and last cycle's totals have loaded: until then the month figures' zeros aren't real. */
+    val isMonthReady: Boolean = false,
     val isApproximateBalance: Boolean = false,
     val lastMonthSpendingHistory: List<BigDecimal> = emptyList(),
     val loanSummary: LoanSummary? = null,
     val selectedProfileId: Long? = null,
     val profiles: List<ProfileEntity> = emptyList()
 )
+
+/**
+ * Whether Home's hero has everything it draws: the balances, the month's totals, the
+ * budgets, and (with accounts to count) Safe to spend worked out against those budgets.
+ * Until then it stays a skeleton, so a cold start never shows a placeholder "Spent ₹0"
+ * or a Safe to spend the budget hasn't capped yet.
+ */
+internal fun HomeUiState.isHeroReady(safeToSpend: SafeToSpendUi?): Boolean =
+    isBalanceReady && isMonthReady && budgetSummary != null &&
+        (safeToSpend != null || accountBalances.isEmpty())
+
+/**
+ * The budgets Safe to spend is capped by, from the first loaded summary on. A null summary
+ * is still loading, not "no budget": passing it on would show an uncapped figure.
+ */
+internal fun Flow<HomeUiState>.loadedBudgets(): Flow<BudgetOverallSummary> =
+    mapNotNull { it.budgetSummary }.distinctUntilChanged()
 
 /** Pref key for an account in the Safe to spend selection. */
 internal fun safeToSpendKey(account: AccountBalanceEntity) = "${account.bankName}_${account.accountLast4}"

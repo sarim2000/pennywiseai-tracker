@@ -259,12 +259,11 @@ object LandingViews {
     private fun FlowContent.community() {
         section(classes = "lp-section") {
             div(classes = "lp-wrap") {
-                sectionHead("Made in the open", "Ask questions, suggest features, follow along.")
+                sectionHead("Made in the open", "Ask questions, report problems, follow along.")
                 div(classes = "lp-links") {
                     linkCard(GITHUB_URL, "GitHub", "Source code, issues and releases", external = true)
                     linkCard(DISCORD_URL, "Discord", "Chat with the community and the developer", external = true)
                     linkCard("/guide", "User guide", "Every feature, step by step, with screenshots")
-                    linkCard("/roadmap", "Roadmap", "What’s planned, and vote on what’s next")
                 }
             }
         }
@@ -463,7 +462,7 @@ object LandingViews {
         .lp-pro-cta { flex: none; }
 
         /* Community */
-        .lp-links { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        .lp-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
         .lp-link { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 22px 22px 48px; background: var(--surface-low); border-radius: var(--r-xs); color: var(--on-bg); text-decoration: none; transition: background .15s, border-radius .2s; }
         .lp-link:first-child { border-radius: var(--r-xl) var(--r-xs) var(--r-xs) var(--r-xl); }
         .lp-link:last-child { border-radius: var(--r-xs) var(--r-xl) var(--r-xl) var(--r-xs); }
@@ -486,8 +485,6 @@ object LandingViews {
           .lp-hero-art { max-width: 460px; margin: 0 auto; width: 100%; }
           .lp-bento { grid-template-columns: 1fr 1fr; }
           .lp-tile:nth-last-child(-n+2) { grid-column: auto; }
-          .lp-links { grid-template-columns: 1fr 1fr; }
-          .lp-link, .lp-link:first-child, .lp-link:last-child { border-radius: var(--r-md); }
         }
         @media (max-width: 720px) {
           .lp-wrap { padding: 0 16px; }
@@ -506,6 +503,9 @@ object LandingViews {
           .lp-privacy { padding: 28px 22px; }
           .lp-pro { flex-direction: column; align-items: flex-start; padding: 24px; }
           .lp-links { grid-template-columns: 1fr; }
+          .lp-link, .lp-link:first-child, .lp-link:last-child { border-radius: var(--r-xs); }
+          .lp-link:first-child { border-radius: var(--r-xl) var(--r-xl) var(--r-xs) var(--r-xs); }
+          .lp-link:last-child { border-radius: var(--r-xs) var(--r-xs) var(--r-xl) var(--r-xl); }
           .lp-final { padding: 40px 20px; }
         }
     """

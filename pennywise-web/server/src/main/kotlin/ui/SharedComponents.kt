@@ -88,7 +88,6 @@ object SharedComponents {
                     item("/tools/parse", "parse", "SMS parser")
                     item("/banks", "banks", "Banks")
                     item("/guide", "guide", "Guide")
-                    item("/roadmap", "roadmap", "Roadmap")
                     a(href = "/pro", classes = if (currentPage == "pro") "nav-pro active" else "nav-pro") {
                         if (currentPage == "pro") attributes["aria-current"] = "page"
                         +"Get Pro"
@@ -144,8 +143,8 @@ object SharedComponents {
                     p { +"Private, on-device expense tracking from your bank SMS. Open source." }
                 }
                 footerCol("Get the app", listOf("Google Play" to PLAY_STORE_URL, "App Store" to APP_STORE_URL, "F-Droid" to FDROID_URL, "GitHub releases" to RELEASES_URL))
-                footerCol("Learn", listOf("Guide" to "/guide", "Supported banks" to "/banks", "SMS parser" to "/tools/parse", "Roadmap" to "/roadmap"))
-                footerCol("Community", listOf("GitHub" to GITHUB_URL, "Discord" to DISCORD_URL, "Feedback" to "/feedback"))
+                footerCol("Learn", listOf("Guide" to "/guide", "Supported banks" to "/banks", "SMS parser" to "/tools/parse"))
+                footerCol("Community", listOf("GitHub" to GITHUB_URL, "Discord" to DISCORD_URL))
                 footerCol("PennyWise Pro", listOf("Get Pro" to "/pro", "Terms" to "/terms"))
             }
         }

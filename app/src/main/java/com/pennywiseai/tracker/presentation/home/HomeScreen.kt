@@ -529,18 +529,6 @@ fun HomeScreen(
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                             )
                         }
-                    } else if (guess != null && !uiState.isScanning && !AmountPrivacy.hidden) {
-                        // Last week's guess waits for a review prompt, and for a running
-                        // import (the figure would move under it). Hidden amounts hide it.
-                        item {
-                            WeeklyGuessCard(
-                                question = guess,
-                                onOpen = viewModel::openWeeklyGuess,
-                                onDismiss = viewModel::dismissWeeklyGuess,
-                                onStop = viewModel::stopWeeklyGuess,
-                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                            )
-                        }
                     } else if (payday != null) {
                         // One-time "start budgets on payday?" suggestion. Ahead of the Pro card:
                         // it's about the user's own money, not an upsell.
@@ -573,6 +561,19 @@ fun HomeScreen(
                                     showUpgradeSheet = true
                                 },
                                 onDismiss = { viewModel.markProHomeCardHandled() },
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                            )
+                        }
+                    } else if (guess != null && !uiState.isScanning && !AmountPrivacy.hidden) {
+                        // Last week's guess comes back every week, so it waits behind the
+                        // one-time cards above, and for a running import (the figure would
+                        // move under it). Hidden amounts hide it.
+                        item {
+                            WeeklyGuessCard(
+                                question = guess,
+                                onOpen = viewModel::openWeeklyGuess,
+                                onDismiss = viewModel::dismissWeeklyGuess,
+                                onStop = viewModel::stopWeeklyGuess,
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                             )
                         }

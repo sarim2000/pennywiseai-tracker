@@ -505,7 +505,6 @@
     <string name="rules_category_name_placeholder">जस्तै, भाडा</string>
     <string name="rules_merchant_placeholder">जस्तै, Amazon</string>
     <string name="rules_description_value_placeholder">जस्तै, मासिक सदस्यता भुक्तानी</string>
-    <string name="rules_account_bank_label">खाता / बैंकको नाम</string>
     <string name="rules_tag_name_label">ट्यागको नाम</string>
     <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">नियमको पूर्वावलोकन</string>

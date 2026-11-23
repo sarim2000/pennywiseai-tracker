@@ -509,7 +509,6 @@
     <string name="rules_category_name_placeholder">z. B. Miete</string>
     <string name="rules_merchant_placeholder">z. B. Amazon</string>
     <string name="rules_description_value_placeholder">z. B. Monatliche Abonnementzahlung</string>
-    <string name="rules_account_bank_label">Konto- / Bankname</string>
     <string name="rules_tag_name_label">Tag-Name</string>
     <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">Regelvorschau</string>

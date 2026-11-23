@@ -506,7 +506,6 @@
     <string name="rules_category_name_placeholder">mf., Kodi ya nyumba</string>
     <string name="rules_merchant_placeholder">mf., Amazon</string>
     <string name="rules_description_value_placeholder">mf., Malipo ya usajili wa kila mwezi</string>
-    <string name="rules_account_bank_label">Akaunti / Jina la Benki</string>
     <string name="rules_tag_name_label">Jina la Lebo</string>
     <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">Hakiki ya Kanuni</string>

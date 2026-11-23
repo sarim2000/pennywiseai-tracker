@@ -128,6 +128,7 @@ private fun ruleActionText(action: RuleAction): String {
     val displayValue = when (action.field) {
         TransactionField.TYPE -> ruleTransactionTypeLabel(action.value)
         TransactionField.CATEGORY -> categoryLabel(action.value)
+        TransactionField.BANK_NAME,
         TransactionField.TRANSFER_FROM_ACCOUNT,
         TransactionField.TRANSFER_TO_ACCOUNT ->
             parseRuleAccountKey(action.value)

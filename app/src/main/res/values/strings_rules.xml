@@ -658,7 +658,7 @@
     <string name="rules_category_name_placeholder">e.g., Rent</string>
     <string name="rules_merchant_placeholder">e.g., Amazon</string>
     <string name="rules_description_value_placeholder">e.g., Monthly subscription payment</string>
-    <string name="rules_account_bank_label">Account / Bank Name</string>
+    <string name="rules_account_legacy_hint">Saved before accounts could be picked, so it sets the bank name only. Pick an account to set the bank and account number together.</string>
     <string name="rules_tag_name_label">Tag Name</string>
 
     <!-- Rule preview sentence: "When <conditions>, <actions>" -->

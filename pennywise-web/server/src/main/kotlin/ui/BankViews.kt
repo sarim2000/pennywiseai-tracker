@@ -337,8 +337,9 @@ object BankViews {
                 "message includes it.",
             "Does PennyWise need my $name net-banking login or password?" to
                 "Never. PennyWise has no login to your bank and no connection to $name at all. It " +
-                "only reads the SMS already sitting on your phone, which is why it needs SMS " +
-                "permission and nothing else.",
+                "only reads the SMS $name sends you, which is why on Android it needs SMS " +
+                "permission and nothing else. iPhone apps can't read texts, so there a Shortcuts " +
+                "automation passes each bank SMS to PennyWise.",
             "Is my $name transaction data sent anywhere?" to
                 "Only if you choose to. Parsing runs entirely on your device, and there is no account " +
                 "and no analytics. Your data leaves the phone only through opt-in features you start, " +
@@ -394,11 +395,12 @@ object BankViews {
                         h2 { +"How it works" }
                         ol(classes = "steps") {
                             li {
-                                +"Install PennyWise and grant SMS permission. That permission is the "
-                                +"whole product — it is how the app sees your $name alerts."
+                                +"Install PennyWise. On Android, grant SMS permission; it is how the app "
+                                +"sees your $name alerts. iPhone apps can't read texts, so there a "
+                                +"Shortcuts automation passes each bank SMS to PennyWise."
                             }
                             li {
-                                +"PennyWise scans the $name messages already on your phone and "
+                                +"On Android, PennyWise scans the $name messages already on your phone and "
                                 +"back-fills your transaction history in seconds."
                             }
                             li {

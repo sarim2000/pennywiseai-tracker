@@ -342,4 +342,41 @@ class ChatTabReactionsTest {
         assertNull(shown)
         job.cancel()
     }
+
+    @Test
+    fun `a waiting reaction's hold starts after the bar's entrance beat`() {
+        val job = start()
+        reactions.onBarShown(false)
+        reactions.onMoment(MascotMoment.GoalReached)
+        runCurrent()
+        reactions.onBarShown(true, entranceMillis = CHAT_TAB_ENTRANCE_MS)
+        // Repeating the call mid-entrance doesn't start it over.
+        advanceTimeBy(CHAT_TAB_ENTRANCE_MS / 2)
+        reactions.onBarShown(true, entranceMillis = CHAT_TAB_ENTRANCE_MS)
+        advanceTimeBy(CHAT_TAB_ENTRANCE_MS / 2)
+        runCurrent()
+        // The whole hold is left once the owl has turned.
+        advanceTimeBy(REACTION_HOLD_MS - 1)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.GoalReached), shown)
+        advanceTimeBy(2)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `the bar going away mid-entrance keeps the reaction waiting`() {
+        val job = start()
+        reactions.onBarShown(false)
+        reactions.onMoment(MascotMoment.BackupSaved)
+        runCurrent()
+        reactions.onBarShown(true, entranceMillis = CHAT_TAB_ENTRANCE_MS)
+        advanceTimeBy(CHAT_TAB_ENTRANCE_MS / 2)
+        reactions.onBarShown(false)
+        advanceTimeBy(REACTION_HOLD_MS * 2)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.BackupSaved), shown)
+        job.cancel()
+    }
 }

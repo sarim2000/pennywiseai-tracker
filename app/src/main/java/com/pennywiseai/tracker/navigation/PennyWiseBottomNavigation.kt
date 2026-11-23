@@ -84,6 +84,7 @@ import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.components.DockedActionButton
 import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.NavDockState
+import com.pennywiseai.tracker.ui.components.mascot.CHAT_TAB_ENTRANCE_MS
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.components.mascot.MascotReaction
@@ -662,6 +663,3 @@ private fun navBarExit(): ExitTransition {
     val motion = MaterialTheme.motionScheme
     return fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
 }
-
-/** How long the owl shows as the bar comes back before it turns into a held reaction: past the bar's own entrance. */
-private const val CHAT_TAB_ENTRANCE_MS = 350L

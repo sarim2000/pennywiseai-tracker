@@ -168,7 +168,8 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
             accountLast4 = personal.last4, nickname = "Demo Debit", currency = personal.currency))
         db.cardDao().insertCard(CardEntity(cardLast4 = card.last4, cardType = CardType.CREDIT, bankName = card.bank,
             nickname = "Demo Credit", currency = card.currency))
-        val expiry = now.plusYears(1)
+        // Custom rates never lapse in the app (setCustomRate), so neither do the demo ones.
+        val expiry = now.plusYears(100)
         val zone = ZoneId.systemDefault()
         val usdRate = ExchangeRateEntity(
             fromCurrency = business.currency, toCurrency = DEMO_CURRENCY, rate = BigDecimal("0.71"),

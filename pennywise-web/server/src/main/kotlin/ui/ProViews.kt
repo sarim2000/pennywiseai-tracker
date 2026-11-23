@@ -55,6 +55,8 @@ object ProViews {
         "Unlimited CSV export",
         "Merge duplicate accounts",
         "Scheduled daily backups to a folder",
+        "AI access from Claude, ChatGPT and the dashboard",
+        "Webhook sync to a URL you choose",
     )
 
     suspend fun ApplicationCall.respondProPage() {
@@ -84,7 +86,7 @@ object ProViews {
                         h1 { +"Everything the app can do, unlocked." }
                         p(classes = "lede") {
                             +"Buy on this page, get a license key by email, paste it in the app. "
-                            +"Works with the Play Store and F-Droid builds. Still nothing leaves your phone."
+                            +"Works with the Play Store and F-Droid builds. The key unlocks features; it sends none of your data anywhere."
                         }
                     }
 

@@ -70,6 +70,68 @@ class RuleEngineTest {
         assertNull(result.bankName)
     }
 
+    // --- Picked account on the SET account action (#1394) ---
+
+    @Test
+    fun `SET account action with a picked account sets bank and last4 together`() {
+        val (result, applications) = engine.evaluateRules(
+            transaction(bankName = "Bank A", accountNumber = "1111", merchantName = "Coffee Shop"),
+            smsText = null,
+            rules = listOf(rule(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "Bank B||2222")))
+        )
+
+        assertEquals("Bank B", result.bankName)
+        assertEquals("2222", result.accountNumber)
+        val mod = applications.single().fieldsModified.single()
+        assertEquals("Bank A||1111", mod.oldValue)
+        assertEquals("Bank B||2222", mod.newValue)
+    }
+
+    @Test
+    fun `SET account action keeps a cash account's blank number`() {
+        val (result, _) = engine.evaluateRules(
+            transaction(bankName = "Bank A", accountNumber = "1111", merchantName = "Coffee Shop"),
+            smsText = null,
+            rules = listOf(rule(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "Cash||")))
+        )
+
+        assertEquals("Cash", result.bankName)
+        assertEquals("", result.accountNumber)
+    }
+
+    @Test
+    fun `SET account action already on that account changes nothing`() {
+        val original = transaction(bankName = "Bank B", accountNumber = "99992222", merchantName = "Coffee Shop")
+        val (result, applications) = engine.evaluateRules(
+            original,
+            smsText = null,
+            rules = listOf(rule(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "Bank B||2222")))
+        )
+
+        // The stored full number isn't trimmed to its last four.
+        assertEquals(original, result)
+        assertTrue(applications.isEmpty())
+    }
+
+    @Test
+    fun `legacy free-text account action still sets the bank name only`() {
+        // A rule saved before the picker, as it decodes from the database or a backup.
+        val legacy = engine.deserializeActions(
+            """[{"field":"BANK_NAME","actionType":"SET","value":"Bank B"}]"""
+        ).single()
+
+        val (result, applications) = engine.evaluateRules(
+            transaction(bankName = "Bank A", accountNumber = "1111", merchantName = "Coffee Shop"),
+            smsText = null,
+            rules = listOf(rule(legacy))
+        )
+
+        assertTrue(legacy.validate())
+        assertEquals("Bank B", result.bankName)
+        assertEquals("1111", result.accountNumber)
+        assertEquals("Bank B", applications.single().fieldsModified.single().newValue)
+    }
+
     // --- Transfer leg actions (#1068) ---
 
     @Test

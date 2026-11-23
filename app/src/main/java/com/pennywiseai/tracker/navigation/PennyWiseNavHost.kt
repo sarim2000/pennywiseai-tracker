@@ -236,6 +236,12 @@ fun PennyWiseNavHost(
                                 },
                                 onCreateGoal = {
                                     backStack.navigate(GoalEdit())
+                                },
+                                onNavigateToTransaction = { id ->
+                                    backStack.navigate(TransactionDetail(id))
+                                },
+                                onNavigateToReimbursements = {
+                                    backStack.navigate(Reimbursements)
                                 }
                             )
                         }
@@ -390,6 +396,13 @@ fun PennyWiseNavHost(
                             onNavigateToLoanDetail = { loanId ->
                                 backStack.navigate(LoanDetail(loanId))
                             }
+                        )
+                    }
+
+                    entry<Reimbursements> { key ->
+                        com.pennywiseai.tracker.presentation.reimbursements.ReimbursementsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onOpenTransaction = { id -> backStack.navigate(TransactionDetail(id)) }
                         )
                     }
 

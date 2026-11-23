@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
@@ -141,6 +142,11 @@ fun TransactionItem(
             // Mark rows the user excluded from analytics so it's visible in the
             // list which ones are skipped by spending stats (#451).
             if (transaction.excludedFromAnalytics) add(resources.getString(R.string.txn_item_tag_excluded))
+            when (transaction.reimbursementStatus) {
+                ReimbursementStatus.PENDING -> add(resources.getString(R.string.txn_item_tag_reimbursable))
+                ReimbursementStatus.REIMBURSED -> add(resources.getString(R.string.txn_item_tag_reimbursed))
+                null -> {}
+            }
             transaction.balanceAfter?.let { balance ->
                 add(resources.getString(R.string.txn_item_balance_after, CurrencyFormatter.formatCurrency(balance, transaction.currency)))
             }

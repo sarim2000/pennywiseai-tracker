@@ -104,6 +104,7 @@ internal fun TransactionReceipt(
     accountProfileId: Long? = null,
     towardGoals: @Composable () -> Unit = {},
     splitWith: @Composable () -> Unit = {},
+    reimbursement: @Composable () -> Unit = {},
     whatWasThis: @Composable () -> Unit = {},
     onCategoryClick: () -> Unit = {},
     onEditClick: () -> Unit = {},
@@ -166,6 +167,8 @@ internal fun TransactionReceipt(
         towardGoals()
 
         splitWith()
+
+        reimbursement()
 
         // ── Split Breakdown ──
         if (hasSplits && splits.isNotEmpty()) {

@@ -167,6 +167,10 @@ data class GoalEdit(val goalId: Long = -1L) : NavKey
 @Serializable
 data object Loans : NavKey
 
+/** Reimbursable expenses, pending and reimbursed (#1389). */
+@Serializable
+data object Reimbursements : NavKey
+
 @Serializable
 data object RecurringTransactions : NavKey
 

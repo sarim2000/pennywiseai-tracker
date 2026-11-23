@@ -748,6 +748,7 @@ internal fun SettingsNavItem(
     subtitle: String,
     onClick: () -> Unit,
     position: ListItemPosition,
+    modifier: Modifier = Modifier,
     trailingText: String? = null,
     trailingIcon: ImageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
     // Pro and support are the one accent on an otherwise neutral list.
@@ -763,7 +764,7 @@ internal fun SettingsNavItem(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-    GroupedRow(position = position, onClick = onClick) {
+    GroupedRow(position = position, modifier = modifier, onClick = onClick) {
         IconTile(icon = icon, containerColor = container, contentColor = tint)
         // Settings copy explains what a control does, so it wraps instead of truncating.
         RowLabels(title = title, subtitle = subtitle, titleMaxLines = 2, subtitleMaxLines = Int.MAX_VALUE)

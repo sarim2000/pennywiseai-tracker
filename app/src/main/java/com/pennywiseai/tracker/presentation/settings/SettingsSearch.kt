@@ -490,6 +490,8 @@ internal fun SettingsSearchResults(query: String, contentPadding: PaddingValues,
                 subtitle = if (matchedSubtitle) result.subtitle else result.parent ?: result.subtitle.orEmpty(),
                 onClick = { onNavigate(result.entry.target) },
                 position = ListItemPosition.from(index, results.size),
+                // Rows slide into place as the query narrows instead of jumping.
+                modifier = Modifier.animateItem(),
             )
         }
     }

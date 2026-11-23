@@ -121,11 +121,13 @@ class CategoryPieWidget : GlanceAppWidget() {
     private fun Chart(data: CategoryPieWidgetData) {
         val context = LocalContext.current
         val size = LocalSize.current
-        val height = size.height - WidgetDefaults.padding * 2 - HEADER - HEADER_GAP
+        // The title and legend lines are sp: under a larger font they take more of the height.
+        val growth = textGrowth()
+        val height = size.height - WidgetDefaults.padding * 2 - HEADER * growth - HEADER_GAP
         val donut = minOf(height, size.width * DONUT_WIDTH_SHARE).coerceAtLeast(Spacing.xl)
-        val legendRows = (height.value / LEGEND_ROW.value).toInt().coerceAtLeast(1)
+        val legendRows = (height.value / (LEGEND_ROW.value * growth)).toInt().coerceAtLeast(1)
         // Every slice fits with room to spare: the legend steps up a size and spreads out.
-        val roomyLegend = height >= LEGEND_ROW_ROOMY * data.slices.size
+        val roomyLegend = height >= LEGEND_ROW_ROOMY * growth * data.slices.size
         val total = data.total.toBigDecimalOrNull()
 
         Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -150,12 +152,18 @@ class CategoryPieWidget : GlanceAppWidget() {
                             )
                         }
                         if (total != null && donut >= DONUT_WITH_TOTAL) {
+                            val totalLabel = totalText(total, data.currency)
                             Text(
-                                text = totalText(total, data.currency),
+                                text = totalLabel,
                                 maxLines = 1,
                                 style = TextStyle(
                                     color = GlanceTheme.colors.onSurface,
-                                    fontSize = if (donut >= DONUT_BIG_TOTAL) Typography.titleLarge.fontSize else Typography.labelLarge.fontSize,
+                                    // Kept inside the hole: the donut less both strokes, with a little air.
+                                    fontSize = fitFontSize(
+                                        totalLabel,
+                                        donut * (1 - 2 * DONUT_STROKE_SHARE) - Spacing.sm,
+                                        if (donut >= DONUT_BIG_TOTAL) Typography.titleLarge.fontSize else Typography.labelLarge.fontSize
+                                    ),
                                     fontWeight = FontWeight.Bold
                                 )
                             )

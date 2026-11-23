@@ -217,7 +217,7 @@ class GoalWidget : GlanceAppWidget() {
     private fun Goal(item: GoalWidgetItem) {
         val context = LocalContext.current
         val size = LocalSize.current
-        val ring = minOf(size.width, size.height - GOAL_TEXT) - WidgetDefaults.padding * 2
+        val ring = minOf(size.width, size.height - GOAL_TEXT * textGrowth()) - WidgetDefaults.padding * 2
         val big = ring >= BIG_RING
         // Centred, so it reads the same both ways; only the text inside needs the app's language.
         Column(

@@ -12,6 +12,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -283,6 +285,24 @@ object WidgetDefaults {
     /** The hero meter, under a widget's one big figure. */
     val barHeightLarge = Spacing.smd
 }
+
+/** The system font scale, at least 1: sp text grows with it, dp reservations don't. */
+@Composable
+fun textGrowth(): Float = maxOf(1f, LocalContext.current.resources.configuration.fontScale)
+
+/**
+ * The largest size up to [max] at which [text] fits [width] on one line. Glance
+ * can neither measure nor auto-size text, and a one-line figure that overflows is
+ * cut off, so a long amount ("Rp 12.345.678") steps down instead.
+ */
+// ponytail: a per-character estimate (bold figures run ~0.62em), not a measurement.
+@Composable
+fun fitFontSize(text: String, width: Dp, max: TextUnit): TextUnit {
+    val scale = LocalContext.current.resources.configuration.fontScale
+    return minOf(max.value, width.value / (text.length.coerceAtLeast(1) * FIGURE_EM * scale)).sp
+}
+
+private const val FIGURE_EM = 0.62f
 
 /** Section title: the widget's name, as in its header. */
 @Composable

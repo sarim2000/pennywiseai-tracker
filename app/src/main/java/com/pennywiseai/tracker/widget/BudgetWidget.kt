@@ -147,6 +147,11 @@ class BudgetWidget : GlanceAppWidget() {
         val statusColor = PennyWiseWidgetTheme.budgetStatusColor(data.percentageUsed)
         // On the shown figure: 0.3 over reads "Left · JD 0", not "Over · JD 0".
         val over = wholeUnits(data.remaining) < BigDecimal.ZERO
+        val owlSize = when {
+            huge -> Dimensions.Icon.extraLarge
+            tall -> Dimensions.Icon.hero
+            else -> Dimensions.Icon.list
+        }
         Column(modifier = GlanceModifier.fillMaxSize(), horizontalAlignment = startAlignment()) {
             WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 item { WidgetTitle(context.getString(R.string.widget_budget_title), GlanceModifier.defaultWeight()) }
@@ -158,16 +163,21 @@ class BudgetWidget : GlanceAppWidget() {
                 item {
                     Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
                         WidgetLabel(context.getString(if (over) R.string.widget_budget_over_label else R.string.widget_budget_left_label))
+                        val figure = totalText(data.remaining.abs(), data.currency)
                         Text(
-                            text = totalText(data.remaining.abs(), data.currency),
+                            text = figure,
                             maxLines = 1,
                             style = TextStyle(
                                 color = if (over) PennyWiseWidgetTheme.savingsColor(false) else GlanceTheme.colors.onSurface,
-                                fontSize = when {
-                                    huge -> Typography.displayMedium.fontSize
-                                    tall -> Typography.displaySmall.fontSize
-                                    else -> Typography.headlineSmall.fontSize
-                                },
+                                fontSize = fitFontSize(
+                                    figure,
+                                    LocalSize.current.width - WidgetDefaults.padding * 2 - if (owl) Spacing.md + owlSize else 0.dp,
+                                    when {
+                                        huge -> Typography.displayMedium.fontSize
+                                        tall -> Typography.displaySmall.fontSize
+                                        else -> Typography.headlineSmall.fontSize
+                                    }
+                                ),
                                 fontWeight = FontWeight.Bold,
                                 textAlign = startTextAlign()
                             )
@@ -176,16 +186,7 @@ class BudgetWidget : GlanceAppWidget() {
                 }
                 if (owl) {
                     item { Spacer(GlanceModifier.width(Spacing.md)) }
-                    item {
-                        BudgetOwl(
-                            data,
-                            when {
-                                huge -> Dimensions.Icon.extraLarge
-                                tall -> Dimensions.Icon.hero
-                                else -> Dimensions.Icon.list
-                            }
-                        )
-                    }
+                    item { BudgetOwl(data, owlSize) }
                 }
             }
             Spacer(GlanceModifier.defaultWeight())

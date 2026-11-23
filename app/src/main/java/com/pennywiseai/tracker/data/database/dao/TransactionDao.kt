@@ -13,29 +13,39 @@ import java.time.LocalDateTime
  * Past merchants for a merchant field (#1392): those whose name or alias contains `:term`
  * (escaped with [MerchantSuggestions.likeTerm]), from the `:profileId` profile (null for
  * all), names starting with it first, then by use and by last use. Spellings that differ
- * only in case count as one, under the latest.
+ * only in case count as one, under the latest, or under the one the user named if any:
+ * an alias belongs to one exact spelling, so filling that one keeps the alias.
  *
  * A row's profile is its own, else its account's, else Personal, like
  * `effectiveProfileId`. Rows the quick add named after their category (no "where"
  * typed) aren't merchants. Plain SQL from SQLite 3.18 (minSdk 26): one `max()` keeps
- * the bare columns on the latest row.
+ * the bare `name` on the latest row.
  */
 internal const val MERCHANT_SUGGESTIONS_SQL = """
-        SELECT t.merchant_name AS merchantName, a.alias AS alias, COUNT(*) AS uses, MAX(t.date_time) AS lastUsed
-        FROM transactions t
-        LEFT JOIN merchant_aliases a ON a.merchant_name = t.merchant_name
-        WHERE t.is_deleted = 0
-            AND t.merchant_name != t.category
-            AND (t.merchant_name LIKE '%' || :term || '%' ESCAPE '\'
-                OR a.alias LIKE '%' || :term || '%' ESCAPE '\')
-            AND (:profileId IS NULL OR COALESCE(
-                t.profile_id,
-                (SELECT b.profile_id FROM account_balances b
-                    WHERE b.bank_name = t.bank_name AND b.account_last4 = t.account_number LIMIT 1),
-                1
-            ) = :profileId)
-        GROUP BY t.merchant_name COLLATE NOCASE
-        ORDER BY (t.merchant_name LIKE :term || '%' ESCAPE '\'
+        WITH merchants AS (
+            SELECT t.merchant_name AS name, COUNT(*) AS uses, MAX(t.date_time) AS lastUsed
+            FROM transactions t
+            WHERE t.is_deleted = 0
+                AND t.merchant_name != t.category
+                AND (t.merchant_name LIKE '%' || :term || '%' ESCAPE '\'
+                    OR t.merchant_name COLLATE NOCASE IN (SELECT merchant_name FROM merchant_aliases
+                        WHERE alias LIKE '%' || :term || '%' ESCAPE '\'))
+                AND (:profileId IS NULL OR COALESCE(
+                    t.profile_id,
+                    (SELECT b.profile_id FROM account_balances b
+                        WHERE b.bank_name = t.bank_name AND b.account_last4 = t.account_number LIMIT 1),
+                    1
+                ) = :profileId)
+            GROUP BY t.merchant_name COLLATE NOCASE
+        )
+        SELECT COALESCE(a.merchant_name, m.name) AS merchantName, a.alias AS alias, m.uses AS uses, m.lastUsed AS lastUsed
+        FROM merchants m
+        LEFT JOIN merchant_aliases a ON a.merchant_name = (
+            SELECT n.merchant_name FROM merchant_aliases n
+            WHERE n.merchant_name = m.name COLLATE NOCASE
+            ORDER BY n.updated_at DESC LIMIT 1
+        )
+        ORDER BY (m.name LIKE :term || '%' ESCAPE '\'
                 OR IFNULL(a.alias LIKE :term || '%' ESCAPE '\', 0)) DESC,
             uses DESC, lastUsed DESC
         LIMIT :limit

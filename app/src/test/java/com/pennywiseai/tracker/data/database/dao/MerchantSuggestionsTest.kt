@@ -104,6 +104,21 @@ class MerchantSuggestionsTest {
     }
 
     @Test
+    fun `an alias on one spelling names the whole merchant, all its use counted`() {
+        tx("Tea Room", at = day)
+        alias("Tea Room", "Cafe Mira")
+        repeat(10) { tx("TEA ROOM", at = day.plusDays(1)) }
+
+        listOf("mira", "tea").forEach { typed ->
+            val found = suggest(typed).single()
+            // The named spelling, though older, so the row saved with it keeps the alias.
+            assertEquals("Tea Room", found.merchantName)
+            assertEquals("Cafe Mira", found.alias)
+            assertEquals(11, found.uses)
+        }
+    }
+
+    @Test
     fun `only the profile in view, a row's own profile before its account's, Personal by default`() {
         account("Test Bank", "0001", profileId = 2)
         tx("Gym Work", profileId = 2)

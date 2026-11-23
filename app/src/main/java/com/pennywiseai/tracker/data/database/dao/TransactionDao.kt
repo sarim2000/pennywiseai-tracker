@@ -312,14 +312,16 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE reimbursed_by_id = :paymentId AND is_deleted = 0 ORDER BY date_time DESC")
     fun observeReimbursedBy(paymentId: Long): Flow<List<TransactionEntity>>
 
-    /** Incoming payments in [currency] from [since] on, newest first: what could have paid an expense back. */
+    /**
+     * Incoming payments in [currency] from [since] on, newest first: what could have paid an
+     * expense back. Uncapped, so an old claim's payment stays reachable however many came after.
+     */
     @Query("""
         SELECT * FROM transactions
         WHERE transaction_type = 'INCOME' AND is_deleted = 0 AND currency = :currency AND date_time >= :since
         ORDER BY date_time DESC
-        LIMIT :limit
     """)
-    suspend fun getReimbursementCandidates(currency: String, since: LocalDateTime, limit: Int): List<TransactionEntity>
+    suspend fun getReimbursementCandidates(currency: String, since: LocalDateTime): List<TransactionEntity>
 
     @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
     suspend fun countExplicitProfileMismatchForAccount(bankName: String, accountLast4: String, profileId: Long): Int

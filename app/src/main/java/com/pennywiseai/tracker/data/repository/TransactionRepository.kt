@@ -423,8 +423,8 @@ open class TransactionRepository @Inject constructor(
      * Incoming payments that could have paid [expense] back: same currency, dated no earlier
      * than the expense's day, newest first.
      */
-    suspend fun getReimbursementCandidates(expense: TransactionEntity, limit: Int = 50): List<TransactionEntity> =
-        transactionDao.getReimbursementCandidates(expense.currency, expense.dateTime.toLocalDate().atStartOfDay(), limit)
+    suspend fun getReimbursementCandidates(expense: TransactionEntity): List<TransactionEntity> =
+        transactionDao.getReimbursementCandidates(expense.currency, expense.dateTime.toLocalDate().atStartOfDay())
 
     /** See [TransactionDao.getMovableMerchantRowIds]. */
     suspend fun getMovableMerchantRowIds(merchantName: String, category: String, types: Collection<TransactionType>): List<Long> =

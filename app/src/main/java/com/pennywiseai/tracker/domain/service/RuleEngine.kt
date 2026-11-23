@@ -263,8 +263,16 @@ class RuleEngine @Inject constructor() {
                 getFieldValue(modifiedTransaction, null, action.field)
             }
             val (newTransaction, newValue) = applyAction(modifiedTransaction, action)
+            // A picked account's short "Bank||Last4" can read the same before and
+            // after a real move (two Cash accounts ending alike, a null number
+            // becoming ""), so its row decides.
+            val changed = if (setsTrackedAccount(action)) {
+                newTransaction != modifiedTransaction
+            } else {
+                oldValue != newValue
+            }
 
-            if (oldValue != newValue) {
+            if (changed) {
                 modifiedTransaction = newTransaction
                 modifications.add(
                     FieldModification(
@@ -327,14 +335,17 @@ class RuleEngine @Inject constructor() {
                 val account = parseRuleAccountKey(action.value)
                 if (action.actionType == ActionType.SET && account != null) {
                     val (bank, last4) = account
-                    val alreadyThere = transaction.bankName == bank &&
-                        transaction.accountNumber?.takeLast(4) == last4
-                    val updated = if (alreadyThere) {
+                    // A stored full number already ending in the picked last four stays
+                    // as is. A Cash account's name can be longer than four, so it must
+                    // match whole, and "" must replace a null number.
+                    val sameNumber = transaction.accountNumber == last4 ||
+                        (last4.length == 4 && transaction.accountNumber?.takeLast(4) == last4)
+                    val updated = if (transaction.bankName == bank && sameNumber) {
                         transaction
                     } else {
                         transaction.copy(bankName = bank, accountNumber = last4)
                     }
-                    return updated to trackedAccountValue(updated)
+                    return updated to action.value
                 }
                 // A rule saved before the picker holds a free-text bank name, which
                 // sets the bank name alone.

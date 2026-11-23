@@ -114,6 +114,32 @@ class RuleEngineTest {
     }
 
     @Test
+    fun `SET account action gives a cash row with no number the cash account's blank one`() {
+        // Rows saved before #913 can hold a null number; the ACCOUNT condition
+        // only matches "Cash||" once it is "".
+        val (result, applications) = engine.evaluateRules(
+            transaction(bankName = "Cash", accountNumber = null, merchantName = "Coffee Shop"),
+            smsText = null,
+            rules = listOf(rule(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "Cash||")))
+        )
+
+        assertEquals("", result.accountNumber)
+        assertEquals("Cash||", applications.single().fieldsModified.single().newValue)
+    }
+
+    @Test
+    fun `SET account action moves between cash accounts whose names end alike`() {
+        val (result, applications) = engine.evaluateRules(
+            transaction(bankName = "Cash", accountNumber = "Home 2026", merchantName = "Coffee Shop"),
+            smsText = null,
+            rules = listOf(rule(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "Cash||Trip 2026")))
+        )
+
+        assertEquals("Trip 2026", result.accountNumber)
+        assertEquals("Cash||Trip 2026", applications.single().fieldsModified.single().newValue)
+    }
+
+    @Test
     fun `legacy free-text account action still sets the bank name only`() {
         // A rule saved before the picker, as it decodes from the database or a backup.
         val legacy = engine.deserializeActions(

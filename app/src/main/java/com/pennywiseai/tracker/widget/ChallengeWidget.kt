@@ -36,6 +36,8 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
@@ -133,7 +135,9 @@ class ChallengeWidget : GlanceAppWidget() {
                 ),
             )
             Spacer(GlanceModifier.height(Spacing.sm))
-            DayDots(snapshot.days, size.width - WidgetDefaults.padding * 2)
+            // daysLeft counts today, so today is the first of them; none once the window is over.
+            val today = if (snapshot.daysLeft > 0) snapshot.days.size - snapshot.daysLeft else -1
+            DayDots(snapshot.days, today, size.width - WidgetDefaults.padding * 2)
             Spacer(GlanceModifier.height(Spacing.sm))
             Text(
                 text = context.latinQuantityString(R.plurals.challenge_days_done, snapshot.target, snapshot.cleanDays, snapshot.target),
@@ -168,27 +172,41 @@ class ChallengeWidget : GlanceAppWidget() {
      * clean day, a cross for a missed one, a ring for one still to settle, a faint dot to come.
      * Each dot sits centred in a slot a quarter wider than itself, as big as [width] allows.
      * Slots, not spacers between the dots: Glance draws at most 10 children in a Row, and
-     * 7 dots with 6 spacers would lose the last days.
+     * 7 dots with 6 spacers would lose the last days. [today] is the index of today's dot.
      */
     @Composable
-    private fun DayDots(days: List<DayStatus>, width: Dp) {
+    private fun DayDots(days: List<DayStatus>, today: Int, width: Dp) {
         if (days.isEmpty()) return
         val dot = (width / (days.size * SLOT)).coerceIn(MIN_DOT, Dimensions.Icon.inline)
         WidgetRow(verticalAlignment = Alignment.CenterVertically) {
-            days.forEach { status -> item { Day(status, dot) } }
+            days.forEachIndexed { index, status -> item { Day(status, index + 1, index == today, dot) } }
         }
     }
 
+    /** One day: its dot and mark are silent, and the slot says "Day 2: missed" as Plan says its days. */
     @Composable
-    private fun Day(status: DayStatus, size: Dp) {
+    private fun Day(status: DayStatus, number: Int, isToday: Boolean, size: Dp) {
+        val context = LocalContext.current
         val colors = GlanceTheme.colors
+        val state = context.getString(
+            when (status) {
+                DayStatus.CLEAN -> R.string.challenge_day_clean
+                DayStatus.MISSED -> R.string.widget_challenge_day_missed
+                DayStatus.PENDING -> if (isToday) R.string.challenge_day_today else R.string.widget_challenge_day_pending
+                DayStatus.FUTURE -> R.string.challenge_day_future
+            },
+        )
+        val description = context.getString(R.string.challenge_day_description, context.latinString(R.string.widget_challenge_day, number), state)
         val (shape, fill, glyph) = when (status) {
             DayStatus.CLEAN -> Triple(R.drawable.ic_widget_dot, colors.primary, R.drawable.ic_widget_check to colors.onPrimary)
             DayStatus.MISSED -> Triple(R.drawable.ic_widget_dot, colors.surfaceVariant, R.drawable.ic_widget_close to colors.onSurfaceVariant)
             DayStatus.PENDING -> Triple(R.drawable.ic_widget_ring, colors.primary, null)
             DayStatus.FUTURE -> Triple(R.drawable.ic_widget_dot, colors.surfaceVariant, null)
         }
-        Box(modifier = GlanceModifier.width(size * SLOT).height(size), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = GlanceModifier.width(size * SLOT).height(size).semantics { contentDescription = description },
+            contentAlignment = Alignment.Center,
+        ) {
             DayImage(shape, fill, size)
             glyph?.let { (icon, tint) -> DayImage(icon, tint, size * GLYPH) }
         }

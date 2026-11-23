@@ -27,6 +27,12 @@
     <string name="widget_challenge_paused">Paused</string>
     <!-- Some days count only once the app has read their bank messages; tapping the widget opens it -->
     <string name="widget_challenge_inbox_unread">Tap to count your days</string>
+    <!-- TalkBack for one of the widget's day dots, before its state (challenge_day_description); %1$d: the day's number in the challenge -->
+    <string name="widget_challenge_day">Day %1$d</string>
+    <!-- TalkBack state of a day with spending (the widget doesn't list what counted) -->
+    <string name="widget_challenge_day_missed">missed</string>
+    <!-- TalkBack state of a day that hasn't settled yet (late messages, or messages still to read) -->
+    <string name="widget_challenge_day_pending">nothing counted yet</string>
     <!-- %1$s: the clean days, e.g. "1 of 3 days" -->
     <string name="widget_challenge_ended">Ended with %1$s</string>
     <string name="widget_challenge_preview_title" translatable="false">3 no-spend days</string>

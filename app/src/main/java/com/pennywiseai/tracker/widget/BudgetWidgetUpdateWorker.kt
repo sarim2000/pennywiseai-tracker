@@ -15,10 +15,13 @@ import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.BudgetCarry
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.data.repository.budgetSpend
@@ -114,13 +117,6 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     { fromCurrency, amount ->
                         currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
                     }
-                val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
-                    transactions = raw.allTransactions,
-                    convertSplit = convertSplit,
-                    convertIncome = { tx ->
-                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
-                    }
-                )
 
                 var totalIncome = BigDecimal.ZERO
                 for (txWithSplits in raw.allTransactions) {
@@ -141,71 +137,13 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     ) ?: continue
                 }
 
-                val groupSpendingList = raw.budgetsWithCategories.map { group ->
-                    val isTrackingAll = group.categories.isEmpty()
-                    val window = raw.currentWindows[group.budget.id]
-                    // A rollover budget counts its own window, as on Budgets: its spending
-                    // and its Extra budget, so the carry isn't set against a month of a
-                    // weekly budget's figures.
-                    val rolloverSpend = if (group.budget.rolloverEnabled) {
-                        budgetSpend(group, raw.currentWindowTransactions(group.budget.id).orEmpty(), raw.parentOf, convertSplit)
-                    } else null
-                    val catSpending = group.categories.map { cat ->
-                        val actual = if (cat.matchType != null) {
-                            typeAmounts[cat.matchType] ?: BigDecimal.ZERO
-                        } else {
-                            categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
-                        }
-                        val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
-                        val boost = if (cat.matchType != null || rolloverSpend != null) BigDecimal.ZERO
-                        else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
-                        BudgetCategorySpending(cat.categoryName, convertedBudget + boost, actual, 0f, BigDecimal.ZERO)
-                    }
-                    val convertedGroupLimit = currencyConversionService.convertAmount(
-                        group.budget.limitAmount, baseCurrency, displayCurrency
-                    )
-                    // "Category Limits" are optional — the group-level limit
-                    // is the source of truth when set (including when
-                    // isTrackingAll), with the per-cat sum as a fallback for
-                    // budgets that only define per-cat amounts.
-                    // Rollover: the same carry the Budgets screen and Home add.
-                    val carry = raw.carryFor(group, displayCurrency, baseCurrency) { fromCurrency, amount ->
-                        currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
-                    }
-                    val totalBudget = carry.appliedTo(
-                        if (convertedGroupLimit > BigDecimal.ZERO) {
-                            convertedGroupLimit
-                        } else {
-                            catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount } + (rolloverSpend?.boost ?: BigDecimal.ZERO)
-                        }
-                    )
-                    val totalActual = if (rolloverSpend != null) {
-                        rolloverSpend.amount
-                    } else if (isTrackingAll) {
-                        // As on the Budgets screen and Home: investments left out.
-                        budgetSpend(group, raw.allTransactions, raw.parentOf, convertSplit).amount
-                    } else {
-                        catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
-                    }
-                    BudgetGroupSpending(
-                        group,
-                        if (isTrackingAll) emptyList() else catSpending,
-                        totalBudget,
-                        totalActual,
-                        totalBudget - totalActual,
-                        0f,
-                        BigDecimal.ZERO,
-                        raw.daysRemaining,
-                        raw.daysElapsed,
-                        isTrackingAllExpenses = isTrackingAll,
-                        // The budget's own period, for the owl's pace: not the page's window.
-                        windowStart = window?.start ?: today,
-                        windowEnd = window?.end ?: today,
-                        windowDays = window?.days ?: 0,
-                        carry = carry.amount.amount,
-                        carryGap = carry.gap
-                    )
+                // Each budget's carry, worked out once for the figures and the owl's pace.
+                val carries = raw.budgetsWithCategories.associate { group ->
+                    group.budget.id to raw.carryFor(group, displayCurrency, baseCurrency, convertSplit)
                 }
+                val convertLimit: suspend (BigDecimal) -> BigDecimal =
+                    { amount -> currencyConversionService.convertAmount(amount, baseCurrency, displayCurrency) }
+                val groupSpendingList = unifiedGroupSpending(raw, carries, convertSplit, convertLimit, ownWindows = false)
 
                 val limitGroups = groupSpendingList.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
                 val totalLimitBudget = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
@@ -273,7 +211,11 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     savingsRate = savingsRate,
                     savingsDelta = savingsDelta,
                     currency = currency,
-                    overPace = widgetOverPace(today, groupSpendingList)
+                    // The owl paces each budget on its own window's spending, as its Budgets card does.
+                    overPace = widgetOverPace(
+                        today,
+                        unifiedGroupSpending(raw, carries, convertSplit, convertLimit, ownWindows = true)
+                    )
                 )
             } else {
                 val spending = budgetGroupRepository.getGroupSpending(
@@ -343,4 +285,85 @@ internal fun widgetOverPace(today: LocalDate, groups: List<BudgetGroupSpending>)
         budgetPace(g.totalActual, g.totalBudget, ChronoUnit.DAYS.between(g.windowStart, today).toInt() + 1, g.windowDays)
     }
     return if (paces.isEmpty()) null else paces.any { it.daysOver > 0 }
+}
+
+/**
+ * Unified mode: each budget's figures in the display currency, refunds and Extra budget
+ * applied by the same aggregator as the Budgets screen. A rollover budget counts its own
+ * current window, as on Budgets: its spending and its Extra budget, so the carry isn't
+ * set against a month of a weekly budget's figures. [ownWindows] counts every budget
+ * that way, for the owl's pace; without it the others count every transaction on the
+ * page, as the widget's figures do for now (#1420). [carries] holds every budget's
+ * carry; [convertLimit] puts a stored (base-currency) limit into the display currency.
+ */
+internal suspend fun unifiedGroupSpending(
+    raw: BudgetGroupSpendingRaw,
+    carries: Map<Long, BudgetCarry>,
+    convertSplit: suspend (String, BigDecimal) -> BigDecimal?,
+    convertLimit: suspend (BigDecimal) -> BigDecimal,
+    ownWindows: Boolean
+): List<BudgetGroupSpending> {
+    suspend fun aggregate(transactions: List<TransactionWithSplits>) = aggregateBudgetCategorySpending(
+        transactions = transactions,
+        convertSplit = convertSplit,
+        convertIncome = { tx -> convertSplit(tx.currency, tx.amount) }
+    )
+    val page = if (ownWindows) null else aggregate(raw.allTransactions)
+    return raw.budgetsWithCategories.map { group ->
+        val isTrackingAll = group.categories.isEmpty()
+        val window = raw.currentWindows[group.budget.id]
+        val windowTransactions = raw.currentWindowTransactions(group.budget.id).orEmpty()
+        val counted = if (page == null) windowTransactions else raw.allTransactions
+        val rolloverSpend = if (group.budget.rolloverEnabled) {
+            budgetSpend(group, windowTransactions, raw.parentOf, convertSplit)
+        } else null
+        val (categoryAmounts, categoryLimitBoosts, typeAmounts) = page ?: aggregate(windowTransactions)
+        val catSpending = group.categories.map { cat ->
+            val actual = if (cat.matchType != null) {
+                typeAmounts[cat.matchType] ?: BigDecimal.ZERO
+            } else {
+                categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+            }
+            val boost = if (cat.matchType != null || rolloverSpend != null) BigDecimal.ZERO
+            else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
+            BudgetCategorySpending(cat.categoryName, convertLimit(cat.budgetAmount) + boost, actual, 0f, BigDecimal.ZERO)
+        }
+        val convertedGroupLimit = convertLimit(group.budget.limitAmount)
+        // "Category Limits" are optional — the group-level limit is the source of truth
+        // when set (including when isTrackingAll), with the per-cat sum as a fallback for
+        // budgets that only define per-cat amounts. Rollover: the same carry the Budgets
+        // screen and Home add.
+        val carry = carries.getValue(group.budget.id)
+        val totalBudget = carry.appliedTo(
+            if (convertedGroupLimit > BigDecimal.ZERO) {
+                convertedGroupLimit
+            } else {
+                catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount } + (rolloverSpend?.boost ?: BigDecimal.ZERO)
+            }
+        )
+        val totalActual = when {
+            rolloverSpend != null -> rolloverSpend.amount
+            // As on the Budgets screen and Home: investments left out.
+            isTrackingAll -> budgetSpend(group, counted, raw.parentOf, convertSplit).amount
+            else -> catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+        }
+        BudgetGroupSpending(
+            group,
+            if (isTrackingAll) emptyList() else catSpending,
+            totalBudget,
+            totalActual,
+            totalBudget - totalActual,
+            0f,
+            BigDecimal.ZERO,
+            raw.daysRemaining,
+            raw.daysElapsed,
+            isTrackingAllExpenses = isTrackingAll,
+            // The budget's own period, for the owl's pace: not the page's window.
+            windowStart = window?.start ?: raw.today,
+            windowEnd = window?.end ?: raw.today,
+            windowDays = window?.days ?: 0,
+            carry = carry.amount.amount,
+            carryGap = carry.gap
+        )
+    }
 }

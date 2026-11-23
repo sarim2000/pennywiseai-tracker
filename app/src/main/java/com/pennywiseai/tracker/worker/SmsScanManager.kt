@@ -43,6 +43,20 @@ class SmsScanManager @Inject constructor(
     }
 
     /**
+     * An incremental scan (from the last finished one, so it reads whatever arrived while
+     * messages weren't being read), unless a scan is already queued or running: that one,
+     * maybe a rebuild, is never replaced.
+     */
+    fun startScanUnlessRunning() {
+        val smsReaderWork = OneTimeWorkRequestBuilder<OptimizedSmsReaderWorker>()
+            .addTag("sms_logging")
+            .addTag("optimized_sms_processing")
+            .addTag(OptimizedSmsReaderWorker.WORK_NAME)
+            .build()
+        workManager.enqueueUniqueWork(OptimizedSmsReaderWorker.WORK_NAME, ExistingWorkPolicy.KEEP, smsReaderWork)
+    }
+
+    /**
      * Cancels any ongoing SMS scanning work.
      */
     fun cancelSmsScanning() {

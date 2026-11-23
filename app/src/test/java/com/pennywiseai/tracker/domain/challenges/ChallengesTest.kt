@@ -61,6 +61,36 @@ class ChallengesTest {
     }
 
     @Test
+    fun `days a gap in tracking left without rows wait for the inbox to be read`() {
+        // Access lost after day 0's scan, back on day 6: days 1 to 4 have no rows, but nobody watched them.
+        val today = start.plusDays(6)
+        val gap = noSpend.progress(emptyList(), today, inboxReadBefore = start.plusDays(1))
+        assertEquals(DayStatus.CLEAN, gap.days[0].status)
+        assertTrue((1..4).all { gap.days[it].status == DayStatus.PENDING && gap.days[it].unread })
+        assertFalse(gap.days[5].unread) // still in its grace day
+        assertEquals(1, gap.cleanDays)
+        assertFalse(gap.won)
+        assertTrue(gap.needsInboxRead)
+        // The scan finds the spending of days 2 to 5.
+        val read = noSpend.progress((2..5).map { row(it, "Shopping") }, today, inboxReadBefore = today)
+        assertEquals(DayStatus.MISSED, read.days[2].status)
+        assertEquals(2, read.cleanDays)
+        assertFalse(read.won)
+        assertFalse(read.needsInboxRead)
+        // Never scanned: nothing is clean, and nothing asks for a scan while paused.
+        assertEquals(0, noSpend.progress(emptyList(), today, inboxReadBefore = LocalDate.MIN).cleanDays)
+        assertFalse(noSpend.progress(emptyList(), today, tracking = false, inboxReadBefore = LocalDate.MIN).needsInboxRead)
+    }
+
+    @Test
+    fun `a loss isn't final until the inbox was read past its last day`() {
+        val rows = (1..6).map { row(it, FOOD_AND_DINING) }
+        val after = start.plusDays(20)
+        assertFalse(noFood.progress(rows, after, inboxReadBefore = start).finished)
+        assertTrue(noFood.progress(rows, after, inboxReadBefore = after).finished)
+    }
+
+    @Test
     fun `an expense today misses it at once`() {
         val p = noSpend.progress(listOf(row(2, "Shopping")), today = start.plusDays(2))
         assertEquals(DayStatus.MISSED, p.today?.status)

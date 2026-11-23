@@ -36,6 +36,7 @@
     <string name="challenge_day_show_misses">see what counted</string>
     <string name="challenge_day_today">today, clean so far</string>
     <string name="challenge_day_pending">nothing counted yet, waiting a day for late messages</string>
+    <string name="challenge_day_unread">nothing counted yet, waiting to read that day\'s messages</string>
     <string name="challenge_day_future">still to come</string>
     <!-- Heading over a missed day's transactions; %1$s: the date -->
     <string name="challenge_missed_on">Counted on %1$s</string>
@@ -46,6 +47,8 @@
     <string name="challenge_today_missed">%1$s counted today. Tomorrow is a fresh day.</string>
     <string name="challenge_last_day_settling">That was the last day. It counts tomorrow, once any late bank messages are in.</string>
     <string name="challenge_paused">Paused: no day counts while PennyWise can\'t read your bank messages.</string>
+    <string name="challenge_reading_inbox">Reading your bank messages from the days so far. They count once that\'s done.</string>
+    <string name="challenge_inbox_unread">Some days count once PennyWise has read their bank messages. Sync on Home to read them now.</string>
     <string name="challenge_give_up">Give up</string>
     <string name="challenge_give_up_title">Stop this challenge?</string>
     <string name="challenge_give_up_body">No problem. You can start another whenever you like.</string>

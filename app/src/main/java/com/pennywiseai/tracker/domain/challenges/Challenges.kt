@@ -123,13 +123,20 @@ enum class DayStatus {
 
     /**
      * Nothing counted yet, but not settled: today, the [GRACE_DAYS] after it (a bank
-     * message can land late), or any day while messages can't be read.
+     * message can land late), a day the inbox hasn't been read past yet, or any day while
+     * messages can't be read.
      */
     PENDING,
     FUTURE,
 }
 
-data class ChallengeDay(val date: LocalDate, val status: DayStatus, val misses: List<ChallengeRow> = emptyList())
+data class ChallengeDay(
+    val date: LocalDate,
+    val status: DayStatus,
+    val misses: List<ChallengeRow> = emptyList(),
+    /** Pending only because no inbox scan has read past it yet: its grace is over. */
+    val unread: Boolean = false,
+)
 
 data class ChallengeProgress(
     val run: ChallengeRun,
@@ -145,8 +152,11 @@ data class ChallengeProgress(
     val cleanDays: Int get() = days.count { it.status == DayStatus.CLEAN }
     val won: Boolean get() = cleanDays >= run.target
 
-    /** Every day has settled: the window and the grace after it are over. */
-    val over: Boolean get() = !paused && on.minusDays(GRACE_DAYS).isAfter(run.end)
+    /** Every day has settled: the window and the grace after it are over, and the inbox was read past it. */
+    val over: Boolean get() = !paused && on.minusDays(GRACE_DAYS).isAfter(run.end) && days.none { it.status == DayStatus.PENDING }
+
+    /** A day waits only for the inbox to be read past it: an inbox scan settles it. */
+    val needsInboxRead: Boolean get() = !paused && days.any { it.unread }
 
     /**
      * Won early, or every day settled. A loss waits for that even when it's certain, so an
@@ -167,21 +177,36 @@ const val GRACE_DAYS = 1L
 /**
  * Each day of [this] run on [today]. A day with a counted expense is missed at once (more
  * messages can't undo it); a day without one is only clean once [GRACE_DAYS] have passed
- * after it, and only while [tracking] (messages are being read at all).
+ * after it, only while [tracking] (messages are being read at all), and only once an inbox
+ * scan has read past it ([inboxReadBefore]: the first day not wholly read). A gap in
+ * tracking (access lost, the app force-stopped) leaves no rows behind, so only a scan of
+ * the inbox can tell a quiet day from one nobody watched.
  */
-fun ChallengeRun.progress(rows: List<ChallengeRow>, today: LocalDate, tracking: Boolean = true): ChallengeProgress {
+fun ChallengeRun.progress(
+    rows: List<ChallengeRow>,
+    today: LocalDate,
+    tracking: Boolean = true,
+    inboxReadBefore: LocalDate = today,
+): ChallengeProgress {
     val misses = rows.filter(::counts).groupBy { it.date }
     val settledBefore = today.minusDays(GRACE_DAYS)
     val days = (0 until length).map { i ->
         val date = start.plusDays(i.toLong())
         val hits = misses[date].orEmpty()
+        val graceOver = date.isBefore(settledBefore)
+        val read = date.isBefore(inboxReadBefore)
         val status = when {
             date.isAfter(today) -> DayStatus.FUTURE
             hits.isNotEmpty() -> DayStatus.MISSED
-            tracking && date.isBefore(settledBefore) -> DayStatus.CLEAN
+            tracking && graceOver && read -> DayStatus.CLEAN
             else -> DayStatus.PENDING
         }
-        ChallengeDay(date, status, if (status == DayStatus.MISSED) hits else emptyList())
+        ChallengeDay(
+            date,
+            status,
+            misses = if (status == DayStatus.MISSED) hits else emptyList(),
+            unread = status == DayStatus.PENDING && tracking && graceOver && !read,
+        )
     }
     return ChallengeProgress(this, days, today, paused = !tracking)
 }

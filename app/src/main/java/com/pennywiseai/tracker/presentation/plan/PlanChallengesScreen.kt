@@ -119,6 +119,7 @@ fun PlanChallengesScreen(
                 item(key = "active") {
                     ActiveChallengeCard(
                         active,
+                        scanning = shown.scanning,
                         onGiveUp = { confirmGiveUp = true },
                         onOpenTransaction = onOpenTransaction,
                         modifier = Modifier.animateItem(),
@@ -193,7 +194,13 @@ private fun ChallengeDay.description(): String {
     val state = when (status) {
         DayStatus.CLEAN -> stringResource(R.string.challenge_day_clean)
         DayStatus.MISSED -> stringResource(R.string.challenge_day_missed, misses.joinToString { it.merchant })
-        DayStatus.PENDING -> stringResource(if (date == LocalDate.now()) R.string.challenge_day_today else R.string.challenge_day_pending)
+        DayStatus.PENDING -> stringResource(
+            when {
+                date == LocalDate.now() -> R.string.challenge_day_today
+                unread -> R.string.challenge_day_unread
+                else -> R.string.challenge_day_pending
+            },
+        )
         DayStatus.FUTURE -> stringResource(R.string.challenge_day_future)
     }
     return stringResource(R.string.challenge_day_description, label, state)
@@ -203,6 +210,7 @@ private fun ChallengeDay.description(): String {
 @Composable
 private fun ActiveChallengeCard(
     progress: ChallengeProgress,
+    scanning: Boolean,
     onGiveUp: () -> Unit,
     onOpenTransaction: (Long) -> Unit,
     modifier: Modifier = Modifier,
@@ -263,7 +271,7 @@ private fun ActiveChallengeCard(
                     }
                 }
             }
-            MascotLine(progress)
+            MascotLine(progress, scanning)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     pluralStringResource(R.plurals.challenge_days_done, run.target, progress.cleanDays, run.target),
@@ -342,12 +350,14 @@ private fun DayDots(days: List<ChallengeDay>, picked: LocalDate?, onPick: (Chall
 
 /** The owl on how today is going. Today only settles later, so it says "so far". */
 @Composable
-private fun MascotLine(progress: ChallengeProgress) {
+private fun MascotLine(progress: ChallengeProgress, scanning: Boolean) {
     val run = progress.run
     val today = progress.today
     val missedToday = today?.status == DayStatus.MISSED
     val line = when {
         progress.paused -> stringResource(R.string.challenge_paused)
+        // Days a gap in tracking may have missed wait for the inbox to be read.
+        progress.needsInboxRead -> stringResource(if (scanning) R.string.challenge_reading_inbox else R.string.challenge_inbox_unread)
         missedToday -> stringResource(R.string.challenge_today_missed, today.misses.firstOrNull()?.merchant.orEmpty())
         // The window is over and its last day waits out the grace day.
         today == null -> stringResource(R.string.challenge_last_day_settling)

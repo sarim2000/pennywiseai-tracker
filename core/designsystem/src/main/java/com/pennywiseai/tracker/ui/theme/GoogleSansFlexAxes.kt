@@ -23,8 +23,8 @@ import kotlin.math.roundToInt
  *
  * Every distinct axis setting is a separate Android `Typeface`, and Compose
  * keeps only 16 of them in its own caches. So no value reaches a font
- * unquantized: the typography snaps to this grid, and the typefaces come from
- * a bounded process-wide cache.
+ * unquantized: the typography snaps to this grid, and families and typefaces
+ * come from bounded process-wide caches.
  */
 object GoogleSansFlexAxes {
     /** `ROND` step: 11 stops over 0–100. */
@@ -67,6 +67,12 @@ object GoogleSansFlexAxes {
     internal const val MAX_WEIGHT = 900
     internal const val MAX_AXIS = 100
 
+    /**
+     * Families kept. The themes use at most 32 (2 roundness × 8 optical sizes
+     * × 2 grades), plus the two untuned defaults.
+     */
+    internal const val MAX_FAMILIES = 64
+
     /** Typefaces kept, one per (axes, weight) actually drawn. */
     internal const val MAX_TYPEFACES = 128
 }
@@ -95,7 +101,8 @@ internal fun TextStyle.asMoney(fallbackFamily: FontFamily?): TextStyle {
 /**
  * A Google Sans Flex family with every weight 100–900, each its own pinned
  * instance at these axes. Compose resolves a style only by weight and style,
- * so each (roundness, optical size, grade) needs its own family.
+ * so each (roundness, optical size, grade) needs its own family; this returns
+ * the cached one.
  */
 internal fun googleSansFlexFamily(roundness: Float, opticalSize: Float, grade: Float): FontFamily =
     googleSansFlexFamily(
@@ -138,9 +145,13 @@ internal fun TextStyle.flexKeyOrNull(): FlexKey? {
     return if (fonts.size > 1) font.key.copy(weight = ALL_WEIGHTS) else font.key
 }
 
-// ponytail: no family cache; GoogleSansFlexFont is equal by its axes, so equal families
-// compare equal and the typeface cache below does the real work. Add one with axis animation.
-internal fun googleSansFlexFamily(key: FlexKey): FontFamily =
+private val families = BoundedCache<FlexKey, FontFamily>(GoogleSansFlexAxes.MAX_FAMILIES)
+
+/**
+ * Cached: `money()` and the `PennyWiseText` amount styles call this on every
+ * read, so each transaction row would otherwise build nine fonts and a family.
+ */
+internal fun googleSansFlexFamily(key: FlexKey): FontFamily = families.getOrPut(key) {
     if (key.weight == ALL_WEIGHTS) {
         FontFamily(
             (GoogleSansFlexAxes.MIN_WEIGHT..GoogleSansFlexAxes.MAX_WEIGHT step 100).map {
@@ -150,6 +161,7 @@ internal fun googleSansFlexFamily(key: FlexKey): FontFamily =
     } else {
         FontFamily(GoogleSansFlexFont(key))
     }
+}
 
 /**
  * One pinned instance of the bundled variable font. Equal by its axes, so

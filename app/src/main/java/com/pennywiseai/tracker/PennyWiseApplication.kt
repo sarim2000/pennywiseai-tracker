@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.content.res.Configuration as ResConfiguration
@@ -67,6 +68,9 @@ class PennyWiseApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var recurringTransactionRepository: com.pennywiseai.tracker.data.repository.RecurringTransactionRepository
+
+    @Inject
+    lateinit var accountBalanceRepository: com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
@@ -160,9 +164,15 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         }
 
         // Next bills widget: any subscription or recurring payment added, edited, paid or
-        // paused. Transactions and card bills reach it through WidgetRefresher.
+        // paused, and a card's bill entered, edited or cleared on its account screen (no
+        // transaction is written for that). Transactions reach it through WidgetRefresher.
         applicationScope.launch {
-            combine(subscriptionRepository.getActiveSubscriptions(), recurringTransactionRepository.getActive(), ::Pair)
+            val cardBills = accountBalanceRepository.getAllLatestBalances().map { accounts ->
+                accounts.filter { it.isCreditCard }.map {
+                    listOf(it.bankName, it.accountLast4, it.statementDay, it.cardDueDay, it.cardBillAmount, it.cardBillAsOf)
+                }
+            }
+            combine(subscriptionRepository.getActiveSubscriptions(), recurringTransactionRepository.getActive(), cardBills, ::Triple)
                 .distinctUntilChanged().drop(1).collect {
                     com.pennywiseai.tracker.widget.NextBillsWidgetUpdateWorker.enqueueOneShot(this@PennyWiseApplication)
                 }

@@ -18,7 +18,7 @@ import java.time.LocalDate
 /**
  * Rebuilds the Next bills widget's snapshot from the same payments the calendar
  * shows as due (selected profile, no ignored accounts). Enqueued with the other
- * widgets via [WidgetRefresher], when subscriptions or recurring payments change
+ * widgets via [WidgetRefresher], when subscriptions, recurring payments or card bills change
  * (PennyWiseApplication observes them), and on the widget's update period.
  */
 @HiltWorker

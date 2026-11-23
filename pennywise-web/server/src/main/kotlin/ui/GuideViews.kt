@@ -101,7 +101,7 @@ object GuideViews {
                 div(classes = "compare-head") { span { +"" }; span { +"Free" }; span { +"Pro" } }
                 compare("Smart Rules", "3", "Unlimited")
                 compare("PDF statement imports", "1 a month", "Unlimited")
-                compare("CSV export", "100 rows a month", "Unlimited")
+                compare("CSV export", "First 100 rows", "Unlimited")
                 compare("Recurring transactions", "1", "Unlimited")
                 compare("Folder backup, merge accounts, tag analytics, webhooks", "No", "Yes")
                 compare("Claude, ChatGPT and the dashboard", "No", "Yes")
@@ -357,7 +357,7 @@ object GuideViews {
         ) {
             p {
                 path("Settings → Import Transactions (CSV)")
-                +" reads a PennyWise CSV back in, or any sheet with Date, Amount and Type columns. Free exports are capped at 100 rows a month."
+                +" reads a PennyWise CSV back in, or any sheet with Date, Amount and Type columns. Free exports include the first 100 rows."
             }
         },
         Guide(

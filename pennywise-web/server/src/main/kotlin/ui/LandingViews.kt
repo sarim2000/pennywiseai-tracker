@@ -153,7 +153,7 @@ object LandingViews {
                     tile("", "shape-cookie", "▦", "Widgets & quick add",
                         "Budget, recent-transaction, spending and goal widgets, plus a Quick Settings tile.")
                     tile("", "shape-sunny", "⟲", "Backups you own",
-                        "Full backup and restore to a file you choose. CSV export covers 100 rows a month free; " +
+                        "Full backup and restore to a file you choose. Free CSV export includes the first 100 rows; " +
                             "Pro makes it unlimited and adds scheduled daily backups.")
                     tile("", "shape-burst", "⚑", "Rules that learn",
                         "Categories, tags and rules with several conditions (three rules free, unlimited with Pro). " +

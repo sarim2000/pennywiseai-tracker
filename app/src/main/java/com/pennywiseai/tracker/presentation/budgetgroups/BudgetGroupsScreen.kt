@@ -36,7 +36,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
@@ -121,11 +120,10 @@ fun BudgetGroupsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val underBudgetState by viewModel.underBudget.collectAsStateWithLifecycle()
     val celebrate by viewModel.celebrate.collectAsStateWithLifecycle()
-    // The screen already resumes to re-read "today"; the card's query follows the same path.
-    LifecycleResumeEffect(Unit) {
-        viewModel.refreshDate()
-        onPauseOrDispose { }
-    }
+    // A new day (on resume, or at midnight while open) moves days left on, as Home does,
+    // and ends the under-budget card's week on time.
+    val day = rememberToday()
+    LaunchedEffect(day) { viewModel.refreshDate() }
     val goalsSection: (@Composable () -> Unit)? = if (planTab != null) null else {
         {
             com.pennywiseai.tracker.presentation.goals.GoalsSection(

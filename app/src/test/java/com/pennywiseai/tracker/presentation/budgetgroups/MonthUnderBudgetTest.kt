@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.preferences.eligibleBudgetMonthDismissals
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.data.repository.BudgetWindow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -17,7 +18,7 @@ import java.time.YearMonth
 
 /** The card (and its one-time confetti) only for a month every spending limit survived. */
 class MonthUnderBudgetTest {
-    private val nov3 = LocalDate.parse("2026-11-03")
+    private val october = BudgetWindow(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-31"), 31)
 
     private fun group(spent: String, limit: String = "500", type: BudgetGroupType = BudgetGroupType.LIMIT) = BudgetGroupSpending(
         group = BudgetWithCategories(
@@ -30,6 +31,7 @@ class MonthUnderBudgetTest {
         categorySpending = emptyList(),
         totalBudget = BigDecimal(limit), totalActual = BigDecimal(spent), remaining = BigDecimal.ZERO,
         percentageUsed = 0f, dailyAllowance = BigDecimal.ZERO, daysRemaining = 0, daysElapsed = 31,
+        windowStart = october.start, windowEnd = october.end, windowDays = october.days,
     )
 
     private fun summary(vararg groups: BudgetGroupSpending) = BudgetOverallSummary(
@@ -41,24 +43,24 @@ class MonthUnderBudgetTest {
 
     @Test
     fun `every limit kept names last month and the page's currency`() {
-        val win = monthUnderBudget(nov3, summary(group("480"), group("0", limit = "100")), dismissed = emptySet())
-        assertEquals(MonthUnderBudget(YearMonth.of(2026, 10), "JOD"), win)
+        val win = monthUnderBudget(october, summary(group("480"), group("0", limit = "100")), dismissed = emptySet())
+        assertEquals(MonthUnderBudget(october.start, october.end, "JOD"), win)
         assertEquals("budget_month:2026-10:JOD", win?.key)
     }
 
     @Test
     fun `spending exactly the limit still counts as under`() {
-        assertEquals(YearMonth.of(2026, 10), monthUnderBudget(nov3, summary(group("500")), emptySet())?.month)
+        assertEquals(YearMonth.of(2026, 10), monthUnderBudget(october, summary(group("500")), emptySet())?.month)
     }
 
     @Test
     fun `one limit over, no spending, or no limit at all is no win`() {
-        assertNull(monthUnderBudget(nov3, summary(group("100"), group("500.01")), emptySet()))
-        assertNull(monthUnderBudget(nov3, summary(group("0")), emptySet()))
-        assertNull(monthUnderBudget(nov3, summary(group("10", limit = "0")), emptySet()))
-        assertNull(monthUnderBudget(nov3, summary(), emptySet()))
+        assertNull(monthUnderBudget(october, summary(group("100"), group("500.01")), emptySet()))
+        assertNull(monthUnderBudget(october, summary(group("0")), emptySet()))
+        assertNull(monthUnderBudget(october, summary(group("10", limit = "0")), emptySet()))
+        assertNull(monthUnderBudget(october, summary(), emptySet()))
         // Unconverted spend could hide an overspend.
-        assertNull(monthUnderBudget(nov3, summary(group("100").copy(hasUnconvertedSpend = true)), emptySet()))
+        assertNull(monthUnderBudget(october, summary(group("100").copy(hasUnconvertedSpend = true)), emptySet()))
     }
 
     @Test
@@ -69,37 +71,59 @@ class MonthUnderBudgetTest {
         )
         // Food 7,000 of 5,000 and Shopping 1,000 of 5,000: 8,000 of 10,000 overall.
         val overInFood = group("8000", limit = "10000").copy(categorySpending = listOf(cat("7000", "5000"), cat("1000", "5000")))
-        assertNull(monthUnderBudget(nov3, summary(overInFood), emptySet()))
+        assertNull(monthUnderBudget(october, summary(overInFood), emptySet()))
         // A category with no limit of its own can't be over one.
         val noCategoryLimit = group("8000", limit = "10000").copy(categorySpending = listOf(cat("7000", "0"), cat("1000", "5000")))
-        assertEquals("JOD", monthUnderBudget(nov3, summary(noCategoryLimit), emptySet())?.currency)
+        assertEquals("JOD", monthUnderBudget(october, summary(noCategoryLimit), emptySet())?.currency)
     }
 
     @Test
     fun `savings and expected budgets neither count nor block`() {
         // A missed savings target isn't an overspend, and an income budget alone isn't a limit kept.
-        assertEquals("JOD", monthUnderBudget(nov3, summary(group("100"), group("900", type = BudgetGroupType.TARGET)), emptySet())?.currency)
-        assertNull(monthUnderBudget(nov3, summary(group("100", type = BudgetGroupType.TARGET)), emptySet()))
-        assertNull(monthUnderBudget(nov3, summary(group("100", type = BudgetGroupType.EXPECTED)), emptySet()))
+        assertEquals("JOD", monthUnderBudget(october, summary(group("100"), group("900", type = BudgetGroupType.TARGET)), emptySet())?.currency)
+        assertNull(monthUnderBudget(october, summary(group("100", type = BudgetGroupType.TARGET)), emptySet()))
+        assertNull(monthUnderBudget(october, summary(group("100", type = BudgetGroupType.EXPECTED)), emptySet()))
     }
 
     @Test
     fun `weekly limits neither count nor block`() {
         // The month's page shows only a Weekly budget's last week, which can hide a blown first one.
         val weekly = group("900").copy(periodType = BudgetPeriodType.WEEKLY)
-        assertEquals("JOD", monthUnderBudget(nov3, summary(group("100"), weekly), emptySet())?.currency)
-        assertNull(monthUnderBudget(nov3, summary(group("100").copy(periodType = BudgetPeriodType.WEEKLY)), emptySet()))
+        assertEquals("JOD", monthUnderBudget(october, summary(group("100"), weekly), emptySet())?.currency)
+        assertNull(monthUnderBudget(october, summary(group("100").copy(periodType = BudgetPeriodType.WEEKLY)), emptySet()))
     }
 
     @Test
-    fun `shows the first week only, and not once dismissed`() {
+    fun `the card shows the week after a cycle ends, and not once dismissed`() {
+        assertEquals(october, underBudgetCycle(LocalDate.parse("2026-11-01"), startDay = 1))
+        assertEquals(october, underBudgetCycle(LocalDate.parse("2026-11-07"), startDay = 1))
+        assertNull(underBudgetCycle(LocalDate.parse("2026-11-08"), startDay = 1))
         val kept = summary(group("100"))
-        assertEquals(YearMonth.of(2026, 10), monthUnderBudget(LocalDate.parse("2026-11-07"), kept, emptySet())?.month)
-        assertNull(monthUnderBudget(LocalDate.parse("2026-11-08"), kept, emptySet()))
-        assertNull(monthUnderBudget(nov3, kept, dismissed = setOf("budget_month:2026-10:JOD")))
+        assertNull(monthUnderBudget(october, kept, dismissed = setOf("budget_month:2026-10:JOD")))
         // Last month's dismissal doesn't hide this one, and neither does another currency.
-        assertEquals(YearMonth.of(2026, 10), monthUnderBudget(nov3, kept, dismissed = setOf("budget_month:2026-09:JOD"))?.month)
-        assertEquals(YearMonth.of(2026, 10), monthUnderBudget(nov3, kept, dismissed = setOf("budget_month:2026-10:USD"))?.month)
+        assertEquals(october.end, monthUnderBudget(october, kept, dismissed = setOf("budget_month:2026-09:JOD"))?.end)
+        assertEquals(october.end, monthUnderBudget(october, kept, dismissed = setOf("budget_month:2026-10:USD"))?.end)
+    }
+
+    @Test
+    fun `a cycle from the 25th is judged the week after the 24th, under its own dates`() {
+        val cycle = BudgetWindow(LocalDate.parse("2026-09-25"), LocalDate.parse("2026-10-24"), 30)
+        assertEquals(cycle, underBudgetCycle(LocalDate.parse("2026-10-25"), startDay = 25))
+        assertEquals(cycle, underBudgetCycle(LocalDate.parse("2026-10-31"), startDay = 25))
+        // A week into November is the old calendar rule, two weeks late for this cycle.
+        assertNull(underBudgetCycle(LocalDate.parse("2026-11-03"), startDay = 25))
+        val onCycle = group("100").copy(windowStart = cycle.start, windowEnd = cycle.end)
+        val win = monthUnderBudget(cycle, summary(onCycle), emptySet())
+        assertEquals(MonthUnderBudget(cycle.start, cycle.end, "JOD"), win)
+        assertEquals("budget_month:2026-10:JOD", win?.key)
+    }
+
+    @Test
+    fun `a budget on another cycle neither counts nor blocks`() {
+        // Its own start day: on Oct 31 its cycle (Oct 15 - Nov 14) is still running.
+        val running = group("900").copy(windowStart = LocalDate.parse("2026-10-15"), windowEnd = LocalDate.parse("2026-11-14"))
+        assertEquals("JOD", monthUnderBudget(october, summary(group("100"), running), emptySet())?.currency)
+        assertNull(monthUnderBudget(october, summary(running), emptySet()))
     }
 
     @Test
@@ -111,15 +135,14 @@ class MonthUnderBudgetTest {
     }
 
     @Test
-    fun `dismissed keys drop once that month is no longer eligible`() {
+    fun `dismissed keys keep only the month whose card can still show`() {
         val october = setOf("budget_month:2026-10:JOD", "budget_month:2026-10:USD")
         val stored = october + "budget_month:2026-09:JOD"
-        assertEquals(october, eligibleBudgetMonthDismissals(stored, LocalDate.parse("2026-11-03"), UNDER_BUDGET_CARD_DAYS))
-        assertEquals(october, eligibleBudgetMonthDismissals(stored, LocalDate.parse("2026-11-07"), UNDER_BUDGET_CARD_DAYS))
-        assertEquals(emptySet<String>(), eligibleBudgetMonthDismissals(stored, LocalDate.parse("2026-11-08"), UNDER_BUDGET_CARD_DAYS))
+        assertEquals(october, eligibleBudgetMonthDismissals(stored, YearMonth.of(2026, 10)))
+        assertEquals(emptySet<String>(), eligibleBudgetMonthDismissals(stored, keepMonth = null))
         assertEquals(
             setOf("budget_month:2026-11:JOD"),
-            eligibleBudgetMonthDismissals(stored + "budget_month:2026-11:JOD", LocalDate.parse("2026-12-01"), UNDER_BUDGET_CARD_DAYS),
+            eligibleBudgetMonthDismissals(stored + "budget_month:2026-11:JOD", YearMonth.of(2026, 11)),
         )
     }
 }

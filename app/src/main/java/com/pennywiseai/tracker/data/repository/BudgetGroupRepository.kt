@@ -461,9 +461,16 @@ class BudgetGroupRepository @Inject constructor(
      * the displayed window is the one in the list that contains the most
      * recent day in the month, and the older windows go into
      * [BudgetGroupSpending.previousWindows] for the per-week sub-list.
+     *
+     * [today] is the day the page is read as of: a past day reads the page as it
+     * stood then, e.g. a cycle's last day for the cycle that just ended.
      */
-    fun getGroupSpending(year: Int, month: Int, currency: String): Flow<BudgetOverallSummary> {
-        val today = LocalDate.now()
+    fun getGroupSpending(
+        year: Int,
+        month: Int,
+        currency: String,
+        today: LocalDate = LocalDate.now(),
+    ): Flow<BudgetOverallSummary> {
         val ym = YearMonth.of(year, month)
         val monthStart = ym.atDay(1)
         val monthEnd = ym.atEndOfMonth()
@@ -650,8 +657,12 @@ class BudgetGroupRepository @Inject constructor(
         }
     }
 
-    fun getGroupSpendingAllCurrencies(year: Int, month: Int): Flow<BudgetGroupSpendingRaw> {
-        val today = LocalDate.now()
+    /** [today]: as [getGroupSpending]. */
+    fun getGroupSpendingAllCurrencies(
+        year: Int,
+        month: Int,
+        today: LocalDate = LocalDate.now(),
+    ): Flow<BudgetGroupSpendingRaw> {
         val ym = YearMonth.of(year, month)
         val monthStart = ym.atDay(1)
         val monthEnd = ym.atEndOfMonth()

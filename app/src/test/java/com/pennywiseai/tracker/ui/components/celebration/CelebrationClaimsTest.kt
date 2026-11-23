@@ -5,7 +5,6 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.presentation.budgetgroups.UNDER_BUDGET_CARD_DAYS
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,7 +22,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.io.IOException
-import java.time.LocalDate
 import java.time.YearMonth
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -106,12 +104,13 @@ class CelebrationClaimsTest {
         val octJod = CelebrationKeys.budgetMonth(YearMonth.of(2026, 10), "JOD")
         val octUsd = CelebrationKeys.budgetMonth(YearMonth.of(2026, 10), "USD")
         val sep = CelebrationKeys.budgetMonth(YearMonth.of(2026, 9), "JOD")
-        val nov3 = LocalDate.parse("2026-11-03")
-        repository.dismissBudgetMonthCard(octJod, nov3, UNDER_BUDGET_CARD_DAYS)
-        repository.dismissBudgetMonthCard(octUsd, nov3, UNDER_BUDGET_CARD_DAYS)
-        repository.dismissBudgetMonthCard(sep, nov3, UNDER_BUDGET_CARD_DAYS)
+        val october = YearMonth.of(2026, 10)
+        repository.dismissBudgetMonthCard(octJod, october)
+        repository.dismissBudgetMonthCard(octUsd, october)
+        repository.dismissBudgetMonthCard(sep, october)
         assertEquals(setOf(octJod, octUsd), repository.budgetMonthCardsDismissed.first())
-        repository.pruneBudgetMonthDismissals(LocalDate.parse("2026-11-08"), UNDER_BUDGET_CARD_DAYS)
+        // A week after October's cycle ended no card can show, so nothing is kept.
+        repository.pruneBudgetMonthDismissals(keepMonth = null)
         assertEquals(emptySet<String>(), repository.budgetMonthCardsDismissed.first())
     }
 

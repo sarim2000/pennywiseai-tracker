@@ -62,12 +62,12 @@ internal object SmsScanAllTimeMigration : androidx.datastore.core.DataMigration<
 }
 
 /**
- * Dismissal keys still worth keeping: last month's, and only during the first [eligibleDays]
- * of this one. Keys look like `budget_month:2026-10:JOD`.
+ * Dismissal keys still worth keeping: those for [keepMonth], the month the cycle whose card
+ * can still show ends in, or none when no card can. Keys look like `budget_month:2026-10:JOD`.
  */
-internal fun eligibleBudgetMonthDismissals(keys: Set<String>, today: LocalDate, eligibleDays: Int): Set<String> {
-    if (today.dayOfMonth > eligibleDays) return emptySet()
-    val prefix = "budget_month:${YearMonth.from(today).minusMonths(1)}:"
+internal fun eligibleBudgetMonthDismissals(keys: Set<String>, keepMonth: YearMonth?): Set<String> {
+    if (keepMonth == null) return emptySet()
+    val prefix = "budget_month:$keepMonth:"
     return keys.filterTo(linkedSetOf()) { it.startsWith(prefix) }
 }
 
@@ -1449,28 +1449,21 @@ open class UserPreferencesRepository internal constructor(
     val budgetMonthCardsDismissed: Flow<Set<String>> = dataStore.data
         .map { it[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] ?: emptySet() }
 
-    /**
-     * Remembers [key] and drops months outside the first [eligibleDays] of the next month.
-     * [eligibleDays] is the card's own window, so this store doesn't grow a second copy of that rule.
-     */
-    suspend fun dismissBudgetMonthCard(key: String, today: LocalDate, eligibleDays: Int) {
-        editBudgetMonthDismissals(today, eligibleDays) { it + key }
+    /** Remembers [key] and drops every other month's: only [keepMonth]'s card can still show. */
+    suspend fun dismissBudgetMonthCard(key: String, keepMonth: YearMonth) {
+        editBudgetMonthDismissals(keepMonth) { it + key }
     }
 
-    /** Drops dismissal keys whose month is outside the first [eligibleDays] of the next one. */
-    suspend fun pruneBudgetMonthDismissals(today: LocalDate, eligibleDays: Int) {
-        editBudgetMonthDismissals(today, eligibleDays) { it }
+    /** Drops dismissal keys for any month but [keepMonth]; all of them when it's null. */
+    suspend fun pruneBudgetMonthDismissals(keepMonth: YearMonth?) {
+        editBudgetMonthDismissals(keepMonth) { it }
     }
 
-    private suspend fun editBudgetMonthDismissals(
-        today: LocalDate,
-        eligibleDays: Int,
-        update: (Set<String>) -> Set<String>,
-    ) {
+    private suspend fun editBudgetMonthDismissals(keepMonth: YearMonth?, update: (Set<String>) -> Set<String>) {
         try {
             dataStore.edit { prefs ->
                 val current = prefs[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] ?: emptySet()
-                val kept = eligibleBudgetMonthDismissals(update(current), today, eligibleDays)
+                val kept = eligibleBudgetMonthDismissals(update(current), keepMonth)
                 if (kept == current) return@edit
                 if (kept.isEmpty()) prefs.remove(PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED)
                 else prefs[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] = kept

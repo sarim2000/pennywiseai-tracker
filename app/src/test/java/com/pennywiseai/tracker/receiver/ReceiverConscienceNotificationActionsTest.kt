@@ -4,7 +4,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.net.Uri
 import com.pennywiseai.tracker.MainActivity
+import com.pennywiseai.tracker.data.manager.ConscienceNotifier
 import io.mockk.EqMatcher
 import io.mockk.MockKMatcherScope
 import io.mockk.every
@@ -36,12 +38,18 @@ class ReceiverConscienceNotificationActionsTest {
     private val flags = slot<Int>()
     private val delivered = slot<Intent>()
 
+    // Uri.parse is a stub on the JVM: each string gets its own Uri, so the data each intent carries can be told apart.
+    private val parsedUris = mutableMapOf<String, Uri>()
+    private val dataSet = mutableListOf<Uri>()
+
     @Before
     fun setUp() {
         mockkStatic(PendingIntent::class)
         mockkConstructor(Intent::class)
         every { PendingIntent.getActivity(any(), capture(requestCode), capture(delivered), capture(flags)) } returns pendingIntent
         every { PendingIntent.getBroadcast(any(), capture(requestCode), capture(delivered), capture(flags)) } returns pendingIntent
+        mockkStatic(Uri::class)
+        every { Uri.parse(any()) } answers { parsedUris.getOrPut(firstArg()) { mockk() } }
     }
 
     @After
@@ -92,8 +100,8 @@ class ReceiverConscienceNotificationActionsTest {
             intentTo(NotificationActionReceiver::class.java)
                 .putExtra("conscience_remark_id", REMARK_ID)
         }
-        // The remark id in the data keeps a sample's actions apart from a real remark's.
         verify(exactly = 1) { intentTo(NotificationActionReceiver::class.java).setData(any()) }
+        assertSame(parsedUris.getValue("pennywise://conscience/$REMARK_ID/retire"), dataSet.single())
         assertNothingOverwritten(NotificationActionReceiver::class.java, flags = 0, longExtras = 1, stringExtras = 1)
     }
 
@@ -105,6 +113,24 @@ class ReceiverConscienceNotificationActionsTest {
             intentTo(NotificationActionReceiver::class.java)
                 .setAction("com.pennywiseai.tracker.ACTION_CONSCIENCE_LIKE")
         }
+    }
+
+    @Test
+    fun `each remark and reaction gets its own intent data`() {
+        recordIntentsFor(NotificationActionReceiver::class.java)
+        val actions = ReceiverConscienceNotificationActions(context)
+        actions.react(REMARK_ID, LINE_KEY, liked = false)
+        actions.react(ConscienceNotifier.SAMPLE_REMARK_ID, "", liked = false)
+        actions.react(REMARK_ID, LINE_KEY, liked = true)
+
+        // Android compares PendingIntents by data, not extras: a shared URI would hand a sample's tap a real remark's extras.
+        val expected = listOf(
+            "pennywise://conscience/$REMARK_ID/retire",
+            "pennywise://conscience/${ConscienceNotifier.SAMPLE_REMARK_ID}/retire",
+            "pennywise://conscience/$REMARK_ID/like",
+        )
+        assertEquals(expected.toSet(), parsedUris.keys)
+        assertEquals(expected.map(parsedUris::getValue), dataSet)
     }
 
     @Test
@@ -148,7 +174,7 @@ class ReceiverConscienceNotificationActionsTest {
         every { intentTo(component).hasExtra(PROBE) } returns true
         every { intentTo(component).setAction(any()) } answers { callOriginal() }
         every { intentTo(component).setFlags(any()) } answers { callOriginal() }
-        every { intentTo(component).setData(any()) } answers { callOriginal() }
+        every { intentTo(component).setData(capture(dataSet)) } answers { callOriginal() }
         every {
             intentTo(component).putExtra(any<String>(), any<Long>())
         } answers { callOriginal() }

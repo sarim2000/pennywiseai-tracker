@@ -60,6 +60,15 @@ fun NavBackStack<NavKey>.pop(key: NavKey) {
     if (size > 1 && lastOrNull() == key) removeAt(lastIndex)
 }
 
+/**
+ * Opens [key] from the screen [from]: back to it when it's the entry right under [from], so a
+ * link from a row a list showed doesn't stack that list again; otherwise [navigate]. Only the
+ * direct parent counts, so no other screen deeper in the stack is ever dropped.
+ */
+fun NavBackStack<NavKey>.openFrom(from: NavKey, key: NavKey) {
+    if (lastOrNull() == from && getOrNull(lastIndex - 1) == key) removeAt(lastIndex) else navigate(key)
+}
+
 /** popUpTo(the last screen matching [match]) { inclusive = true }, then [key] in its place. */
 fun NavBackStack<NavKey>.replaceLast(key: NavKey, match: (NavKey) -> Boolean) {
     val i = indexOfLast(match)
@@ -237,11 +246,8 @@ fun PennyWiseNavHost(
                                 onCreateGoal = {
                                     backStack.navigate(GoalEdit())
                                 },
-                                // Back to that list if it's already open, so "More from" from a
-                                // row it listed doesn't stack the same list again.
                                 onOpenRelated = { merchant, category, currency ->
-                                    val list = relatedTransactions(merchant, category, currency)
-                                    backStack.replaceLast(list) { it == list }
+                                    backStack.openFrom(key, relatedTransactions(merchant, category, currency))
                                 }
                             )
                         }
@@ -578,12 +584,16 @@ fun PennyWiseNavHost(
     }
 }
 
-/** A transaction's "More from" (its [merchant]) or "More in" (its [category]): all time, in its [currency]. */
+/**
+ * A transaction's "More from" (its [merchant]) or "More in" (its [category]): all time, pinned to
+ * its [currency] so the list neither follows the default currency nor converts in unified mode.
+ */
 internal fun relatedTransactions(merchant: String?, category: String?, currency: String) = TransactionsWithFilter(
     category = category,
     merchant = merchant,
     period = com.pennywiseai.tracker.presentation.common.TimePeriod.ALL.name,
     currency = currency,
+    currencyOnly = true,
 )
 
 /** Where an insight's button leads; the domain names the target, the app picks the screen. */

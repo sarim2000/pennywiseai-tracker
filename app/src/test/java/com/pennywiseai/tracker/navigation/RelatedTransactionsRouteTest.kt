@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.navigation
 
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -9,9 +11,9 @@ import org.junit.Test
 class RelatedTransactionsRouteTest {
 
     @Test
-    fun `More from lists the raw merchant across all time, in the row's currency`() {
+    fun `More from lists the raw merchant across all time, pinned to the row's currency`() {
         assertEquals(
-            TransactionsWithFilter(merchant = "SAMPLE MART 01", period = "ALL", currency = "AED"),
+            TransactionsWithFilter(merchant = "SAMPLE MART 01", period = "ALL", currency = "AED", currencyOnly = true),
             relatedTransactions(merchant = "SAMPLE MART 01", category = null, currency = "AED")
         )
     }
@@ -23,14 +25,30 @@ class RelatedTransactionsRouteTest {
         assertNull(list.merchant)
         // Earlier rows too, not just the list's default This Month.
         assertEquals(TimePeriod.ALL.name, list.period)
-        assertEquals("INR" to false, list.currency to list.currencyOnly)
+        assertEquals("INR" to true, list.currency to list.currencyOnly)
     }
 
     @Test
-    fun `the same link twice is the same list, so it isn't stacked again`() {
+    fun `a link to the list right under the detail goes back to it`() {
+        val list = relatedTransactions("SAMPLE MART 01", null, "INR")
+        val s = NavBackStack(Home, list, TransactionDetail(1))
+        s.openFrom(TransactionDetail(1), list)
+        assertEquals(listOf<NavKey>(Home, list), s.toList())
+    }
+
+    @Test
+    fun `a link to a list deeper in the stack opens it again and drops nothing`() {
+        val amazon = relatedTransactions("SAMPLE MART 01", null, "INR")
+        val food = relatedTransactions(null, "Food & Dining", "INR")
+        val s = NavBackStack(Home, amazon, TransactionDetail(1), food, TransactionDetail(2))
+        s.openFrom(TransactionDetail(2), amazon)
         assertEquals(
-            relatedTransactions("SAMPLE MART 01", null, "INR"),
-            relatedTransactions("SAMPLE MART 01", null, "INR")
+            listOf(Home, amazon, TransactionDetail(1), food, TransactionDetail(2), amazon),
+            s.toList()
         )
+
+        val fromHome = NavBackStack(Home, TransactionDetail(3))
+        fromHome.openFrom(TransactionDetail(3), food)
+        assertEquals(listOf(Home, TransactionDetail(3), food), fromHome.toList())
     }
 }

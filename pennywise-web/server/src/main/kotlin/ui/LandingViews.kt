@@ -146,13 +146,16 @@ object LandingViews {
                     tile("lp-tile-cur", "shape-burst", "¤", "Multi-currency, done right",
                         "Every account keeps its own currency. Totals are shown per currency and never mixed.")
                     tile("", "shape-clover", "⇪", "Import statements",
-                        "PDF (even password-protected), Excel and CSV, with column mapping, preview and a balance check.")
+                        "PDF (even password-protected), Excel and CSV, with column mapping, preview and a balance check. " +
+                            "Free includes one statement import a month; Pro removes the limit.")
                     tile("", "shape-cookie", "▦", "Widgets & quick add",
                         "Budget, recent-transaction, spending and goal widgets, plus a Quick Settings tile.")
                     tile("", "shape-sunny", "⟲", "Backups you own",
-                        "Full backup and restore to a file or a folder you choose, and CSV export whenever you want it.")
+                        "Full backup and restore to a file you choose. CSV export covers 100 rows a month free; " +
+                            "Pro makes it unlimited and adds scheduled daily backups.")
                     tile("", "shape-burst", "⚑", "Rules that learn",
-                        "Categories, tags and rules with several conditions. PennyWise remembers how you sort each merchant.")
+                        "Categories, tags and rules with several conditions (three rules free, unlimited with Pro). " +
+                            "PennyWise remembers how you sort each merchant.")
                 }
             }
         }

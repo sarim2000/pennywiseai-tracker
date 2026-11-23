@@ -23,11 +23,14 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import com.pennywiseai.tracker.domain.spending.CardBillStatus
+import com.pennywiseai.tracker.domain.spending.CardTotals
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
@@ -35,6 +38,7 @@ import com.pennywiseai.tracker.ui.components.SupportNudgeCard
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
@@ -399,6 +403,16 @@ fun ManageAccountsScreen(
 
                 if (visibleCreditCards.isNotEmpty()) {
                     item { AccountsSectionHeader(stringResource(R.string.manage_accounts_section_credit_cards)) }
+                    // Totals across cards (#1393); with one card its own row already says it all.
+                    if (visibleCreditCards.size > 1) {
+                        item(key = "card_totals") {
+                            CardTotalsCard(
+                                cards = visibleCreditCards,
+                                bills = uiState.cardBills,
+                                modifier = Modifier.padding(bottom = Spacing.sm)
+                            )
+                        }
+                    }
                     itemsIndexed(visibleCreditCards, key = { _, a -> accountKey(a) }) { index, card ->
                         Box(Modifier.animateItem()) {
                             creditCardItem(card, false, ListItemPosition.from(index, visibleCreditCards.size))
@@ -691,15 +705,8 @@ private fun AccountsSummaryCards(
             .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        val accountCurrency = { account: AccountBalanceEntity ->
-            CurrencyFormatter.resolveAccountCurrency(
-                sourceType = account.sourceType,
-                storedCurrency = account.currency,
-                bankName = account.bankName
-            )
-        }
         if (bankAccounts.isNotEmpty()) {
-            val held = bankAccounts.sumByCurrency(currencySelector = accountCurrency, amountSelector = { it.balance })
+            val held = bankAccounts.sumByCurrency(currencySelector = ::accountCurrency, amountSelector = { it.balance })
             AccountsSummaryCard(
                 icon = Icons.Default.AccountBalance,
                 label = stringResource(R.string.manage_accounts_summary_held),
@@ -712,7 +719,7 @@ private fun AccountsSummaryCards(
             )
         }
         if (creditCards.isNotEmpty()) {
-            val owed = creditCards.sumByCurrency(currencySelector = accountCurrency, amountSelector = { it.balance })
+            val owed = creditCards.sumByCurrency(currencySelector = ::accountCurrency, amountSelector = { it.balance })
             AccountsSummaryCard(
                 icon = Icons.Default.CreditCard,
                 label = stringResource(R.string.manage_accounts_summary_owed),
@@ -724,6 +731,81 @@ private fun AccountsSummaryCards(
                     .fillMaxHeight()
             )
         }
+    }
+}
+
+/** The currency an account's totals on this screen are kept in. */
+private fun accountCurrency(account: AccountBalanceEntity): String =
+    CurrencyFormatter.resolveAccountCurrency(
+        sourceType = account.sourceType,
+        storedCurrency = account.currency,
+        bankName = account.bankName
+    )
+
+/**
+ * Totals across the visible credit cards: the limit they leave unused and what's
+ * still to pay on their bills, each per currency. What they owe is "Owed on cards"
+ * above. Cards a figure can't count (no limit set, or owing with no current bill)
+ * are named under it. Nothing to total, no card.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CardTotalsCard(
+    cards: List<AccountBalanceEntity>,
+    bills: List<CardBillStatus>,
+    modifier: Modifier = Modifier,
+) {
+    val keys = cards.map { it.bankName to it.accountLast4 }.toSet()
+    val cardBills = bills.filter { (it.card.bankName to it.card.accountLast4) in keys }
+    val withLimit = cards.count(CardTotals::hasLimit)
+    val knownBills = cardBills.count { it.isKnown }
+    if (withLimit == 0 && knownBills == 0) return
+    val withoutLimit = cards.size - withLimit
+    val withoutBill = cardBills.count { !it.isKnown && it.card.balance.signum() > 0 }
+
+    PennyWiseCardV2(modifier = modifier.fillMaxWidth()) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            if (withLimit > 0) {
+                CardTotalFigure(
+                    label = stringResource(R.string.manage_accounts_cards_unused_limit),
+                    value = CurrencyFormatter.formatByCurrency(CardTotals.unusedLimit(cards, ::accountCurrency))
+                )
+            }
+            if (knownBills > 0) {
+                CardTotalFigure(
+                    label = stringResource(R.string.manage_accounts_cards_unpaid_bills),
+                    value = CurrencyFormatter.formatByCurrency(CardTotals.unpaidBills(cardBills))
+                )
+            }
+        }
+        val notes = listOfNotNull(
+            if (withLimit > 0 && withoutLimit > 0) {
+                pluralStringResource(R.plurals.manage_accounts_cards_no_limit, withoutLimit, withoutLimit)
+            } else null,
+            if (knownBills > 0 && withoutBill > 0) {
+                pluralStringResource(R.plurals.manage_accounts_cards_no_bill, withoutBill, withoutBill)
+            } else null,
+        )
+        notes.forEach { note ->
+            Text(
+                text = note,
+                style = PennyWiseText.metadata,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.sm)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CardTotalFigure(label: String, value: String) {
+    Column(Modifier.semantics(mergeDescendants = true) {}) {
+        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = value, style = PennyWiseText.amountRow)
     }
 }
 

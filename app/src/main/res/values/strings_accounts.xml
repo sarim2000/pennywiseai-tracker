@@ -161,6 +161,17 @@
     <!-- Summary cards at the top of Manage Accounts -->
     <string name="manage_accounts_summary_held">In your accounts</string>
     <string name="manage_accounts_summary_owed">Owed on cards</string>
+    <!-- Totals across the credit cards, heading the Credit cards section -->
+    <string name="manage_accounts_cards_unused_limit">Unused limit</string>
+    <string name="manage_accounts_cards_unpaid_bills">Unpaid bills</string>
+    <plurals name="manage_accounts_cards_no_limit">
+        <item quantity="one">%1$d card has no limit set, so it isn\'t in Unused limit.</item>
+        <item quantity="other">%1$d cards have no limit set, so they aren\'t in Unused limit.</item>
+    </plurals>
+    <plurals name="manage_accounts_cards_no_bill">
+        <item quantity="one">%1$d card owes money with no current bill entered, so it isn\'t in Unpaid bills.</item>
+        <item quantity="other">%1$d cards owe money with no current bill entered, so they aren\'t in Unpaid bills.</item>
+    </plurals>
     <string name="manage_accounts_more_options">More options</string>
     <string name="manage_accounts_action_edit">Edit</string>
     <string name="manage_accounts_action_update">Update</string>

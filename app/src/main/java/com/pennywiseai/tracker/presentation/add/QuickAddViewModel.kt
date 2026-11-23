@@ -8,9 +8,11 @@ import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.manager.ChatDraftInbox
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
+import com.pennywiseai.tracker.data.model.MerchantSuggestion
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
@@ -19,6 +21,7 @@ import com.pennywiseai.tracker.widget.WidgetRefresher
 import com.pennywiseai.tracker.worker.MoneyAlertWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -54,6 +57,7 @@ class QuickAddViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val transactionRepository: TransactionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val merchantMappingRepository: MerchantMappingRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val modelRepository: ModelRepository,
     private val chatDrafts: ChatDraftInbox
@@ -99,6 +103,19 @@ class QuickAddViewModel @Inject constructor(
         accountLast4 = draft.account?.accountLast4,
         currency = draft.currency
     )
+
+    /** Past merchants for the "where" typed (#1392); none if the lookup fails, as typing goes on. */
+    suspend fun suggestMerchants(typed: String, profileId: Long?): List<MerchantSuggestion> = try {
+        transactionRepository.suggestMerchants(typed, profileId)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w(TAG, "Merchant suggestions failed", e)
+        emptyList()
+    }
+
+    /** The category learned for [merchant], the one an SMS from it gets. */
+    suspend fun categoryFor(merchant: String): String? = merchantMappingRepository.getCategoryForMerchant(merchant)
 
     /** After a confirmed save, apart from it: a refresh that fails mustn't make a saved row look failed. */
     fun afterSave() {

@@ -45,6 +45,7 @@ import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.domain.review.GUESS_HISTORY_WEEKS
+import com.pennywiseai.tracker.domain.review.GUESS_SETTLE_MS
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewPrompt
@@ -72,6 +73,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -1433,7 +1435,8 @@ class HomeViewModel @Inject constructor(
      * Last week's guess, until it's answered or dismissed. Follows the date, the rows in
      * scope, Home's currency, the categories and the splits: a split save changes the
      * recorded total without changing the transaction count. Reads nothing for a week
-     * already handled.
+     * already handled, or while a scan runs: every imported row would rerun five weeks.
+     * Other bursts of writes settle for [GUESS_SETTLE_MS] before the read.
      */
     private fun observeWeeklyGuess() {
         viewModelScope.launch {
@@ -1450,13 +1453,24 @@ class HomeViewModel @Inject constructor(
                 combine(
                     userPreferencesRepository.weeklyGuessHandledWeek.distinctUntilChanged(),
                     userPreferencesRepository.weeklyGuessOff.distinctUntilChanged(),
-                    ::Pair,
+                    _uiState.map { it.isScanning }.distinctUntilChanged(),
+                    ::Triple,
                 ),
                 categoryRepository.getAllCategories(),
-            ) { day, _, currency, (handled, off), categories -> GuessInputs(day, currency, handled, off, categories) }
-                .collectLatest { (day, currency, handled, off, categories) ->
+            ) { day, _, currency, (handled, off, scanning), categories ->
+                GuessInputs(day, currency, handled, off, scanning, categories)
+            }
+                .collectLatest { (day, currency, handled, off, scanning, categories) ->
                     val weekStart = reviewRange(ReviewKind.WEEK, -1, day, 1, localFirstDayOfWeek()).start
-                    _weeklyGuess.value = if (!asksWeeklyGuess(weekStart, handled, off)) null else withContext(Dispatchers.Default) {
+                    // A scan can move the figure: an open guess not yet locked in closes, and
+                    // the card comes back with the fresh question once the scan is done.
+                    if (scanning) _guessSheet.update { it?.takeIf { sheet -> sheet.guess != null } }
+                    if (!asksWeeklyGuess(weekStart, handled, off, scanning)) {
+                        _weeklyGuess.value = null
+                        return@collectLatest
+                    }
+                    delay(GUESS_SETTLE_MS)
+                    _weeklyGuess.value = withContext(Dispatchers.Default) {
                         val detail = periodReviewLoader.lastWeeks(GUESS_HISTORY_WEEKS + 1, day)
                         weeklyGuessQuestion(
                             weeks = detail.cycles,
@@ -1477,6 +1491,7 @@ class HomeViewModel @Inject constructor(
         val currency: String,
         val handled: String?,
         val off: Boolean,
+        val scanning: Boolean,
         val categories: List<CategoryEntity>,
     )
 

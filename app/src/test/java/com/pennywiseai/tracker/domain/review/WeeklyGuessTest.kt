@@ -189,11 +189,12 @@ class WeeklyGuessTest {
     }
 
     @Test
-    fun `asks until the week is handled or the guess is turned off`() {
-        assertTrue(asksWeeklyGuess(lastStart, handledWeek = null, off = false))
+    fun `asks until the week is handled or the guess is turned off, and never mid-scan`() {
+        assertTrue(asksWeeklyGuess(lastStart, handledWeek = null, off = false, scanning = false))
         // An older week answered or put off doesn't stop this one.
-        assertTrue(asksWeeklyGuess(lastStart, handledWeek = "2026-11-02", off = false))
-        assertFalse(asksWeeklyGuess(lastStart, handledWeek = "2026-11-09", off = false))
-        assertFalse(asksWeeklyGuess(lastStart, handledWeek = null, off = true))
+        assertTrue(asksWeeklyGuess(lastStart, handledWeek = "2026-11-02", off = false, scanning = false))
+        assertFalse(asksWeeklyGuess(lastStart, handledWeek = "2026-11-09", off = false, scanning = false))
+        assertFalse(asksWeeklyGuess(lastStart, handledWeek = null, off = true, scanning = false))
+        assertFalse(asksWeeklyGuess(lastStart, handledWeek = null, off = false, scanning = true))
     }
 }

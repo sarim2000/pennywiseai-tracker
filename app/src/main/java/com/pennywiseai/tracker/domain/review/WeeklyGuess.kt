@@ -31,10 +31,14 @@ const val CLOSE_GUESS_PERCENT = 15
 
 /**
  * Whether Home asks about the week starting [weekStart]: not once the user chose "Don't
- * ask again" ([off]), and not for a week already answered or put off ([handledWeek]).
+ * ask again" ([off]), not for a week already answered or put off ([handledWeek]), and not
+ * while a scan runs ([scanning]): the figure would move under the guess.
  */
-internal fun asksWeeklyGuess(weekStart: LocalDate, handledWeek: String?, off: Boolean): Boolean =
-    !off && handledWeek != weekStart.toString()
+internal fun asksWeeklyGuess(weekStart: LocalDate, handledWeek: String?, off: Boolean, scanning: Boolean): Boolean =
+    !off && !scanning && handledWeek != weekStart.toString()
+
+/** How long writes have to settle before the weekly question reads five weeks again. */
+internal const val GUESS_SETTLE_MS = 500L
 
 /**
  * The question for the last of [weeks] (per currency, oldest first, ending with the week

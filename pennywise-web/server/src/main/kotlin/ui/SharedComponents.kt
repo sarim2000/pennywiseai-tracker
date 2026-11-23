@@ -446,18 +446,23 @@ object SharedComponents {
         .footer-col a:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
 
         @media (max-width: 960px) {
-          .header-cta { display: none; }
+          /* Room for the Pro chip and the header CTA: GitHub and Discord stay in the footer.
+             (Don't name the Pro link's label here: this CSS ships on the in-app guide too.) */
+          .nav-links a.nav-icon { display: none; }
+          .nav-links a { padding: 0 12px; }
+          .header-cta { padding: 0 18px; }
           .footer-inner { grid-template-columns: 1fr 1fr; }
           .footer-brand { grid-column: 1 / -1; }
         }
         @media (max-width: 720px) {
           .header { padding: 10px 0 8px; margin-bottom: 16px; }
           .header-content { flex-wrap: wrap; gap: 8px; padding: 0 16px; }
-          /* Nav becomes a horizontally scrollable chip row under the brand. */
-          .nav-links { order: 3; width: 100%; margin: 0 -16px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+          /* Brand and Get the app share the top row; the nav becomes a chip row under them
+             (it only scrolls sideways on screens narrower than ~350px). */
+          .header-cta { margin-left: auto; height: 40px; padding: 0 16px; font-size: 14px; }
+          .nav-links { order: 3; width: calc(100% + 32px); margin: 0 -16px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
           .nav-links::-webkit-scrollbar { display: none; }
           .nav-links a { height: 36px; padding: 0 12px; font-size: 14px; }
-          .nav-links a.nav-icon { width: 36px; }
           .container { padding: 4px 16px 32px; }
           .grid { grid-template-columns: 1fr 1fr; }
           .grid a { font-size: 14px; padding: 12px 14px; }

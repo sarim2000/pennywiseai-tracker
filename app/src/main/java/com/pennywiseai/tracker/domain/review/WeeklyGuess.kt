@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.domain.review
 
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -21,6 +23,8 @@ data class WeeklyGuessQuestion(
     val step: BigDecimal,
     /** Quick picks at an eighth, a quarter, half and three quarters of [max]. */
     val chips: List<BigDecimal>,
+    /** Card purchases in this category and week that [actual] leaves out: see [leavesOutCardSpend]. */
+    val cardSpendLeftOut: Boolean = false,
 )
 
 /** Weeks of history the slider's top is drawn from. */
@@ -88,6 +92,23 @@ internal fun weeklyGuessQuestion(
         chips = listOf("0.125", "0.25", "0.5", "0.75").map { snap(max * BigDecimal(it), step) }
             .filter { it.signum() > 0 }.distinct(),
     )
+}
+
+/**
+ * Whether card purchases in [question]'s category, currency and week are missing from its
+ * figure: Review follows "Count card spend as expense", and with it off they aren't
+ * spending. [payments] are the weeks' charges ([PeriodDetail.paymentRows]).
+ */
+internal fun leavesOutCardSpend(
+    question: WeeklyGuessQuestion,
+    payments: List<TransactionEntity>,
+    creditAsExpense: Boolean,
+    parentOf: Map<String, String>,
+): Boolean = !creditAsExpense && payments.any { tx ->
+    tx.transactionType == TransactionType.CREDIT &&
+        tx.currency == question.currency &&
+        tx.dateTime.toLocalDate() in question.weekStart..question.weekEnd &&
+        tx.category.ifEmpty { "Others" }.let { parentOf[it] ?: it } == question.category
 }
 
 /**

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.domain.review
 
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -196,5 +198,34 @@ class WeeklyGuessTest {
         assertFalse(asksWeeklyGuess(lastStart, handledWeek = "2026-11-09", off = false, scanning = false))
         assertFalse(asksWeeklyGuess(lastStart, handledWeek = null, off = true, scanning = false))
         assertFalse(asksWeeklyGuess(lastStart, handledWeek = null, off = false, scanning = true))
+    }
+
+    @Test
+    fun `card purchases in the asked category and week are flagged only while card spend is left out`() {
+        val q = question(mapOf("USD" to weeks(mapOf("Food & Dining" to "40"))))!!
+        fun charge(category: String, day: LocalDate = lastStart.plusDays(2), currency: String = "USD", type: TransactionType = TransactionType.CREDIT) =
+            TransactionEntity(
+                amount = BigDecimal.TEN,
+                merchantName = "Test Shop",
+                category = category,
+                currency = currency,
+                transactionType = type,
+                dateTime = day.atTime(12, 0),
+                transactionHash = "$category$day$currency$type",
+            )
+        val parentOf = mapOf("Restaurants" to "Food & Dining")
+
+        assertTrue(leavesOutCardSpend(q, listOf(charge("Food & Dining")), creditAsExpense = false, parentOf))
+        // A child category rolls up, as in the review.
+        assertTrue(leavesOutCardSpend(q, listOf(charge("Restaurants")), creditAsExpense = false, parentOf))
+        // Counted as expense: nothing is missing.
+        assertFalse(leavesOutCardSpend(q, listOf(charge("Food & Dining")), creditAsExpense = true, parentOf))
+        // Another category, currency, week, or a debit charge: not this figure's concern.
+        assertFalse(leavesOutCardSpend(q, listOf(charge("Shopping")), creditAsExpense = false, parentOf))
+        assertFalse(leavesOutCardSpend(q, listOf(charge("Food & Dining", currency = "INR")), creditAsExpense = false, parentOf))
+        assertFalse(leavesOutCardSpend(q, listOf(charge("Food & Dining", day = lastStart.minusDays(1))), creditAsExpense = false, parentOf))
+        assertFalse(
+            leavesOutCardSpend(q, listOf(charge("Food & Dining", type = TransactionType.EXPENSE)), creditAsExpense = false, parentOf),
+        )
     }
 }

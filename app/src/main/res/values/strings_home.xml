@@ -478,6 +478,8 @@
     <string name="weekly_guess_stop">Don\'t ask again</string>
     <!-- %1$s is the week's dates, e.g. "Nov 9 – 15". -->
     <string name="weekly_guess_week">%1$s · from your bank messages</string>
+    <!-- %1$s is the setting's name, "Count card spend as expense". -->
+    <string name="weekly_guess_card_left_out">Card purchases aren\'t counted: \"%1$s\" is off in Settings.</string>
     <string name="weekly_guess_your_guess">Your guess</string>
     <string name="weekly_guess_lock_in">Lock in my guess</string>
     <string name="weekly_guess_hit">Sharp guess!</string>

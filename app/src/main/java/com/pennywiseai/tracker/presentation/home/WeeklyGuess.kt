@@ -180,6 +180,17 @@ internal fun WeeklyGuessSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
+                if (question.cardSpendLeftOut) {
+                    Text(
+                        text = stringResource(
+                            R.string.weekly_guess_card_left_out,
+                            stringResource(R.string.settings_card_spend_as_expense_title),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 if (guess == null) {
                     GuessPicker(question, onLockIn)
                 } else {

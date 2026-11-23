@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
+import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.data.ledger.convertedSpent
 import com.pennywiseai.tracker.data.ledger.forTotals
@@ -52,6 +53,7 @@ import com.pennywiseai.tracker.domain.review.ReviewPrompt
 import com.pennywiseai.tracker.domain.review.WeeklyGuessQuestion
 import com.pennywiseai.tracker.domain.review.asksWeeklyGuess
 import com.pennywiseai.tracker.domain.review.isCloseGuess
+import com.pennywiseai.tracker.domain.review.leavesOutCardSpend
 import com.pennywiseai.tracker.domain.review.localFirstDayOfWeek
 import com.pennywiseai.tracker.domain.review.reviewPromptFor
 import com.pennywiseai.tracker.domain.review.reviewRange
@@ -1442,7 +1444,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 // The card-spend setting changes Review's figures without changing any rows.
-                combine(today, userPreferencesRepository.countCreditCardAsExpense.distinctUntilChanged()) { day, _ -> day },
+                combine(today, userPreferencesRepository.countCreditCardAsExpense.distinctUntilChanged(), ::Pair),
                 // Splits land in their own table, sometimes after the transaction row, so the
                 // question has to recompute on that write too or it keeps the old total.
                 combine(
@@ -1457,10 +1459,10 @@ class HomeViewModel @Inject constructor(
                     ::Triple,
                 ),
                 categoryRepository.getAllCategories(),
-            ) { day, _, currency, (handled, off, scanning), categories ->
-                GuessInputs(day, currency, handled, off, scanning, categories)
+            ) { (day, creditAsExpense), _, currency, (handled, off, scanning), categories ->
+                GuessInputs(day, creditAsExpense, currency, handled, off, scanning, categories)
             }
-                .collectLatest { (day, currency, handled, off, scanning, categories) ->
+                .collectLatest { (day, creditAsExpense, currency, handled, off, scanning, categories) ->
                     val weekStart = reviewRange(ReviewKind.WEEK, -1, day, 1, localFirstDayOfWeek()).start
                     // A scan can move the figure: an open guess not yet locked in closes, and
                     // the card comes back with the fresh question once the scan is done.
@@ -1480,7 +1482,11 @@ class HomeViewModel @Inject constructor(
                             food = categories.nameForBuiltin("Food & Dining"),
                             others = setOf("Others", categories.nameForBuiltin("Others")),
                             preferred = currency,
-                        )
+                        )?.let { question ->
+                            question.copy(
+                                cardSpendLeftOut = leavesOutCardSpend(question, detail.paymentRows, creditAsExpense, categories.parentNameOf()),
+                            )
+                        }
                     }
                 }
         }
@@ -1488,6 +1494,7 @@ class HomeViewModel @Inject constructor(
 
     private data class GuessInputs(
         val day: LocalDate,
+        val creditAsExpense: Boolean,
         val currency: String,
         val handled: String?,
         val off: Boolean,

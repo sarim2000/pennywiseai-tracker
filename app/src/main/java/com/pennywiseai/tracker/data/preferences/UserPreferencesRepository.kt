@@ -62,27 +62,6 @@ internal object SmsScanAllTimeMigration : androidx.datastore.core.DataMigration<
 }
 
 /**
- * The under-budget card's dismissal was one string, so a second currency replaced the first.
- * Anyone who already dismissed a card keeps that one key when it becomes a set.
- */
-internal object BudgetMonthCardDismissalsMigration : androidx.datastore.core.DataMigration<Preferences> {
-    private const val NAME = "budget_month_card_dismissed"
-
-    override suspend fun cleanUp() {}
-
-    override suspend fun shouldMigrate(currentData: Preferences): Boolean =
-        currentData.asMap().any { (key, value) -> key.name == NAME && value is String }
-
-    override suspend fun migrate(currentData: Preferences): Preferences {
-        val prefs = currentData.toMutablePreferences()
-        val old = prefs.asMap().entries.firstOrNull { it.key.name == NAME }?.value as? String
-        prefs.remove(stringPreferencesKey(NAME))
-        if (!old.isNullOrEmpty()) prefs[stringSetPreferencesKey(NAME)] = setOf(old)
-        return prefs
-    }
-}
-
-/**
  * Dismissal keys still worth keeping: last month's, and only during the first [eligibleDays]
  * of this one. Keys look like `budget_month:2026-10:JOD`.
  */
@@ -94,7 +73,7 @@ internal fun eligibleBudgetMonthDismissals(keys: Set<String>, today: LocalDate, 
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = USER_PREFERENCES_STORE_NAME,
-    produceMigrations = { _ -> listOf(SmsScanAllTimeMigration, BudgetMonthCardDismissalsMigration) }
+    produceMigrations = { _ -> listOf(SmsScanAllTimeMigration) }
 )
 
 /**
@@ -185,7 +164,7 @@ open class UserPreferencesRepository internal constructor(
         // Moments already celebrated with confetti ("goal_reached:12"), so each fires once. Device-local.
         val CELEBRATED_MOMENTS = stringSetPreferencesKey("celebrated_moments")
         // "Month ended under budget" cards the user closed ("budget_month:2026-10:INR"), one per currency. Device-local.
-        val BUDGET_MONTH_CARD_DISMISSED = stringSetPreferencesKey("budget_month_card_dismissed")
+        val BUDGET_MONTH_CARD_DISMISSED = stringSetPreferencesKey("budget_month_cards_dismissed")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")

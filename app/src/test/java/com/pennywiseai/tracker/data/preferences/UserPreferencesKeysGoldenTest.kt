@@ -4,7 +4,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -72,18 +71,6 @@ class UserPreferencesKeysGoldenTest {
         assertFalse(SmsScanAllTimeMigration.shouldMigrate(preferencesOf(onboarded to false)))
     }
 
-    @Test
-    fun `migration keeps one dismissed month when the card key becomes a set`() = runBlocking {
-        val legacy = stringPreferencesKey("budget_month_card_dismissed")
-        val setKey = stringSetPreferencesKey("budget_month_card_dismissed")
-        val old = preferencesOf(legacy to "budget_month:2026-10:JOD")
-        assertTrue(BudgetMonthCardDismissalsMigration.shouldMigrate(old))
-        val migrated = BudgetMonthCardDismissalsMigration.migrate(old)
-        assertEquals(setOf("budget_month:2026-10:JOD"), migrated[setKey])
-        assertFalse(BudgetMonthCardDismissalsMigration.shouldMigrate(migrated))
-        assertFalse(BudgetMonthCardDismissalsMigration.shouldMigrate(preferencesOf()))
-    }
-
     private companion object {
         val VALUE_TYPES = mapOf(
             "java.lang.Boolean" to "Boolean",
@@ -111,7 +98,7 @@ class UserPreferencesKeysGoldenTest {
             "red_spending" to "Boolean",
             "budget_alerts_enabled" to "Boolean",
             "budget_cycle_start_day" to "Int",
-            "budget_month_card_dismissed" to "Set<String>",
+            "budget_month_cards_dismissed" to "Set<String>",
             "conscience_enabled" to "Boolean",
             "celebrated_moments" to "Set<String>",
             "conscience_log" to "Set<String>",

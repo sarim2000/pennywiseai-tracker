@@ -237,8 +237,15 @@ fun PennyWiseNavHost(
                                 onCreateGoal = {
                                     backStack.navigate(GoalEdit())
                                 },
+                                // A linked payment or expense stacks on top, so back returns here.
+                                // When it's the screen just below, go back to it instead of stacking.
                                 onNavigateToTransaction = { id ->
-                                    backStack.navigate(TransactionDetail(id))
+                                    val target = TransactionDetail(id)
+                                    if (backStack.getOrNull(backStack.lastIndex - 1) == target) {
+                                        backStack.pop(key)
+                                    } else {
+                                        backStack.add(target)
+                                    }
                                 },
                                 onNavigateToReimbursements = {
                                     backStack.navigate(Reimbursements)

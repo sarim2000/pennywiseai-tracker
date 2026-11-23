@@ -114,8 +114,15 @@ class QuickAddViewModel @Inject constructor(
         emptyList()
     }
 
-    /** The category learned for [merchant], the one an SMS from it gets. */
-    suspend fun categoryFor(merchant: String): String? = merchantMappingRepository.getCategoryForMerchant(merchant)
+    /** The category learned for [merchant], the one an SMS from it gets; none if the lookup fails, the merchant stays filled. */
+    suspend fun categoryFor(merchant: String): String? = try {
+        merchantMappingRepository.getCategoryForMerchant(merchant)
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w(TAG, "Merchant category lookup failed", e)
+        null
+    }
 
     /** After a confirmed save, apart from it: a refresh that fails mustn't make a saved row look failed. */
     fun afterSave() {

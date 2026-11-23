@@ -39,6 +39,15 @@ class RelatedTransactionsRouteTest {
     }
 
     @Test
+    fun `a link from a row of another profile goes back to the list it came from`() {
+        // Opened from a Business row; the list (all profiles) also shows a Personal row of that merchant.
+        val list = relatedTransactions("SAMPLE MART 01", null, "INR", 2)
+        val s = NavBackStack(Home, TransactionDetail(1), list, TransactionDetail(2))
+        s.openFrom(TransactionDetail(2), relatedTransactions("SAMPLE MART 01", null, "INR", 1))
+        assertEquals(listOf<NavKey>(Home, TransactionDetail(1), list), s.toList())
+    }
+
+    @Test
     fun `a link to a list deeper in the stack opens it again and drops nothing`() {
         val amazon = relatedTransactions("SAMPLE MART 01", null, "INR", 1)
         val food = relatedTransactions(null, "Food & Dining", "INR", 1)

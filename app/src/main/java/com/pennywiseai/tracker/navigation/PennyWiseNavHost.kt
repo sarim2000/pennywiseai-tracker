@@ -66,8 +66,16 @@ fun NavBackStack<NavKey>.pop(key: NavKey) {
  * direct parent counts, so no other screen deeper in the stack is ever dropped.
  */
 fun NavBackStack<NavKey>.openFrom(from: NavKey, key: NavKey) {
-    if (lastOrNull() == from && getOrNull(lastIndex - 1) == key) removeAt(lastIndex) else navigate(key)
+    val under = getOrNull(lastIndex - 1)
+    if (lastOrNull() == from && under != null && sameScreen(under, key)) removeAt(lastIndex) else navigate(key)
 }
+
+/**
+ * Whether [a] and [b] open the same screen. A related list's row profile doesn't count: the
+ * list under a detail already shows that row, whichever row's link opened the list.
+ */
+private fun sameScreen(a: NavKey, b: NavKey) = a == b ||
+    (a is TransactionsWithFilter && b is TransactionsWithFilter && a.copy(rowProfileId = null) == b.copy(rowProfileId = null))
 
 /** popUpTo(the last screen matching [match]) { inclusive = true }, then [key] in its place. */
 fun NavBackStack<NavKey>.replaceLast(key: NavKey, match: (NavKey) -> Boolean) {

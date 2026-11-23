@@ -13,7 +13,6 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.events.MascotMoment
 import com.pennywiseai.tracker.data.events.TransactionEvent
-import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.utils.Money
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -84,12 +83,6 @@ internal const val REACTION_HOLD_MS = 3000L
  * backup in Settings) waits for the bar to come back before it's dropped as stale.
  */
 internal const val REACTION_WAIT_MS = 90_000L
-
-/**
- * How long the owl shows as the bar comes back before it turns into a held reaction: past
- * the bar's own entrance. A waiting reaction's hold starts after this beat.
- */
-internal const val CHAT_TAB_ENTRANCE_MS = 350L
 
 /** A scan is running: a message bubble, reading. */
 internal val SCANNING = MascotReaction(MascotShape.Bubble, MascotMood.Thinking)
@@ -178,8 +171,8 @@ private const val GOAL_FILL = 0.55f
  * Saves and moments come in through [onSave] and [onMoment] while the Chat tab is
  * visible, for as long as [scope] lives (the Chat tab's ViewModel), so one made on a screen
  * pushed over the tabs still shows when the bar comes back. Its hold starts once the bar
- * is up and past its entrance ([onBarShown]): made while the bar is away, it waits up to
- * [waitMillis] for it, then goes unseen. A toggle never waits: it answers the switch now
+ * says it is up and past its entrance ([onBarShown]): made while the bar is away, it
+ * waits up to [waitMillis] for it, then goes unseen. A toggle never waits: it answers the switch now
  * or not at all. The timers run on [scope], so they end on time whether or not anyone
  * watches; [clear] drops the reaction early.
  */
@@ -194,9 +187,6 @@ internal class ChatTabReactions(
 
     /** Whether the bar is up and past its entrance, so a hold can start. */
     private var barShown = true
-
-    /** The bar's entrance beat, while the owl it brings back hasn't turned yet. */
-    private var arriving: Job? = null
 
     /** Whether [flash]'s hold has started; until then it waits for the bar. */
     private var holding = false
@@ -223,32 +213,14 @@ internal class ChatTabReactions(
     }
 
     /**
-     * The bar came up or went away. Coming up, it shows the plain owl for [entranceMillis]
-     * first; then a reaction waiting for it starts its hold, so none of the hold is spent
-     * on the owl. One already holding runs out on time.
+     * The bar went away, or is up and past its entrance: the owl it brought back has
+     * turned, so a reaction waiting for it starts its hold now and none of it is spent on
+     * the owl. The bar times that beat itself, so the hold and what the user sees share one
+     * clock. One already holding runs out on time.
      */
-    fun onBarShown(shown: Boolean, entranceMillis: Long = 0L) {
-        if (!shown) {
-            arriving?.cancel()
-            arriving = null
-            barShown = false
-            return
-        }
-        if (barShown || arriving?.isActive == true) return
-        if (entranceMillis <= 0L) {
-            barArrived()
-        } else {
-            arriving = scope.launch {
-                delay(entranceMillis)
-                barArrived()
-            }
-        }
-    }
-
-    private fun barArrived() {
-        arriving = null
-        barShown = true
-        if (flash != null && !holding) startHold()
+    fun onBarShown(shown: Boolean) {
+        barShown = shown
+        if (shown && flash != null && !holding) startHold()
     }
 
     /**
@@ -330,17 +302,16 @@ internal class ChatTabReactions(
 
 /**
  * Follows the scan while the screen is STARTED and returns what the tab shows. Call it
- * only while the Chat tab is shown, with whether the bar is up ([barShown]); leaving
- * composition counts as the bar going away. Going to the background clears the reaction;
- * one made while a screen covers the tabs waits for them and shows on return.
+ * only while the Chat tab is shown, with whether the bar is up and past its entrance
+ * ([barShown], as PennyWiseBottomNavigation reports it); leaving composition counts as the
+ * bar going away. Going to the background clears the reaction; one made while a screen
+ * covers the tabs waits for them and shows on return.
  */
 @Composable
 internal fun rememberChatTabReaction(reactions: ChatTabReactions, scan: Flow<SmsScanStatus>, barShown: Boolean): MascotReaction? {
-    // The bar brings back the plain owl for this beat (PennyWiseBottomNavigation) before it turns.
-    val entranceMillis = if (rememberAnimationsEnabled()) CHAT_TAB_ENTRANCE_MS else 0L
     // A root screen (a goal, Settings) covers the tabs, bar and all: gone counts as hidden.
     DisposableEffect(reactions, barShown) {
-        reactions.onBarShown(barShown, entranceMillis)
+        reactions.onBarShown(barShown)
         onDispose { reactions.onBarShown(false) }
     }
     val lifecycle = LocalLifecycleOwner.current.lifecycle

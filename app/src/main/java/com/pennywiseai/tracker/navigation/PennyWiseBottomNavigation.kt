@@ -55,6 +55,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,7 +85,6 @@ import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.components.DockedActionButton
 import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.NavDockState
-import com.pennywiseai.tracker.ui.components.mascot.CHAT_TAB_ENTRANCE_MS
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.components.mascot.MascotReaction
@@ -122,6 +122,11 @@ fun PennyWiseBottomNavigation(
     hiddenTabs: Set<String> = emptySet(),
     /** What the Chat tab's owl has turned into for a moment, or null for the owl. */
     chatReaction: MascotReaction? = null,
+    /**
+     * Whether the bar is up and past its entrance beat, as it changes: the moment the owl
+     * turns into [chatReaction], so a waiting reaction's hold starts then and not before.
+     */
+    onSettledChange: (Boolean) -> Unit = {},
     hazeState: HazeState = remember { HazeState() },
     dock: NavDockState? = null,
 ) {
@@ -138,11 +143,15 @@ fun PennyWiseBottomNavigation(
     val animate = rememberAnimationsEnabled()
     // Set while the bar is away, so its first frame back is already the owl.
     var arriving by remember { mutableStateOf(animate) }
+    val settledChange by rememberUpdatedState(onSettledChange)
     LaunchedEffect(visible, animate) {
         arriving = animate
+        if (!visible || animate) settledChange(false)
         if (!visible) return@LaunchedEffect
         if (animate) delay(CHAT_TAB_ENTRANCE_MS)
         arriving = false
+        // One clock: the hold starts as the owl turns, however late the bar's first frame was.
+        settledChange(true)
     }
     val shownReaction = if (animate && arriving) null else chatReaction
 
@@ -663,3 +672,6 @@ private fun navBarExit(): ExitTransition {
     val motion = MaterialTheme.motionScheme
     return fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
 }
+
+/** How long the owl shows as the bar comes back before it turns into a held reaction: past the bar's own entrance. */
+private const val CHAT_TAB_ENTRANCE_MS = 350L

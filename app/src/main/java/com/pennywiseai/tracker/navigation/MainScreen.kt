@@ -805,10 +805,11 @@ fun MainScreen(
                 // The mascot playground keeps it up too: its reactions play on the real tab.
                 val barVisible = (onTabScreen || topKey == MascotPlayground) && !WindowInsets.isImeVisible && !hideNavBar.value
                 // The ViewModel hears saves and moments even while a pushed screen covers
-                // the tabs, and holds one made there until the bar comes back. A hidden
-                // Chat tab shows nothing and doesn't follow the scan.
+                // the tabs, and holds one made there until the bar is back and past its
+                // entrance. A hidden Chat tab shows nothing and doesn't follow the scan.
+                var barSettled by remember { mutableStateOf(false) }
                 val chatReaction = if (BottomNavItem.Chat.route !in hiddenTabs) {
-                    rememberChatTabReaction(chatTabViewModel.reactions, chatTabViewModel.scan, barVisible)
+                    rememberChatTabReaction(chatTabViewModel.reactions, chatTabViewModel.scan, barSettled)
                 } else null
                 PennyWiseBottomNavigation(
                     selectedRoute = lastTabRoute[0],
@@ -817,6 +818,7 @@ fun MainScreen(
                     visible = barVisible,
                     hiddenTabs = hiddenTabs,
                     chatReaction = chatReaction,
+                    onSettledChange = { barSettled = it },
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,
                     dock = dockForTabs,

@@ -1,7 +1,6 @@
-• Added IFIC Bank Bangladesh SMS support
-• Added Barq SMS support (Saudi Arabia)
-• Added Mobily Pay SMS support (Saudi Arabia)
-• Animated owl mascot in AI chat with live reactions
-• Dictate chat messages with your mic, in any language
-• Week, cycle and year spending reviews with a weekly recap and share card
-• Ask 'What was this?' on any transaction to tag it as a loan, split, transfer or saving
+• Material 3 Expressive redesign — navigation, Plan tab, and every screen restyled
+• New Insights page with an emergency runway calculator
+• Attach PDF receipts to transactions; backups cap their total size automatically
+• Monthly and yearly PDF spending reports
+• Share Studio — new card designs with live charts and a pick-what-you-share preview
+• Chat looks up spending by period, merchant, or account and links figures directly to their transactions

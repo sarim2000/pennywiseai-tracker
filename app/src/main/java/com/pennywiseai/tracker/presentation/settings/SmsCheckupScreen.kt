@@ -95,6 +95,7 @@ fun SmsCheckupScreen(
     ) { permissionViewModel.refreshNotificationAccess() }
 
     PennyWiseScaffold(
+        revealAmountsAction = false, // shows no amounts
         title = stringResource(R.string.sms_checkup_title),
         navigationIcon = {
             IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {

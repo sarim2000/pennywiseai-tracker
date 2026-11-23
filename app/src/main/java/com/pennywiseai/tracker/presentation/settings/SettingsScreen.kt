@@ -668,7 +668,9 @@ internal fun SettingsPageScaffold(
                 title = title,
                 hasBackButton = true,
                 navigationContent = { SettingsNavigationContent(onNavigateBack) },
-                hazeState = hazeState
+                hazeState = hazeState,
+                // Settings pages show no amounts.
+                revealAmountsAction = false,
             )
         }
     ) { paddingValues ->

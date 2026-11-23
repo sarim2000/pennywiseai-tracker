@@ -67,6 +67,14 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+/**
+ * List bottom padding (above [bottomBarClearance]) that lets the last row scroll a
+ * full gap clear of the Export + Add stack: the Scaffold's 16dp FAB margin, two
+ * small FABs in their 48dp touch-target slots with the gap between, then the gap.
+ */
+private val TransactionsFabStackClearance =
+    Spacing.md + Dimensions.Component.minTouchTarget * 2 + Spacing.sm + Spacing.md
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun TransactionsScreen(
@@ -553,8 +561,11 @@ fun TransactionsScreen(
                 state = listState,
                 modifier = Modifier.fillMaxSize().overScrollVertical(),
                 contentPadding = PaddingValues(
-                    bottom = paddingValues.calculateBottomPadding() + bottomBarClearance +
-                        if (selectionMode) Spacing.Layout.scrollBottomPadding else Dimensions.Component.fabScrollClearance
+                    bottom = paddingValues.calculateBottomPadding() + bottomBarClearance + when {
+                        selectionMode -> Spacing.Layout.scrollBottomPadding
+                        navDock != null -> Dimensions.Component.fabScrollClearance
+                        else -> TransactionsFabStackClearance
+                    }
                 ),
                 flingBehavior = rememberOverscrollFlingBehavior { listState }
             ) {

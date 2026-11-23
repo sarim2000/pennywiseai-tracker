@@ -56,7 +56,9 @@ fun AppLockScreen(
 
     PennyWiseScaffold(
         modifier = modifier,
-        transparentTopBar = true
+        transparentTopBar = true,
+        // Showing amounts is for whoever got past the lock.
+        revealAmountsAction = false,
     ) { innerPadding ->
         Box(
             modifier = Modifier

@@ -84,6 +84,11 @@ reference for each extra row, because duplicates are dropped. `--el timestamp
 `scripts/randomziedata.py` and `verify_anon_smsxml.py` only anonymize parser
 test XML. They don't seed the app.
 
+For a dense ledger (charts, long lists, Chat), run
+`ANDROID_SERIAL="$SERIAL" ./scripts/seed-debug.sh` on a fresh install instead
+of onboarding. It writes ~4,500 synthetic rows in JOD, USD and EUR and finishes
+onboarding; see `docs/debug-demo-data.md`.
+
 ## 5. Drive the flow, in light and dark
 
 Walk the flow from your inputs with the harness tool. Fall back to adb:

@@ -149,4 +149,18 @@ class ConsciencePreferencesTest {
         assertEquals(setOf("ar:repeat_01"), store.data.first()[likedKey])
         assertNull(repository.conscienceRemarks.first().single().reaction)
     }
+
+    @Test
+    fun `a stored remark of a kind this build doesn't know is skipped, not the list`() = runBlocking {
+        store.edit {
+            it[remarksKey] = """[
+                {"id":1,"atMillis":$now,"text":"gone","kind":"RENAMED","lineKey":"en:x_01"},
+                {"id":2,"atMillis":$now,"text":"kept","kind":"HELLO","lineKey":"en:hello_01"}
+            ]"""
+        }
+
+        assertEquals(listOf("kept"), repository.conscienceRemarks.first().map { it.text })
+        repository.reactToConscience(2L, "en:hello_01", ConscienceReaction.LIKED)
+        assertEquals(ConscienceReaction.LIKED, repository.conscienceRemarks.first().single().reaction)
+    }
 }

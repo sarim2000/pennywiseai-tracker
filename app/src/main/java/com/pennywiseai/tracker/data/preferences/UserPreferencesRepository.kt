@@ -38,6 +38,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonArray
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -712,10 +714,13 @@ open class UserPreferencesRepository internal constructor(
     override val conscienceRemarks: Flow<List<ConscienceRemark>> = dataStore.data.map { it.conscienceRemarks() }
 
     // Every reader goes through here, and every write stores what it read, so expired remarks also leave storage.
-    private fun Preferences.conscienceRemarks(nowMillis: Long = System.currentTimeMillis()): List<ConscienceRemark> =
-        this[PreferencesKeys.CONSCIENCE_REMARKS]?.let { raw ->
-            runCatching { conscienceJson.decodeFromString<List<ConscienceRemark>>(raw) }.getOrNull()
-        }.orEmpty().let { ConscienceRemarks.fresh(it, nowMillis) }
+    private fun Preferences.conscienceRemarks(nowMillis: Long = System.currentTimeMillis()): List<ConscienceRemark> {
+        val raw = this[PreferencesKeys.CONSCIENCE_REMARKS] ?: return emptyList()
+        val items = runCatching { conscienceJson.parseToJsonElement(raw).jsonArray }.getOrNull() ?: return emptyList()
+        // One by one: a remark this build can't read (a kind renamed since) is skipped, not the list lost.
+        val remarks = items.mapNotNull { runCatching { conscienceJson.decodeFromJsonElement<ConscienceRemark>(it) }.getOrNull() }
+        return ConscienceRemarks.fresh(remarks, nowMillis)
+    }
 
     /**
      * True when the reaction landed: the remark took it, or the line's standing changed.

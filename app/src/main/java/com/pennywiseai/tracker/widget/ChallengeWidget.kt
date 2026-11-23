@@ -164,17 +164,16 @@ class ChallengeWidget : GlanceAppWidget() {
     /**
      * The window's days, first at the app's start edge, as Plan draws them: a check for a
      * clean day, a cross for a missed one, a ring for one still to settle, a faint dot to come.
-     * Each dot is a quarter of its own width from the next, as big as [width] allows.
+     * Each dot sits centred in a slot a quarter wider than itself, as big as [width] allows.
+     * Slots, not spacers between the dots: Glance draws at most 10 children in a Row, and
+     * 7 dots with 6 spacers would lose the last days.
      */
     @Composable
     private fun DayDots(days: List<DayStatus>, width: Dp) {
         if (days.isEmpty()) return
-        val dot = (width / (days.size + (days.size - 1) / 4f)).coerceIn(MIN_DOT, Dimensions.Icon.inline)
+        val dot = (width / (days.size * SLOT)).coerceIn(MIN_DOT, Dimensions.Icon.inline)
         WidgetRow(verticalAlignment = Alignment.CenterVertically) {
-            days.forEachIndexed { i, status ->
-                if (i > 0) item { Spacer(GlanceModifier.width(dot / 4)) }
-                item { Day(status, dot) }
-            }
+            days.forEach { status -> item { Day(status, dot) } }
         }
     }
 
@@ -187,7 +186,7 @@ class ChallengeWidget : GlanceAppWidget() {
             DayStatus.PENDING -> Triple(R.drawable.ic_widget_ring, colors.primary, null)
             DayStatus.FUTURE -> Triple(R.drawable.ic_widget_dot, colors.surfaceVariant, null)
         }
-        Box(modifier = GlanceModifier.size(size), contentAlignment = Alignment.Center) {
+        Box(modifier = GlanceModifier.width(size * SLOT).height(size), contentAlignment = Alignment.Center) {
             DayImage(shape, fill, size)
             glyph?.let { (icon, tint) -> DayImage(icon, tint, size * GLYPH) }
         }
@@ -206,6 +205,9 @@ class ChallengeWidget : GlanceAppWidget() {
     private companion object {
         val MIN_DOT = 8.dp
         const val GLYPH = 0.7f
+
+        /** A day's slot is this many dots wide: the dot and a quarter of one around it. */
+        const val SLOT = 1.25f
 
         /** Below this the title keeps to one line, so the dots and both lines still fit. */
         val TWO_LINE_TITLE = 150.dp

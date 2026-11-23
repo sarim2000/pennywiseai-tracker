@@ -25,9 +25,10 @@ import kotlin.math.roundToInt
  *
  * Every distinct axis setting is a separate Android `Typeface`, and Compose
  * keeps only 16 of them in its own caches. So no value reaches a font
- * unquantized: the typography and [withFlexAxes] snap to this grid, and the
- * fonts come from bounded process-wide caches. An animation therefore walks
- * through a handful of cached variants instead of building a font per frame.
+ * unquantized: the typography and [withFlexAxes] snap to this grid, and
+ * families and typefaces come from bounded process-wide caches. An
+ * animation therefore walks through a handful of cached variants instead
+ * of building a font per frame.
  */
 object GoogleSansFlexAxes {
     /** `wght` step. Static styles sit on multiples of 100, so they are on the grid. */
@@ -80,7 +81,11 @@ object GoogleSansFlexAxes {
     internal const val MAX_WEIGHT = 900
     internal const val MAX_AXIS = 100
 
-    /** Families kept: the type scale (~20 per theme) plus whatever is animating. */
+    /**
+     * Families kept. The themes use at most 32 (2 roundness × 8 optical sizes
+     * × 2 grades), plus the two untuned defaults; the rest is headroom for
+     * the steps an axis animation passes through.
+     */
     internal const val MAX_FAMILIES = 64
 
     /** Typefaces kept, one per (axes, weight) actually drawn. */
@@ -217,7 +222,11 @@ internal fun TextStyle.flexKeyOrNull(): FlexKey? {
 
 private val families = BoundedCache<FlexKey, FontFamily>(GoogleSansFlexAxes.MAX_FAMILIES)
 
-/** Cached, so an animation frame that lands on a visited step allocates nothing. */
+/**
+ * Cached: `money()` and the `PennyWiseText` amount styles call this on every
+ * read, so each transaction row would otherwise build nine fonts and a family;
+ * and an animation frame that lands on a visited step allocates nothing.
+ */
 internal fun googleSansFlexFamily(key: FlexKey): FontFamily = families.getOrPut(key) {
     if (key.weight == ALL_WEIGHTS) {
         FontFamily(

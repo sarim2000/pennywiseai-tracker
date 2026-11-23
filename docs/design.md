@@ -183,7 +183,10 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
   (0–100), `opsz` (18–57, the sizes the scale uses) and `GRAD` (0–100) axes,
   with `slnt` 0 and `wdth` 100 pinned: about 600 KB instead of 3.9 MB (main's
   two-axis cut was 300 KB). v4.007 is the last release with `GRAD` (v5.000
-  dropped it; its other changes are at optical sizes below 9). Its OFL notice
+  dropped it). Going back a release also redraws a few glyphs at the cut the
+  app used before (`opsz` 18): `6` and `9` have a larger bowl, and at bold
+  weights `¢` is stroked only above and below its bowl and `฿` has a split
+  vertical. Every other digit and currency sign draws the same. Its OFL notice
   ships in `assets/licenses/fonts-OFL.txt` (SN Pro's too). A new axis costs
   size: add it only with a role that uses it.
 - **Static instances, one per weight.** Each family declares a `Font` for every
@@ -472,6 +475,10 @@ it by `Dimensions.Component.bottomBarHeight`.
   7. **Shared elements** (the transaction icon from list to detail) move their
      bounds on `defaultSpatialSpec()` via `sharedElementIcon`, not Compose's
      default bounds spring.
+  - **Scan progress** eases the worker's fraction on `fastEffectsSpec()`, indeterminate
+    until the total is known; a new scan (work id) starts at its own value, not from 100%.
+  - **Insights donut** sweeps in clockwise (an angular clip on `slowEffectsSpec()`, `sweepIn()`)
+    when the chart appears; slices, legend and taps stay as they are; refreshing it doesn't replay it.
 - **Navigation motion.** Both nav hosts (`PennyWiseNavHost` and each tab's
   stack in `MainScreen`) speak one language from `PennyWiseMotion.kt`. A push is
   `pwPush`: the new screen rises a quarter of the screen on the default spatial

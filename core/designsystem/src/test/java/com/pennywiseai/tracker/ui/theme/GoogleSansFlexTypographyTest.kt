@@ -108,6 +108,16 @@ class GoogleSansFlexTypographyTest {
     }
 
     @Test
+    fun moneyReusesOneCachedFamily() {
+        // Amount styles are read on every row; each read must not build nine fonts.
+        val fallback = typography.bodyLarge.fontFamily
+        val first = typography.bodyLarge.asMoney(fallback).fontFamily
+        assertSame(first, typography.bodyLarge.asMoney(fallback).fontFamily)
+        val rebuilt = typographyFor(AppFont.GOOGLE_SANS_FLEX, latinScript = true, darkTheme = false)
+        assertSame(typography.headlineSmall.fontFamily, rebuilt.headlineSmall.fontFamily)
+    }
+
+    @Test
     fun otherFontsKeepTheBodyFamilyForMoney() {
         val sn = typographyFor(AppFont.SN_PRO, latinScript = true)
         assertSame(SNProFontFamily, sn.displaySmall.asMoney(sn.bodyLarge.fontFamily).fontFamily)

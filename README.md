@@ -1,127 +1,83 @@
 <a name="top"></a>
-[![PennyWise AI Banner](banner.png)](https://github.com/sarim2000/pennywiseai-tracker)
-[![GitHub stars](https://img.shields.io/github/stars/sarim2000/pennywiseai-tracker?style=social)](https://github.com/sarim2000/pennywiseai-tracker)
-[![License](https://img.shields.io/badge/license-AGPL%20v3-blue)](LICENSE)
-[![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84)](https://developer.android.com/about/versions/oreo/android-8.0)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF)](https://kotlinlang.org/)
-[![Privacy](https://img.shields.io/badge/AI-100%25_On--Device-FF6B6B)](https://ai.google.dev/edge)
-[![Downloads](https://img.shields.io/badge/Downloads-100+-green)](https://play.google.com/store/apps/details?id=com.pennywiseai.tracker)
-[![F-Droid](https://img.shields.io/f-droid/v/com.pennywiseai.tracker?color=1976d2)](https://f-droid.org/packages/com.pennywiseai.tracker/)
+[![PennyWise: no typing, your bank SMS does it](banner.png)](https://github.com/sarim2000/pennywiseai-tracker)
+
 [![GitHub release](https://img.shields.io/github/v/release/sarim2000/pennywiseai-tracker)](https://github.com/sarim2000/pennywiseai-tracker/releases)
-[![GitHub last commit](https://img.shields.io/github/last-commit/sarim2000/pennywiseai-tracker)](https://github.com/sarim2000/pennywiseai-tracker/commits)
+[![F-Droid](https://img.shields.io/f-droid/v/com.pennywiseai.tracker?color=1976d2)](https://f-droid.org/packages/com.pennywiseai.tracker/)
+[![License](https://img.shields.io/badge/license-AGPL%20v3-blue)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-Join_Community-5865F2)](https://discord.gg/H3xWeMWjKQ)
-[![Greptile: The War on Bugs](https://www.greptile.com/badge.svg)](https://www.greptile.com/?utm_source=oss_badge&utm_medium=readme&utm_campaign=greptile_for_open_source)
+[![GitHub stars](https://img.shields.io/github/stars/sarim2000/pennywiseai-tracker?style=social)](https://github.com/sarim2000/pennywiseai-tracker)
 
-## PennyWise AI — Free & Open‑Source, private SMS‑powered expense tracker
+## PennyWise — the expense tracker you never type into
 
-Turn bank SMS into a clean, searchable money timeline with on-device AI assistance. Parsing, storage, and AI all run on your phone.
+Your bank already texts you every transaction. PennyWise reads those SMS on your phone and turns them into a private expense tracker with budgets, insights and an on-device AI you can ask. No sign-up, no ads, free and open source.
 
+<p align="center">
+  <a href="https://play.google.com/store/apps/details?id=com.pennywiseai.tracker"><img src="https://img.shields.io/badge/GET_IT_ON-Google_Play-00875F?style=for-the-badge&logo=google-play&logoColor=white" alt="Get it on Google Play" /></a>
+  <a href="https://apps.apple.com/app/id6793073167"><img src="https://img.shields.io/badge/Download_on_the-App_Store-0D96F6?style=for-the-badge&logo=apple&logoColor=white" alt="Download on the App Store" /></a>
+  <a href="https://f-droid.org/packages/com.pennywiseai.tracker"><img src="https://img.shields.io/badge/GET_IT_ON-F--Droid-1976D2?style=for-the-badge&logo=fdroid&logoColor=white" alt="Get it on F-Droid" /></a>
+</p>
 
-⭐ **Star us on GitHub — join 300+ supporters!**
-
-[![Share](https://img.shields.io/badge/share-000000?logo=x&logoColor=white)](https://x.com/intent/tweet?text=Check%20out%20PennyWise%20AI%20-%20Privacy-first%20expense%20tracker%20with%20on-device%20AI:%20https://github.com/sarim2000/pennywiseai-tracker%20%23Android%20%23PrivacyFirst%20%23OnDeviceAI)
-[![Share](https://img.shields.io/badge/share-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/sharing/share-offsite/?url=https://github.com/sarim2000/pennywiseai-tracker)
-[![Share](https://img.shields.io/badge/share-FF4500?logo=reddit&logoColor=white)](https://www.reddit.com/submit?title=PennyWise%20AI%20-%20Privacy-first%20expense%20tracker&url=https://github.com/sarim2000/pennywiseai-tracker)
-[![Share](https://img.shields.io/badge/share-0088CC?logo=telegram&logoColor=white)](https://t.me/share/url?url=https://github.com/sarim2000/pennywiseai-tracker&text=Check%20out%20PennyWise%20AI)
-
-## Overview
-
-Your bank already texts you every transaction — PennyWise turns those SMS into a private, zero-setup expense tracker with on-device AI. No accounts, no sign-ups, no effort.
-
-<a href="https://play.google.com/store/apps/details?id=com.pennywiseai.tracker">
-  <img src="https://img.shields.io/badge/GET_IT_ON-Google_Play-00875F?style=for-the-badge&logo=google-play&logoColor=white" alt="Get it on Google Play" />
-</a>
-<a href="https://apps.apple.com/app/id6793073167">
-  <img src="https://img.shields.io/badge/Download_on_the-App_Store-0D96F6?style=for-the-badge&logo=apple&logoColor=white" alt="Download on the App Store" />
-</a>
-<a href="https://f-droid.org/packages/com.pennywiseai.tracker">
-  <img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">
-</a>
+<p align="center">
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="24%" alt="No typing: a bank SMS becomes a categorised transaction"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="24%" alt="Know what's left to spend this month"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="24%" alt="See where your money goes, by category and month"/>
+  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="24%" alt="Ask the on-device AI about your spending"/>
+</p>
 
 ### How it works
 
 1. **Grant SMS permission** (read-only) — no account creation, no inbox changes, no messages sent.
 2. **PennyWise parses your transactions instantly** — extracts amount, merchant, category, and date. New SMS are detected in real-time.
-3. **Get insights** — analytics, budgets, subscriptions, and an on-device AI assistant you can ask anything.
+3. **See where you stand** — what's left to spend, where the money went, which bills are coming, and an on-device AI assistant you can ask anything.
 
 📖 **New here?** The [user guide](https://pennywise.zynth.dev/guide) walks through every feature step by step, with screenshots.
 
-## Why PennyWise
+⭐ If PennyWise is useful to you, a star helps other people find it.
 
-**Key Differentiators**
+## Why PennyWise
 
 - **🔒 Private by Design** — AI and transaction storage run on your phone; no accounts, no analytics, and your data leaves the phone only through opt-in features you start ([see Privacy](#privacy-first))
 - **⚡ Zero Setup** — Just grant SMS permission, no accounts to create, works instantly
 - **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no trackers; an optional **[PennyWise Pro](#pennywise-pro)** upgrade supports the solo developer
 - **🌐 Your Language** — Translated via Crowdin, with full Arabic (RTL) support; pick your language and currency on first launch
 
-**Core Features**
+## Features
+
+**Tracking**
 
 - **🤖 Smart SMS Parsing** — <!-- BANKS_SUMMARY -->178 banks across 26 countries<!-- /BANKS_SUMMARY --> with real-time detection of incoming SMS; SMS from banks we don't support yet, and notifications from apps you pick, become suggested transactions
 - **🌍 Multi-Currency** — Per-account currency, live exchange rates, and totals that never mix currencies
-- **💬 On-Device AI Assistant** — Ask "What did I spend on food?", compare with last month, add or review transactions in plain words, or dictate with the mic — powered by Qwen 2.5, runs entirely on your phone
-- **🏷️ Categories, Tags & Smart Rules** — Sub-categories, emoji icons, renamable built-ins, learned merchant categories, and rules with multiple conditions and actions
-- **💰 Budgets & Savings Goals** — Category or type budgets with custom cycles (including last working day), per-day allowance, safe-to-spend and a month-end forecast; goals you add to straight from transactions
-- **📊 Analytics & Charts** — Group by category, merchant, account, tag or weekday; trends, heatmaps, top merchants, custom date ranges
-- **🏦 Accounts, Cards & Loans** — Live balances from SMS, balance history, discrepancy fixes, low-balance alerts, account merge, loans by person, and bill splits with UPI QR requests
-- **🔄 Subscriptions** — Spots repeat charges, suggests untracked bills, flags price changes, and reminds you before a bill is due
+- **🏦 Accounts, Cards & Loans** — Live balances from SMS, balance history, discrepancy fixes, low-balance alerts, account merge, a per-currency Net Worth screen, loans by person, and bill splits with UPI QR requests
 - **📥 Statement Import** — PDF (including password-protected), Excel and CSV statements with column mapping, preview and balance check
+- **🧾 Receipts** — Attach photos or PDF receipts to a transaction
+- **🏷️ Categories, Tags & Smart Rules** — Sub-categories, emoji icons, renamable built-ins, learned merchant categories, and rules with multiple conditions and actions ([rules reference](docs/rules.md))
 
-**More Features**
+**Planning**
 
-- **🔐 Privacy Controls** — Biometric app lock, and hide amounts on every screen (or shake the phone to toggle)
-- **🔔 Smart Notifications** — Clear transaction alerts with a one-tap "Not an expense", bill reminders, and an opt-in spending conscience
-- **📱 Widgets & Quick Add** — Budget, recent transactions, spending pie and goal widgets; a Quick Settings tile and shortcut to add a transaction
-- **📤 Backup & Export** — Full backup/restore (.pennywisebackup) including settings and receipt photos, scheduled folder backups, CSV export, rule import/export
+- **💰 Budgets & Savings Goals** — Category or type budgets with custom cycles (including last working day), bounded rollover, per-day allowance, safe-to-spend that sets card bills aside, and a month-end forecast; goals you add to straight from transactions
+- **🔄 Subscriptions & Bills** — Spots repeat charges, suggests untracked bills, flags price changes, reminds you before a bill is due, and shows what's coming on a calendar
+- **📊 Insights** — Group by category, merchant, account, tag or weekday; spending patterns, trends, heatmaps, top merchants, custom date ranges, and an emergency runway calculator
+- **📄 PDF Reports** — Monthly and yearly spending reports you can save or share
+
+**Asking and sharing**
+
+- **💬 On-Device AI Assistant** — Ask "What did I spend on food?", compare with last month, add or review transactions in plain words, or dictate with the mic; answers link to the transactions behind them — powered by Qwen 2.5, runs entirely on your phone
+- **🖼️ Share Studio & Achievements** — Share cards with charts where you pick what's shown, and achievements to unlock
 - **🤝 AI Access & Webhooks** *(Pro)* — Let Claude or ChatGPT read your on-phone data during a session you start, open a dashboard on your computer, or push summaries to your own webhook
+
+**Everything else**
+
+- **🔐 Privacy Controls** — Biometric app lock, and hide amounts on every screen (shake the phone to toggle, or show them again from any screen)
+- **🔔 Smart Notifications** — Clear transaction alerts with a one-tap "Not an expense", bill reminders, and an opt-in spending conscience
+- **📱 Widgets & Quick Add** — Budget, recent transactions, spending pie and goal widgets; a Quick Settings tile, voice quick-add and a calculator keypad on the amount field
+- **📤 Backup & Export** — Full backup/restore (.pennywisebackup) including settings and receipts, scheduled folder backups, CSV export, rule import/export
 - **🎭 Material 3 Expressive** — Dynamic color, extra colour themes, Google Sans Flex, light/dark/system, and a Home screen you can reorder
 - **🍎 iOS App** — On the [App Store](https://apps.apple.com/app/id6793073167), with on-device AI chat and Shortcuts automation for bank SMS
 
-### Smart Rules Engine
-
-Rules let you auto-categorize, modify, or block transactions based on configurable **conditions**. A rule consists of one or more "When" conditions and a "Then" action.
-
-**Available condition fields:**
-
-| Field | Description | Example value | Supported operators |
-|---|---|---|---|
-| `AMOUNT` | Transaction amount | `200` | `<`, `>`, `=` |
-| `TYPE` | Income/Expense/Transfer | `INCOME` | `contains`, `equals`, `starts with` |
-| `CATEGORY` | Assigned category | `Food & Dining` | `contains`, `equals`, `starts with` |
-| `MERCHANT` | Merchant/vendor name | `Amazon` | `contains`, `equals`, `starts with` |
-| `NARRATION` | Transaction description | `Monthly rent` | `contains`, `equals`, `starts with` |
-| `SMS_TEXT` | Raw SMS body | `OTP` | `contains`, `equals`, `starts with` |
-| `BANK_NAME` | Bank name from SMS | `HDFC Bank` | `contains`, `equals`, `starts with` |
-| `TIME` / `HOUR` | Transaction time | `09:00` / `9` | `before`, `after`, `at or after`, `at or before` |
-| `DAY_OF_WEEK` | Day (1=Mon .. 7=Sun) | `1` | `is`, `is any of`, `is not` |
-| `DAY_OF_MONTH` | Day of month (1-31) | `15` | `is`, `is any of`, `before`, `after` |
-| `DATE` | Transaction date | `2026-03-21` | `is`, `before`, `after` |
-| **`ACCOUNT`** | **Bank account composite** | Select from picker | `is`, `is not` |
-
-**Account condition (ACCOUNT)** — Restricts the rule to transactions from a specific bank account. The value is stored as a `BankName||Last4` composite key (e.g. `HDFC Bank||1234`). When selected, the UI shows an account picker populated from your tracked accounts. Only `EQUALS` and `NOT_EQUALS` operators are available.
-
-Conditions can be combined with **AND** / **OR** logic, and multiple conditions per rule are supported.
-
-**Available actions:**
-- **Set** — Override a field (category, merchant, type, description)
-- **Append / Prepend** — Add text to a field (merchant, description)
-- **Clear** — Remove a field value
-- **Block** — Prevent the transaction from being saved
-
-**JSON representation** (stored locally, not exposed via API):
-```json
-{
-  "conditions": [
-    {"field": "ACCOUNT", "operator": "EQUALS", "value": "HDFC Bank||1234"},
-    {"field": "AMOUNT", "operator": "GREATER_THAN", "value": "500"}
-  ],
-  "actions": [
-    {"field": "CATEGORY", "actionType": "SET", "value": "Food & Dining"}
-  ]
-}
-```
-
 ## Supported Banks & Countries
+
+<details>
+<summary><b>Show every supported bank, by country</b></summary>
 
 <!-- SUPPORTED_BANKS:START (generated by scripts/update-supported-banks.sh — do not edit by hand) -->
 Supporting **178 banks & services** across **26 countries** with **multi-currency** capabilities:
@@ -205,6 +161,8 @@ Supporting **178 banks & services** across **26 countries** with **multi-currenc
 **Enpara**
 <!-- SUPPORTED_BANKS:END -->
 
+</details>
+
 More banks being added regularly! [Request your bank →](https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.yml)
 
 ## Privacy First
@@ -224,15 +182,6 @@ All AI processing happens on your device, powered by Google AI Edge LiteRT-LM ru
 
 Everything else stays on your phone.
 
-## Screenshots
-
-<p align="center">
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1.png" width="24%" alt="No typing: a bank SMS becomes a categorised transaction"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3.png" width="24%" alt="Know what's left to spend this month"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4.png" width="24%" alt="See where your money goes, by category and month"/>
-  <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5.png" width="24%" alt="Ask the on-device AI about your spending"/>
-</p>
-
 ## Quick Start
 
 ```bash
@@ -250,17 +199,18 @@ cd pennywiseai-tracker
 adb install app/build/outputs/apk/standard/debug/app-standard-universal-debug.apk
 ```
 
+On a fresh Debug install, run `./scripts/seed-debug.sh` to load [the demo ledger](docs/debug-demo-data.md) and try Chat with known answers.
+
 ### Requirements
 
 - Android 8.0+ (API 26)
-- Android Studio Ladybug or newer
+- A current Android Studio (the project uses Android Gradle Plugin 9.5)
 - JDK 21
 
 ## Tech Stack
 
 <p align="center">
-  <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,materialui" /><br>
-  <img src="https://skillicons.dev/icons?i=hilt,room,coroutines" />
+  <img src="https://skillicons.dev/icons?i=kotlin,androidstudio,materialui" />
 </p>
 
 **Architecture**: MVVM • Jetpack Compose • Room • Coroutines • Hilt • WorkManager • Google AI Edge LiteRT-LM (on-device LLM) • Material 3 Expressive
@@ -380,6 +330,6 @@ This project is licensed under AGPL v3, which means:
 <p align="center">
 <a href="https://github.com/sarim2000/pennywiseai-tracker/releases">Download</a> •
 <a href="https://apps.apple.com/app/id6793073167">iOS App</a> •
-<a href="https://github.com/sarim2000/pennywiseai-tracker/issues">Report Bug</a> •
-<a href="https://github.com/sarim2000/pennywiseai-tracker/issues">Request Feature</a>
+<a href="https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bug_report.yml">Report Bug</a> •
+<a href="https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=feature_request.yml">Request Feature</a>
 </p>

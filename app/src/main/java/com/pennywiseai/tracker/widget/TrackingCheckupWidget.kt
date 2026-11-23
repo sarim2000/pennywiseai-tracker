@@ -54,7 +54,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  */
 class TrackingCheckupWidget : GlanceAppWidget() {
 
-    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(NARROW, WIDE))
+    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(NARROW, WIDE, NARROW_TALL, WIDE_TALL))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         // Nothing announces a permission or background change, so read them on every update.
@@ -83,6 +83,9 @@ class TrackingCheckupWidget : GlanceAppWidget() {
     private fun Content(checkup: TrackingCheckup?) {
         val context = LocalContext.current
         val wide = LocalSize.current.width >= WIDE.width
+        // A two-cell row is too narrow for "Background restricted" or "Last SMS read 2 hours
+        // ago" on one line; most launchers' rows have the height to wrap them.
+        val lines = if (LocalSize.current.height >= NARROW_TALL.height) 2 else 1
         WidgetRow(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -99,10 +102,10 @@ class TrackingCheckupWidget : GlanceAppWidget() {
             item {
                 Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
                     if (checkup == null) {
-                        WidgetTitle(context.getString(R.string.widget_name_tracking))
+                        WidgetTitle(context.getString(R.string.widget_name_tracking), maxLines = lines)
                     } else {
-                        WidgetTitle(context.getString(titleRes(checkup.health)))
-                        WidgetLabel(detail(context, checkup))
+                        WidgetTitle(context.getString(titleRes(checkup.health)), maxLines = lines)
+                        WidgetLabel(detail(context, checkup), maxLines = lines)
                     }
                 }
             }
@@ -123,6 +126,10 @@ class TrackingCheckupWidget : GlanceAppWidget() {
     private companion object {
         val NARROW = DpSize(110.dp, 40.dp)
         val WIDE = DpSize(150.dp, 40.dp)
+
+        /** Room for two lines of title and two of detail. */
+        val NARROW_TALL = DpSize(NARROW.width, 80.dp)
+        val WIDE_TALL = DpSize(WIDE.width, NARROW_TALL.height)
     }
 }
 

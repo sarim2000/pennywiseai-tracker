@@ -283,10 +283,10 @@ object WidgetDefaults {
 
 /** Section title: the widget's name, as in its header. */
 @Composable
-fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier) {
+fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier, maxLines: Int = 1) {
     Text(
         text = inAppDirection(text),
-        maxLines = 1,
+        maxLines = maxLines,
         modifier = modifier,
         style = TextStyle(
             color = GlanceTheme.colors.onSurface,
@@ -299,10 +299,15 @@ fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier) {
 
 /** Small supporting text: a figure's label, a row's meta line. */
 @Composable
-fun WidgetLabel(text: String, modifier: GlanceModifier = GlanceModifier, color: ColorProvider? = null) {
+fun WidgetLabel(
+    text: String,
+    modifier: GlanceModifier = GlanceModifier,
+    color: ColorProvider? = null,
+    maxLines: Int = 1
+) {
     Text(
         text = inAppDirection(text),
-        maxLines = 1,
+        maxLines = maxLines,
         modifier = modifier,
         style = TextStyle(
             color = color ?: GlanceTheme.colors.onSurfaceVariant,

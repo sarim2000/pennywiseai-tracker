@@ -44,6 +44,7 @@ import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
@@ -83,8 +84,8 @@ fun TransactionDetailScreen(
     onDuplicateTransaction: (Long) -> Unit = {},
     onNavigateToGoal: (Long) -> Unit = {},
     onCreateGoal: () -> Unit = {},
-    /** The list of this raw merchant's or this category's transactions (the other one null), in [currency]. */
-    onOpenRelated: (merchant: String?, category: String?, currency: String) -> Unit = { _, _, _ -> },
+    /** The list of this raw merchant's or this category's transactions (the other one null), in [currency], from [profileId]. */
+    onOpenRelated: (merchant: String?, category: String?, currency: String, profileId: Long) -> Unit = { _, _, _, _ -> },
     viewModel: TransactionDetailViewModel = hiltViewModel(),
     goalsViewModel: TransactionGoalsViewModel = hiltViewModel(),
     splitViewModel: SplitBillViewModel = hiltViewModel()
@@ -274,13 +275,15 @@ fun TransactionDetailScreen(
                             val merchant = txn.merchantName.takeIf { it.isNotBlank() }
                             // A split row's categories are its parts, and Unsorted is several names.
                             val category = txn.category.takeIf { hasSplits == false && !isUnsortedCategory(it) }
+                            // The profile the lists filter this row by (explicit, else its account's, else Personal).
+                            val profileId = txn.profileId ?: accountProfileId ?: ProfileEntity.PERSONAL_ID
                             merchant?.let {
                                 RelatedMenuItem(
                                     text = stringResource(R.string.txn_detail_menu_more_from, merchantAlias ?: merchantDisplay(it) ?: it),
                                     icon = Icons.Outlined.Storefront,
                                     onClick = {
                                         dismiss()
-                                        onOpenRelated(it, null, txn.currency)
+                                        onOpenRelated(it, null, txn.currency, profileId)
                                     }
                                 )
                             }
@@ -290,7 +293,7 @@ fun TransactionDetailScreen(
                                     icon = Icons.Outlined.Category,
                                     onClick = {
                                         dismiss()
-                                        onOpenRelated(null, it, txn.currency)
+                                        onOpenRelated(null, it, txn.currency, profileId)
                                     }
                                 )
                             }

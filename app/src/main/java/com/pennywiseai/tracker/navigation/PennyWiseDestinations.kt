@@ -215,7 +215,9 @@ data class TransactionsWithFilter(
     /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
     val currencyOnly: Boolean = false,
     /** Every profile's rows, whatever profile is selected: the list behind a budget, which counts them all. */
-    val allProfiles: Boolean = false
+    val allProfiles: Boolean = false,
+    /** A "More from"/"More in" row's profile: the list keeps to it when one profile is selected. */
+    val rowProfileId: Long? = null
 ) : NavKey
 
 /**

@@ -993,6 +993,19 @@ class TransactionsViewModel @Inject constructor(
     }
 
     /**
+     * A transaction's "More from"/"More in" list, opened from a row in [profileId]: with one
+     * profile selected it lists that row's profile instead, so the row and its history aren't
+     * filtered out; with every profile selected it stays on all. Pinned like [pinProfile].
+     */
+    fun keepRowProfile(profileId: Long) {
+        if (profilePinned) return
+        profilePinned = true
+        viewModelScope.launch {
+            if (userPreferencesRepository.selectedProfileId.first() != null) _selectedProfileId.value = profileId
+        }
+    }
+
+    /**
      * A pinned list stays on its currency even with no rows there, so it never shows another
      * currency under the card it opened from. A currency the user picked later can still fall back.
      */

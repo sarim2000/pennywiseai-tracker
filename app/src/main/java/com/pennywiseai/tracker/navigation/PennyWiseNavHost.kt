@@ -246,8 +246,8 @@ fun PennyWiseNavHost(
                                 onCreateGoal = {
                                     backStack.navigate(GoalEdit())
                                 },
-                                onOpenRelated = { merchant, category, currency ->
-                                    backStack.openFrom(key, relatedTransactions(merchant, category, currency))
+                                onOpenRelated = { merchant, category, currency, profileId ->
+                                    backStack.openFrom(key, relatedTransactions(merchant, category, currency, profileId))
                                 }
                             )
                         }
@@ -569,6 +569,7 @@ fun PennyWiseNavHost(
                             initialCustomEndEpochDay = args.endDate,
                             currencyOnly = args.currencyOnly,
                             profilePinned = args.allProfiles,
+                            rowProfileId = args.rowProfileId,
                             onNavigateBack = { backStack.pop(args) },
                             onTransactionClick = { transactionId ->
                                 backStack.navigate(TransactionDetail(transactionId))
@@ -586,14 +587,16 @@ fun PennyWiseNavHost(
 
 /**
  * A transaction's "More from" (its [merchant]) or "More in" (its [category]): all time, pinned to
- * its [currency] so the list neither follows the default currency nor converts in unified mode.
+ * its [currency] so the list neither follows the default currency nor converts in unified mode,
+ * and kept to its [profileId] when one profile is selected, so the row itself is listed.
  */
-internal fun relatedTransactions(merchant: String?, category: String?, currency: String) = TransactionsWithFilter(
+internal fun relatedTransactions(merchant: String?, category: String?, currency: String, profileId: Long) = TransactionsWithFilter(
     category = category,
     merchant = merchant,
     period = com.pennywiseai.tracker.presentation.common.TimePeriod.ALL.name,
     currency = currency,
     currencyOnly = true,
+    rowProfileId = profileId,
 )
 
 /** Where an insight's button leads; the domain names the target, the app picks the screen. */

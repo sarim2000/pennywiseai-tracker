@@ -241,10 +241,10 @@ object BankViews {
             }
 
             p(classes = "parse-note") {
-                +"A real ${bank.name} message format, run through the same parser that ships "
-                +"in the app. Try it on your own message in the "
+                +"A real ${bank.name} message format, as the app's parser reads it. Try your own "
+                +"message in the "
                 a(href = "/tools/parse") { +"parser tool" }
-                +"."
+                +", which covers fewer banks than the app."
             }
         }
     }
@@ -345,9 +345,9 @@ object BankViews {
                 "and no analytics. Your data leaves the phone only through opt-in features you start, " +
                 "like reporting a parsing problem. The source code is public so this can be verified.",
             "What if a message from $name is read incorrectly?" to
-                "You can paste the message into the parser tool on this site to see exactly what " +
-                "PennyWise extracts, and report it in one click if it is wrong. Parser fixes ship " +
-                "in the next release.",
+                "You can paste the message into the parser tool on this site to see what it " +
+                "extracts, and report it in one click if it is wrong. The web demo covers fewer " +
+                "banks than the app. Parser fixes ship in the next release.",
         )
     }
 
@@ -432,10 +432,11 @@ object BankViews {
                             }
                             p {
                                 +"Everything above is extracted by an on-device parser written "
-                                +"specifically for $name's message formats. You can see it run on your own "
+                                +"specifically for $name's message formats. You can try your own "
                                 +"message, without installing anything: "
                                 a(href = "/tools/parse") { +"open the parser tool" }
-                                +" and paste in one of your $name messages."
+                                +" and paste in one of your $name messages. The web demo covers fewer "
+                                +"banks than the app."
                             }
                         }
 

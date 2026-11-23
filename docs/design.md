@@ -117,7 +117,8 @@ The Floating nav style is a pill of four icon-only tabs — Home · Transactions
 Insights (`floatingNavHeight` 64dp, `floatingNavBottomGap` 12dp above the
 system bar) with a sliding selected indicator (`floatingNavIndicatorWidth` ×
 `floatingNavIndicatorHeight`, solid `primary` under an `onPrimary` icon, so the
-open tab shows at 3:1 or more without relying on a faint tint); a
+open tab shows at 3:1 or more without relying on a faint tint; each icon's tint
+follows how much of the sliding pill is under it, not the selection); a
 long-press names the tab. Ask sits beside the pill as a 64dp `primaryContainer`
 squircle (`dockedActionCornerRadius` 20dp) holding the owl drawn in full
 (`chatDockMascot` 52dp); it rounds into a circle while Ask is open. A tab's one
@@ -536,10 +537,12 @@ because the same role also renders small labels.
   `onColoredFill(fill, ink)`: text roles become the ink, `primary` is nudged
   until it reads there (a Mihon palette can make `primary` the fill itself),
   `outline` becomes a 3:1 mark. A semantic colour that must keep its hue there
-  goes through `readableOn(listOf(fill), layers = …)`, or with
-  `GRAPHIC_CONTRAST` for a chart line or bar. A meter's track there is the ink
-  at `Alpha.meterTrack`: the surface wash and the card can straddle mid-grey,
-  and then no colour reaches 3:1 on both.
+  goes through `readableToneOn(fill, listOf(expense_light, expense_dark), …)`,
+  with `GRAPHIC_CONTRAST` for a chart line: it stays as it is where it reads,
+  else the most colourful of its light and dark bases that does wins (a pink
+  nudged dark onto a pale card goes brown; light theme's red still reads).
+- **Where a colour already meets its floor, don't move it.** `readableOn`
+  returns it unchanged then; build on that rather than on a fixed new colour.
 - **Pressed and focused.** Material's state layer is the content colour at
   10% (`STATE_LAYER_ALPHA`) over the whole component, text included, so it
   pulls text and fill together. Text on a clickable card is checked under it
@@ -551,7 +554,7 @@ because the same role also renders small labels.
   grey. Text on a mid-tone card still ends near white or black, so a colour
   that carries meaning there also gets a mark (the hero's trend arrow), which
   only needs 3:1 and keeps more hue.
-- **A surface wash on a coloured card** (a chip or row at 65% surface) takes
+- **A surface wash on a coloured card** (the hero's currency chip at 65% surface) takes
   the surface's tone, so it takes the surface's ink, not the card's:
   `onSurfaceWash(fill, cardInk)`. White ink on a teal card is white on pale
   teal there.
@@ -562,8 +565,11 @@ because the same role also renders small labels.
   own 12–20% tint) goes through `inkOnWash(color, alpha)`; pass
   `GRAPHIC_CONTRAST` for an icon. `CategoryIcon(washAlpha = …)` does this for
   you, and a bare `CategoryIcon` already reaches 3:1 on any surface.
-  `WavyMeter` nudges its colour to 3:1 on its track, so a pale budget or
-  category colour still shows.
+- **Meters** (`WavyMeter`, `GoalRing`, `readableProgressColors`) keep their
+  colour and move the track until the colour reads on it at 3:1: a user-picked
+  budget, category or goal colour (preset yellow) stays as picked. Only a theme
+  colour lost on its own card (`keepColor = false`; Tako dark's primary on the
+  hero) is nudged.
 - **Alpha**: check the composited colour, not the base. Never dim
   `onSurfaceVariant` (see Alpha).
 - Hand-built schemes (default, Rosé Pine) go through `withReadableInk()`. It
@@ -580,7 +586,8 @@ because the same role also renders small labels.
 ### Guard tests
 
 `SchemeContrastTest` (and `PaletteContrastTest` for the fixed palettes;
-`ColoredFillContrastTest` for the hero card and its wash) assert
+`ColoredFillContrastTest` for the hero card and its wash; `MeterContrastTest`
+and `ChartMarksTest` in the app for meters and Insights charts) assert
 the floors above for every theme and accent in light, dark and AMOLED: each
 `on*`/fill pair (including inverse), and every text and semantic ink on every
 neutral surface; the hero also under its press layers. A new palette or

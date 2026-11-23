@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.home
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
@@ -65,18 +66,7 @@ fun SmsParsingProgressDialog(
                     ProgressDetails(workInfo = workInfo)
 
                     // Progress Bar
-                    if (workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, 0) > 0) {
-                        val progress = workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_PROCESSED, 0).toFloat() /
-                            workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, 1).toFloat()
-
-                        val progressColors = readableProgressColors()
-                        LinearWavyProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier.fillMaxWidth(),
-                            color = progressColors.indicator,
-                            trackColor = progressColors.track
-                        )
-                    }
+                    ScanProgressBar(workInfo = workInfo, modifier = Modifier.fillMaxWidth())
 
                     // Cancel Button
                     if (onCancel != null && workInfo.state == WorkInfo.State.RUNNING) {
@@ -304,6 +294,39 @@ private fun ProgressDetails(workInfo: WorkInfo) {
     }
 }
 
+/**
+ * The scan's bar: indeterminate while running until the worker knows the total, then the worker's
+ * fraction eased between its updates on an effects spec (never past 100%). Keyed on
+ * the work id, so a new scan starts from its own value instead of easing back from
+ * the last scan's 100%.
+ */
+@Composable
+private fun ScanProgressBar(workInfo: WorkInfo, modifier: Modifier = Modifier) {
+    val colors = readableProgressColors()
+    val total = workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, 0)
+    if (total <= 0) {
+        if (workInfo.state == WorkInfo.State.RUNNING) {
+            LinearWavyProgressIndicator(modifier = modifier, color = colors.indicator, trackColor = colors.track)
+        }
+        return
+    }
+    val processed = workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_PROCESSED, 0)
+    val target = (processed.toFloat() / total).coerceIn(0f, 1f)
+    key(workInfo.id) {
+        val fraction by animateFloatAsState(
+            targetValue = target,
+            animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+            label = "scan_progress"
+        )
+        LinearWavyProgressIndicator(
+            progress = { fraction },
+            modifier = modifier,
+            color = colors.indicator,
+            trackColor = colors.track
+        )
+    }
+}
+
 @Composable
 private fun formatDuration(milliseconds: Long): String {
     val seconds = milliseconds / 1000
@@ -332,13 +355,7 @@ fun SmsParsingProgressIndicator(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                val progressColors = readableProgressColors()
-                LinearWavyProgressIndicator(
-                    progress = { processedMessages.toFloat() / totalMessages.toFloat() },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = progressColors.indicator,
-                    trackColor = progressColors.track
-                )
+                ScanProgressBar(workInfo = workInfo, modifier = Modifier.fillMaxWidth())
 
                 Text(
                     text = stringResource(R.string.sms_scan_indicator, processedMessages, totalMessages),

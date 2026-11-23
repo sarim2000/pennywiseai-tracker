@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.analytics
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -9,14 +10,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -77,7 +84,7 @@ fun CategoryPieChart(
     ) {
         Box(contentAlignment = Alignment.Center) {
             PieChart(
-                modifier = Modifier.size(Dimensions.Component.insightsChartHeight),
+                modifier = Modifier.size(Dimensions.Component.insightsChartHeight).sweepIn(),
                 data = chartData,
                 onPieClick = { clickedPie ->
                     val pieIndex = chartData.indexOf(clickedPie)
@@ -147,6 +154,35 @@ fun CategoryPieChart(
                 }
             )
         }
+    }
+}
+
+/**
+ * Reveals the donut clockwise from 12 o'clock when the chart appears (first show, list ->
+ * chart). Only the drawing is clipped: slices keep their shares and stay tappable, the
+ * legend doesn't move. Saveable, so refreshing a chart on screen, rotation or scrolling
+ * back doesn't replay it; "Remove animations" draws it whole.
+ */
+@Composable
+internal fun Modifier.sweepIn(): Modifier {
+    val animate = rememberAnimationsEnabled()
+    var played by rememberSaveable { mutableStateOf(!animate) }
+    val sweep = remember { Animatable(if (played) 1f else 0f) }
+    val wedge = remember { Path() }
+    // Slow: the sweep plays under the list->chart fade, and a faster one is over before it reads.
+    val spec = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
+    LaunchedEffect(Unit) {
+        sweep.animateTo(1f, spec)
+        played = true
+    }
+    return drawWithContent {
+        val fraction = sweep.value
+        if (fraction >= 1f) return@drawWithContent drawContent()
+        wedge.reset()
+        wedge.moveTo(center.x, center.y)
+        wedge.arcTo(Rect(center, size.maxDimension), -90f, 360f * fraction, forceMoveTo = false)
+        wedge.close()
+        clipPath(wedge) { this@drawWithContent.drawContent() }
     }
 }
 

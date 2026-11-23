@@ -167,12 +167,12 @@ at making hierarchy readable in a dense, number-heavy UI:
 
 ### Typeface — three choices, Google Sans Flex by default
 
-Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it to
-`getTypography(bodyFamily, headingFamily)`.
+Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it to a
+`Typography` through `typographyFor(appFont, latinScript, darkTheme)`.
 
 | `AppFont` | Families | Script coverage |
 |---|---|---|
-| `GOOGLE_SANS_FLEX` (**default**) | `GoogleSansFlexFamily` for body, label and money; `GoogleSansFlexHeadingFamily` for display, headline and title | **Latin only.** Arabic, Cyrillic, Devanagari, … fall back per glyph to the system font |
+| `GOOGLE_SANS_FLEX` (**default**) | `googleSansFlexTypography(grade)`: a family per role — `ROND` 0 for body, label and money, `ROND` 100 for display, headline and title, each at its own `opsz`. `GoogleSansFlexFamily` / `GoogleSansFlexHeadingFamily` are the untuned defaults (`opsz` 18, `GRAD` 0) for text drawn outside the theme | **Latin only.** Arabic, Cyrillic, Devanagari, … fall back per glyph to the system font |
 | `SYSTEM` | `FontFamily.Default` for both | Every script |
 | `SN_PRO` | `SNProFontFamily` (static files) for both | Latin and Cyrillic |
 
@@ -180,20 +180,40 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
   the user taps a font, so an absent key means "never chose" and follows
   `AppFont.DEFAULT` (Google Sans Flex); a stored `SYSTEM` or `SN_PRO` is an
   explicit choice and is kept. The font is not part of backups.
-- **One variable file.** `core/designsystem/src/main/res/font/google_sans_flex.ttf` is the upstream v5.000
-  variable font instanced with fontTools to the `wght` (100–900) and `ROND`
-  (0–100) axes, with `slnt` 0, `opsz` 18 and `wdth` 100 pinned: about 300 KB
-  instead of 3.9 MB. Its OFL notice ships in `assets/licenses/fonts-OFL.txt`
-  (SN Pro's too). A new axis costs size: add it only with a role that uses it.
+- **One variable file.** `core/designsystem/src/main/res/font/google_sans_flex.ttf` is the upstream
+  v4.007 Android build instanced with fontTools to the `wght` (100–900), `ROND`
+  (0–100), `opsz` (18–57, the sizes the scale uses) and `GRAD` (0–100) axes,
+  with `slnt` 0 and `wdth` 100 pinned: about 600 KB instead of 3.9 MB (main's
+  two-axis cut was 300 KB). v4.007 is the last release with `GRAD` (v5.000
+  dropped it). Going back a release also redraws a few glyphs at the cut the
+  app used before (`opsz` 18): `6` and `9` have a larger bowl, and at bold
+  weights `¢` is stroked only above and below its bowl and `฿` has a split
+  vertical. Every other digit and currency sign draws the same. Its OFL notice
+  ships in `assets/licenses/fonts-OFL.txt` (SN Pro's too). A new axis costs
+  size: add it only with a role that uses it.
 - **Static instances, one per weight.** Each family declares a `Font` for every
-  weight 100–900, each pinning `wght` (and `ROND`). Compose picks the closest
-  *declared* weight, so without a 700 entry every `*Emphasized` style would
-  render at 600, identical to its base. `GoogleSansFlexTypographyTest` guards it.
+  weight 100–900, each pinning `wght`, `ROND`, `opsz` and `GRAD`. Compose picks
+  the closest *declared* weight, so without a 700 entry every `*Emphasized`
+  style would render at 600, identical to its base. `GoogleSansFlexTypographyTest`
+  guards it.
 - **Roundness.** Headings use `ROND` 100: fully rounded terminals, the
   Expressive voice. Body, labels and money use `ROND` 0, which reads crisper at
-  small sizes and in figures. `PennyWiseText` money styles take the body family
-  even when they are sized from a heading role (`heroAmount` is
-  `displaySmallEmphasized`), so amounts stay `ROND` 0 with `tnum`.
+  small sizes and in figures. `PennyWiseText` money styles (and `money()`) are
+  `ROND` 0 with `tnum` even when sized from a heading role.
+- **Optical size per role, never under 18.** Each role pins `opsz` to its own
+  font size in sp, floored at the font's default 18 (`OPTICAL_SIZES` starts
+  there): `titleLarge` 22, `headlineLarge` 32, `displayLarge` 57. Money styles
+  take the optical size of their own size (`heroAmount` is 36, not the body's
+  18). Large sizes get finer details and ~1% tighter spacing. Below 18 the axis
+  widens advances (`opsz` 12 is ~8% wider), which reflowed body text and
+  wrapped "Transactions" in the nav bar, so text at 18sp and under keeps the
+  default cut and its widths. `ROND` and `GRAD` never change advance widths.
+- **Grade per theme.** Light-on-dark text reads heavier, so the themes differ
+  by a notch of grade. The axis has no negative values, so light mode draws
+  `GRAD` 20 and dark mode the default 0: light-mode text is a touch heavier
+  than before, including light-on-dark text inside the light theme (snackbars,
+  filled buttons), since grade follows the theme, not the surface.
+  `typographyFor(appFont, latinScript, darkTheme)` picks it.
 - **Never animate a font axis.** Every axis value is a separate typeface;
   animating `wght` or `ROND` re-lays out the text every frame. Animate size,
   colour or alpha instead.
@@ -430,6 +450,10 @@ it by `Dimensions.Component.bottomBarHeight`.
   7. **Shared elements** (the transaction icon from list to detail) move their
      bounds on `defaultSpatialSpec()` via `sharedElementIcon`, not Compose's
      default bounds spring.
+  - **Scan progress** eases the worker's fraction on `fastEffectsSpec()`, indeterminate
+    until the total is known; a new scan (work id) starts at its own value, not from 100%.
+  - **Insights donut** sweeps in clockwise (an angular clip on `slowEffectsSpec()`, `sweepIn()`)
+    when the chart appears; slices, legend and taps stay as they are; refreshing it doesn't replay it.
 - **Navigation motion.** Both nav hosts (`PennyWiseNavHost` and each tab's
   stack in `MainScreen`) speak one language from `PennyWiseMotion.kt`. A push is
   `pwPush`: the new screen rises a quarter of the screen on the default spatial

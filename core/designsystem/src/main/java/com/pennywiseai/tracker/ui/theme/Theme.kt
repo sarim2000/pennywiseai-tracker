@@ -228,15 +228,20 @@ internal fun ThemeStyle.palette(): BaseColorScheme? = when (this) {
  * the system font, which ignores the picked weight there: headings render
  * regular and the two scripts clash. Those locales get the system font, whose
  * per-script families carry every weight.
+ *
+ * Google Sans Flex also takes the theme's grade: [darkTheme] draws it a notch
+ * lighter, since light-on-dark text reads heavier.
  */
-internal fun typographyFor(appFont: AppFont, latinScript: Boolean): Typography =
+internal fun typographyFor(appFont: AppFont, latinScript: Boolean, darkTheme: Boolean = false): Typography =
     if (!latinScript) {
         getTypography(FontFamily.Default)
     } else {
         when (appFont) {
             AppFont.SYSTEM -> getTypography(FontFamily.Default)
             AppFont.SN_PRO -> getTypography(SNProFontFamily)
-            AppFont.GOOGLE_SANS_FLEX -> getTypography(GoogleSansFlexFamily, GoogleSansFlexHeadingFamily)
+            AppFont.GOOGLE_SANS_FLEX -> googleSansFlexTypography(
+                if (darkTheme) GoogleSansFlexAxes.DARK_GRADE else GoogleSansFlexAxes.LIGHT_GRADE
+            )
         }
     }
 
@@ -271,7 +276,7 @@ fun PennyWiseTheme(
 
     val locale = LocalConfiguration.current.locales[0]
     val latinScript = remember(locale) { ULocale.addLikelySubtags(ULocale.forLocale(locale)).script == "Latn" }
-    val typography = remember(appFont, latinScript) { typographyFor(appFont, latinScript) }
+    val typography = remember(appFont, latinScript, darkTheme) { typographyFor(appFont, latinScript, darkTheme) }
 
     CompositionLocalProvider(LocalBlurEffects provides blurEffects, LocalRedSpending provides redSpending) {
         MaterialExpressiveTheme(

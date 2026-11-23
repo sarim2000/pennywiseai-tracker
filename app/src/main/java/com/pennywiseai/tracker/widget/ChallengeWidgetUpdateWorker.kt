@@ -65,16 +65,19 @@ class ChallengeWidgetUpdateWorker @AssistedInject constructor(
         val categories = categoryRepository.getAllCategories().first()
         val progress = stored.active?.let { run ->
             val today = LocalDate.now()
+            // Before the rows: a scan saves its rows, then moves the cursor. Read the other
+            // way round, a scan ending in between pairs old rows with the new cursor and
+            // counts its days clean.
+            val readBefore = inboxReadBefore(
+                preferences.getLastScanTimestamp().first(),
+                preferences.lastScanRecord.first()?.owesFullWindow == true,
+            )
             // The profile it was started under, whichever is selected now.
             val rows = loader.scopedRows(run.start, maxOf(run.end, today), flowOf(run.profileId)).first()
             val tracking = trackingProblem(
                 ctx.canReadSms() && ctx.canReceiveSms(),
                 BackgroundAccessState(backgroundRestricted = ctx.isBackgroundRestricted()),
             ) == null
-            val readBefore = inboxReadBefore(
-                preferences.getLastScanTimestamp().first(),
-                preferences.lastScanRecord.first()?.owesFullWindow == true,
-            )
             run.namedAsNow(categories)
                 .progress(challengeRows(rows, categories.parentNameOf()), today, tracking = tracking, inboxReadBefore = readBefore)
         }

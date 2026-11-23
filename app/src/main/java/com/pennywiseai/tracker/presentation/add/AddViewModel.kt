@@ -112,57 +112,6 @@ class AddViewModel @Inject constructor(
     // One save per open form; a failed or refused insert keeps the draft (see [SaveGate]).
     private val saveGate = SaveGate()
 
-    init {
-        // Load base currency and set as default for both transaction and subscription
-        viewModelScope.launch {
-            val baseCurrency = userPreferencesRepository.baseCurrency.first()
-            _transactionUiState.update { it.copy(currency = baseCurrency) }
-            _subscriptionUiState.update { it.copy(currency = baseCurrency) }
-
-            // If launched via "Duplicate", prefill the transaction form from the
-            // source. Done after the default currency so the source's currency wins.
-            sourceTransactionId?.let { prefillFromTransaction(it) }
-            sharedText?.let { text ->
-                val guess = SharedTextAmount.extract(text)
-                _transactionUiState.update {
-                    // Only prefill an amount in the form's own currency: "$12" shared
-                    // by an INR user is left for them to enter, rather than becoming
-                    // 12 INR or a USD figure saved against an INR account.
-                    val usable = guess?.takeIf { g -> g.currency == null || g.currency == it.currency }
-                    it.copy(
-                        amount = usable?.amount?.toPlainString() ?: it.amount,
-                        notes = text
-                    )
-                }
-            }
-            draftType?.let { updateTransactionType(it) }
-            _transactionUiState.update {
-                it.copy(
-                    amount = draftAmount ?: it.amount,
-                    merchant = draftMerchant ?: it.merchant,
-                    category = draftCategory ?: it.category,
-                    currency = draftCurrency ?: it.currency,
-                    date = draftDateTime ?: it.date
-                )
-            }
-            // The same draft starts the Subscription form, so switching forms keeps what was
-            // typed, income included (the direction first: it resets the category).
-            if (draftType == TransactionType.INCOME) {
-                updateSubscriptionDirection(com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME)
-            }
-            _subscriptionUiState.update {
-                it.copy(
-                    amount = draftAmount ?: it.amount,
-                    serviceName = draftMerchant ?: it.serviceName,
-                    category = draftCategory ?: it.category,
-                    currency = draftCurrency ?: it.currency
-                )
-            }
-            selectAccount(draftBankName, draftAccountLast4)
-            _transactionUiState.update { it.copy(draftLoaded = true) }
-        }
-    }
-
     /**
      * Loads the given transaction and copies its editable values into the
      * transaction form as a brand-new draft. The original is never modified;
@@ -204,8 +153,7 @@ class AddViewModel @Inject constructor(
     private fun selectAccount(bankName: String?, last4: String?) {
         if (bankName == null && last4 == null) return
         viewModelScope.launch {
-            // From the repository, not [accounts]: init can run this before that
-            // property (declared further down) exists.
+            // From the repository, not [accounts]: nothing collects that yet.
             val all = accountBalanceRepository.getAllLatestBalances().first { it.isNotEmpty() }
             // Only accounts in the entry's currency, so no amount lands in another currency.
             val currency = _transactionUiState.value.currency
@@ -286,6 +234,60 @@ class AddViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    // Below the flows it reads (e.g. [categories]): viewModelScope runs on Main.immediate
+    // and the base currency can arrive without suspending, so this body can run inside
+    // the constructor, before any property declared after it is set.
+    init {
+        // Load base currency and set as default for both transaction and subscription
+        viewModelScope.launch {
+            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            _transactionUiState.update { it.copy(currency = baseCurrency) }
+            _subscriptionUiState.update { it.copy(currency = baseCurrency) }
+
+            // If launched via "Duplicate", prefill the transaction form from the
+            // source. Done after the default currency so the source's currency wins.
+            sourceTransactionId?.let { prefillFromTransaction(it) }
+            sharedText?.let { text ->
+                val guess = SharedTextAmount.extract(text)
+                _transactionUiState.update {
+                    // Only prefill an amount in the form's own currency: "$12" shared
+                    // by an INR user is left for them to enter, rather than becoming
+                    // 12 INR or a USD figure saved against an INR account.
+                    val usable = guess?.takeIf { g -> g.currency == null || g.currency == it.currency }
+                    it.copy(
+                        amount = usable?.amount?.toPlainString() ?: it.amount,
+                        notes = text
+                    )
+                }
+            }
+            draftType?.let { updateTransactionType(it) }
+            _transactionUiState.update {
+                it.copy(
+                    amount = draftAmount ?: it.amount,
+                    merchant = draftMerchant ?: it.merchant,
+                    category = draftCategory ?: it.category,
+                    currency = draftCurrency ?: it.currency,
+                    date = draftDateTime ?: it.date
+                )
+            }
+            // The same draft starts the Subscription form, so switching forms keeps what was
+            // typed, income included (the direction first: it resets the category).
+            if (draftType == TransactionType.INCOME) {
+                updateSubscriptionDirection(com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME)
+            }
+            _subscriptionUiState.update {
+                it.copy(
+                    amount = draftAmount ?: it.amount,
+                    serviceName = draftMerchant ?: it.serviceName,
+                    category = draftCategory ?: it.category,
+                    currency = draftCurrency ?: it.currency
+                )
+            }
+            selectAccount(draftBankName, draftAccountLast4)
+            _transactionUiState.update { it.copy(draftLoaded = true) }
+        }
+    }
 
     // Transaction Tab Functions
     fun updateSelectedAccount(account: AccountBalanceEntity?) {

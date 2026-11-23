@@ -312,16 +312,18 @@ class GoalsListWidget : GlanceAppWidget() {
                 val rows = (room.value / Dimensions.Component.minTouchTarget.value).toInt().coerceIn(1, GOALS_WIDGET_MAX)
                 val shown = items.take(rows)
                 val rowHeight = maxOf(room / shown.size, Dimensions.Component.minTouchTarget)
-                shown.forEach { GoalRow(it, rowHeight) }
+                shown.forEach { GoalRow(it, rowHeight, LocalSize.current.width) }
             }
         }
     }
 
     @Composable
-    private fun GoalRow(item: GoalWidgetItem, height: Dp) {
+    private fun GoalRow(item: GoalWidgetItem, height: Dp, width: Dp) {
         val context = LocalContext.current
-        val roomy = height >= ROOMY_ROW
-        val ring = if (roomy) minOf(height - Spacing.md, ROOMY_RING_MAX) else ROW_RING
+        // The ring grows into the row's height, but never at the cost of the name and status.
+        val roomyRing = minOf(height - Spacing.md, ROOMY_RING_MAX, width - WidgetDefaults.padding * 2 - Spacing.md - ROW_TEXT_MIN)
+        val roomy = height >= ROOMY_ROW && roomyRing >= ROOMY_RING_MIN
+        val ring = if (roomy) roomyRing else ROW_RING
         // One goal alone on a 4×2 reads as the 2×2 does: a hero ring and a title-size name.
         val hero = ring >= HERO_RING
         WidgetRow(
@@ -393,6 +395,10 @@ class GoalsListWidget : GlanceAppWidget() {
         /** A row this tall (one or two goals on a 4×2) gets the big ring and title. */
         val ROOMY_ROW = 64.dp
         val ROOMY_RING_MAX = Dimensions.Component.goalRingLarge * 3 / 4
+        /** Smallest ring that still holds its percent; narrower rows keep the compact layout. */
+        val ROOMY_RING_MIN = 56.dp
+        /** Width kept for the goal's name and status line beside a roomy ring. */
+        val ROW_TEXT_MIN = 120.dp
         val HERO_RING = 96.dp
     }
 }

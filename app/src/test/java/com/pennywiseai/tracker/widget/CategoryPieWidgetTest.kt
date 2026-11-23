@@ -1,5 +1,10 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.utils.Money
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -7,6 +12,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
+import java.time.LocalDateTime
 
 class CategoryPieWidgetTest {
 
@@ -68,5 +74,73 @@ class CategoryPieWidgetTest {
         listOf(0xFFFF7043, 0xFF42A5F5, 0xFFAB47BC, 0xFF26A69A, 0xFF9E9E9E, 0xFF424242).forEach {
             assertFalse(it.toString(16), isLowContrast(it.toInt()))
         }
+    }
+
+    private fun row(
+        id: Long,
+        amount: String,
+        category: String,
+        type: TransactionType = TransactionType.EXPENSE,
+        currency: String = "JOD",
+        refundOf: String? = null
+    ) = TransactionWithSplits(
+        TransactionEntity(
+            id = id, amount = BigDecimal(amount), merchantName = "Demo", category = category,
+            transactionType = type, dateTime = LocalDateTime.of(2026, 11, 10, 12, 0),
+            transactionHash = "h$id", currency = currency,
+            budgetCategory = refundOf, budgetImpactType = refundOf?.let { BudgetImpactType.DEDUCT_SPENT }
+        ),
+        emptyList()
+    )
+
+    /** In JOD only, as the pie is outside unified mode. */
+    private fun spendOf(rows: List<TransactionWithSplits>, creditAsExpense: Boolean = false) = runBlocking {
+        pieSpend(rows, creditAsExpense) { tx, amount -> amount.takeIf { tx.currency == "JOD" } }
+    }
+
+    @Test
+    fun `a refund comes off the total, so it matches Home's Spent`() {
+        val rows = listOf(
+            row(1, "1000.000", "Groceries"),
+            row(2, "419.730", "Food"),
+            row(3, "4.000", "Groceries", TransactionType.INCOME, refundOf = "Groceries"),
+            row(4, "900.000", "Salary", TransactionType.INCOME)
+        )
+        val spend = spendOf(rows)
+        assertEquals(0, BigDecimal("1415.730").compareTo(spend.total))
+        assertEquals(0, breakdownByCurrency(rows.map { it.transaction }).getValue("JOD").expenses.compareTo(spend.total))
+        assertEquals(0, BigDecimal("996.000").compareTo(spend.byCategory.getValue("Groceries")))
+        assertEquals(0, BigDecimal("419.730").compareTo(spend.byCategory.getValue("Food")))
+    }
+
+    @Test
+    fun `a refund larger than its category empties the slice and still comes off the total in full`() {
+        val spend = spendOf(
+            listOf(
+                row(1, "10", "Groceries"),
+                row(2, "50", "Food"),
+                row(3, "15", "Groceries", TransactionType.INCOME, refundOf = "Groceries")
+            )
+        )
+        assertEquals(setOf("Food"), spend.byCategory.keys)
+        assertEquals(0, BigDecimal("45").compareTo(spend.total))
+    }
+
+    @Test
+    fun `card spend counts only when the user counts it as expense`() {
+        val rows = listOf(row(1, "20", "Food"), row(2, "30", "Shopping", TransactionType.CREDIT))
+        assertEquals(0, BigDecimal("20").compareTo(spendOf(rows).total))
+        assertEquals(0, BigDecimal("50").compareTo(spendOf(rows, creditAsExpense = true).total))
+    }
+
+    @Test
+    fun `a refund in another currency doesn't touch the pie`() {
+        val spend = spendOf(
+            listOf(
+                row(1, "20", "Food"),
+                row(2, "5", "Food", TransactionType.INCOME, currency = "USD", refundOf = "Food")
+            )
+        )
+        assertEquals(0, BigDecimal("20").compareTo(spend.total))
     }
 }

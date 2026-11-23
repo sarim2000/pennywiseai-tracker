@@ -210,9 +210,11 @@ fun BalanceCard(
                     },
                 )
                 val heroStyle = PennyWiseText.heroAmount
-                // Another currency is a first show, not a change of value: amounts in
-                // two currencies can't be compared, so the figure swaps without rolling.
-                key(budget?.currency ?: currency) {
+                // A different figure is a first show, not a change of value, so it swaps
+                // without rolling: another currency (amounts can't be compared), month spend
+                // vs a budget's remainder, another budget, or crossing from left to over.
+                val heroCurrency = budget?.currency ?: currency
+                key(heroCurrency, budget?.budgetId, budget?.let { it.remaining.signum() < 0 }) {
                     AnimatedCurrencyText(
                         text = if (budget != null) {
                             hidden(budget.remaining.abs(), budget.currency)
@@ -224,7 +226,7 @@ fun BalanceCard(
                         maxLines = 1,
                         // A long amount shrinks to fit rather than wrapping mid-number.
                         autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, heroStyle.fontSize),
-                        decimalSeparator = CurrencyFormatter.decimalSeparator(budget?.currency ?: currency),
+                        decimalSeparator = CurrencyFormatter.decimalSeparator(heroCurrency),
                     )
                 }
                 // Hidden amounts hide the meter too: a known limit and its fill give the spend away.

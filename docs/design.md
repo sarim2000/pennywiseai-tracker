@@ -467,8 +467,9 @@ it by `Dimensions.Component.bottomBarHeight`.
   when a new amount arrives mid-roll. Pass `decimalSeparator =
   CurrencyFormatter.decimalSeparator(currency)`: without it `KWD 12.345` →
   `KWD 13` can't be told from a thousands group and rolls the wrong way. Key
-  it by currency (`key(currency) { … }`): another currency is a first show,
-  not a smaller or larger number.
+  it by what the figure is (`key(currency) { … }`, plus anything that turns it
+  into another figure, like the hero's budget and over/left state): another
+  currency or another figure is a first show, not a smaller or larger number.
 - **"Receipt settled"** (`SettledCheck`): only after the user's own save is
   written — never on load, import or a failed save — the item's avatar gives
   way to a check (fade + cookie→circle morph, no scale), with

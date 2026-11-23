@@ -4,8 +4,10 @@ import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.countedAmount
+import com.pennywiseai.tracker.data.repository.keepReimbursement
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -62,5 +64,27 @@ class ReimbursementsTest {
         ReimbursementStatus.entries.forEach { status ->
             assertEquals(0, BigDecimal("500.00").compareTo(txn("500.00", status = status).countedAmount()))
         }
+    }
+
+    /** A full-row write (the edit form, a rule) can't undo a mark made after its copy was taken. */
+    @Test
+    fun aStaleCopy_keepsTheStoredReimbursement() {
+        val stored = txn("1", status = ReimbursementStatus.REIMBURSED).copy(reimbursedById = 7)
+        val written = keepReimbursement(stored, txn("2"))
+
+        assertEquals(ReimbursementStatus.REIMBURSED, written.reimbursementStatus)
+        assertEquals(7L, written.reimbursedById)
+        assertEquals(0, BigDecimal("2").compareTo(written.amount))
+    }
+
+    @Test
+    fun aRowRetypedAwayFromMoneyOut_dropsItsReimbursement() {
+        val stored = txn("1", status = ReimbursementStatus.REIMBURSED).copy(reimbursedById = 7)
+        listOf(TransactionType.INCOME, TransactionType.TRANSFER, TransactionType.INVESTMENT).forEach { type ->
+            val written = keepReimbursement(stored, txn("1", type = type))
+            assertNull(written.reimbursementStatus)
+            assertNull(written.reimbursedById)
+        }
+        assertEquals(ReimbursementStatus.REIMBURSED, keepReimbursement(stored, txn("1", type = TransactionType.CREDIT)).reimbursementStatus)
     }
 }

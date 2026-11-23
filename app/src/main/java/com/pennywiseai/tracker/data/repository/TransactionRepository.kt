@@ -185,14 +185,15 @@ open class TransactionRepository @Inject constructor(
      * Writes [transaction] so a split bill (#346) survives a stale copy of the
      * row: whether it's split comes from its loan_shares rows, not the stored
      * total; it stays an expense in its currency, at least its shares; and
-     * `lent_shares_total` is written from those same rows.
+     * `lent_shares_total` is written from those same rows. Its reimbursement
+     * (#1389) survives too: see [keepReimbursement].
      */
     private suspend fun writeKeepingSplit(transaction: TransactionEntity) {
         val amounts = transactionDao.getShareAmounts(transaction.id)
         val shares = if (amounts.isEmpty()) null else amounts.fold(java.math.BigDecimal.ZERO, java.math.BigDecimal::add)
-        val persisted = if (shares == null) null else transactionDao.getTransactionById(transaction.id)
-        val safe = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(persisted, transaction, shares)
-        transactionDao.updateTransaction(safe.copy(lentSharesTotal = shares, updatedAt = LocalDateTime.now()))
+        val persisted = transactionDao.getTransactionById(transaction.id)
+        val safe = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(persisted.takeIf { shares != null }, transaction, shares)
+        transactionDao.updateTransaction(keepReimbursement(persisted, safe).copy(lentSharesTotal = shares, updatedAt = LocalDateTime.now()))
     }
 
     open suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean = false) {
@@ -719,4 +720,18 @@ open class TransactionRepository @Inject constructor(
      */
     suspend fun deleteSplit(split: TransactionSplitEntity) =
         transactionSplitDao.deleteSplit(split)
+}
+
+/**
+ * [updated] as it may be written over [persisted] (#1389). Only [TransactionRepository.setReimbursement]
+ * sets the reimbursement columns, so a full-row write keeps the stored ones: an edit opened
+ * before the row was marked can't unmark it. Only money out waits to be paid back, so a row
+ * retyped to anything else (income, a transfer) drops them.
+ */
+internal fun keepReimbursement(persisted: TransactionEntity?, updated: TransactionEntity): TransactionEntity {
+    val moneyOut = updated.transactionType == TransactionType.EXPENSE || updated.transactionType == TransactionType.CREDIT
+    return updated.copy(
+        reimbursementStatus = persisted?.reimbursementStatus?.takeIf { moneyOut },
+        reimbursedById = persisted?.reimbursedById?.takeIf { moneyOut },
+    )
 }

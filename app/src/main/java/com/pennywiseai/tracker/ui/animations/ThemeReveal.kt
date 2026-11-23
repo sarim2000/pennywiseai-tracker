@@ -36,7 +36,10 @@ import kotlin.math.max
  * A new look spreads as a circle from where the user last touched (the Appearance
  * control they tapped), over a still of the old one, instead of every colour
  * snapping at once. [content] is always composed with the theme on screen, which
- * lags [target] by the one frame it takes to take that still.
+ * lags [target] by the one frame it takes to take that still. Its second value,
+ * `bars`, is the look under the system bars: the still covers them too, so it
+ * stays the old look until the circle has covered the whole window (a corner,
+ * so the last of a bar to be passed). The bar icons should follow it.
  *
  * Only the app's own window is caught: a dialog or sheet open over it just swaps.
  * With "Remove animations", or if the still can't be taken, the theme swaps at once.
@@ -50,9 +53,10 @@ fun <T> ThemeReveal(
     target: T,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    content: @Composable (shown: T) -> Unit,
+    content: @Composable (shown: T, bars: T) -> Unit,
 ) {
     var shown by remember { mutableStateOf(target) }
+    var bars by remember { mutableStateOf(target) }
     var still by remember { mutableStateOf<ImageBitmap?>(null) }
     val radius = remember { Animatable(0f) }
     val layer = rememberGraphicsLayer()
@@ -73,10 +77,12 @@ fun <T> ThemeReveal(
         if (target == shown) return@LaunchedEffect
         if (!enabled || !animationsEnabled || size.value == Size.Zero) {
             shown = target
+            bars = target
             return@LaunchedEffect
         }
         // A change mid-reveal cancels this one: drop its still, or the next reveal
-        // would flash it at radius 0 before taking its own.
+        // would flash it at radius 0 before taking its own. With the still gone, the
+        // bars sit over the look now shown.
         try {
             center.value = revealOrigin(origin.value, touchedAt.value, SystemClock.uptimeMillis(), size.value)
             radius.snapTo(0f)
@@ -88,9 +94,12 @@ fun <T> ThemeReveal(
             // spring is mostly spent before the first frame of the reveal is drawn.
             withFrameNanos { }
             withFrameNanos { }
-            radius.animateTo(farthestCorner(center.value, size.value), spec)
+            val full = farthestCorner(center.value, size.value)
+            // Not at the end: the spring overshoots and settles well after the window is covered.
+            radius.animateTo(full, spec) { if (value >= full) bars = target }
         } finally {
             still = null
+            bars = shown
         }
     }
 
@@ -119,7 +128,7 @@ fun <T> ThemeReveal(
                 clipPath(hole, ClipOp.Difference) { drawImage(old) }
             }
     ) {
-        content(shown)
+        content(shown, bars)
     }
 }
 

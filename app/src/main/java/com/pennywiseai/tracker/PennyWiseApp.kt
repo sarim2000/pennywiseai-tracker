@@ -262,9 +262,11 @@ fun PennyWiseApp(
         appFont = themeUiState.appFont,
     )
     // The cover is drawn under the reveal's still, so no reveal runs while it's up.
-    ThemeReveal(look, enabled = !covered) { shown ->
+    ThemeReveal(look, enabled = !covered) { shown, bars ->
         PennyWiseTheme(
             darkTheme = shown.darkTheme,
+            // The old look's still covers the bars until the circle passes them.
+            darkSystemBars = bars.darkTheme,
             dynamicColor = shown.dynamicColor,
             themeStyle = shown.themeStyle,
             accentColor = shown.accentColor,

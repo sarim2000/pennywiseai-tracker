@@ -35,6 +35,7 @@ object WidgetRefresher {
      */
     fun refreshTrackingCheckup(context: Context) {
         val app = context.applicationContext
+        recheckTrackingAccess()
         scope.launch {
             try {
                 TrackingCheckupWidget().updateAll(app)

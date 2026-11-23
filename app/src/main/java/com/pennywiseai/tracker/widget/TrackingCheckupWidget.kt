@@ -43,8 +43,10 @@ import com.pennywiseai.tracker.utils.canReadSms
 import com.pennywiseai.tracker.utils.canReceiveSms
 import com.pennywiseai.tracker.utils.isBackgroundRestricted
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -57,17 +59,22 @@ class TrackingCheckupWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Responsive(setOf(NARROW, WIDE, NARROW_TALL, WIDE_TALL))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        // Nothing announces a permission or background change, so read them on every update.
-        val smsGranted = context.canReadSms() && context.canReceiveSms()
-        val backgroundRestricted = context.isBackgroundRestricted()
         val entry = EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
         val scan = entry.scanPreferences()
         val checkups = combine(
             scan.lastScanRecord,
             scan.lastLiveSmsAt,
             entry.smsScanRunning().isScanRunning(),
-        ) { record, lastLiveSmsAt, running ->
-            trackingCheckup(smsGranted, backgroundRestricted, record, running, lastLiveSmsAt)
+            accessRecheck,
+        ) { record, lastLiveSmsAt, running, _ ->
+            // Nothing announces a permission or background change, so read them on every pass.
+            trackingCheckup(
+                smsGranted = context.canReadSms() && context.canReceiveSms(),
+                backgroundRestricted = context.isBackgroundRestricted(),
+                record = record,
+                scanRunning = running,
+                lastLiveSmsAt = lastLiveSmsAt,
+            )
         }
         val initial = withTimeoutOrNull(5000L) { checkups.first() }
         val privacy = WidgetPrivacy.load(context)
@@ -182,6 +189,17 @@ private fun openCheckup(context: Context): Action = actionStartActivity(
         putExtra(MainActivity.EXTRA_OPEN_SMS_CHECKUP, true)
     }
 )
+
+/**
+ * Bumped by [recheckTrackingAccess]. A session still alive when the widget is updated
+ * recomposes without running provideGlance again, so it re-reads access on this.
+ */
+private val accessRecheck = MutableStateFlow(0L)
+
+/** SMS access or background limits may have changed: have a live widget read them again. */
+internal fun recheckTrackingAccess() {
+    accessRecheck.update { it + 1 }
+}
 
 class TrackingCheckupWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TrackingCheckupWidget()

@@ -65,10 +65,12 @@ internal fun insightsUiState(
 ): InsightsUiState {
     val reviewed = snapshot.review.currencies.filter { it.hasActivity }
     // A currency with only a subscription in it (an annual bill, say) still gets a page for its monthly cost,
-    // and a runway stands on earlier months, so a quiet cycle still has it to show.
+    // and a runway stands on earlier months, so a quiet cycle still has it to show. So does a payday
+    // projection with a bill or an income in it; a balance alone, flat until the cycle ends, says nothing.
     val currencies = (
         reviewed.map { it.currency } + snapshot.insights.map { it.currency } +
-            snapshot.subscriptionsMonthly.keys + snapshot.runways.keys
+            snapshot.subscriptionsMonthly.keys + snapshot.runways.keys +
+            projections.filterValues { it.bills.isNotEmpty() || it.income != null }.keys
         ).distinct()
     val currency = chosen?.takeIf { it in currencies } ?: currencies.firstOrNull()
     val inCurrency = snapshot.insights.filter { it.currency == currency }

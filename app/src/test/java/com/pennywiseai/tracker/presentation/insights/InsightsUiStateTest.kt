@@ -8,6 +8,8 @@ import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.reviewRange
+import com.pennywiseai.tracker.domain.spending.Bill
+import com.pennywiseai.tracker.domain.spending.PaydayProjection
 import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.utils.Money
 import org.junit.Assert.assertEquals
@@ -108,6 +110,21 @@ class InsightsUiStateTest {
         assertEquals("USD", state.currency)
         assertNull(state.review)
         assertEquals(runway, state.runway)
+    }
+
+    @Test
+    fun `a payday projection with something due keeps its currency reachable, a flat balance doesn't`() {
+        val today = LocalDate.parse("2026-11-20")
+        fun projection(currency: String, bills: List<Bill>) =
+            PaydayProjection.of(currency, BigDecimal("500"), bills, emptyList(), today, today.plusDays(10))
+        val aed = projection("AED", listOf(Bill("Card", Money(BigDecimal("100"), "AED"), today.plusDays(2))))
+        val state = insightsUiState(
+            snapshot(listOf(currency("INR", 3)), emptyList()),
+            chosen = "AED",
+            projections = mapOf("AED" to aed, "USD" to projection("USD", emptyList())),
+        )
+        assertEquals(listOf("INR", "AED"), state.currencies)
+        assertEquals(aed, state.paydayProjection)
     }
 
     @Test

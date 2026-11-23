@@ -50,6 +50,7 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -83,22 +84,28 @@ class TrackingCheckupWidget : GlanceAppWidget() {
         }
         val initial = withTimeoutOrNull(5000L) { checkups.first() }
         val privacy = WidgetPrivacy.load(context)
+        // Nor a font size change, and a session still alive wouldn't redraw for one: the
+        // same recheck reads it again, so the text is refitted when the app comes back.
+        val fontScales = accessRecheck.map { context.resources.configuration.fontScale }
         provideContent {
             val checkup by remember { checkups }.collectAsState(initial)
+            val fontScale by remember { fontScales }.collectAsState(context.resources.configuration.fontScale)
             WidgetRoot(privacy) {
-                Content(checkup)
+                Content(checkup, fontScale)
             }
         }
     }
 
     @Composable
-    private fun Content(checkup: TrackingCheckup?) {
+    private fun Content(checkup: TrackingCheckup?, fontScale: Float) {
         val context = LocalContext.current
         val size = LocalSize.current
         val wide = size.width >= WIDE_WIDTH
         // A two-cell row is too narrow for "Background restricted" or "Last SMS read 2 hours
         // ago" on one line; wrap them as far as the height allows at the user's font size.
-        val (titleLines, detailLines) = textLines(context, size.height - VERTICAL_PADDING * 2)
+        val (titleLines, detailLines) = remember(size, fontScale) {
+            textLines(context, size.height - VERTICAL_PADDING * 2)
+        }
         WidgetRow(
             modifier = GlanceModifier
                 .fillMaxSize()

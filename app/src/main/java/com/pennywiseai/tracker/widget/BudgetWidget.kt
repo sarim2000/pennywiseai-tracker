@@ -56,6 +56,7 @@ import com.pennywiseai.tracker.ui.theme.Typography
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import java.math.BigDecimal
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 
 /** The month's budget: what's left (or how far over), the bar, and the limit. */
@@ -268,15 +269,21 @@ internal fun budgetMood(data: BudgetWidgetData): MascotMood = when {
     else -> MascotMood.Calm
 }
 
-/** The in-app owl in [mood] on a transparent bitmap, in white. */
+/** Drawn owls by mood, pixel size and direction: a widget recomposes often, the owl rarely changes. */
+private val owlBitmaps = ConcurrentHashMap<Triple<MascotMood, Int, Boolean>, Bitmap>()
+
+/** The in-app owl in [mood] on a transparent bitmap, in white. Never recycled: it's shared. */
 private fun renderOwl(context: Context, mood: MascotMood, size: Dp): Bitmap {
     val px = (size.value * context.resources.displayMetrics.density).roundToInt().coerceAtLeast(1)
-    val bitmap = createBitmap(px, px)
-    val pxSize = Size(px.toFloat(), px.toFloat())
-    CanvasDrawScope().draw(Density(context), LayoutDirection.Ltr, Canvas(bitmap.asImageBitmap()), pxSize) {
-        drawStaticOwl(mood, Color.White, context.isRtlLayout)
+    val rtl = context.isRtlLayout
+    return owlBitmaps.getOrPut(Triple(mood, px, rtl)) {
+        val bitmap = createBitmap(px, px)
+        val pxSize = Size(px.toFloat(), px.toFloat())
+        CanvasDrawScope().draw(Density(context), LayoutDirection.Ltr, Canvas(bitmap.asImageBitmap()), pxSize) {
+            drawStaticOwl(mood, Color.White, rtl)
+        }
+        bitmap
     }
-    return bitmap
 }
 
 /** The app's Budgets screen. The data URI keeps this PendingIntent apart from the goal widgets'. */

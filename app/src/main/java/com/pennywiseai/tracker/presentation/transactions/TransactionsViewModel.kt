@@ -110,6 +110,9 @@ class TransactionsViewModel @Inject constructor(
     private val _categoriesFromBudget = MutableStateFlow(false)
     val categoriesFromBudget: StateFlow<Boolean> = _categoriesFromBudget.asStateFlow()
 
+    // Set by a budget line's drill-down: (its category, the sub-categories it leaves out). See leaveOutOf.
+    private val leftOut = MutableStateFlow<Pair<String, Set<String>>?>(null)
+
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.ALL)
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
 
@@ -760,6 +763,7 @@ class TransactionsViewModel @Inject constructor(
             budgetCycleStartDay.map { "cycle" },
             categoryFilter.map { "category" },
             categoriesFilter.map { "categories" },
+            leftOut.map { "leftOut" },
             transactionTypeFilter.map { "typeFilter" },
             _selectedProfileId.map { "profileFilter" },
             _profileAccountKeys.map { "profileAccountKeys" },
@@ -990,6 +994,15 @@ class TransactionsViewModel @Inject constructor(
         if (profilePinned) return
         profilePinned = true
         _selectedProfileId.value = profileId
+    }
+
+    /**
+     * While the list filters on [category] alone, leaves out [names] of its sub-categories:
+     * a budget line's list, where a sub-category with its own line doesn't count toward its
+     * parent's (#1425). Picking another category drops it.
+     */
+    fun leaveOutOf(category: String, names: Collection<String>) {
+        leftOut.value = names.toSet().takeIf { it.isNotEmpty() }?.let { category to it }
     }
 
     /**
@@ -1333,6 +1346,7 @@ class TransactionsViewModel @Inject constructor(
         // A parent category includes its sub-categories (#374).
         val effectiveCategories = (categories?.takeIf { it.isNotEmpty() } ?: category?.let { listOf(it) })
             ?.let { this.categories.value.values.toList().expandWithChildren(it) }
+            ?.let { names -> leftOut.value?.takeIf { categories.isNullOrEmpty() && it.first == category }?.let { names - it.second } ?: names }
         val range = periodRange(period, cycleRange)
         val baseFlow = if (range == null) {
             transactionRepository.getAllTransactions()

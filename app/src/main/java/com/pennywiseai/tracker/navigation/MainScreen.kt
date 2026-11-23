@@ -136,6 +136,7 @@ internal fun transactionsFor(rows: BudgetCategoryRows) = TransactionsWithFilter(
     endDate = rows.end.toEpochDay(),
     currencyOnly = rows.currencyOnly,
     allProfiles = true,
+    withoutCategories = rows.without,
 )
 
 /** The full Add form, carrying what the quick sheet held so nothing is typed twice. */

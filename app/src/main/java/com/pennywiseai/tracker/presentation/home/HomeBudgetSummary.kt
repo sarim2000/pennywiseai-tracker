@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.data.repository.BudgetWindow
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.data.repository.budgetSpend
+import com.pennywiseai.tracker.data.repository.lineParents
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.ui.components.cards.HomeHeroBudget
 import java.math.BigDecimal
@@ -88,16 +89,17 @@ internal suspend fun homeBudgetSummary(
         val isTrackingAll = group.categories.isEmpty()
         val window = raw.currentWindows[group.budget.id]
         // A rollover budget adds up as the Budgets screen and its carry do: over its
-        // window up to today, a parent row counting its sub-categories (#374). Other
-        // category budgets keep Home's own sum. A type-bucket row (the Investments
-        // target) reads its bucket either way, as on the Budgets screen and the widget.
+        // window up to today. Other category budgets keep Home's own sum. Either way a
+        // parent row counts its sub-categories (#374) but for one with its own row
+        // (#1425). A type-bucket row (the Investments target) reads its bucket either
+        // way, as on the Budgets screen and the widget.
         val rollover = group.budget.rolloverEnabled
         val transactions = (if (rollover) raw.currentWindowTransactions(group.budget.id) else null) ?: inWindow(window)
         val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
             transactions = transactions,
             convertSplit = toDisplay,
             convertIncome = { tx -> toDisplay(tx.currency, tx.amount) },
-            parentOf = if (rollover) raw.parentOf else emptyMap()
+            parentOf = group.lineParents(raw.parentOf)
         )
         val daysRemaining = daysRemainingFor(group.budget)
         val daysElapsed = daysElapsedFor(group.budget)

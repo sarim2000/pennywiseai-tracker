@@ -15,7 +15,6 @@ import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetCarry
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
@@ -25,6 +24,7 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.data.repository.budgetSpend
+import com.pennywiseai.tracker.data.repository.lineParents
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.spending.budgetPace
 import dagger.assisted.Assisted
@@ -303,21 +303,21 @@ internal suspend fun unifiedGroupSpending(
     convertLimit: suspend (BigDecimal) -> BigDecimal,
     ownWindows: Boolean
 ): List<BudgetGroupSpending> {
-    suspend fun aggregate(transactions: List<TransactionWithSplits>) = aggregateBudgetCategorySpending(
-        transactions = transactions,
-        convertSplit = convertSplit,
-        convertIncome = { tx -> convertSplit(tx.currency, tx.amount) }
-    )
-    val page = if (ownWindows) null else aggregate(raw.allTransactions)
     return raw.budgetsWithCategories.map { group ->
         val isTrackingAll = group.categories.isEmpty()
         val window = raw.currentWindows[group.budget.id]
         val windowTransactions = raw.currentWindowTransactions(group.budget.id).orEmpty()
-        val counted = if (page == null) windowTransactions else raw.allTransactions
+        val counted = if (ownWindows) windowTransactions else raw.allTransactions
         val rolloverSpend = if (group.budget.rolloverEnabled) {
             budgetSpend(group, windowTransactions, raw.parentOf, convertSplit)
         } else null
-        val (categoryAmounts, categoryLimitBoosts, typeAmounts) = page ?: aggregate(windowTransactions)
+        // A parent row counts its sub-categories but for one with its own row (#1425).
+        val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
+            transactions = counted,
+            convertSplit = convertSplit,
+            convertIncome = { tx -> convertSplit(tx.currency, tx.amount) },
+            parentOf = group.lineParents(raw.parentOf)
+        )
         val catSpending = group.categories.map { cat ->
             val actual = if (cat.matchType != null) {
                 typeAmounts[cat.matchType] ?: BigDecimal.ZERO

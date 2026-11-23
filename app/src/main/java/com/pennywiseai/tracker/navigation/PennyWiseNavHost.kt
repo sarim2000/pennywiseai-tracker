@@ -556,6 +556,7 @@ fun PennyWiseNavHost(
                             initialCustomEndEpochDay = args.endDate,
                             currencyOnly = args.currencyOnly,
                             profilePinned = args.allProfiles,
+                            excludedCategories = args.withoutCategories,
                             onNavigateBack = { backStack.pop(args) },
                             onTransactionClick = { transactionId ->
                                 backStack.navigate(TransactionDetail(transactionId))

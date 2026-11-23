@@ -230,7 +230,8 @@ class BudgetSummaryProvider @Inject constructor(
         val aggregation = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
             transactions = transactions,
             convertSplit = convert,
-            convertIncome = { tx -> convert(tx.currency, tx.amount) }
+            convertIncome = { tx -> convert(tx.currency, tx.amount) },
+            parentOf = group.lineParents(parentOf)
         )
         val catNames = group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
         val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
@@ -267,7 +268,7 @@ class BudgetSummaryProvider @Inject constructor(
             transactions,
             convertSplit = keepBase,
             convertIncome = { null },
-            parentOf = parentOf
+            parentOf = group.lineParents(parentOf)
         )
         if (group.categories.isEmpty()) return aggregation.skippedCategories.isNotEmpty()
         return leftOut(group, aggregation)
@@ -389,15 +390,16 @@ class BudgetSummaryProvider @Inject constructor(
             daysRemaining = 0
         }
 
-        // A rollover budget's rows credit a parent with its sub-categories (#374) and
-        // its fallback limit counts every row, as its carry does.
+        // Rows credit a parent with its sub-categories (#374) but for one with its own
+        // row (#1425), as in native mode. A rollover budget's fallback limit counts every
+        // row, as its carry does.
         val rollover = group.budget.rolloverEnabled
         val allCategorySpending = if (group.categories.isEmpty()) emptyList() else {
             val (categoryAmounts, categoryLimitBoosts, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
                 transactions = txsInDisplay,
                 convertSplit = convert,
                 convertIncome = { tx -> convert(tx.currency, tx.amount) },
-                parentOf = if (rollover) parentOf else emptyMap()
+                parentOf = group.lineParents(parentOf)
             )
             val days = displayedWindow.days.coerceAtLeast(1)
             group.categories.map { cat ->
@@ -518,9 +520,9 @@ class BudgetSummaryProvider @Inject constructor(
             return cumulative to pace
         }
 
-        // A rollover budget's pace includes a parent's sub-categories, as its total does.
+        // The pace includes a parent's sub-categories, as its total does.
         val catNames = if (group.categories.isEmpty()) null else group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
-            .let { names -> if (rollover) names + parentOf.filterValues { it in names }.keys else names }
+            .let { names -> names + parentOf.filterValues { it in names }.keys }
         val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
         val (cumSpending, budgetPace) = buildGroupPace(catNames, matchTypes, convertedTotalBudget)
 

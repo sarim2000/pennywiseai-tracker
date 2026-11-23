@@ -106,10 +106,12 @@ object LandingViews {
             div(classes = "lp-wrap") {
                 sectionHead("How it works", "Three steps, about a minute.")
                 ol(classes = "lp-steps") {
-                    step("shape-clover", "1", "Allow SMS, read-only",
-                        "PennyWise only reads. It never sends messages, changes your inbox or asks you to sign up.")
+                    step("shape-clover", "1", "Let it read your bank SMS",
+                        "On Android, PennyWise asks for read-only SMS access and never sends messages or changes your inbox. " +
+                            "iPhone apps can't read texts, so there a Shortcuts automation passes each bank SMS to PennyWise.")
                     step("shape-cookie", "2", "Transactions appear instantly",
-                        "Amount, merchant, account and date are pulled from each bank SMS, including new ones as they arrive.")
+                        "Amount, merchant, account and date are pulled from each bank SMS as it arrives. " +
+                            "On Android, the ones already in your inbox come in too.")
                     step("shape-sunny", "3", "See where it goes",
                         "Insights, budgets, bills and a month-end forecast, plus an on-device assistant for everything else.")
                 }
@@ -276,7 +278,7 @@ object LandingViews {
                 div(classes = "lp-final") {
                     div(classes = "lp-final-owl shape-cookie") { owl() }
                     h2 { +"Get PennyWise" }
-                    p { +"Android 8.0 and newer, plus iOS. Free, with no ads." }
+                    p { +"Android 8.0 and newer, and iPhone through a Shortcuts automation. Free, with no ads." }
                     downloadButtons()
                 }
             }

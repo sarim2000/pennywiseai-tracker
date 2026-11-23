@@ -417,6 +417,8 @@ open class TransactionRepository @Inject constructor(
 
     fun observeReimbursedBy(paymentId: Long): Flow<List<TransactionEntity>> = transactionDao.observeReimbursedBy(paymentId)
 
+    fun observeReimbursementPayment(paymentId: Long): Flow<TransactionEntity?> = transactionDao.observeReimbursementPayment(paymentId)
+
     /**
      * Incoming payments that could have paid [expense] back: same currency, dated no earlier
      * than the expense's day, newest first.

@@ -304,6 +304,10 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE reimbursement_status IS NOT NULL AND is_deleted = 0 ORDER BY date_time DESC")
     fun observeReimbursables(): Flow<List<TransactionEntity>>
 
+    /** The live payment row an expense links to (#1389); null once it's gone or deleted. */
+    @Query("SELECT * FROM transactions WHERE id = :paymentId AND is_deleted = 0")
+    fun observeReimbursementPayment(paymentId: Long): Flow<TransactionEntity?>
+
     /** The expenses that [paymentId] paid back. */
     @Query("SELECT * FROM transactions WHERE reimbursed_by_id = :paymentId AND is_deleted = 0 ORDER BY date_time DESC")
     fun observeReimbursedBy(paymentId: Long): Flow<List<TransactionEntity>>

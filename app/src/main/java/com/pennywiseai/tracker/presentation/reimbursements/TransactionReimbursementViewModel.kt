@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -39,9 +39,14 @@ class TransactionReimbursementViewModel @Inject constructor(
 
     fun setTransaction(txn: TransactionEntity?) { transaction.value = txn }
 
-    /** The payment that paid the open expense back, while it's linked and not deleted. */
+    /**
+     * The payment that paid the open expense back, while it's linked and not deleted.
+     * Observed, so an edit or delete of that payment shows here at once.
+     */
     val payment: StateFlow<TransactionEntity?> = transaction
-        .mapLatest { txn -> txn?.reimbursedById?.let { transactionRepository.getTransactionById(it) }?.takeUnless { it.isDeleted } }
+        .map { it?.reimbursedById }
+        .distinctUntilChanged()
+        .flatMapLatest { id -> if (id == null) flowOf(null) else transactionRepository.observeReimbursementPayment(id) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The expenses the open transaction paid back, when it's money received. */

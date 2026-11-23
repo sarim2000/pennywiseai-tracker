@@ -2,7 +2,8 @@
 
 Install the Debug APK you want to test on a fresh, disposable Android emulator,
 then seed it from the repo root. The script writes the fixture, finishes
-onboarding, skips SMS access and shows JOD as the base currency. A database with
+onboarding, skips SMS access, shows JOD as the base currency and restarts the
+app on Home. A database with
 existing content, including customized built-in categories, profiles, or rule
 templates, is left alone. Untouched built-in rule templates can be present when
 seeding runs. Opening the Debug app without the script still starts onboarding.

@@ -107,35 +107,38 @@ class ChallengesViewModel @Inject constructor(
             val lookback = today.minusDays(LOOKBACK_DAYS)
             val from = run?.start?.let { minOf(it, lookback) } ?: lookback
             val to = run?.end?.let { maxOf(it, today) } ?: today
-            combine(
-                // A run counts the profile it was started under, whichever is selected now.
-                loader.scopedRows(from, to, run?.let { flowOf(it.profileId) } ?: preferences.selectedProfileId),
-                categoryRepository.getAllCategories(),
-                // Where the last finished inbox scan read up to: a clean day must be behind it.
-                preferences.getLastScanTimestamp().distinctUntilChanged(),
-                smsScanManager.isScanRunning(),
-            ) { rows, categories, scannedAt, scanning ->
-                val counted = challengeRows(rows, categories.parentNameOf())
-                // Matched by the category's current name: a rename moves its expenses with it.
-                val current = run?.let { r -> r.categoryId?.let { id -> categories.firstOrNull { it.id == id } }?.let { r.copy(categoryName = it.name) } ?: r }
-                val progress = current?.progress(counted, today, tracking = problem == null, inboxReadBefore = readBefore(scannedAt))
-                // Days a gap in tracking left without rows: read the inbox before they count.
-                if (progress?.needsInboxRead == true && !scanning) catchUp(scannedAt, today)
-                // Shown as the result at once, not after the write lands: a list that briefly
-                // showed only the presets would keep them anchored and push the result off screen.
-                val finished = progress?.takeIf { it.finished }?.let { ChallengeOutcome(run, it.cleanDays, it.won) }
-                if (finished != null) commit(finished)
-                ChallengesUiState(
-                    active = progress?.takeUnless { it.finished },
-                    result = finished ?: stored.unseenResult,
-                    categories = challengeCategories(
-                        counted.filter { it.date >= lookback && it.date < today },
-                        food = categories.nameForBuiltin(FOOD_AND_DINING),
-                        others = setOf(OTHERS, categories.nameForBuiltin(OTHERS)),
-                    ),
-                    trackingProblem = problem,
-                    scanning = scanning,
-                )
+            // Where the last finished inbox scan read up to: a clean day must be behind it. Each
+            // new cursor queries the rows afresh: a scan saves its rows before it moves the
+            // cursor, so the days it read never settle on rows from before it.
+            preferences.getLastScanTimestamp().distinctUntilChanged().flatMapLatest { scannedAt ->
+                combine(
+                    // A run counts the profile it was started under, whichever is selected now.
+                    loader.scopedRows(from, to, run?.let { flowOf(it.profileId) } ?: preferences.selectedProfileId),
+                    categoryRepository.getAllCategories(),
+                    smsScanManager.isScanRunning(),
+                ) { rows, categories, scanning ->
+                    val counted = challengeRows(rows, categories.parentNameOf())
+                    // Matched by the category's current name: a rename moves its expenses with it.
+                    val current = run?.let { r -> r.categoryId?.let { id -> categories.firstOrNull { it.id == id } }?.let { r.copy(categoryName = it.name) } ?: r }
+                    val progress = current?.progress(counted, today, tracking = problem == null, inboxReadBefore = readBefore(scannedAt))
+                    // Days a gap in tracking left without rows: read the inbox before they count.
+                    if (progress?.needsInboxRead == true && !scanning) catchUp(scannedAt, today)
+                    // Shown as the result at once, not after the write lands: a list that briefly
+                    // showed only the presets would keep them anchored and push the result off screen.
+                    val finished = progress?.takeIf { it.finished }?.let { ChallengeOutcome(run, it.cleanDays, it.won) }
+                    if (finished != null) commit(finished)
+                    ChallengesUiState(
+                        active = progress?.takeUnless { it.finished },
+                        result = finished ?: stored.unseenResult,
+                        categories = challengeCategories(
+                            counted.filter { it.date >= lookback && it.date < today },
+                            food = categories.nameForBuiltin(FOOD_AND_DINING),
+                            others = setOf(OTHERS, categories.nameForBuiltin(OTHERS)),
+                        ),
+                        trackingProblem = problem,
+                        scanning = scanning,
+                    )
+                }
             }.flowOn(Dispatchers.Default)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

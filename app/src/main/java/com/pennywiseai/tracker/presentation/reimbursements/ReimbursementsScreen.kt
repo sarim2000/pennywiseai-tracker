@@ -161,12 +161,13 @@ private fun LazyListScope.rows(
     transactions: List<TransactionEntity>,
     onOpenTransaction: (Long) -> Unit,
 ) {
-    item(key = "$key-header") { SectionHeaderV2(title = stringResource(title)) }
+    item(key = "$key-header") { SectionHeaderV2(title = stringResource(title), modifier = Modifier.animateItem()) }
     itemsIndexed(transactions, key = { _, it -> "$key-${it.id}" }) { i, txn ->
         TransactionItem(
             transaction = txn,
             listItemPosition = ListItemPosition.from(i, transactions.size),
             onClick = { onOpenTransaction(txn.id) },
+            modifier = Modifier.animateItem(),
         )
     }
 }

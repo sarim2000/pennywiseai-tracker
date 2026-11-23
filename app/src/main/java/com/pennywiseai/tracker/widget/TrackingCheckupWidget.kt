@@ -2,14 +2,17 @@ package com.pennywiseai.tracker.widget
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Paint
 import android.icu.text.RelativeDateTimeFormatter
 import android.text.format.DateUtils
+import android.util.TypedValue
 import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.glance.ColorFilter
@@ -39,6 +42,7 @@ import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.Typography
 import com.pennywiseai.tracker.utils.canReadSms
 import com.pennywiseai.tracker.utils.canReceiveSms
 import com.pennywiseai.tracker.utils.isBackgroundRestricted
@@ -56,7 +60,8 @@ import kotlinx.coroutines.withTimeoutOrNull
  */
 class TrackingCheckupWidget : GlanceAppWidget() {
 
-    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(NARROW, WIDE, NARROW_TALL, WIDE_TALL))
+    // The real cell, not a size bucket below it: the text is fitted to its height.
+    override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val entry = EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
@@ -89,15 +94,16 @@ class TrackingCheckupWidget : GlanceAppWidget() {
     @Composable
     private fun Content(checkup: TrackingCheckup?) {
         val context = LocalContext.current
-        val wide = LocalSize.current.width >= WIDE.width
+        val size = LocalSize.current
+        val wide = size.width >= WIDE_WIDTH
         // A two-cell row is too narrow for "Background restricted" or "Last SMS read 2 hours
-        // ago" on one line; most launchers' rows have the height to wrap them.
-        val lines = if (LocalSize.current.height >= NARROW_TALL.height) 2 else 1
+        // ago" on one line; wrap them as far as the height allows at the user's font size.
+        val (titleLines, detailLines) = textLines(context, size.height - VERTICAL_PADDING * 2)
         WidgetRow(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
-                .padding(horizontal = WidgetDefaults.padding, vertical = Spacing.xs)
+                .padding(horizontal = WidgetDefaults.padding, vertical = VERTICAL_PADDING)
                 .clickable(openCheckup(context)),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -109,10 +115,10 @@ class TrackingCheckupWidget : GlanceAppWidget() {
             item {
                 Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
                     if (checkup == null) {
-                        WidgetTitle(context.getString(R.string.widget_name_tracking), maxLines = lines)
+                        WidgetTitle(context.getString(R.string.widget_name_tracking), maxLines = titleLines)
                     } else {
-                        WidgetTitle(context.getString(titleRes(checkup.health)), maxLines = lines)
-                        WidgetLabel(detail(context, checkup), maxLines = lines)
+                        WidgetTitle(context.getString(titleRes(checkup.health)), maxLines = titleLines)
+                        if (detailLines > 0) WidgetLabel(detail(context, checkup), maxLines = detailLines)
                     }
                 }
             }
@@ -131,13 +137,30 @@ class TrackingCheckupWidget : GlanceAppWidget() {
     }
 
     private companion object {
-        val NARROW = DpSize(110.dp, 40.dp)
-        val WIDE = DpSize(150.dp, 40.dp)
-
-        /** Room for two lines of title and two of detail. */
-        val NARROW_TALL = DpSize(NARROW.width, 80.dp)
-        val WIDE_TALL = DpSize(WIDE.width, NARROW_TALL.height)
+        val WIDE_WIDTH = 150.dp
+        val VERTICAL_PADDING = Spacing.xs
     }
+}
+
+/**
+ * Lines of title and of detail that fit [height] at the user's font size. As room runs
+ * out the detail's second line goes first, then the title's, then the detail itself:
+ * the verdict stays readable and no line is cut in half.
+ */
+private fun textLines(context: Context, height: Dp): Pair<Int, Int> {
+    val title = lineHeight(context, Typography.titleSmall.fontSize)
+    val detail = lineHeight(context, Typography.bodySmall.fontSize)
+    return listOf(2 to 2, 2 to 1, 1 to 1).firstOrNull { (t, d) -> t * title + d * detail <= height.value } ?: (1 to 0)
+}
+
+/**
+ * Height in dp of one line of [size] text in the launcher's TextView: the font scale
+ * applied (non-linearly from Android 14, as TypedValue does) and font padding included.
+ */
+private fun lineHeight(context: Context, size: TextUnit): Float {
+    val metrics = context.resources.displayMetrics
+    val paint = Paint().apply { textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, size.value, metrics) }
+    return paint.fontMetrics.let { it.bottom - it.top } / metrics.density
 }
 
 private fun titleRes(health: TrackingHealth): Int = when (health) {

@@ -48,6 +48,8 @@ data class ChallengeWidgetSnapshot(
     val daysLeft: Int = 0,
     /** Bank messages can't be read, so no day settles. */
     val paused: Boolean = false,
+    /** Some days wait only for the inbox to be read past them, which the widget can't start. */
+    val needsInboxRead: Boolean = false,
 )
 
 /**
@@ -76,6 +78,7 @@ fun challengeWidgetSnapshot(
                 days = progress.days.map { it.status },
                 daysLeft = (ChronoUnit.DAYS.between(progress.on, run.end) + 1).toInt().coerceIn(0, run.length),
                 paused = progress.paused,
+                needsInboxRead = progress.needsInboxRead,
             )
         }
     }

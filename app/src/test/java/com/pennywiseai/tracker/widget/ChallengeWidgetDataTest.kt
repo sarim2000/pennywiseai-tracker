@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.domain.challenges.DayStatus
 import com.pennywiseai.tracker.domain.challenges.FOOD_AND_DINING
 import com.pennywiseai.tracker.domain.challenges.progress
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -54,6 +55,22 @@ class ChallengeWidgetDataTest {
         val grace = snapshot(noFood, listOf(row(0, FOOD_AND_DINING)), today = noFood.end.plusDays(1))
         assertEquals(ChallengeWidgetStatus.ACTIVE, grace.status)
         assertEquals(0, grace.daysLeft)
+    }
+
+    @Test
+    fun `days waiting on an inbox read say so, and only the grace day settles`() {
+        // Read through the grace day: only the last day waits, for tomorrow.
+        val grace = noFood.progress(emptyList(), noFood.end.plusDays(1), inboxReadBefore = noFood.end.plusDays(1))
+        val settling = challengeWidgetSnapshot(ChallengeState(active = noFood), grace)
+        assertEquals(0, settling.daysLeft)
+        assertFalse(settling.needsInboxRead)
+
+        // A day later, with the inbox last read mid-window: still running, waiting on a read.
+        val stale = noFood.progress(emptyList(), noFood.end.plusDays(2), inboxReadBefore = start.plusDays(3))
+        val waiting = challengeWidgetSnapshot(ChallengeState(active = noFood), stale)
+        assertEquals(ChallengeWidgetStatus.ACTIVE, waiting.status)
+        assertEquals(0, waiting.daysLeft)
+        assertTrue(waiting.needsInboxRead)
     }
 
     @Test

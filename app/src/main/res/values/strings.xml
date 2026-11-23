@@ -25,6 +25,8 @@
     <string name="widget_challenge_settling">Last day counts tomorrow</string>
     <!-- Bank messages can't be read, so no day counts -->
     <string name="widget_challenge_paused">Paused</string>
+    <!-- Some days count only once the app has read their bank messages; tapping the widget opens it -->
+    <string name="widget_challenge_inbox_unread">Tap to count your days</string>
     <!-- %1$s: the clean days, e.g. "1 of 3 days" -->
     <string name="widget_challenge_ended">Ended with %1$s</string>
     <string name="widget_challenge_preview_title" translatable="false">3 no-spend days</string>

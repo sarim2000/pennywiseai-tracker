@@ -148,6 +148,8 @@ class ChallengeWidget : GlanceAppWidget() {
             Text(
                 text = when {
                     snapshot.paused -> context.getString(R.string.widget_challenge_paused)
+                    // Days wait on an inbox read only the app starts; the tap opens Plan, which does.
+                    snapshot.needsInboxRead -> context.getString(R.string.widget_challenge_inbox_unread)
                     snapshot.daysLeft == 0 -> context.getString(R.string.widget_challenge_settling)
                     else -> context.latinQuantityString(R.plurals.widget_challenge_days_left, snapshot.daysLeft, snapshot.daysLeft)
                 },

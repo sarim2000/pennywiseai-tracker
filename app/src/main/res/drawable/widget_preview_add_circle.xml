@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The + circle in the summary and cash widget picker previews. -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+<!-- The + squircle in the summary and cash widget picker previews (a third of a 40-48dp side, as AddButton). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
     <solid android:color="?android:attr/colorAccent" />
+    <corners android:radius="14dp" />
 </shape>

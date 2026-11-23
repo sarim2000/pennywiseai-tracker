@@ -46,6 +46,7 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
@@ -62,7 +63,7 @@ import kotlin.math.roundToInt
 /** The month's budget: what's left (or how far over), the bar, and the limit. */
 class BudgetWidget : GlanceAppWidget() {
 
-    override val sizeMode = SizeMode.Responsive(setOf(COMPACT, COMPACT_WIDE, REGULAR, REGULAR_WIDE, LARGE))
+    override val sizeMode = SizeMode.Responsive(setOf(COMPACT, COMPACT_WIDE, REGULAR, REGULAR_WIDE, LARGE, TALL, HUGE))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val initial = try {
@@ -107,19 +108,25 @@ class BudgetWidget : GlanceAppWidget() {
                     button = if (roomy) context.getString(R.string.widget_budget_create) else null,
                     onButton = if (roomy) openBudgets(context) else null
                 )
+            } else if (size.height >= REGULAR.height) {
+                Hero(
+                    data,
+                    owl = size.width >= COMPACT_WIDE.width,
+                    tall = size.height >= TALL.height,
+                    large = size.width >= LARGE.width,
+                    huge = size.width >= HUGE.width && size.height >= HUGE.height
+                )
             } else {
-                val compact = size.height < REGULAR.height
-                val large = size.width >= LARGE.width
                 // At 180dp the owl would squeeze the figure: it only joins once there's room beside it.
                 if (size.width < COMPACT_WIDE.width) {
-                    Overview(data, compact, large)
+                    Overview(data)
                 } else {
                     WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        item { BudgetOwl(data, if (compact) Dimensions.Icon.list else Dimensions.Icon.hero) }
+                        item { BudgetOwl(data, Dimensions.Icon.list) }
                         item { Spacer(GlanceModifier.width(Spacing.md)) }
                         item {
                             Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
-                                Overview(data, compact, large)
+                                Overview(data)
                             }
                         }
                     }
@@ -128,42 +135,99 @@ class BudgetWidget : GlanceAppWidget() {
         }
     }
 
+    /**
+     * Two rows and up: the title pinned to the top, the bar and the limit to
+     * the foot, and what's left between them as the one big figure, the owl
+     * beside it. The weighted gaps hand the widget's spare height to the
+     * figure instead of leaving it above and below the whole block.
+     */
     @Composable
-    private fun Overview(data: BudgetWidgetData, compact: Boolean, large: Boolean) {
+    private fun Hero(data: BudgetWidgetData, owl: Boolean, tall: Boolean, large: Boolean, huge: Boolean) {
         val context = LocalContext.current
         val statusColor = PennyWiseWidgetTheme.budgetStatusColor(data.percentageUsed)
         // On the shown figure: 0.3 over reads "Left · JD 0", not "Over · JD 0".
         val over = wholeUnits(data.remaining) < BigDecimal.ZERO
-        val label = when {
-            compact && over -> R.string.widget_summary_over
-            compact -> R.string.widget_summary_left
-            over -> R.string.widget_budget_over_label
-            else -> R.string.widget_budget_left_label
+        Column(modifier = GlanceModifier.fillMaxSize(), horizontalAlignment = startAlignment()) {
+            WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                item { WidgetTitle(context.getString(R.string.widget_budget_title), GlanceModifier.defaultWeight()) }
+                item { Spacer(GlanceModifier.width(Spacing.sm)) }
+                item { PercentUsed(data, statusColor) }
+            }
+            Spacer(GlanceModifier.defaultWeight())
+            WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                item {
+                    Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
+                        WidgetLabel(context.getString(if (over) R.string.widget_budget_over_label else R.string.widget_budget_left_label))
+                        Text(
+                            text = totalText(data.remaining.abs(), data.currency),
+                            maxLines = 1,
+                            style = TextStyle(
+                                color = if (over) PennyWiseWidgetTheme.savingsColor(false) else GlanceTheme.colors.onSurface,
+                                fontSize = when {
+                                    huge -> Typography.displayMedium.fontSize
+                                    tall -> Typography.displaySmall.fontSize
+                                    else -> Typography.headlineSmall.fontSize
+                                },
+                                fontWeight = FontWeight.Bold,
+                                textAlign = startTextAlign()
+                            )
+                        )
+                    }
+                }
+                if (owl) {
+                    item { Spacer(GlanceModifier.width(Spacing.md)) }
+                    item {
+                        BudgetOwl(
+                            data,
+                            when {
+                                huge -> Dimensions.Icon.extraLarge
+                                tall -> Dimensions.Icon.hero
+                                else -> Dimensions.Icon.list
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(GlanceModifier.defaultWeight())
+            WidgetProgressBar(data.percentageUsed / 100f, statusColor, height = WidgetDefaults.barHeightLarge)
+            if (!amountsHidden()) {
+                Spacer(GlanceModifier.height(Spacing.sm))
+                WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    item { WidgetLabel(budgetMeta(data), GlanceModifier.defaultWeight()) }
+                    if (large && data.totalIncome > BigDecimal.ZERO) {
+                        item { Spacer(GlanceModifier.width(Spacing.sm)) }
+                        item { Savings(data) }
+                    }
+                }
+            }
         }
+    }
 
-        // Compact has no room for a title row: the label says "in budget" and carries the percent.
+    @Composable
+    private fun PercentUsed(data: BudgetWidgetData, color: ColorProvider) {
+        Text(
+            text = LocalContext.current.latinString(R.string.widget_budget_percent_used, data.percentageUsed.toInt()),
+            maxLines = 1,
+            style = TextStyle(color = color, fontSize = Typography.labelLarge.fontSize, fontWeight = FontWeight.Bold)
+        )
+    }
+
+    /** One row high: no room for a title, so the label says "in budget" and carries the percent. */
+    @Composable
+    private fun Overview(data: BudgetWidgetData) {
+        val context = LocalContext.current
+        val statusColor = PennyWiseWidgetTheme.budgetStatusColor(data.percentageUsed)
+        // On the shown figure: 0.3 over reads "Left · JD 0", not "Over · JD 0".
+        val over = wholeUnits(data.remaining) < BigDecimal.ZERO
         WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             item {
-                if (compact) WidgetLabel(context.getString(label), GlanceModifier.defaultWeight())
-                else WidgetTitle(context.getString(R.string.widget_budget_title), GlanceModifier.defaultWeight())
-            }
-            item { Spacer(GlanceModifier.width(Spacing.sm)) }
-            item {
-                Text(
-                    text = context.latinString(R.string.widget_budget_percent_used, data.percentageUsed.toInt()),
-                    maxLines = 1,
-                    style = TextStyle(
-                        color = statusColor,
-                        fontSize = Typography.labelLarge.fontSize,
-                        fontWeight = FontWeight.Bold
-                    )
+                WidgetLabel(
+                    context.getString(if (over) R.string.widget_summary_over else R.string.widget_summary_left),
+                    GlanceModifier.defaultWeight()
                 )
             }
-        }
-
-        if (!compact) {
-            Spacer(GlanceModifier.height(Spacing.sm))
-            WidgetLabel(context.getString(label))
+            item { Spacer(GlanceModifier.width(Spacing.sm)) }
+            item { PercentUsed(data, statusColor) }
         }
         Text(
             text = totalText(data.remaining.abs(), data.currency),
@@ -177,16 +241,6 @@ class BudgetWidget : GlanceAppWidget() {
         )
         Spacer(GlanceModifier.height(Spacing.sm))
         WidgetProgressBar(data.percentageUsed / 100f, statusColor)
-
-        if (compact || amountsHidden()) return
-        Spacer(GlanceModifier.height(Spacing.xs))
-        WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            item { WidgetLabel(budgetMeta(data), GlanceModifier.defaultWeight()) }
-            if (large && data.totalIncome > BigDecimal.ZERO) {
-                item { Spacer(GlanceModifier.width(Spacing.sm)) }
-                item { Savings(data) }
-            }
-        }
     }
 
     @Composable
@@ -229,8 +283,7 @@ class BudgetWidget : GlanceAppWidget() {
         }
         Image(
             // Drawn white and tinted by the launcher, so it follows day/night even when this process hasn't.
-            // One bitmap at the largest size; the smaller owl scales it down.
-            provider = ImageProvider(renderOwl(context, mood, Dimensions.Icon.hero)),
+            provider = ImageProvider(renderOwl(context, mood, size)),
             contentDescription = description?.let(context::getString),
             colorFilter = ColorFilter.tint(GlanceTheme.colors.primary),
             modifier = GlanceModifier.size(size)
@@ -244,6 +297,11 @@ class BudgetWidget : GlanceAppWidget() {
         val REGULAR = DpSize(180.dp, 140.dp)
         val REGULAR_WIDE = DpSize(260.dp, 140.dp)
         val LARGE = DpSize(280.dp, 160.dp)
+        // A standard 4x2 on most phones: room for a display-size figure and the big owl.
+        val TALL = DpSize(280.dp, 180.dp)
+        // One UI lays a 4x2 out at ~500x267dp and scales it down to fit: a
+        // display figure that wide still leaves room for "CHF 12,345" beside the big owl.
+        val HUGE = DpSize(440.dp, 240.dp)
     }
 }
 

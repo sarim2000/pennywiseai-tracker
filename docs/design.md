@@ -573,6 +573,22 @@ it by `Dimensions.Component.bottomBarHeight`.
 - The app module opts into `ExperimentalMaterial3ExpressiveApi` globally
   (`app/build.gradle.kts`), so no per-file `@OptIn` is needed.
 
+### Home-screen widgets (Glance)
+
+Glance has no Material components, shapes or custom fonts, so widgets echo the
+Expressive look with what RemoteViews can draw (shared parts in `widget/WidgetUi.kt`):
+
+- **Shapes as bitmaps.** The + is a squircle (corner = a third of its side, like
+  the docked +); category avatars are a white `Cookie9Sided` bitmap tinted per
+  row; goal rings leave a round-capped gap between the saved arc and the track.
+- **One hero figure per widget**, sized to the space: the layout hands spare
+  height to it (weighted spacers, rows that grow, a ring sized to the cell)
+  rather than leaving a gap under a small block. Titles are `titleMedium` bold;
+  meters are thick and round-ended (`WidgetDefaults.barHeight*`).
+- **One UI scales widgets.** It lays a widget out at a larger virtual size (a
+  4×2 is ~500×267dp, `hsResizeRatio` ≈ 0.71) and scales it down, so the size
+  buckets above 240dp tall are real there; check proportions, not dp, on a Samsung.
+
 ---
 
 ## Colour

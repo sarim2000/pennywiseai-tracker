@@ -2,15 +2,26 @@ package com.pennywiseai.tracker.widget
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.RectF
 import android.net.Uri
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.core.graphics.createBitmap
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
+import androidx.glance.Image
+import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.Action
@@ -39,6 +50,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import androidx.graphics.shapes.toPath
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.QuickAddIntent
@@ -50,6 +62,8 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.roundToInt
 
 /**
  * Did the app catch it, and where did it go? The latest transactions, each
@@ -158,27 +172,29 @@ class RecentTransactionsWidget : GlanceAppWidget() {
     }
 
     /**
-     * The category at a glance, as the app's list draws it: a solid circle in
+     * The category at a glance, as the app's list draws it: a solid cookie in
      * its color with a white glyph, which stays legible for a near-black
-     * category on the dark theme where a tint of it vanished.
+     * category on the dark theme where a tint of it vanished. Glance can't
+     * clip to a shape, so the cookie is a white bitmap the launcher tints.
      */
     @Composable
     private fun Avatar(item: RecentTransactionItem) {
+        val context = LocalContext.current
         val color = item.colorArgb.takeIf { it != 0L }?.let { Color(it) }
-        Box(
-            modifier = GlanceModifier
-                .size(Dimensions.Icon.large)
-                .cornerRadius(Dimensions.Icon.large / 2)
-                .background(color?.let { ColorProvider(it) } ?: GlanceTheme.colors.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = GlanceModifier.size(Dimensions.Icon.list), contentAlignment = Alignment.Center) {
+            Image(
+                provider = ImageProvider(cookieBitmap(context, Dimensions.Icon.list)),
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(color?.let { ColorProvider(it) } ?: GlanceTheme.colors.surfaceVariant),
+                modifier = GlanceModifier.size(Dimensions.Icon.list)
+            )
             Text(
                 text = item.badge,
                 maxLines = 1,
                 style = TextStyle(
                     color = if (color != null) ColorProvider(Color.White) else GlanceTheme.colors.onSurfaceVariant,
                     fontSize = Typography.titleMedium.fontSize,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Bold
                 )
             )
         }
@@ -238,6 +254,20 @@ class RecentTransactionsWidget : GlanceAppWidget() {
         )
 
     private companion object {
+        /** One white cookie per pixel size, shared by every row: RemoteViews sends a reused bitmap once. */
+        val cookies = ConcurrentHashMap<Int, Bitmap>()
+
+        /** The app's avatar shape ([MaterialShapes.Cookie9Sided]) filled white on a transparent bitmap. */
+        fun cookieBitmap(context: Context, size: Dp): Bitmap {
+            val px = (size.value * context.resources.displayMetrics.density).roundToInt().coerceAtLeast(1)
+            return cookies.getOrPut(px) {
+                val path = MaterialShapes.Cookie9Sided.toPath()
+                val bounds = RectF().also { path.computeBounds(it, true) }
+                path.transform(Matrix().apply { setRectToRect(bounds, RectF(0f, 0f, px.toFloat(), px.toFloat()), Matrix.ScaleToFit.FILL) })
+                createBitmap(px, px).also { Canvas(it).drawPath(path, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.WHITE }) }
+            }
+        }
+
         /** "+" inside the LTR isolate, so Arabic keeps it on the amount's left. */
         fun withPlus(amount: String): String =
             if (amount.startsWith('\u2066')) "\u2066+${amount.drop(1)}" else "+$amount"

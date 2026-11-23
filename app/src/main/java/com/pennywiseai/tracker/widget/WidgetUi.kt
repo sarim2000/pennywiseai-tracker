@@ -276,9 +276,12 @@ fun widgetMoney(context: Context, amount: BigDecimal, currency: String): String 
 object WidgetDefaults {
     /** Inside the widget's frame, all sides. */
     val padding = Spacing.md
-    /** The + circle; it sits in a [Dimensions.Component.minTouchTarget] target. */
+    /** The + squircle; it sits in a [Dimensions.Component.minTouchTarget] target. */
     val addButton = Dimensions.Icon.list
-    val barHeight = Spacing.xs + Spacing.xxs
+    /** A data meter: thick, with round ends, as the app's Expressive meters read. */
+    val barHeight = Spacing.sm
+    /** The hero meter, under a widget's one big figure. */
+    val barHeightLarge = Spacing.smd
 }
 
 /** Section title: the widget's name, as in its header. */
@@ -290,8 +293,8 @@ fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier, maxLine
         modifier = modifier,
         style = TextStyle(
             color = GlanceTheme.colors.onSurface,
-            fontSize = Typography.titleSmall.fontSize,
-            fontWeight = FontWeight.Medium,
+            fontSize = Typography.titleMedium.fontSize,
+            fontWeight = FontWeight.Bold,
             textAlign = startTextAlign()
         )
     )
@@ -329,7 +332,10 @@ fun WidgetHeader(title: String, add: Action? = null, addDescription: String = ""
     }
 }
 
-/** The family's +: a filled circle in a 48dp touch target. */
+/**
+ * The family's +: a filled squircle in a 48dp touch target, the shape of the
+ * app's own docked + (a third of its side, as `dockedActionCornerRadius` is).
+ */
 @Composable
 fun AddButton(action: Action, contentDescription: String, size: Dp = WidgetDefaults.addButton) {
     Box(
@@ -341,7 +347,7 @@ fun AddButton(action: Action, contentDescription: String, size: Dp = WidgetDefau
         Box(
             modifier = GlanceModifier
                 .size(size)
-                .cornerRadius(size / 2)
+                .cornerRadius(size / 3)
                 .background(GlanceTheme.colors.primary),
             contentAlignment = Alignment.Center
         ) {
@@ -355,12 +361,17 @@ fun AddButton(action: Action, contentDescription: String, size: Dp = WidgetDefau
     }
 }
 
-/** The family's thin progress bar, on the surface-variant track. */
+/** The family's progress bar, round-ended on the surface-variant track. */
 @Composable
-fun WidgetProgressBar(fraction: Float, color: ColorProvider, modifier: GlanceModifier = GlanceModifier) {
+fun WidgetProgressBar(
+    fraction: Float,
+    color: ColorProvider,
+    modifier: GlanceModifier = GlanceModifier,
+    height: Dp = WidgetDefaults.barHeight
+) {
     LinearProgressIndicator(
         progress = fraction.coerceIn(0f, 1f),
-        modifier = modifier.fillMaxWidth().height(WidgetDefaults.barHeight).cornerRadius(WidgetDefaults.barHeight / 2),
+        modifier = modifier.fillMaxWidth().height(height).cornerRadius(height / 2),
         color = color,
         backgroundColor = GlanceTheme.colors.surfaceVariant
     )

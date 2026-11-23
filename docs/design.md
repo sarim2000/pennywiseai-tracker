@@ -229,7 +229,9 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
     (expanded) to `ROND` 40 at `opsz` 22 (collapsed) in six steps of the
     collapse fraction. Under reduced motion each title holds its resting
     style (expanded `ROND` 100, collapsed `ROND` 40) without morphing, so the
-    bar looks the same at rest either way;
+    bar looks the same at rest either way. Bars that never expand (fixed
+    bars, `PennyWiseScaffold`'s default bar) take the collapsed cut through
+    `barTitleStyle()`, so every bar title matches at rest;
   - the onboarding "PennyWise" wordmark (inside the welcome title): once per
     onboarding, each letter inks in from thin to the title's weight (`wght`,
     with a passing `GRAD` swell), its line breaks held so nothing re-wraps.

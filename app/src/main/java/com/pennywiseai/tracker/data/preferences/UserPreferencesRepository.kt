@@ -654,7 +654,14 @@ open class UserPreferencesRepository internal constructor(
         .map { it[PreferencesKeys.CONSCIENCE_ENABLED] ?: false }
 
     override suspend fun setConscienceEnabled(enabled: Boolean) {
-        dataStore.edit { it[PreferencesKeys.CONSCIENCE_ENABLED] = enabled }
+        dataStore.edit { prefs ->
+            // Settle the kinds before the switch moves, since an unset list reads by the switch:
+            // an earlier opt-in keeps its kinds through off and on, and a new one gets them all.
+            if (PreferencesKeys.CONSCIENCE_MUTED_KINDS !in prefs) {
+                prefs[PreferencesKeys.CONSCIENCE_MUTED_KINDS] = prefs.conscienceMutedKinds().mapTo(mutableSetOf()) { it.name }
+            }
+            prefs[PreferencesKeys.CONSCIENCE_ENABLED] = enabled
+        }
     }
 
     override val conscienceFrequency: Flow<ConscienceFrequency> = dataStore.data.map { it.conscienceFrequency() }
@@ -669,14 +676,21 @@ open class UserPreferencesRepository internal constructor(
 
     override val conscienceMutedKinds: Flow<Set<ConscienceKind>> = dataStore.data.map { it.conscienceMutedKinds() }
 
+    /**
+     * Never written while the switch is on: it was turned on before the other kinds existed
+     * (or restored from a backup made then), so only the kinds agreed to then speak. The
+     * rest start off, as switches on the screen. Nobody is upgraded silently.
+     */
     private fun Preferences.conscienceMutedKinds(): Set<ConscienceKind> {
-        val names = this[PreferencesKeys.CONSCIENCE_MUTED_KINDS].orEmpty()
+        val names = this[PreferencesKeys.CONSCIENCE_MUTED_KINDS]
+            ?: return if (this[PreferencesKeys.CONSCIENCE_ENABLED] == true) ConscienceKind.ADDED_LATER else emptySet()
         return ConscienceKind.entries.filter { it.name in names }.toSet()
     }
 
     override suspend fun setConscienceKindEnabled(kind: ConscienceKind, enabled: Boolean) {
         dataStore.edit { prefs ->
-            val muted = prefs[PreferencesKeys.CONSCIENCE_MUTED_KINDS].orEmpty()
+            val muted = prefs[PreferencesKeys.CONSCIENCE_MUTED_KINDS]
+                ?: prefs.conscienceMutedKinds().mapTo(mutableSetOf()) { it.name }
             prefs[PreferencesKeys.CONSCIENCE_MUTED_KINDS] = if (enabled) muted - kind.name else muted + kind.name
         }
     }

@@ -32,7 +32,15 @@ enum class ConscienceKind {
     LATE_NIGHT,
     RECORD_DAY,
     SPIKE,
-    HELLO,
+    HELLO;
+
+    companion object {
+        /**
+         * The kinds that came after the first version, which spoke only [POSITIVE], [REPEAT]
+         * and [LATE_NIGHT]: someone who opted in then starts with these off.
+         */
+        val ADDED_LATER: Set<ConscienceKind> = setOf(COMEBACK, WEEKLY, RECORD_DAY, SPIKE, HELLO)
+    }
 }
 
 /** At most once a day and three times a week, or at most once a week. */

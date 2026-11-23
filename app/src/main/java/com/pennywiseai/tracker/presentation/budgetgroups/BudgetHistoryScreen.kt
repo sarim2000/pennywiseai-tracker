@@ -43,6 +43,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.PastWindowSpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
+import com.pennywiseai.tracker.ui.components.HideableMeter
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.WavyMeter
 import com.pennywiseai.tracker.ui.components.cards.CadencePill
@@ -138,10 +139,9 @@ fun BudgetHistoryScreen(
                             ),
                             style = PennyWiseText.amountLarge
                         )
-                        if (state.budgetAmount.signum() > 0 && !AmountPrivacy.hidden) {
-                            val fraction = state.totalSpent.toFloat() / state.budgetAmount.toFloat()
+                        if (state.budgetAmount.signum() > 0) HideableMeter(hidden = AmountPrivacy.hidden) {
                             WavyMeter(
-                                fraction = fraction,
+                                fraction = state.totalSpent.toFloat() / state.budgetAmount.toFloat(),
                                 color = { usedColor(it * 100f) },
                                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                             )
@@ -453,7 +453,7 @@ private fun BreakdownSheet(
                 color = if (isOver) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.onSurface
             )
-            if (breakdown.hasLimit && !AmountPrivacy.hidden) {
+            if (breakdown.hasLimit) HideableMeter(hidden = AmountPrivacy.hidden) {
                 WavyMeter(
                     fraction = pctUsed / 100f,
                     color = { usedColor(it * 100f) },

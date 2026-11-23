@@ -9,6 +9,7 @@ import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.pennywiseai.tracker.ui.animations.animateMeterFraction
@@ -59,6 +60,17 @@ fun WavyMeter(
     val shown = animateMeterFraction(fraction.coerceIn(0f, 1f), fillIn = fillIn)
     val tint by animateColorAsState(color(shown.value), MaterialTheme.motionScheme.fastEffectsSpec(), label = "meterColor")
     MeterBar(shown, tint, trackColor, modifier, dense)
+}
+
+/**
+ * Composes a data [meter] only while amounts show ([hidden] false): a known limit and its
+ * fill give the spend away. The meter's saveable state outlives the gap, so revealing
+ * amounts shows it settled instead of replaying its fill-in.
+ */
+@Composable
+fun HideableMeter(hidden: Boolean, meter: @Composable () -> Unit) {
+    val holder = rememberSaveableStateHolder()
+    if (!hidden) holder.SaveableStateProvider("meter", meter)
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

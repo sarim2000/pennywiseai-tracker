@@ -59,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
+import com.pennywiseai.tracker.ui.components.HideableMeter
 import com.pennywiseai.tracker.ui.components.WavyMeter
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -222,7 +223,7 @@ fun BalanceCard(
                     autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, heroStyle.fontSize),
                 )
                 // Hidden amounts hide the meter too: a known limit and its fill give the spend away.
-                if (budget != null && !isBalanceHidden) BudgetMeter(budget = budget)
+                if (budget != null) HideableMeter(hidden = isBalanceHidden) { BudgetMeter(budget = budget) }
                 HeroFooter(
                     line = if (budget != null) daysLeftText(budget.daysLeft) else monthLine(cycleEnd),
                     lineColor = MaterialTheme.colorScheme.onSurface,

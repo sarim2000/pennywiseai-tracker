@@ -21,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -399,11 +400,14 @@ internal fun HomeAccountsSection(
                         subtitle = pluralStringResource(R.plurals.home_accounts_unused_limit_cards, cardsWithLimit, cardsWithLimit),
                         subtitleMaxLines = 1
                     )
+                    // One currency per line: on one line, three currencies left the title
+                    // no room. A hidden or single figure has no separator and stays one line.
                     Text(
-                        text = CurrencyFormatter.formatByCurrency(CardTotals.unusedLimit(creditCards)),
+                        text = CurrencyFormatter.formatByCurrency(CardTotals.unusedLimit(creditCards))
+                            .replace(" · ", "\n"),
                         style = PennyWiseText.amountRow,
                         color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1
+                        textAlign = TextAlign.End
                     )
                 }
             }

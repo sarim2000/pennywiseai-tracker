@@ -486,28 +486,20 @@ class BudgetSummaryProvider @Inject constructor(
                 }
             }
 
-            // Subtract Refund (DEDUCT_SPENT) income on the day it occurred.
+            // Subtract Refund (DEDUCT_SPENT) income on the day it occurred, from the
+            // category it's filed against, as the total and native mode's pace do (#1381).
             for (txWithSplits in txsInDisplay) {
                 val tx = txWithSplits.transaction
                 if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) continue
                 if (tx.budgetImpactType != com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT) continue
+                val category = tx.budgetCategory ?: continue
+                if (categoryNames != null && category !in categoryNames) continue
 
                 val dayIndex = (java.time.temporal.ChronoUnit.DAYS.between(displayedWindow.start, tx.dateTime.toLocalDate()).toInt())
                     .coerceIn(0, displayedWindow.days - 1)
 
                 val convertedAmount = currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)?.toDouble() ?: continue
-
-                if (categoryNames == null) {
-                    dailyAmounts[dayIndex] -= convertedAmount
-                } else {
-                    for ((cat, amount) in txWithSplits.getAmountByCategory()) {
-                        val catName = cat.ifEmpty { "Others" }
-                        if (catName in categoryNames) {
-                            currencyConversionService.convertAmountOrNull(amount, tx.currency, displayCurrency)
-                                ?.let { dailyAmounts[dayIndex] -= it.toDouble() }
-                        }
-                    }
-                }
+                dailyAmounts[dayIndex] -= convertedAmount
             }
 
             val cumulative = mutableListOf<Double>()

@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceCategory
@@ -12,6 +13,7 @@ import com.pennywiseai.tracker.domain.conscience.ConscienceFact
 import com.pennywiseai.tracker.domain.conscience.ConscienceFrequency
 import com.pennywiseai.tracker.domain.conscience.ConscienceKind
 import com.pennywiseai.tracker.domain.conscience.ConscienceLine
+import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
 import com.pennywiseai.tracker.domain.conscience.ConscienceRemark
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +25,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -42,6 +45,8 @@ class ConsciencePreferencesTest {
 
     private val enabledKey = booleanPreferencesKey("conscience_enabled")
     private val mutedKey = stringSetPreferencesKey("conscience_muted_kinds")
+    private val remarksKey = stringPreferencesKey("conscience_remarks")
+    private val retiredKey = stringSetPreferencesKey("conscience_retired_lines")
     private val addedLater = setOf(
         ConscienceKind.COMEBACK, ConscienceKind.WEEKLY, ConscienceKind.RECORD_DAY, ConscienceKind.SPIKE, ConscienceKind.HELLO
     )
@@ -118,5 +123,13 @@ class ConsciencePreferencesTest {
         // That one notified: the week's only slot is gone now.
         assertNull(claim(ConscienceFact.Repeat(ConscienceCategory.SHOPPING, 3, 6), "repeat_02", now + hour, notified = true))
         assertEquals(listOf(false, true), repository.conscienceRemarks.first().map { it.notified }.reversed())
+    }
+
+    @Test
+    fun `not this one on a remark that isn't stored writes no remarks`() = runBlocking {
+        assertTrue(repository.reactToConscience(42L, "en:repeat_01", ConscienceReaction.RETIRED))
+
+        assertEquals(setOf("en:repeat_01"), store.data.first()[retiredKey])
+        assertNull(store.data.first()[remarksKey])
     }
 }

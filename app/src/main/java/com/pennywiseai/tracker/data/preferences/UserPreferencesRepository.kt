@@ -726,10 +726,10 @@ open class UserPreferencesRepository internal constructor(
         dataStore.edit { prefs ->
             changed = false
             val before = prefs.conscienceFeedback()
-            val (remarks, feedback) =
-                ConscienceRemarks.react(prefs.conscienceRemarks(), before, remarkId, lineKey, reaction) ?: return@edit
             val stored = prefs.conscienceRemarks()
-            prefs[PreferencesKeys.CONSCIENCE_REMARKS] = conscienceJson.encodeToString(remarks)
+            val (remarks, feedback) = ConscienceRemarks.react(stored, before, remarkId, lineKey, reaction) ?: return@edit
+            // A tap on a remark that isn't stored only rates its line: no list to write.
+            if (remarks != stored) prefs[PreferencesKeys.CONSCIENCE_REMARKS] = conscienceJson.encodeToString(remarks)
             prefs.setConscienceFeedback(feedback)
             changed = feedback != before || remarks != stored
         }

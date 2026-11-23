@@ -124,6 +124,14 @@ private fun GoalRingImage(item: GoalWidgetItem, size: Dp, stroke: Dp) {
     }
 }
 
+/** The goal's status line, or the same with every amount hidden while the eye is closed. */
+@Composable
+private fun GoalWidgetItem.lineText(): String = if (amountsHidden()) hiddenLine else line
+
+/** The 2×2's line, hidden like [lineText]. */
+@Composable
+private fun GoalWidgetItem.shortLineText(): String = if (amountsHidden()) hiddenShortLine else shortLine
+
 /** An arc from 12 o'clock covering [fraction] of a ring, on a transparent bitmap. */
 private fun renderArc(context: Context, fraction: Float, color: Int, size: Dp, stroke: Dp): Bitmap {
     val density = context.resources.displayMetrics.density
@@ -211,7 +219,7 @@ class GoalWidget : GlanceAppWidget() {
                 style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.titleSmall.fontSize, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center),
             )
             Text(
-                text = inAppDirection(item.shortLine),
+                text = inAppDirection(item.shortLineText()),
                 maxLines = 1,
                 style = TextStyle(color = PennyWiseWidgetTheme.goalToneColor(item.tone), fontSize = Typography.bodySmall.fontSize, textAlign = TextAlign.Center),
             )
@@ -297,7 +305,7 @@ class GoalsListWidget : GlanceAppWidget() {
                             textAlign = startTextAlign(),
                         ),
                     )
-                    WidgetLabel(item.line, color = PennyWiseWidgetTheme.goalToneColor(item.tone))
+                    WidgetLabel(item.lineText(), color = PennyWiseWidgetTheme.goalToneColor(item.tone))
                 }
             }
             item { Spacer(GlanceModifier.width(Spacing.sm)) }

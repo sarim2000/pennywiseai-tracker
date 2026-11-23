@@ -96,7 +96,7 @@ Besides plain saves, the tab answers a few things the user just finished: progre
 | A bill tracked / marked paid | Bell · Calm | Ring / Paid | "Now tracking" / the amount, "-" |
 | Amounts hidden / shown | Owl · Calm | CoverEyes / Peek | none |
 
-- **Rank:** a save < an action < a milestone < a toggle. A higher rank takes over from what's showing, with a hold of its own; anything else folds in. The latest toggle answers for the switch as it is now, and holds only ~1.4s.
+- **Rank:** a save < an action < a milestone < a toggle. A higher rank takes over from what's showing, with a hold of its own; anything else folds in. The latest toggle answers for the switch as it is now, and holds only ~1.4s. A toggle never waits for the bar: flipped where the bar is away (a shake on Settings), it goes unanswered.
 - **Made off the tabs:** most moments happen on a pushed screen, where the bar is away. The reaction waits for the bar (up to 90s) and its hold starts once the bar is back and the owl's 350ms beat has passed, so the user sees all of it on return; a hold already running ends on time.
 - **Cues** are apart from shapes: a new one on the same shape plays in place (the owl covering its eyes, a jar saved into brimming). A cue's check sits on any shape and carries across a morph.
 - **Left out:** creating a goal, a rule, a split or an account (setup, already confirmed on screen); a subscription ended (it isn't cancelled); renewal reminders, automatic detection and scheduled backups (background); first transaction, streaks and months closed (no reliable commit); budget thresholds (computed in a worker, and `Worried` stays off the tab).

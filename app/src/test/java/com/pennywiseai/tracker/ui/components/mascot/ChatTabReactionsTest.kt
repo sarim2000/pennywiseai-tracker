@@ -379,4 +379,22 @@ class ChatTabReactionsTest {
         assertEquals(reactionFor(MascotMoment.BackupSaved), shown)
         job.cancel()
     }
+
+    @Test
+    fun `a toggle made while the bar is away goes unanswered and leaves a waiting reaction alone`() {
+        val job = start()
+        reactions.onBarShown(false)
+        reactions.onMoment(MascotMoment.AmountsHidden)
+        runCurrent()
+        assertNull(shown)
+        reactions.onMoment(MascotMoment.DebtPaidOff)
+        reactions.onMoment(MascotMoment.AmountsShown)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.DebtPaidOff), shown)
+        reactions.onBarShown(true)
+        advanceTimeBy(REACTION_HOLD_MS - 1)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.DebtPaidOff), shown)
+        job.cancel()
+    }
 }

@@ -179,7 +179,8 @@ private const val GOAL_FILL = 0.55f
  * visible, for as long as [scope] lives (the Chat tab's ViewModel), so one made on a screen
  * pushed over the tabs still shows when the bar comes back. Its hold starts once the bar
  * is up and past its entrance ([onBarShown]): made while the bar is away, it waits up to
- * [waitMillis] for it, then goes unseen. The timers run on [scope], so they end on time whether or not anyone
+ * [waitMillis] for it, then goes unseen. A toggle never waits: it answers the switch now
+ * or not at all. The timers run on [scope], so they end on time whether or not anyone
  * watches; [clear] drops the reaction early.
  */
 internal class ChatTabReactions(
@@ -214,7 +215,11 @@ internal class ChatTabReactions(
     /** A moment just finished in the foreground (gated at the source). */
     fun onMoment(moment: MascotMoment) {
         if (scanning) return
-        react(reactionFor(moment))
+        val reaction = reactionFor(moment)
+        // Made with the bar away (a shake on Settings), a toggle would cover the owl's eyes
+        // long after the switch was flipped, so it goes unanswered.
+        if (reaction.rank == RANK_TOGGLE && !barShown) return
+        react(reaction)
     }
 
     /**

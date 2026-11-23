@@ -46,7 +46,8 @@ class NextBillsWidgetUpdateWorker @AssistedInject constructor(
         // Adding one runs it again (the receiver's onUpdate).
         if (GlanceAppWidgetManager(applicationContext).getGlanceIds(NextBillsWidget::class.java).isNotEmpty()) {
             val today = LocalDate.now()
-            val bills = upcomingPaymentsLoader.observe(today, today.plusDays(LOOKAHEAD_DAYS)).first()
+            // An unpaid subscription past its date stays on top as "Overdue", as on Bills and Home.
+            val bills = upcomingPaymentsLoader.observe(today, today.plusDays(LOOKAHEAD_DAYS), includeOverdue = true).first()
             NextBillsWidgetDataStore.update(applicationContext, NextBillsSnapshot(today.toEpochDay(), nextBills(bills)))
             NextBillsWidget().updateAll(applicationContext)
         }

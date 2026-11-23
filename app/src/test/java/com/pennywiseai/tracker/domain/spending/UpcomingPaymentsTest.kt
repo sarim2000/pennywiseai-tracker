@@ -109,6 +109,19 @@ class UpcomingPaymentsTest {
     }
 
     @Test
+    fun `asked for, an unpaid subscription past its date shows once as overdue, then its next ones`() {
+        val bills = UpcomingPayments.of(
+            listOf(sub("Gym", "2026-10-20"), sub("Netflix", "2026-10-28")), emptyList(), emptyList(), listOf(card),
+            today, end, includeOverdue = true,
+        )
+
+        assertEquals(
+            listOf("Gym" to "2026-10-20", "Netflix" to "2026-10-28", "Gym" to "2026-11-20"),
+            bills.map { it.name to it.dueDate.toString() },
+        )
+    }
+
+    @Test
     fun `two subscriptions from the same merchant both show`() {
         val bills = upcoming(
             subscriptions = listOf(

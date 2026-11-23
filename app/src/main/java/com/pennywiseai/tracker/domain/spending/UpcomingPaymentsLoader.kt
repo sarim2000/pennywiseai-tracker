@@ -32,8 +32,8 @@ class UpcomingPaymentsLoader @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val cardRepository: CardRepository,
 ) {
-    /** [from]: see [UpcomingPayments.of]. */
-    fun observe(today: LocalDate, end: LocalDate, from: LocalDate = today): Flow<List<Bill>> = combine(
+    /** [from], [includeOverdue]: see [UpcomingPayments.of]. */
+    fun observe(today: LocalDate, end: LocalDate, from: LocalDate = today, includeOverdue: Boolean = false): Flow<List<Bill>> = combine(
         accountBalanceRepository.getAllLatestBalances(),
         ignoredAccountsStore.keysFlow,
         cardRepository.getAllCards(),
@@ -68,6 +68,7 @@ class UpcomingPaymentsLoader @Inject constructor(
                 end = end,
                 isExcluded = ::excluded,
                 from = from,
+                includeOverdue = includeOverdue,
             )
         }
     }

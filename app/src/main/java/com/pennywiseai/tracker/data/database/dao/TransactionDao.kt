@@ -3,9 +3,43 @@ package com.pennywiseai.tracker.data.database.dao
 import androidx.room3.*
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.model.MerchantSuggestion
+import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
+
+/**
+ * Past merchants for a merchant field (#1392): those whose name or alias contains `:term`
+ * (escaped with [MerchantSuggestions.likeTerm]), from the `:profileId` profile (null for
+ * all), names starting with it first, then by use and by last use. Spellings that differ
+ * only in case count as one, under the latest.
+ *
+ * A row's profile is its own, else its account's, else Personal, like
+ * `effectiveProfileId`. Rows the quick add named after their category (no "where"
+ * typed) aren't merchants. Plain SQL from SQLite 3.18 (minSdk 26): one `max()` keeps
+ * the bare columns on the latest row.
+ */
+internal const val MERCHANT_SUGGESTIONS_SQL = """
+        SELECT t.merchant_name AS merchantName, a.alias AS alias, COUNT(*) AS uses, MAX(t.date_time) AS lastUsed
+        FROM transactions t
+        LEFT JOIN merchant_aliases a ON a.merchant_name = t.merchant_name
+        WHERE t.is_deleted = 0
+            AND t.merchant_name != t.category
+            AND (t.merchant_name LIKE '%' || :term || '%' ESCAPE '\'
+                OR a.alias LIKE '%' || :term || '%' ESCAPE '\')
+            AND (:profileId IS NULL OR COALESCE(
+                t.profile_id,
+                (SELECT b.profile_id FROM account_balances b
+                    WHERE b.bank_name = t.bank_name AND b.account_last4 = t.account_number LIMIT 1),
+                1
+            ) = :profileId)
+        GROUP BY t.merchant_name COLLATE NOCASE
+        ORDER BY (t.merchant_name LIKE :term || '%' ESCAPE '\'
+                OR IFNULL(a.alias LIKE :term || '%' ESCAPE '\', 0)) DESC,
+            uses DESC, lastUsed DESC
+        LIMIT :limit
+    """
 
 @Dao
 interface TransactionDao {
@@ -164,6 +198,10 @@ interface TransactionDao {
 
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 ORDER BY merchant_name ASC")
     fun getAllMerchants(): Flow<List<String>>
+
+    /** Past merchants matching [term] (#1392), best first; see [MERCHANT_SUGGESTIONS_SQL]. */
+    @Query(MERCHANT_SUGGESTIONS_SQL)
+    suspend fun suggestMerchants(term: String, profileId: Long?, limit: Int): List<MerchantSuggestion>
 
     @Query("""
         SELECT SUM(amount) FROM transactions 

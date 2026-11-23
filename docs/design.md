@@ -454,9 +454,9 @@ it by `Dimensions.Component.bottomBarHeight`.
   nothing scales. Dialogs and sheets are other windows and just swap; with
   "Remove animations", or while App Lock's cover is up (the still draws above
   it), the whole theme just swaps. A change with no touch in the last second
-  behind it (a backup restore) spreads from the centre. The status and
-  navigation bar icons keep the old light/dark until the circle has covered the
-  window, since the still covers the bars too.
+  behind it (a backup restore) spreads from the centre. The still covers the
+  bars too, so the status and navigation bar icons each keep the old light/dark
+  until the circle has passed that bar's two corners.
 - **Lazy list rows animate.** Keyed `items(…, key = …)` rows pass
   `Modifier.animateItem()` on the item's root composable, so rows slide on
   insert, remove and filter instead of jumping. It needs a stable, unique

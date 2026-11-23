@@ -36,10 +36,11 @@ import kotlin.math.max
  * A new look spreads as a circle from where the user last touched (the Appearance
  * control they tapped), over a still of the old one, instead of every colour
  * snapping at once. [content] is always composed with the theme on screen, which
- * lags [target] by the one frame it takes to take that still. Its second value,
- * `bars`, is the look under the system bars: the still covers them too, so it
- * stays the old look until the circle has covered the whole window (a corner,
- * so the last of a bar to be passed). The bar icons should follow it.
+ * lags [target] by the one frame it takes to take that still. Its other two
+ * values are the look under the status bar and under the navigation bar: the
+ * still covers them too, so each stays the old look until the circle has passed
+ * that bar's two corners. The bar icons should follow them. A Light to Dark tap
+ * near the top flips the status bar early and the navigation bar near the end.
  *
  * Only the app's own window is caught: a dialog or sheet open over it just swaps.
  * With "Remove animations", or if the still can't be taken, the theme swaps at once.
@@ -53,10 +54,11 @@ fun <T> ThemeReveal(
     target: T,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    content: @Composable (shown: T, bars: T) -> Unit,
+    content: @Composable (shown: T, statusBars: T, navBars: T) -> Unit,
 ) {
     var shown by remember { mutableStateOf(target) }
-    var bars by remember { mutableStateOf(target) }
+    var statusBars by remember { mutableStateOf(target) }
+    var navBars by remember { mutableStateOf(target) }
     var still by remember { mutableStateOf<ImageBitmap?>(null) }
     val radius = remember { Animatable(0f) }
     val layer = rememberGraphicsLayer()
@@ -77,11 +79,12 @@ fun <T> ThemeReveal(
         if (target == shown) return@LaunchedEffect
         if (!enabled || !animationsEnabled || size.value == Size.Zero) {
             shown = target
-            bars = target
+            statusBars = target
+            navBars = target
             return@LaunchedEffect
         }
         // A change mid-reveal cancels this one: drop its still, or the next reveal
-        // would flash it at radius 0 before taking its own. With the still gone, the
+        // would flash it at radius 0 before taking its own. With the still gone, both
         // bars sit over the look now shown.
         try {
             center.value = revealOrigin(origin.value, touchedAt.value, SystemClock.uptimeMillis(), size.value)
@@ -95,11 +98,17 @@ fun <T> ThemeReveal(
             withFrameNanos { }
             withFrameNanos { }
             val full = farthestCorner(center.value, size.value)
+            val top = edgeCover(center.value, size.value, top = true)
+            val bottom = edgeCover(center.value, size.value, top = false)
             // Not at the end: the spring overshoots and settles well after the window is covered.
-            radius.animateTo(full, spec) { if (value >= full) bars = target }
+            radius.animateTo(full, spec) {
+                if (value >= top) statusBars = target
+                if (value >= bottom) navBars = target
+            }
         } finally {
             still = null
-            bars = shown
+            statusBars = shown
+            navBars = shown
         }
     }
 
@@ -128,7 +137,7 @@ fun <T> ThemeReveal(
                 clipPath(hole, ClipOp.Difference) { drawImage(old) }
             }
     ) {
-        content(shown, bars)
+        content(shown, statusBars, navBars)
     }
 }
 
@@ -171,5 +180,17 @@ internal fun revealOrigin(touch: Offset, touchedAt: Long, now: Long, size: Size)
 internal fun farthestCorner(from: Offset, size: Size): Float {
     val dx = max(from.x, size.width - from.x)
     val dy = max(from.y, size.height - from.y)
+    return hypot(dx, dy)
+}
+
+/**
+ * The radius that covers a bar along the [top] or bottom edge of [size] from [from]:
+ * the distance to the farther of that edge's two corners. A circle is convex, so once
+ * it holds both corners it holds the edge between them, and a tap can't land on a bar,
+ * so the bar's inner corners are nearer still.
+ */
+internal fun edgeCover(from: Offset, size: Size, top: Boolean): Float {
+    val dx = max(from.x, size.width - from.x)
+    val dy = if (top) from.y else size.height - from.y
     return hypot(dx, dy)
 }

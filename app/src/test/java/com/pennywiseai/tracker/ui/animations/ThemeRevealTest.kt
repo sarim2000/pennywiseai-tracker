@@ -18,6 +18,21 @@ class ThemeRevealTest {
     }
 
     @Test
+    fun `each bar is covered once the circle passes its own corners`() {
+        val screen = Size(300f, 400f)
+        // A toggle near the top left: the top corners are close, the bottom ones far.
+        val tap = Offset(60f, 80f)
+        // Top-right corner: 240 across, 80 down.
+        assertEquals(252.98f, edgeCover(tap, screen, top = true), 0.01f)
+        // Bottom-right corner: 240 across, 320 up (3-4-5), the whole window's far corner.
+        assertEquals(400f, edgeCover(tap, screen, top = false), 0.01f)
+        assertEquals(farthestCorner(tap, screen), edgeCover(tap, screen, top = false), 0.01f)
+        // From the centre, both bars are passed together.
+        val centre = Offset(150f, 200f)
+        assertEquals(edgeCover(centre, screen, top = true), edgeCover(centre, screen, top = false), 0.01f)
+    }
+
+    @Test
     fun `the circle starts at a fresh touch, else at the centre`() {
         val screen = Size(300f, 400f)
         val tap = Offset(40f, 80f)

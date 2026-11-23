@@ -8,6 +8,9 @@ import com.pennywiseai.tracker.navigation.SettingsSection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.w3c.dom.Element
+import java.io.File
+import javax.xml.parsers.DocumentBuilderFactory
 import com.pennywiseai.feature.learnedcategories.R as LearnedCategoriesR
 
 class SettingsSearchTest {
@@ -17,6 +20,18 @@ class SettingsSearchTest {
         matchingSearch(query) { it.map(::normalizeForSearch) }.map { it.first() }
 
     private fun rows(vararg titles: String) = titles.map { listOf(it, "", "", "") }
+
+    /** The index's titles for [query], resolved from the app's own strings in [locale] (English by default). */
+    private fun searchIndex(query: String, locale: String = ""): List<String> {
+        val strings = appStrings("values") + if (locale.isEmpty()) emptyMap() else appStrings("values-$locale")
+        val names = listOf(R.string::class.java, LearnedCategoriesR.string::class.java)
+            .flatMap { it.fields.toList() }
+            .associate { it.getInt(null) to it.name }
+        val text = { id: Int -> strings.getValue(names.getValue(id)) }
+        return settingsSearchIndex(Build.VERSION_CODES.S)
+            .matchingSearch(query) { it.searchFields(text) }
+            .map { text(it.title) }
+    }
 
     @Test
     fun `every settings page can be found`() {
@@ -133,6 +148,21 @@ class SettingsSearchTest {
     }
 
     @Test
+    fun `typos find the right rows in the real index, and no wrong ones`() {
+        // Each of these found unrelated rows when a typo could be spent on the start of a longer word.
+        listOf("food", "reset", "cloud", "year", "icon").forEach { query ->
+            val found = searchIndex(query)
+            assertTrue("\"$query\" found $found", found.isEmpty())
+        }
+        val arabic = searchIndex("الاسم", "ar-rSA")
+        assertTrue("\"الاسم\" found $arabic", arabic.isEmpty())
+        assertEquals("Automatic Folder Backup", searchIndex("bakup").first())
+        assertTrue("Import Data" in searchIndex("restroe"))
+        assertEquals("Currency", searchIndex("curency").first())
+        assertEquals("الإشعارات", searchIndex("الاشعرات", "ar-rSA").first())
+    }
+
+    @Test
     fun `a result shows its subtitle when a word matched there, typos included`() {
         fun shows(query: String, title: String, subtitle: String, keywords: String = ""): Boolean {
             val words = searchWords(query)
@@ -167,6 +197,23 @@ class SettingsSearchTest {
     }
 
     private companion object {
+        /** Gradle runs tests from `app/`; an IDE may run them from the repo root. */
+        val root = if (File("settings.gradle.kts").isFile) File(".") else File("..")
+
+        /** Every `<string>` in :app's and the feature modules' [dir] (e.g. `values-ar-rSA`), by name. */
+        fun appStrings(dir: String): Map<String, String> {
+            val parser = DocumentBuilderFactory.newInstance().apply {
+                setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+            }.newDocumentBuilder()
+            val modules = listOf(File(root, "app")) + File(root, "feature").listFiles().orEmpty()
+            return modules.flatMap { File(it, "src/main/res/$dir").listFiles { f -> f.extension == "xml" }.orEmpty().toList() }
+                .flatMap { file ->
+                    val nodes = parser.parse(file).getElementsByTagName("string")
+                    (0 until nodes.length).map { nodes.item(it) as Element }
+                }
+                .associate { it.getAttribute("name") to it.textContent }
+        }
+
         /** Settings rows search leaves out on purpose, and why. */
         val NOT_SEARCHABLE = setOf(
             // Group headers inside a page, not rows.

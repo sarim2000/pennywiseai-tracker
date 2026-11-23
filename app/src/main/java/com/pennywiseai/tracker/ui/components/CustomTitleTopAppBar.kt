@@ -545,25 +545,34 @@ internal fun TextStyle.morphedTitle(step: Int, expandedSize: TextUnit, collapsed
 
 /**
  * [base] (a theme style) morphed to [state]'s point along the collapse, or
- * [base] itself without a collapsing bar or without Google Sans Flex. The
- * fraction is read through the quantized step, so the title recomposes a few
- * times per collapse rather than on every scrolled pixel.
+ * [base] itself without Google Sans Flex. The fraction is read through the
+ * quantized step, so the title recomposes a few times per collapse rather than
+ * on every scrolled pixel.
  *
- * Under reduced motion nothing morphs: each title holds the style it rests at
- * with animations on, [restStep] (0 for the expanded title, [TitleMorph.STEPS]
- * for the bar title), so the bar looks the same at rest either way.
+ * Without a collapsing bar ([state] null), or under reduced motion, nothing
+ * morphs: each title holds the style it rests at with animations on,
+ * [restStep] (0 for the expanded title, [TitleMorph.STEPS] for the bar title),
+ * so every bar title looks the same at rest, collapsing or fixed.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun collapsingTitleStyle(base: TextStyle, state: TopAppBarState?, restStep: Int): TextStyle {
-    if (state == null || !LocalGoogleSansFlexActive.current) return base
+    if (!LocalGoogleSansFlexActive.current) return base
     val animate = rememberAnimationsEnabled()
     val step by remember(state, animate) {
-        derivedStateOf { if (animate) TitleMorph.step(state.collapsedFraction) else restStep }
+        derivedStateOf { if (state != null && animate) TitleMorph.step(state.collapsedFraction) else restStep }
     }
     val typography = MaterialTheme.typography
     return base.morphedTitle(step, typography.headlineLargeEmphasized.fontSize, typography.titleLarge.fontSize)
 }
+
+/**
+ * The title style of a bar that never expands (a plain M3 `TopAppBar`): the
+ * cut a collapsed [CustomTitleTopAppBar] title rests at, so fixed and
+ * collapsing bars match.
+ */
+@Composable
+internal fun barTitleStyle(): TextStyle = collapsingTitleStyle(MaterialTheme.typography.titleLarge, state = null, restStep = TitleMorph.STEPS)
 
 /** Home's start-aligned title: avatar plus the user's name. */
 @Composable

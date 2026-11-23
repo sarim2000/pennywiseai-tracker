@@ -70,6 +70,7 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.ProfileAvatar
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
+import com.pennywiseai.tracker.ui.components.barTitleStyle
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
@@ -124,7 +125,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     AnimatedVisibility(visible = showBarTitle, enter = pwFadeIn(), exit = pwFadeOut()) {
-                        Text(stringResource(R.string.settings_title))
+                        Text(stringResource(R.string.settings_title), style = barTitleStyle())
                     }
                 },
                 navigationIcon = { SettingsNavigationContent(onNavigateBack) },

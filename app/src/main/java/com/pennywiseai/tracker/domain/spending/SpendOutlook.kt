@@ -78,6 +78,8 @@ data class Bill(
     val dueDate: LocalDate,
     /** What the bill is for, so a screen can open it; null when not known. */
     val source: BillSource? = null,
+    /** Charged to a credit card: no cash leaves on [dueDate], the card's own bill pays it later. */
+    val onCreditCard: Boolean = false,
 ) {
     val isCardBill: Boolean get() = source is BillSource.Card
 }

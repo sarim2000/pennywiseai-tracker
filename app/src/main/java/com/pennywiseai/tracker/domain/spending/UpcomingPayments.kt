@@ -45,9 +45,10 @@ object UpcomingPayments {
         val start = maxOf(today, from)
         val hidden = cards.filter { isExcluded(it.bankName, it.accountLast4) }
         fun counts(bank: String?, last4: String?) = !isExcluded(bank, last4) && !onCard(bank, last4, hidden)
-        val subs = subscriptions(subscriptions.filter { counts(it.bankName, it.accountLast4) }, start, end)
+        fun onCreditCard(bank: String?, last4: String?) = onCard(bank, last4, cards)
+        val subs = subscriptions(subscriptions.filter { counts(it.bankName, it.accountLast4) }, start, end, ::onCreditCard)
         // A template for the same payment as a subscription is shown once.
-        val templates = recurring(recurring.filter { counts(it.bankName, it.accountLast4) }, today, start, end)
+        val templates = recurring(recurring.filter { counts(it.bankName, it.accountLast4) }, today, start, end, ::onCreditCard)
             .filter { t -> subs.none { it.sameOccurrence(t) } }
         val bills = cardBills.mapNotNull { it.bill }.filter { !it.isRetired && !it.dueDate.isAfter(end) }
             .map {
@@ -62,7 +63,12 @@ object UpcomingPayments {
      * 31st comes back to the 31st after February. The guard counts from [start], so a
      * far window isn't cut short.
      */
-    private fun subscriptions(subscriptions: List<SubscriptionEntity>, start: LocalDate, end: LocalDate): List<Bill> =
+    private fun subscriptions(
+        subscriptions: List<SubscriptionEntity>,
+        start: LocalDate,
+        end: LocalDate,
+        onCreditCard: (String?, String?) -> Boolean,
+    ): List<Bill> =
         subscriptions
             .filter { it.state == SubscriptionState.ACTIVE && it.direction == SubscriptionDirection.EXPENSE }
             .flatMap { s ->
@@ -71,7 +77,12 @@ object UpcomingPayments {
                     .dropWhile { it.isBefore(start) }
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
-                    .map { Bill(s.merchantName, Money(s.amount, s.currency), it, source = BillSource.Subscription) }
+                    .map {
+                        Bill(
+                            s.merchantName, Money(s.amount, s.currency), it, source = BillSource.Subscription,
+                            onCreditCard = onCreditCard(s.bankName, s.accountLast4),
+                        )
+                    }
                     .toList()
             }
 
@@ -80,7 +91,13 @@ object UpcomingPayments {
      * due is the daily worker's to post (it then moves the schedule past [today]), so
      * the count starts after today.
      */
-    private fun recurring(templates: List<RecurringTransactionEntity>, today: LocalDate, start: LocalDate, end: LocalDate): List<Bill> =
+    private fun recurring(
+        templates: List<RecurringTransactionEntity>,
+        today: LocalDate,
+        start: LocalDate,
+        end: LocalDate,
+        onCreditCard: (String?, String?) -> Boolean,
+    ): List<Bill> =
         templates
             .filter { it.isActive && it.transactionType == TransactionType.EXPENSE }
             .flatMap { t ->
@@ -93,7 +110,12 @@ object UpcomingPayments {
                     .dropWhile { it.isBefore(start) }
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
-                    .map { Bill(t.merchantName, Money(t.amount, t.currency), it, source = BillSource.Recurring) }
+                    .map {
+                        Bill(
+                            t.merchantName, Money(t.amount, t.currency), it, source = BillSource.Recurring,
+                            onCreditCard = onCreditCard(t.bankName, t.accountLast4),
+                        )
+                    }
                     .toList()
             }
 

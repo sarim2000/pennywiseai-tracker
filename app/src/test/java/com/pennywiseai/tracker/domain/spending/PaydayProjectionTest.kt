@@ -116,6 +116,15 @@ class PaydayProjectionTest {
     }
 
     @Test
+    fun `a payment charged to a credit card waits for the card's bill`() {
+        val onCard = Bill("Streaming", Money(d("200"), "INR"), today.plusDays(2), BillSource.Subscription, onCreditCard = true)
+        val p = project("100", listOf(onCard, bill("50", 15)))
+        assertEquals(listOf(d("50")), p.bills.map { it.amount.amount })
+        assertEquals(d("50"), p.lowest)
+        assertNull(p.belowZeroFrom)
+    }
+
+    @Test
     fun `calculate keeps each currency apart and skips estimated balances`() {
         fun account(last4: String, balance: String, currency: String = "INR", type: String = "SAVINGS") = AccountBalanceEntity(
             bankName = "Test Bank", accountLast4 = last4, balance = d(balance),

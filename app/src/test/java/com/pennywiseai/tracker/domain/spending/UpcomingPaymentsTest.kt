@@ -142,6 +142,14 @@ class UpcomingPaymentsTest {
         )
 
         assertEquals(listOf("Spotify" to date("2026-10-28"), "Fuel" to date("2026-10-30")), bills.map { it.name to it.dueDate })
+        assertTrue(bills.all { it.onCreditCard })
+    }
+
+    @Test
+    fun `a payment from a bank account isn't marked as on a card`() {
+        val bills = upcoming(subscriptions = listOf(sub("Rent", "2026-11-01", bank = "Test Bank", last4 = "9999"), sub("Gym", "2026-11-01")))
+
+        assertTrue(bills.none { it.onCreditCard })
     }
 
     @Test

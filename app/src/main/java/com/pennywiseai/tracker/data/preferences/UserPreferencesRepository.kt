@@ -25,6 +25,7 @@ import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
 import com.pennywiseai.tracker.domain.conscience.ConscienceFeedback
 import com.pennywiseai.tracker.domain.conscience.ConscienceFrequency
 import com.pennywiseai.tracker.domain.conscience.ConscienceKind
+import com.pennywiseai.tracker.domain.conscience.ConscienceLines
 import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
 import com.pennywiseai.tracker.domain.conscience.ConscienceRemark
 import com.pennywiseai.tracker.domain.conscience.ConscienceRemarks
@@ -736,13 +737,18 @@ open class UserPreferencesRepository internal constructor(
         return changed
     }
 
-    /** Every like and retirement undone, and the remarks open to a reaction again. */
-    override suspend fun resetConscienceFeedback() {
+    /**
+     * Every like and retirement in [contentLocale] undone, and its remarks open to a reaction
+     * again. Another language's lines keep theirs: the screen there counts and resets them.
+     */
+    override suspend fun resetConscienceFeedback(contentLocale: String) {
         dataStore.edit { prefs ->
-            prefs.remove(PreferencesKeys.CONSCIENCE_LIKED_LINES)
-            prefs.remove(PreferencesKeys.CONSCIENCE_RETIRED_LINES)
-            prefs[PreferencesKeys.CONSCIENCE_REMARKS] =
-                conscienceJson.encodeToString(prefs.conscienceRemarks().map { it.copy(reaction = null) })
+            val feedback = prefs.conscienceFeedback()
+            val reset = feedback.inLanguage(contentLocale)
+            prefs.setConscienceFeedback(ConscienceFeedback(feedback.liked - reset.liked, feedback.retired - reset.retired))
+            val stored = prefs.conscienceRemarks()
+            val remarks = stored.map { if (ConscienceLines.isIn(contentLocale, it.lineKey)) it.copy(reaction = null) else it }
+            if (remarks != stored) prefs[PreferencesKeys.CONSCIENCE_REMARKS] = conscienceJson.encodeToString(remarks)
         }
     }
 

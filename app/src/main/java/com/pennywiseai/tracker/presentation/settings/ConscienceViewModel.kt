@@ -69,6 +69,8 @@ class ConscienceViewModel @Inject constructor(
     val state: StateFlow<ConscienceUiState> = combine(settings, activity, device) { settings, activity, device ->
         val text = ConscienceText(context)
         val (fact, line) = ConscienceLines.sample(device.exampleIndex)
+        // Reactions are per line, and a line belongs to one language: count only this one's.
+        val feedback = activity.feedback.inLanguage(text.contentLocale)
         ConscienceUiState(
             enabled = settings.enabled,
             status = when {
@@ -82,8 +84,8 @@ class ConscienceViewModel @Inject constructor(
             example = text.render(fact, line).orEmpty(),
             exampleKind = fact.kind,
             remarks = activity.remarks,
-            likedCount = activity.feedback.liked.size,
-            retiredCount = activity.feedback.retired.size,
+            likedCount = feedback.liked.size,
+            retiredCount = feedback.retired.size,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConscienceUiState())
 
@@ -120,7 +122,7 @@ class ConscienceViewModel @Inject constructor(
     }
 
     fun resetFeedback() {
-        viewModelScope.launch { preferences.resetConscienceFeedback() }
+        viewModelScope.launch { preferences.resetConscienceFeedback(ConscienceText(context).contentLocale) }
     }
 
     /** Posts the example on screen; false when notifications are blocked, so the screen can say why nothing came. */

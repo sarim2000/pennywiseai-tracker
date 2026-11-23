@@ -13,7 +13,13 @@ data class ConscienceLog(
 data class ConscienceFeedback(
     val liked: Set<String> = emptySet(),
     val retired: Set<String> = emptySet(),
-)
+) {
+    /** Only the lines written in [contentLocale]; the others belong to another language's screen. */
+    fun inLanguage(contentLocale: String) = ConscienceFeedback(
+        liked = liked.filterTo(mutableSetOf()) { ConscienceLines.isIn(contentLocale, it) },
+        retired = retired.filterTo(mutableSetOf()) { ConscienceLines.isIn(contentLocale, it) },
+    )
+}
 
 /** A fact with the lines that rendered for it, in the order the detectors ranked them. */
 data class ConscienceCandidate(val fact: ConscienceFact, val lines: List<ConscienceLine>)

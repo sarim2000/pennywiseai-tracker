@@ -63,7 +63,8 @@ interface NotificationPreferences {
     /** "Liked it" or "Not this one" on a remark; true when the line's standing changed. */
     suspend fun reactToConscience(remarkId: Long, lineKey: String, reaction: ConscienceReaction): Boolean
 
-    suspend fun resetConscienceFeedback()
+    /** Undoes the likes and retirements of the lines written in [contentLocale]. */
+    suspend fun resetConscienceFeedback(contentLocale: String)
 
     /**
      * Spends a slot, picks the comment and stores its remark in one edit; null when the cadence

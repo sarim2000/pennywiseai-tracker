@@ -74,6 +74,9 @@ object ConscienceLines {
     /** The key the logs store: the same joke in another language is a different line. */
     fun key(contentLocale: String, line: ConscienceLine): String = "$contentLocale:${line.id}"
 
+    /** Whether stored [key] is a line written in [contentLocale]. */
+    fun isIn(contentLocale: String, key: String): Boolean = key.startsWith("$contentLocale:")
+
     /**
      * Whether the lines are written in the app's language. In a language without
      * its own lines, Android falls back to the English ones, and the feature hides

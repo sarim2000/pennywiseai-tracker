@@ -47,6 +47,7 @@ class ConsciencePreferencesTest {
     private val mutedKey = stringSetPreferencesKey("conscience_muted_kinds")
     private val remarksKey = stringPreferencesKey("conscience_remarks")
     private val retiredKey = stringSetPreferencesKey("conscience_retired_lines")
+    private val likedKey = stringSetPreferencesKey("conscience_liked_lines")
     private val addedLater = setOf(
         ConscienceKind.COMEBACK, ConscienceKind.WEEKLY, ConscienceKind.RECORD_DAY, ConscienceKind.SPIKE, ConscienceKind.HELLO
     )
@@ -131,5 +132,21 @@ class ConsciencePreferencesTest {
 
         assertEquals(setOf("en:repeat_01"), store.data.first()[retiredKey])
         assertNull(store.data.first()[remarksKey])
+    }
+
+    @Test
+    fun `reset reactions undoes only the current language's`() = runBlocking {
+        repository.setConscienceEnabled(true)
+        val remark = claim(ConscienceFact.Repeat(ConscienceCategory.FOOD, 3, 6), "repeat_01", now, notified = true)!!
+        repository.reactToConscience(remark.id, remark.lineKey, ConscienceReaction.LIKED)
+        repository.reactToConscience(1L, "en:hello_01", ConscienceReaction.RETIRED)
+        repository.reactToConscience(2L, "ar:hello_01", ConscienceReaction.RETIRED)
+        repository.reactToConscience(3L, "ar:repeat_01", ConscienceReaction.LIKED)
+
+        repository.resetConscienceFeedback("en")
+
+        assertEquals(setOf("ar:hello_01"), store.data.first()[retiredKey])
+        assertEquals(setOf("ar:repeat_01"), store.data.first()[likedKey])
+        assertNull(repository.conscienceRemarks.first().single().reaction)
     }
 }

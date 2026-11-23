@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,6 +47,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
@@ -55,10 +59,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -68,6 +74,7 @@ import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalStatus
+import com.pennywiseai.tracker.domain.goals.crossedMilestone
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.AmountBarHost
 import com.pennywiseai.tracker.ui.components.GoalRing
@@ -88,7 +95,9 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.success
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -120,6 +129,9 @@ fun GoalDetailScreen(
     LaunchedEffect(state) { if (state is GoalDetailState.Gone) onNavigateBack() }
     // Set only by the user's own Add money; the ring clears it once the new portion settles.
     var addedFrom by remember { mutableStateOf<BigDecimal?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val resources = LocalResources.current
     LaunchedEffect(sheet.done) {
         if (sheet.done) { sheet.addedFrom?.let { addedFrom = it }; mode = null; viewModel.resetSheet() }
     }
@@ -130,6 +142,7 @@ fun GoalDetailScreen(
 
     PennyWiseScaffold(
         title = progress?.goal?.name.orEmpty(),
+        snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(data, shape = MaterialTheme.shapes.large) } },
         navigationIcon = {
             IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
@@ -153,7 +166,16 @@ fun GoalDetailScreen(
             onAdd = { open(MoneySheetMode.Add) },
             onTakeOut = { open(MoneySheetMode.TakeOut) },
             addedFrom = addedFrom,
-            onAddedSettled = { addedFrom = null },
+            onAddedSettled = {
+                val from = addedFrom
+                addedFrom = null
+                // A quiet word as the sweep lands on a 25 / 50 / 75% mark. Not while amounts are
+                // hidden: the ring, and with it how far along the goal is, is hidden then too.
+                val milestone = from?.let { crossedMilestone(it, progress.saved, progress.goal.targetAmount) }
+                if (milestone != null && !AmountPrivacy.hidden) {
+                    scope.launch { snackbarHostState.showSnackbar(resources.getString(milestoneMessage(milestone))) }
+                }
+            },
             merchants = merchants,
             management = {
                 GoalManagement(
@@ -206,6 +228,14 @@ fun GoalDetailScreen(
     }
 
     if (showUpgrade) UpgradeSheet(onDismiss = { showUpgrade = false })
+}
+
+/** What the goal screen says when an Add crosses [milestone] (25, 50 or 75). */
+@StringRes
+private fun milestoneMessage(milestone: Int): Int = when (milestone) {
+    25 -> R.string.goal_milestone_quarter
+    50 -> R.string.goal_milestone_half
+    else -> R.string.goal_milestone_three_quarters
 }
 
 @Composable
@@ -288,6 +318,7 @@ private fun GoalDetailContent(
                         addedFrom = addedFrom,
                         onAddedSettled = onAddedSettled,
                         announceProgress = false,
+                        milestones = true,
                     ) {}
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         Text(

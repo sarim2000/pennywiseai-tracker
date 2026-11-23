@@ -1080,7 +1080,7 @@ private fun StepIndicator(
                         if (isActive || isPast) {
                             Modifier.background(colors.primary)
                         } else {
-                            Modifier.border(STEP_DOT_RING, colors.onSurfaceVariant, CircleShape)
+                            Modifier.border(Dimensions.Component.stepDotRingWidth, colors.onSurfaceVariant, CircleShape)
                         }
                     )
             )
@@ -1242,4 +1242,3 @@ private val OPTION_TILE_SIZE = 72.dp
 private val SELECTION_RING_WIDTH = 3.dp
 private val STEP_DOT_ACTIVE = Spacing.sm
 private val STEP_DOT_INACTIVE = 6.dp
-private val STEP_DOT_RING = 1.5.dp

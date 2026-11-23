@@ -168,6 +168,9 @@ object Dimensions {
         /** The Pro "membership ring" edging Home's avatar. */
         val avatarRingWidth = 2.dp
 
+        /** Outline of an upcoming step dot in onboarding's progress row. */
+        val stepDotRingWidth = 1.5.dp
+
         /** Height of the floating nav pill, and the side of the action docked beside it. */
         val floatingNavHeight = 64.dp
 

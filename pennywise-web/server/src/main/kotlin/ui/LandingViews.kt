@@ -86,7 +86,7 @@ object LandingViews {
                 div(classes = "lp-hero-art") {
                     attributes["aria-hidden"] = "true"
                     div(classes = "lp-blob shape-cookie") {}
-                    // One ledger across both frames: the Zomato SMS on the left is the newest row on the right.
+                    // One ledger across both frames: the Zomato SMS on the left is in the Recent list on the right.
                     div(classes = "lp-shots") {
                         shot("sms", "lp-shot-back")
                         shot("home", "lp-shot-front", lazy = false)

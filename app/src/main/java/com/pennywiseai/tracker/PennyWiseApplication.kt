@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
@@ -60,6 +61,12 @@ class PennyWiseApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository
+
+    @Inject
+    lateinit var subscriptionRepository: com.pennywiseai.tracker.data.repository.SubscriptionRepository
+
+    @Inject
+    lateinit var recurringTransactionRepository: com.pennywiseai.tracker.data.repository.RecurringTransactionRepository
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
@@ -150,6 +157,15 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             goalRepository.observeGoals().distinctUntilChanged().drop(1).collect {
                 com.pennywiseai.tracker.widget.GoalWidgetUpdateWorker.enqueueOneShot(this@PennyWiseApplication)
             }
+        }
+
+        // Next bills widget: any subscription or recurring payment added, edited, paid or
+        // paused. Transactions and card bills reach it through WidgetRefresher.
+        applicationScope.launch {
+            combine(subscriptionRepository.getActiveSubscriptions(), recurringTransactionRepository.getActive(), ::Pair)
+                .distinctUntilChanged().drop(1).collect {
+                    com.pennywiseai.tracker.widget.NextBillsWidgetUpdateWorker.enqueueOneShot(this@PennyWiseApplication)
+                }
         }
 
         // Keep CurrencyFormatter's number-format style in sync with the user's

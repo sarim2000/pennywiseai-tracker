@@ -31,6 +31,9 @@ object PennyWiseWidgetTheme {
         if (isPositive) ColorProvider(day = budget_safe_light, night = budget_safe_dark)
         else ColorProvider(day = budget_danger_light, night = budget_danger_dark)
 
+    /** A bill due today or tomorrow, as Home's "Coming up" flags it. */
+    val dueSoonColor: ColorProvider = ColorProvider(day = budget_warning_light, night = budget_warning_dark)
+
     /** A row's amount: income stands out; spending, most rows, stays plain rather than a wall of red. */
     @Composable
     fun transactionAmountColor(type: TransactionType): ColorProvider = when (type) {

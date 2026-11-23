@@ -69,7 +69,7 @@ Your bank already texts you every transaction. PennyWise reads those SMS on your
 
 - **🔐 Privacy Controls** — Biometric app lock, and hide amounts on every screen (shake the phone to toggle, or show them again from any screen)
 - **🔔 Smart Notifications** — Clear transaction alerts with a one-tap "Not an expense", bill reminders, and an opt-in spending conscience
-- **📱 Widgets & Quick Add** — Budget, recent transactions, spending pie and goal widgets; a Quick Settings tile, voice quick-add and a calculator keypad on the amount field
+- **📱 Widgets & Quick Add** — Budget, recent transactions, spending pie, goal and next-bills widgets; a Quick Settings tile, voice quick-add and a calculator keypad on the amount field
 - **📤 Backup & Export** — Full backup/restore (.pennywisebackup) including settings and receipts, scheduled folder backups, CSV export, rule import/export
 - **🎭 Material 3 Expressive** — Dynamic color, extra colour themes, Google Sans Flex, light/dark/system, and a Home screen you can reorder
 - **🍎 iOS App** — On the [App Store](https://apps.apple.com/app/id6793073167), with on-device AI chat and Shortcuts automation for bank SMS

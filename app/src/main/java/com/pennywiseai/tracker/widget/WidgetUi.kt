@@ -60,7 +60,7 @@ import java.math.RoundingMode
 import java.util.Locale
 
 /*
- * What every widget shares, so the seven read as one family: the app's own
+ * What every widget shares, so the eight read as one family: the app's own
  * language and reading direction, the in-app eye, how money reads at a
  * glance, and the few parts (header, + button, progress bar, empty state).
  */

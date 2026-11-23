@@ -17,5 +17,7 @@ object WidgetRefresher {
         BudgetWidgetUpdateWorker.enqueueOneShot(context)
         // Goals: a transaction edit or delete can change a linked contribution.
         GoalWidgetUpdateWorker.enqueueOneShot(context)
+        // Next bills: a payment moves a subscription on and pays down a card bill.
+        NextBillsWidgetUpdateWorker.enqueueOneShot(context)
     }
 }

@@ -86,6 +86,7 @@ internal fun EditProfileSheet(
     val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
     val scope = rememberCoroutineScope()
     // "User" is the stored stand-in for no name; start the field empty rather than on it.
+    // A blank name saves as that stand-in, so someone without one can still change the avatar.
     val nameState = rememberTextFieldState(state.name.takeUnless { it == DEFAULT_USER_NAME }.orEmpty())
     // Saveable, so rotation or the process dying behind the photo picker keeps the draft.
     var imageUri by rememberSaveable { mutableStateOf(state.imageUri) }
@@ -117,9 +118,9 @@ internal fun EditProfileSheet(
         }
     }
     val name = nameState.text.toString()
-    val canSave = name.isNotBlank() && pendingPhoto == null
+    val canSave = pendingPhoto == null
     val save = withCommittedText {
-        if (nameState.text.isNotBlank() && pendingPhoto == null) {
+        if (pendingPhoto == null) {
             onSave(nameState.text.toString(), imageUri, color)
             scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
         }

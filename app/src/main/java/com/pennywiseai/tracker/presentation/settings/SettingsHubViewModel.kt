@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.aiaccess.AiSessionState
+import com.pennywiseai.tracker.data.preferences.DEFAULT_USER_NAME
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
@@ -77,7 +78,7 @@ class SettingsHubViewModel @Inject constructor(
     fun saveProfile(name: String, imageUri: String?, backgroundColor: Int) {
         viewModelScope.launch {
             photoLock.withLock {
-                userPreferencesRepository.updateProfile(name.trim(), imageUri, backgroundColor)
+                userPreferencesRepository.updateProfile(name.trim().ifEmpty { DEFAULT_USER_NAME }, imageUri, backgroundColor)
                 // ponytail: photos picked then abandoned are swept on the next save, not on cancel.
                 withContext(Dispatchers.IO) { ProfilePhotos.sweep(context.filesDir, imageUri) }
             }

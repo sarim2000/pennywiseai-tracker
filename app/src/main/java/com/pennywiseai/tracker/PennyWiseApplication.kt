@@ -27,11 +27,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.content.res.Configuration as ResConfiguration
@@ -64,13 +62,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     lateinit var goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository
 
     @Inject
-    lateinit var subscriptionRepository: com.pennywiseai.tracker.data.repository.SubscriptionRepository
-
-    @Inject
-    lateinit var recurringTransactionRepository: com.pennywiseai.tracker.data.repository.RecurringTransactionRepository
-
-    @Inject
-    lateinit var accountBalanceRepository: com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+    lateinit var nextBillsWidgetChanges: com.pennywiseai.tracker.widget.NextBillsWidgetChanges
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
@@ -163,20 +155,9 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             }
         }
 
-        // Next bills widget: any subscription or recurring payment added, edited, paid or
-        // paused, and a card's bill entered, edited or cleared on its account screen (no
-        // transaction is written for that). Transactions reach it through WidgetRefresher.
-        applicationScope.launch {
-            val cardBills = accountBalanceRepository.getAllLatestBalances().map { accounts ->
-                accounts.filter { it.isCreditCard }.map {
-                    listOf(it.bankName, it.accountLast4, it.statementDay, it.cardDueDay, it.cardBillAmount, it.cardBillAsOf)
-                }
-            }
-            combine(subscriptionRepository.getActiveSubscriptions(), recurringTransactionRepository.getActive(), cardBills, ::Triple)
-                .distinctUntilChanged().drop(1).collect {
-                    com.pennywiseai.tracker.widget.NextBillsWidgetUpdateWorker.enqueueOneShot(this@PennyWiseApplication)
-                }
-        }
+        // Next bills widget: whatever changes the bills it lists (transactions also reach it
+        // through WidgetRefresher).
+        applicationScope.launch { nextBillsWidgetChanges.watch() }
 
         // Keep CurrencyFormatter's number-format style in sync with the user's
         // preference. CurrencyFormatter is a stateless object used from non-Compose

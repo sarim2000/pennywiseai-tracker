@@ -18,8 +18,8 @@ import java.time.LocalDate
 /**
  * Rebuilds the Next bills widget's snapshot from the same payments the calendar
  * shows as due (selected profile, no ignored accounts). Enqueued with the other
- * widgets via [WidgetRefresher], when subscriptions, recurring payments or card bills change
- * (PennyWiseApplication observes them), and on the widget's update period.
+ * widgets via [WidgetRefresher], when the bills it lists change (PennyWiseApplication
+ * watches through [NextBillsWidgetChanges]), and on the widget's update period.
  */
 @HiltWorker
 class NextBillsWidgetUpdateWorker @AssistedInject constructor(
@@ -32,7 +32,7 @@ class NextBillsWidgetUpdateWorker @AssistedInject constructor(
         private const val WORK_NAME = "next_bills_widget_update"
 
         /** Far enough for a yearly bill to be someone's next one. */
-        private const val LOOKAHEAD_DAYS = 366L
+        internal const val LOOKAHEAD_DAYS = 366L
 
         fun enqueueOneShot(context: Context) {
             WorkManager.getInstance(context).enqueueUniqueWork(

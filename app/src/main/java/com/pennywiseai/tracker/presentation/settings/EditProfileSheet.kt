@@ -80,7 +80,8 @@ import kotlinx.coroutines.launch
 internal fun EditProfileSheet(
     state: SettingsHubState,
     onImportPhoto: suspend (Uri) -> String?,
-    onSave: (name: String, imageUri: String?, backgroundColor: Int) -> Unit,
+    /** Saves the draft and calls `onSaved` once it is written; a failed write keeps the sheet open. */
+    onSave: (name: String, imageUri: String?, backgroundColor: Int, onSaved: () -> Unit) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
@@ -121,8 +122,9 @@ internal fun EditProfileSheet(
     val canSave = pendingPhoto == null
     val save = withCommittedText {
         if (pendingPhoto == null) {
-            onSave(nameState.text.toString(), imageUri, color)
-            scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+            onSave(nameState.text.toString(), imageUri, color) {
+                scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+            }
         }
     }
 

@@ -2,8 +2,11 @@ package com.pennywiseai.tracker.presentation.settings
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.aiaccess.AiSessionState
 import com.pennywiseai.tracker.data.preferences.DEFAULT_USER_NAME
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -24,6 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import javax.inject.Inject
 
 /**
@@ -75,14 +79,29 @@ class SettingsHubViewModel @Inject constructor(
 
     suspend fun importPhoto(source: Uri): String? = photoLock.withLock { ProfilePhotos.import(context, source) }
 
-    fun saveProfile(name: String, imageUri: String?, backgroundColor: Int) {
+    /**
+     * Calls [onSaved] once the profile is written. A failed write (a full disk) shows a
+     * toast and keeps the editor open with its draft instead of crashing the app.
+     */
+    fun saveProfile(name: String, imageUri: String?, backgroundColor: Int, onSaved: () -> Unit) {
         viewModelScope.launch {
             photoLock.withLock {
-                userPreferencesRepository.updateProfile(name.trim().ifEmpty { DEFAULT_USER_NAME }, imageUri, backgroundColor)
+                try {
+                    userPreferencesRepository.updateProfile(name.trim().ifEmpty { DEFAULT_USER_NAME }, imageUri, backgroundColor)
+                } catch (e: IOException) {
+                    Log.w(TAG, "Couldn't save the profile", e)
+                    Toast.makeText(context, R.string.settings_profile_save_failed, Toast.LENGTH_SHORT).show()
+                    return@withLock
+                }
+                onSaved()
                 // ponytail: photos picked then abandoned are swept on the next save, not on cancel.
                 withContext(Dispatchers.IO) { ProfilePhotos.sweep(context.filesDir, imageUri) }
             }
         }
+    }
+
+    private companion object {
+        const val TAG = "SettingsHubViewModel"
     }
 }
 

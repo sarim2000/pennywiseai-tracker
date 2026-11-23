@@ -58,6 +58,12 @@ object ConscienceDetectors {
     private const val WEEKLY_LEAD = 2
 
     /**
+     * The most ledger any kind needs before it can speak: spikes' eight baseline weeks
+     * before this one. Record days need 60 days, wins five weeks.
+     */
+    const val LONGEST_LEDGER_DAYS = 6L + 7L * SPIKE_BASELINE_WEEKS
+
+    /**
      * Every fact that holds for [current], in [ConscienceKind] order, with
      * [ConscienceFact.Hello] always last: the cadence decides which one speaks.
      * [history] may hold purchases after [current]; only earlier ones count.

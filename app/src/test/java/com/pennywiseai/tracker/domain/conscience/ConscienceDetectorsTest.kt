@@ -284,6 +284,8 @@ class ConscienceDetectorsTest {
     fun `the ledger must cover all eight baseline weeks`() {
         assertEquals(Spike(FOOD), spike(steadyWeeks + spikeWeek, ledgerStart = daysAgo(62)))
         assertNull(spike(steadyWeeks + spikeWeek, ledgerStart = daysAgo(61)))
+        // The screen's "still learning" lasts exactly that long.
+        assertEquals(62L, ConscienceDetectors.LONGEST_LEDGER_DAYS)
     }
 
     @Test

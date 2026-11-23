@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.manager.ConscienceNotifier
 import com.pennywiseai.tracker.data.manager.ConscienceText
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.conscience.ConscienceDetectors
 import com.pennywiseai.tracker.domain.conscience.ConscienceFeedback
 import com.pennywiseai.tracker.domain.conscience.ConscienceFrequency
 import com.pennywiseai.tracker.domain.conscience.ConscienceKind
@@ -90,9 +91,10 @@ class ConscienceViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ConscienceUiState())
 
     init {
+        // Until the ledger is old enough for every kind (spikes, record days, wins), it's still learning.
         viewModelScope.launch {
             val oldest = transactionRepository.getOldestTransactionDateTime()?.toLocalDate()
-            val learning = oldest == null || oldest.isAfter(LocalDate.now().minusDays(LEARNING_DAYS))
+            val learning = oldest == null || oldest.isAfter(LocalDate.now().minusDays(ConscienceDetectors.LONGEST_LEDGER_DAYS))
             device.update { it.copy(learning = learning) }
         }
     }
@@ -132,10 +134,5 @@ class ConscienceViewModel @Inject constructor(
         val example = state.value.example.ifEmpty { return false }
         ConscienceNotifier.postSample(context, ConscienceText(context), example, notificationActions)
         return true
-    }
-
-    private companion object {
-        // Until the ledger is this old, the history-based remarks (spikes, wins, rituals) can't speak yet.
-        const val LEARNING_DAYS = 42L
     }
 }

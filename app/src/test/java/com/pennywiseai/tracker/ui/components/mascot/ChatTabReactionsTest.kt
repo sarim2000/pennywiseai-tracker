@@ -304,6 +304,37 @@ class ChatTabReactionsTest {
     }
 
     @Test
+    fun `a toggle made just before a scan starts keeps its hold, then the bubble shows`() {
+        val scan = MutableStateFlow<SmsScanStatus>(SmsScanStatus.Idle)
+        val job = start(scan)
+        reactions.onMoment(MascotMoment.AmountsHidden)
+        runCurrent()
+        scan.value = SmsScanStatus.Running
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.AmountsHidden), shown)
+        advanceTimeBy(TOGGLE_HOLD_MS + 1)
+        runCurrent()
+        assertEquals(SCANNING, shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `a scan that starts takes over from a save`() {
+        val scan = MutableStateFlow<SmsScanStatus>(SmsScanStatus.Idle)
+        val job = start(scan)
+        save(TransactionType.EXPENSE)
+        runCurrent()
+        scan.value = SmsScanStatus.Running
+        runCurrent()
+        assertEquals(SCANNING, shown)
+        // Cleared, not just hidden: nothing of the save is left once the scan ends.
+        scan.value = SmsScanStatus.Finished(newRows = 0)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
+
+    @Test
     fun `a scan's beat runs out on time while the bar is away`() {
         val scan = MutableStateFlow<SmsScanStatus>(SmsScanStatus.Running)
         val job = start(scan)

@@ -425,7 +425,7 @@ object GuideViews {
             +"Update PennyWise first; new versions always read older backups. If it still fails, ask on Discord with the error."
         },
         Faq("Is my data private?", "privacy secure safe data server") {
-            +"Yes. SMS and transactions are processed and stored only on your phone, and the AI runs there too. No account, no servers holding your data, and the "
+            +"Yes. SMS and transactions are processed and stored on your phone, and the AI runs there too. There is no account, your data leaves the phone only through opt-in features you start, and the "
             a(href = "https://github.com/sarim2000/pennywiseai-tracker") { +"code is open source" }
             +"."
         },

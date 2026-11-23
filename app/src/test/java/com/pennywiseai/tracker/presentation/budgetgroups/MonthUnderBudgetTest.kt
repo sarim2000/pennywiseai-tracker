@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetWindow
+import com.pennywiseai.tracker.data.repository.CarryGap
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -71,6 +72,8 @@ class MonthUnderBudgetTest {
         assertNull(monthUnderBudget(october, summary(), emptySet()))
         // Unconverted spend could hide an overspend.
         assertNull(monthUnderBudget(october, summary(group("100").copy(hasUnconvertedSpend = true)), emptySet()))
+        // Rollover's carry couldn't be counted, so the limit it was judged against may be too high.
+        assertNull(monthUnderBudget(october, summary(group("100").copy(carryGap = CarryGap.NO_RATE)), emptySet()))
     }
 
     @Test

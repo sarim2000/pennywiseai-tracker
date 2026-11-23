@@ -32,10 +32,11 @@ import java.time.LocalDate
 
 /**
  * Works out the Plan challenge's days the way Plan does (same rows, same tracking and
- * inbox checks) and redraws the Challenge widget. Enqueued when the stored challenge
- * changes (PennyWiseApplication observes it), with the other widgets via
+ * inbox checks) and redraws the Challenge widget. Enqueued when the stored challenge or
+ * the scan cursor changes (PennyWiseApplication observes both), with the other widgets via
  * [WidgetRefresher], and on the widget's update period, which also moves it past midnight.
- * It only reads: recording a finished run stays with Plan.
+ * It only reads: recording a finished run, and the inbox read that settles unread days,
+ * stay with the app.
  */
 @HiltWorker
 class ChallengeWidgetUpdateWorker @AssistedInject constructor(

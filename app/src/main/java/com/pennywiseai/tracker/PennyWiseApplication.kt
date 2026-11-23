@@ -27,9 +27,11 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import android.content.res.Configuration as ResConfiguration
@@ -152,9 +154,16 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             }
         }
 
-        // Challenge widget: a challenge started, given up, finished or moved on from in Plan.
+        // Challenge widget: a challenge started, given up, finished or moved on from in Plan,
+        // or a scan's cursor moving past its days, which settles them (a scan that finds
+        // nothing new refreshes no other widget).
         applicationScope.launch {
-            userPreferencesRepository.challenges.drop(1).collect {
+            combine(
+                userPreferencesRepository.challenges,
+                userPreferencesRepository.getLastScanTimestamp(),
+                userPreferencesRepository.lastScanRecord.map { it?.owesFullWindow == true },
+                ::Triple,
+            ).distinctUntilChanged().drop(1).collect {
                 com.pennywiseai.tracker.widget.ChallengeWidgetUpdateWorker.enqueueOneShot(this@PennyWiseApplication)
             }
         }

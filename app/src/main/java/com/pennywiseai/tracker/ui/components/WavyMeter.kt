@@ -47,7 +47,8 @@ fun WavyMeter(
 /**
  * [WavyMeter] whose [color] follows the value: it gets the fraction on screen, so a
  * status colour turns at 70% when the bar reaches 70%, not when the target does,
- * and crossfades on the fast effects spec.
+ * and crossfades on the fast effects spec. The first fill-in is the exception: it
+ * sweeps in the colour of the value it's heading for.
  */
 @Composable
 fun WavyMeter(
@@ -60,7 +61,13 @@ fun WavyMeter(
 ) {
     val target = fraction.coerceIn(0f, 1f)
     val shown = animateMeterFraction(target, fillIn = fillIn)
-    val tint by animateColorAsState(color(shown.value), MaterialTheme.motionScheme.fastEffectsSpec(), label = "meterColor")
+    // The first fill-in sweeps in its final colour: crossfading through the status colours
+    // mid-sweep reads muddy, and primary barely shows on the hero card.
+    val tint by animateColorAsState(
+        color(if (shown.filling) target else shown.value),
+        MaterialTheme.motionScheme.fastEffectsSpec(),
+        label = "meterColor"
+    )
     MeterBar(shown, target, tint, trackColor, modifier, dense)
 }
 

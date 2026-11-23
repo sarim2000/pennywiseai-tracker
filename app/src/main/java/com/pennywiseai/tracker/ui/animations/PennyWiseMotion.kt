@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -196,13 +197,25 @@ fun animateMeterFraction(
     target: Float,
     spec: AnimationSpec<Float> = MaterialTheme.motionScheme.defaultEffectsSpec(),
     fillIn: Boolean = true,
-): State<Float> {
+): MeterFraction {
     var filled by rememberSaveable { mutableStateOf(!fillIn) }
     val animationsEnabled = rememberAnimationsEnabled()
-    val shown = remember { Animatable(if (filled || !animationsEnabled) target else 0f) }
+    val meter = remember { MeterFraction(if (filled || !animationsEnabled) target else 0f, target) }
     LaunchedEffect(target) {
         filled = true
-        shown.animateTo(target, spec)
+        meter.animatable.animateTo(target, spec)
+        meter.filling = false
     }
-    return shown.asState()
+    return meter
+}
+
+/** [animateMeterFraction]'s drawn fraction, plus whether its first fill-in is still sweeping. */
+@Stable
+class MeterFraction internal constructor(start: Float, target: Float) : State<Float> {
+    internal val animatable = Animatable(start)
+    override val value: Float get() = animatable.value
+
+    /** True while the first fill-in sweeps from empty; later eases leave it false. */
+    var filling by mutableStateOf(start != target)
+        internal set
 }

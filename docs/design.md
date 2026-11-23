@@ -448,6 +448,10 @@ it by `Dimensions.Component.bottomBarHeight`.
   7. **Shared elements** (the transaction icon from list to detail) move their
      bounds on `defaultSpatialSpec()` via `sharedElementIcon`, not Compose's
      default bounds spring.
+  - **Scan progress** eases the worker's fraction on `fastEffectsSpec()`, indeterminate
+    until the total is known; a new scan (work id) starts at its own value, not from 100%.
+  - **Insights donut** sweeps in clockwise (an angular clip on `slowEffectsSpec()`, `sweepIn()`)
+    when the chart appears; slices, legend and taps stay as they are; refreshing it doesn't replay it.
 - **Navigation motion.** Both nav hosts (`PennyWiseNavHost` and each tab's
   stack in `MainScreen`) speak one language from `PennyWiseMotion.kt`. A push is
   `pwPush`: the new screen rises a quarter of the screen on the default spatial

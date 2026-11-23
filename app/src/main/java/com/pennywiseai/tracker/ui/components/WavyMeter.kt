@@ -23,11 +23,12 @@ import com.pennywiseai.tracker.ui.theme.neutralSurfaces
  * [dense] calms the wave for rows in a list, where a full-height crest next to
  * the next row's crest turns the screen into noise.
  *
- * [color] keeps its hue but is nudged to 3:1 on the track and the card it sits on, so a
- * pale budget or category colour (preset yellow) still shows. Pass [containerColor] when
- * that card isn't a neutral surface (a tinted or primaryContainer card). When no indicator
- * can clear both (a pale card and a dark track), the track moves and the indicator is
- * checked again. Don't animate [color]: each in-between frame would be checked and cached.
+ * [color] is drawn as given and the track moves until it reads there at 3:1, so a pale
+ * budget, category or goal colour (preset yellow) the user picked still shows on its track.
+ * Pass [containerColor] when the card behind isn't a neutral surface (a tinted or
+ * primaryContainer card). [keepColor] false is for a theme colour that may be the card's own
+ * (Home's hero): there it is nudged to 3:1 on the card too. See [readableMeterColors].
+ * Don't animate [color]: each in-between frame would be checked and cached.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -38,14 +39,13 @@ fun WavyMeter(
     modifier: Modifier = Modifier,
     dense: Boolean = false,
     containerColor: Color? = null,
+    keepColor: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
-    // A translucent track is seen over the card. If the nudged indicator still misses
-    // either background, the track changes and the indicator is recomputed. Remembered:
-    // an animating fraction recomposes this every frame.
-    val meter = remember(color, trackColor, containerColor, scheme) {
+    // Remembered: an animating fraction recomposes this every frame.
+    val meter = remember(color, trackColor, containerColor, keepColor, scheme) {
         val cards = containerColor?.let { listOf(it) } ?: scheme.neutralSurfaces
-        readableMeterColors(color, trackColor, cards, scheme.surfaceContainerHighest)
+        readableMeterColors(color, trackColor, cards, scheme.surfaceContainerHighest, keepColor)
     }
     val clamped = fraction.coerceIn(0f, 1f)
     LinearWavyProgressIndicator(

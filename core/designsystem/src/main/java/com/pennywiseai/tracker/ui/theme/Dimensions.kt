@@ -68,8 +68,8 @@ object Dimensions {
         const val categoryTint = 0.14f
 
         /**
-         * A meter's track on a coloured card, in the card's ink: visible on the card, yet near
-         * enough to its tone that the meter's colour reaches 3:1 on both (ColoredFillContrastTest).
+         * A meter's track moved off its token, as a wash of ink on the card: visible on the card,
+         * yet near enough to its tone to keep the meter's colour readable (MeterContrastTest).
          */
         const val meterTrack = 0.3f
     }

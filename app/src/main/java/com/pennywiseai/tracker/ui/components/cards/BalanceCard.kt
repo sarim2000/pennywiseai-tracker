@@ -240,7 +240,7 @@ fun BalanceCard(
                     autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, heroStyle.fontSize),
                 )
                 // Hidden amounts hide the meter too: a known limit and its fill give the spend away.
-                if (budget != null && !isBalanceHidden) BudgetMeter(budget = budget, containerColor = fill)
+                if (budget != null && !isBalanceHidden) BudgetMeter(budget = budget, outer = outer, containerColor = fill)
                 HeroFooter(
                     line = if (budget != null) daysLeftText(budget.daysLeft) else monthLine(cycleEnd),
                     lineColor = MaterialTheme.colorScheme.onSurface,
@@ -445,26 +445,27 @@ private fun HeroHeader(
 
 /** The budget's wavy meter, standing still: warning from 70% used, error from 90%. */
 @Composable
-private fun BudgetMeter(budget: HomeHeroBudget, containerColor: Color) {
+private fun BudgetMeter(budget: HomeHeroBudget, outer: ColorScheme, containerColor: Color) {
     val progress by animateFloatAsState(
         targetValue = budget.fractionUsed,
         animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "heroBudgetProgress"
     )
+    // The app's own colours and track: where they read on the card (the default palettes) they
+    // stay. Where primary is the card's own colour (Tako dark) WavyMeter nudges it, and moves
+    // the track to a wash of the card's ink.
     val color = when {
-        progress >= DANGER_AT -> MaterialTheme.colorScheme.error
-        progress >= WARNING_AT -> MaterialTheme.colorScheme.warning
-        else -> MaterialTheme.colorScheme.primary
+        progress >= DANGER_AT -> outer.error
+        progress >= WARNING_AT -> outer.warning
+        else -> outer.primary
     }
     // The figures sit right under it, so the meter itself needs no text.
     WavyMeter(
         fraction = progress,
         color = color,
-        // An ink track near the card's own tone: against the surface wash no colour reached
-        // 3:1 on both it and the card in palettes like Monochrome. Checked at rest, not under the
-        // card's press layer: there the three states turned one white on mid-tone fills.
-        trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.meterTrack),
+        trackColor = outer.surfaceContainerHighest,
         containerColor = containerColor,
+        keepColor = false,
         modifier = Modifier.clearAndSetSemantics { }
     )
 }

@@ -2,7 +2,6 @@ package com.pennywiseai.tracker.data.database.dao
 
 import androidx.room3.*
 import com.pennywiseai.tracker.data.database.entity.CardEntity
-import com.pennywiseai.tracker.data.database.entity.CardType
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -25,14 +24,6 @@ interface CardDao {
 
     @Query("SELECT * FROM cards WHERE card_last4 = :cardLast4")
     suspend fun getCardsByLast4(cardLast4: String): List<CardEntity>
-
-    @Query("""
-        SELECT * FROM cards 
-        WHERE account_last4 IS NULL 
-        AND card_type = :cardType 
-        AND is_active = 1
-    """)
-    suspend fun getOrphanedCards(cardType: CardType): List<CardEntity>
 
     @Query("SELECT * FROM cards ORDER BY bank_name, card_last4")
     fun getAllCards(): Flow<List<CardEntity>>

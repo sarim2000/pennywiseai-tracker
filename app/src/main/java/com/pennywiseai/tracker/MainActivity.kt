@@ -57,6 +57,10 @@ class MainActivity : FragmentActivity() {
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
         const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
 
+        /** The pie widget: this cycle's spending in the pie's currency, under the pie's type filter. */
+        const val EXTRA_OPEN_SPENDING_CURRENCY = "com.pennywiseai.tracker.OPEN_SPENDING_CURRENCY"
+        const val EXTRA_OPEN_SPENDING_TYPE = "com.pennywiseai.tracker.OPEN_SPENDING_TYPE"
+
         /** A question said to the quick add mic: Chat opens with it in the box, not sent. */
         const val EXTRA_CHAT_TEXT = "com.pennywiseai.tracker.CHAT_TEXT"
 
@@ -191,8 +195,16 @@ class MainActivity : FragmentActivity() {
     private fun handleWidgetIntent(intent: Intent?) {
         intent ?: return
         val goalId = intent.getLongExtra(EXTRA_OPEN_GOAL_ID, -1L)
+        val spendingCurrency = intent.getStringExtra(EXTRA_OPEN_SPENDING_CURRENCY)
         widgetDestination = when {
             goalId > 0 -> com.pennywiseai.tracker.navigation.GoalDetail(goalId)
+            !spendingCurrency.isNullOrBlank() ->
+                com.pennywiseai.tracker.navigation.TransactionsWithFilter(
+                    // Cycle-aware, like the pie: the budget cycle, not the calendar month.
+                    period = com.pennywiseai.tracker.presentation.common.TimePeriod.THIS_MONTH.name,
+                    currency = spendingCurrency,
+                    type = intent.getStringExtra(EXTRA_OPEN_SPENDING_TYPE),
+                )
             intent.getBooleanExtra(EXTRA_OPEN_UNRECOGNIZED, false) ->
                 com.pennywiseai.tracker.navigation.UnrecognizedSms
             intent.hasExtra(EXTRA_OPEN_REVIEW) ->

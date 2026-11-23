@@ -213,7 +213,9 @@ data class TransactionsWithFilter(
     /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
     val currencyOnly: Boolean = false,
     /** Every profile's rows, whatever profile is selected: the list behind a budget, which counts them all. */
-    val allProfiles: Boolean = false
+    val allProfiles: Boolean = false,
+    /** A [com.pennywiseai.tracker.domain.model.TransactionTypeFilter] name; null lists every type. */
+    val type: String? = null
 ) : NavKey
 
 /**

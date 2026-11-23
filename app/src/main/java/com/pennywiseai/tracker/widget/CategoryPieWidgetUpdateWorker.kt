@@ -22,6 +22,7 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
@@ -214,7 +215,8 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                     cycleStart = cycleStart.toString(),
                     currency = currency,
                     total = total.toPlainString(),
-                    slices = slices
+                    slices = slices,
+                    spendingType = if (creditAsExpense) TransactionTypeFilter.SPENDING.name else TransactionTypeFilter.EXPENSE.name
                 )
             )
             CategoryPieWidget().updateAll(applicationContext)

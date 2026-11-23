@@ -18,7 +18,7 @@ class RootDestinationsTest {
         val activity = File(src, "MainActivity.kt").readText()
         val handler = activity.substringAfter("fun handleWidgetIntent(").substringBefore("\n    }\n")
         val opened = Regex("""navigation\.(\w+)""").findAll(handler).map { it.groupValues[1] }.toSet()
-        assertEquals(setOf("GoalDetail", "UnrecognizedSms", "Review", "Insights", "BudgetGroups", "Plan"), opened)
+        assertEquals(setOf("GoalDetail", "TransactionsWithFilter", "UnrecognizedSms", "Review", "Insights", "BudgetGroups", "Plan"), opened)
 
         val app = File(src, "PennyWiseApp.kt").readText()
         assertTrue(app.contains("val target = if (destination is Plan) BudgetGroups() else destination"))

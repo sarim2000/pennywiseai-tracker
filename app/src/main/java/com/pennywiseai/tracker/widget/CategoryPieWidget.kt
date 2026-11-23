@@ -1,8 +1,7 @@
 package com.pennywiseai.tracker.widget
 
-import com.pennywiseai.tracker.utils.AppDates
-
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -16,6 +15,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.core.graphics.createBitmap
+import androidx.core.net.toUri
 import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -24,10 +24,12 @@ import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
 import androidx.glance.LocalSize
+import androidx.glance.action.Action
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
+import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
@@ -50,6 +52,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
+import com.pennywiseai.tracker.utils.AppDates
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
@@ -60,7 +63,8 @@ import kotlin.math.roundToInt
  * Home-screen widget with this cycle's spending pie (#665) — the analytics
  * category donut at a glance. The chart itself is rendered to a bitmap
  * (Glance can't draw arcs); slice colors come pre-resolved from the worker so
- * the donut matches the in-app pie.
+ * the donut matches the in-app pie. A tap opens the cycle's spending list
+ * behind it.
  */
 class CategoryPieWidget : GlanceAppWidget() {
 
@@ -96,7 +100,7 @@ class CategoryPieWidget : GlanceAppWidget() {
                 .fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
                 .padding(WidgetDefaults.padding)
-                .clickable(actionStartActivity<MainActivity>())
+                .clickable(if (data.slices.isEmpty()) actionStartActivity<MainActivity>() else openSpending(context, data))
         ) {
             val month = runCatching { LocalDate.parse(data.cycleStart) }.getOrNull()
                 ?.format(AppDates.pattern("MMM", context.appLocale))
@@ -212,6 +216,19 @@ class CategoryPieWidget : GlanceAppWidget() {
             }
         }
     }
+
+    /**
+     * The rows the pie counts: this cycle's spending in the pie's currency.
+     * One target for the whole widget; legend rows are too short to tap apart.
+     */
+    private fun openSpending(context: Context, data: CategoryPieWidgetData): Action = actionStartActivity(
+        Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            this.data = "pennywise-widget://pie-widget".toUri()
+            putExtra(MainActivity.EXTRA_OPEN_SPENDING_CURRENCY, data.currency)
+            putExtra(MainActivity.EXTRA_OPEN_SPENDING_TYPE, data.spendingType)
+        }
+    )
 
     /**
      * Draws the slices [color] gives a color for (others leave their gap) on a

@@ -1480,7 +1480,7 @@ open class UserPreferencesRepository internal constructor(
         try {
             dataStore.edit { it[PreferencesKeys.WEEKLY_GUESS_OFF] = true }
         } catch (_: IOException) {
-            // Full disk: the card is gone for this session and the choice can be made again.
+            // Full disk: nothing stored, so the card can come back and the choice be made again.
         }
     }
 

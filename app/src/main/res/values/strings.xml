@@ -30,7 +30,7 @@
     <!-- %1$s: the clean days, e.g. "1 of 3 days" -->
     <string name="widget_challenge_ended">Ended with %1$s</string>
     <string name="widget_challenge_preview_title" translatable="false">3 no-spend days</string>
-    <string name="widget_challenge_preview_done" translatable="false">1 of 3 days done</string>
+    <string name="widget_challenge_preview_done" translatable="false">2 of 3 days done</string>
     <string name="widget_challenge_preview_left" translatable="false">4 days left</string>
 
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->

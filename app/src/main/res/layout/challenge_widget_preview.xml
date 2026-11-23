@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Widget picker preview for the 2x2 Challenge widget: two days clean, one missed,
      today still to settle, three to come. Theme.Pennywisecompose has a night variant.
-     android:tint, not app:tint: a picker preview is RemoteViews, which has no AppCompat. -->
+     android:tint, not app:tint: a picker preview is RemoteViews, which has no AppCompat.
+     The days to come are a dimmed solid tint: a translucent tint (colorControlHighlight)
+     drew them solid white in the dark picker. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -60,21 +62,24 @@
             android:layout_marginStart="4dp"
             android:importantForAccessibility="no"
             android:src="@drawable/ic_widget_dot"
-            android:tint="?android:attr/colorControlHighlight" />
+            android:alpha="0.3"
+            android:tint="?android:attr/textColorSecondary" />
         <ImageView
             android:layout_width="12dp"
             android:layout_height="12dp"
             android:layout_marginStart="4dp"
             android:importantForAccessibility="no"
             android:src="@drawable/ic_widget_dot"
-            android:tint="?android:attr/colorControlHighlight" />
+            android:alpha="0.3"
+            android:tint="?android:attr/textColorSecondary" />
         <ImageView
             android:layout_width="12dp"
             android:layout_height="12dp"
             android:layout_marginStart="4dp"
             android:importantForAccessibility="no"
             android:src="@drawable/ic_widget_dot"
-            android:tint="?android:attr/colorControlHighlight" />
+            android:alpha="0.3"
+            android:tint="?android:attr/textColorSecondary" />
     </LinearLayout>
 
     <TextView

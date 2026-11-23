@@ -65,6 +65,11 @@ fun ManageAccountsScreen(
     viewModel: ManageAccountsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // A new day can close a statement on a card's bill, with nothing else changing.
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        viewModel.refreshDate()
+        onPauseOrDispose { }
+    }
     var showUpdateDialog by remember { mutableStateOf(false) }
     var selectedAccount by remember { mutableStateOf<Pair<String, String>?>(null) }
     var selectedAccountEntity by remember { mutableStateOf<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity?>(null) }

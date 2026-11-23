@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.navigation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -59,6 +58,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -84,6 +84,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.delay
+import kotlin.math.absoluteValue
 
 @OptIn(
     ExperimentalMaterial3Api::class
@@ -377,13 +378,17 @@ private fun FloatingNavPill(
         val slotWidth = maxWidth / items.size
         val indicatorWidth = minOf(slotWidth, Dimensions.Component.floatingNavIndicatorWidth)
 
-        // One indicator that slides between tabs, rather than one per tab.
-        if (selectedIndex >= 0) {
-            val indicatorOffset by animateDpAsState(
+        // One indicator that slides between tabs, rather than one per tab. Null while no tab is open.
+        val indicatorOffset: Dp? = if (selectedIndex >= 0) {
+            animateDpAsState(
                 targetValue = slotWidth * selectedIndex + (slotWidth - indicatorWidth) / 2,
                 animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
                 label = "navIndicatorOffset"
-            )
+            ).value
+        } else {
+            null
+        }
+        if (indicatorOffset != null) {
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
@@ -401,11 +406,16 @@ private fun FloatingNavPill(
             items.forEachIndexed { index, item ->
                 val selected = index == selectedIndex
                 val label = stringResource(item.titleRes)
-                val iconTint by animateColorAsState(
-                    targetValue = if (selected) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-                    label = "navIconTint"
+                // The tint follows the indicator, not the selection: an icon takes onPrimary as
+                // far as the pill sits under it, so it never shows white on the bare bar (or
+                // the pill passes under a muted icon) while the pill slides.
+                val covered = indicatorOffset?.let {
+                    indicatorCoverage(it + indicatorWidth / 2, slotWidth * index + slotWidth / 2, indicatorWidth)
+                } ?: 0f
+                val iconTint = lerp(
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+                    MaterialTheme.colorScheme.onPrimary,
+                    covered
                 )
                 // Icon-only to keep the pill calm; long-press names the tab.
                 // TooltipBox doesn't forward Row weights, so a Box holds the slot.
@@ -449,6 +459,16 @@ private fun FloatingNavPill(
             }
         }
     }
+}
+
+/**
+ * How much of a tab's icon, centred at [iconCenter], the indicator centred at
+ * [indicatorCenter] covers: 1 under it, 0 clear of it, linear while an edge crosses the icon.
+ */
+private fun indicatorCoverage(indicatorCenter: Dp, iconCenter: Dp, indicatorWidth: Dp): Float {
+    val icon = Dimensions.Icon.medium
+    val distance = (indicatorCenter - iconCenter).value.absoluteValue
+    return (((indicatorWidth + icon) / 2).value - distance).div(icon.value).coerceIn(0f, 1f)
 }
 
 /**

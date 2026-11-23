@@ -5,7 +5,6 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.presentation.budgetgroups.UNDER_BUDGET_CARD_DAYS
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,7 +22,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.io.IOException
-import java.time.LocalDate
 import java.time.YearMonth
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -77,6 +75,33 @@ class CelebrationClaimsTest {
     }
 
     @Test
+    fun `goals reached before the first goal opened here never cheer, later ones do`() = runBlocking {
+        val old = CelebrationKeys.goalReached("old")
+        var queries = 0
+        repository.seedCelebrations(CelebrationKeys.GOALS_SEEDED) { queries++; listOf(old) }
+        // Seeded once: a second open skips the goals query.
+        repository.seedCelebrations(CelebrationKeys.GOALS_SEEDED) { queries++; listOf(CelebrationKeys.goalReached("new")) }
+        assertEquals(1, queries)
+        assertFalse(repository.celebrateOnce(old))
+        assertTrue(repository.celebrateOnce(CelebrationKeys.goalReached("new")))
+    }
+
+    @Test
+    fun `after a restore, restored goals and badges are recorded again without confetti`() = runBlocking {
+        val a1 = CelebrationKeys.achievement("streak", 1)
+        assertFalse(visitAchievements(a1))
+        repository.seedCelebrations(CelebrationKeys.GOALS_SEEDED) { emptyList() }
+        repository.forgetCelebrationSeeds()
+        // The restore brought a long-reached goal and a higher tier: history, not news.
+        val restored = CelebrationKeys.goalReached("restored")
+        repository.seedCelebrations(CelebrationKeys.GOALS_SEEDED) { listOf(restored) }
+        assertFalse(repository.celebrateOnce(restored))
+        assertFalse(visitAchievements(a1, CelebrationKeys.achievement("streak", 2)))
+        // What was already claimed stays claimed.
+        assertFalse(repository.celebrateOnce(a1))
+    }
+
+    @Test
     fun `a full disk celebrates nothing so the next visit can retry`() = runBlocking {
         val broken = UserPreferencesRepository(diskFull()) {}
         val key = CelebrationKeys.goalReached("a")
@@ -106,12 +131,13 @@ class CelebrationClaimsTest {
         val octJod = CelebrationKeys.budgetMonth(YearMonth.of(2026, 10), "JOD")
         val octUsd = CelebrationKeys.budgetMonth(YearMonth.of(2026, 10), "USD")
         val sep = CelebrationKeys.budgetMonth(YearMonth.of(2026, 9), "JOD")
-        val nov3 = LocalDate.parse("2026-11-03")
-        repository.dismissBudgetMonthCard(octJod, nov3, UNDER_BUDGET_CARD_DAYS)
-        repository.dismissBudgetMonthCard(octUsd, nov3, UNDER_BUDGET_CARD_DAYS)
-        repository.dismissBudgetMonthCard(sep, nov3, UNDER_BUDGET_CARD_DAYS)
+        val october = YearMonth.of(2026, 10)
+        repository.dismissBudgetMonthCard(octJod, october)
+        repository.dismissBudgetMonthCard(octUsd, october)
+        repository.dismissBudgetMonthCard(sep, october)
         assertEquals(setOf(octJod, octUsd), repository.budgetMonthCardsDismissed.first())
-        repository.pruneBudgetMonthDismissals(LocalDate.parse("2026-11-08"), UNDER_BUDGET_CARD_DAYS)
+        // A week after October's cycle ended no card can show, so nothing is kept.
+        repository.pruneBudgetMonthDismissals(keepMonth = null)
         assertEquals(emptySet<String>(), repository.budgetMonthCardsDismissed.first())
     }
 

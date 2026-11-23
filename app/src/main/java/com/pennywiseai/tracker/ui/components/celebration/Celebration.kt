@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.data.preferences.CelebrationSeeds
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import kotlin.math.cos
 import kotlin.math.sin
@@ -39,8 +40,8 @@ private const val PIECES = 56
  * A one-shot confetti burst with a Confirm haptic, for a moment the user earned (a goal
  * reached, a new badge). Place it last in a screen-filling Box; it draws over the screen
  * and never takes a touch. When [play] turns true it calls [onFinished] (where the caller
- * clears [play]) and bursts once. With animations off only the haptic lands: the screen's
- * own "reached" state is the static badge. Claim the moment first with
+ * clears [play]) and bursts once. With animations off nothing plays, haptic included: the
+ * screen's own "reached" state is the static badge. Claim the moment first with
  * `UserPreferencesRepository.celebrateOnce`, so it fires once per key, ever.
  */
 @Composable
@@ -59,8 +60,9 @@ fun Celebration(play: Boolean, onFinished: () -> Unit, modifier: Modifier = Modi
     }
     LaunchedEffect(playing) {
         if (!playing) return@LaunchedEffect
-        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        // With animations off nothing plays: a buzz with nothing to see reads as a glitch.
         if (animate) {
+            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
             time.snapTo(0f)
             // A linear clock, not a spring: the pieces' own physics shape the motion.
             time.animateTo(1f, tween(BURST_MILLIS, easing = LinearEasing))
@@ -139,9 +141,12 @@ object CelebrationKeys {
 
     /**
      * Claimed with the first visit's tiers. When it's among the fresh claims, those tiers
-     * are history (an install or upgrade), recorded without confetti.
+     * are history (an install, upgrade or restore), recorded without confetti.
      */
-    const val ACHIEVEMENTS_SEEDED = "achievements_seeded"
+    const val ACHIEVEMENTS_SEEDED = CelebrationSeeds.ACHIEVEMENTS
+
+    /** Seeds every goal already reached when a goal is first opened (an install, upgrade or restore). */
+    const val GOALS_SEEDED = CelebrationSeeds.GOALS
 
     /** Whether the [fresh] claims from an Achievements visit deserve confetti. */
     fun celebratesAchievements(fresh: Set<String>): Boolean = ACHIEVEMENTS_SEEDED !in fresh && fresh.isNotEmpty()

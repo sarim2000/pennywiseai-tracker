@@ -129,7 +129,8 @@ fun GoalDetailScreen(
     val detail = (state as? GoalDetailState.Loaded)?.detail
     val progress = detail?.progress
     fun open(m: MoneySheetMode) { viewModel.resetSheet(); mode = m }
-    // Whether it was reached just now by Add money or long ago, the first sight of it cheers.
+    // Reached by Add money, or in the background since this device last saw it: the first
+    // sight cheers. Goals already reached when this device first opened one never do.
     LaunchedEffect(progress?.status) { if (progress?.status == GoalStatus.REACHED) viewModel.onShownReached(progress.goal.uid) }
 
     Box(Modifier.fillMaxSize()) {

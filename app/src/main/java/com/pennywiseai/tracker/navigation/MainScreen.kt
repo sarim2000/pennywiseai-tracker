@@ -181,6 +181,7 @@ fun MainScreen(
     mainViewModel: MainViewModel? = null,
     widgetPlan: Plan? = null,
     onWidgetPlanHandled: () -> Unit = {},
+    onHomeOnTopChange: (Boolean) -> Unit = {},
 ) {
     val themeViewModel = themeViewModel ?: hiltViewModel()
     val spotlightViewModel = spotlightViewModel ?: hiltViewModel()
@@ -367,6 +368,14 @@ fun MainScreen(
     var quickAdd by rememberSaveable { mutableStateOf(false) }
     val quickAddViewModel: QuickAddViewModel = hiltViewModel()
     val openQuickAdd = { quickAdd = true }
+
+    // Home's own first screen with nothing over it: no other tab, editor or sheet that a
+    // restart for an app update would lose.
+    val homeOnTop = currentTab == BottomNavItem.Home && stack.size == 1 && !quickAdd
+    DisposableEffect(homeOnTop) {
+        onHomeOnTopChange(homeOnTop)
+        onDispose { onHomeOnTopChange(false) }
+    }
 
     // Home's scan, for the Spotlight tutorial drawn over the bar (set by Home's entry).
     var scanSms by remember { mutableStateOf<(() -> Unit)?>(null) }

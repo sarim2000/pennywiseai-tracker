@@ -258,10 +258,12 @@ fun PennyWiseApp(
         coverForLock(checks, isLockEnabled, isLocked, unlockedOnScreen, onLockScreen)
     }
 
-    // Play's update sheet and the restart dialog wait for Home: not over onboarding, the
-    // lock screen, or a form opened from a widget or notification (Restart would lose it).
-    // `unlocked` drops on each resume until a fresh lock check, so this re-runs per open.
-    val updateSafe = themeUiState.hasCompletedOnboarding && currentRoute == Home && unlocked && !covered
+    // Play's update sheet and the restart dialog wait for Home's first screen: not over
+    // onboarding, the lock screen, another tab, or a form or sheet (Restart would lose it).
+    // Re-checked on each return to Home and each resume (`unlocked` drops until a fresh
+    // lock check); the manager keeps a version from being offered twice.
+    var homeOnTop by remember { mutableStateOf(false) }
+    val updateSafe = themeUiState.hasCompletedOnboarding && currentRoute == Home && homeOnTop && unlocked && !covered
     LaunchedEffect(updateSafe) { if (updateSafe) onUpdateCheck() }
 
     PennyWiseTheme(
@@ -283,7 +285,8 @@ fun PennyWiseApp(
                     modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
                     onEditComplete = onEditComplete ?: {},
                     widgetPlan = widgetPlan,
-                    onWidgetPlanHandled = { widgetPlan = null }
+                    onWidgetPlanHandled = { widgetPlan = null },
+                    onHomeOnTopChange = { homeOnTop = it }
                 )
             }
             // A Play update finished downloading. A dialog, so it can't queue Home's Undo snackbar.

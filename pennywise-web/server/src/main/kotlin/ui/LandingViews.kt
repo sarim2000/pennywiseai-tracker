@@ -130,7 +130,7 @@ object LandingViews {
                         div(classes = "lp-tile-copy") {
                             badge("shape-cookie", "✦")
                             h3 { +"Ask about your money" }
-                            p { +"“What did I spend on food?” “Bills due next week?” The assistant runs Qwen 2.5 entirely on your phone, and you can dictate with the mic." }
+                            p { +"“What did I spend on food?” “Bills due next week?” The assistant runs entirely on your phone. On Android it uses Qwen 2.5, and you can dictate with the mic." }
                         }
                         // Cropped above the chat's model-download card; the tile clips the bottom anyway.
                         phone("ask", "", small = true, height = 868)
@@ -151,7 +151,7 @@ object LandingViews {
                         "PDF (even password-protected), Excel and CSV, with column mapping, preview and a balance check. " +
                             "Free includes one statement import a month; Pro removes the limit.")
                     tile("", "shape-cookie", "▦", "Widgets & quick add",
-                        "Budget, recent-transaction, spending and goal widgets, plus a Quick Settings tile.")
+                        "On Android: budget, recent-transaction, spending and goal widgets, plus a Quick Settings tile.")
                     tile("", "shape-sunny", "⟲", "Backups you own",
                         "Full backup and restore to a file you choose. Free CSV export includes the first 100 rows; " +
                             "Pro makes it unlimited and adds scheduled daily backups.")

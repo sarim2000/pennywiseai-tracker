@@ -312,7 +312,8 @@ object SharedComponents {
         .shape-burst  { -webkit-mask-image: var(--shape-burst);  mask-image: var(--shape-burst); }
 
         /* --- Header --- */
-        .header { background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); padding: 12px 0; margin-bottom: 24px; position: sticky; top: 0; z-index: 50; }
+        /* Solid --bg first: browsers without color-mix() (pre Chrome 111 / Safari 16.2) keep an opaque sticky header. */
+        .header { background: var(--bg); background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px); padding: 12px 0; margin-bottom: 24px; position: sticky; top: 0; z-index: 50; }
         .header-content { max-width: 1160px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 16px; }
         .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--on-bg); flex: none; }
         .logo { width: 36px; height: 36px; border-radius: 12px; }

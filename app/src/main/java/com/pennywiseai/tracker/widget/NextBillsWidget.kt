@@ -37,7 +37,6 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
 import kotlinx.coroutines.flow.first
@@ -51,7 +50,7 @@ import java.util.Locale
  */
 class NextBillsWidget : GlanceAppWidget() {
 
-    override val sizeMode = SizeMode.Responsive(setOf(COMPACT, ONE_ROW, TWO_ROWS, THREE_ROWS))
+    override val sizeMode = SizeMode.Responsive(setOf(COMPACT, ONE_ROW, TWO_ROWS, THREE_ROWS, FULL))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val initial = try {
@@ -74,7 +73,7 @@ class NextBillsWidget : GlanceAppWidget() {
     private fun Content(data: NextBillsSnapshot) {
         val context = LocalContext.current
         val height = LocalSize.current.height
-        // The 48dp header and rows carry their own air, so the frame is only tight vertically.
+        val title = context.getString(R.string.widget_next_bills_title)
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -82,22 +81,42 @@ class NextBillsWidget : GlanceAppWidget() {
                 .padding(horizontal = WidgetDefaults.padding, vertical = Spacing.xs)
                 .clickable(openBills(context)),
         ) {
-            // Below one row under the header, the bill is all there's room for.
-            if (height >= ONE_ROW.height) WidgetHeader(title = context.getString(R.string.widget_next_bills_title))
-            if (data.items.isEmpty()) {
-                WidgetEmptyState(
+            when {
+                // The standard 48dp header once three rows fit under it; a short title
+                // line below that, so a 4x2 still lists three; none below one row.
+                height >= FULL.height -> WidgetHeader(title)
+                height >= ONE_ROW.height -> ShortHeader(title)
+                // Nothing built yet: the name alone, not a "Nothing due" that may be false.
+                !data.isBuilt -> WidgetTitle(title)
+            }
+            when {
+                !data.isBuilt -> Unit
+                data.items.isEmpty() && height < ONE_ROW.height -> WidgetTitle(context.getString(R.string.widget_next_bills_empty))
+                data.items.isEmpty() -> WidgetEmptyState(
                     title = context.getString(R.string.widget_next_bills_empty),
                     hint = context.getString(R.string.widget_next_bills_empty_hint),
                 )
-            } else {
-                val rows = when {
-                    height >= THREE_ROWS.height -> 3
-                    height >= TWO_ROWS.height -> 2
-                    else -> 1
+                else -> {
+                    val rows = when {
+                        height >= THREE_ROWS.height -> 3
+                        height >= TWO_ROWS.height -> 2
+                        else -> 1
+                    }
+                    val today = LocalDate.now()
+                    data.items.take(rows).forEach { BillRow(it, today) }
                 }
-                val today = LocalDate.now()
-                data.items.take(rows).forEach { BillRow(it, today) }
             }
+        }
+    }
+
+    /** The title on a [SHORT_HEADER] line: the widget is one tap, so it needn't be a 48dp target. */
+    @Composable
+    private fun ShortHeader(title: String) {
+        WidgetRow(
+            modifier = GlanceModifier.fillMaxWidth().height(SHORT_HEADER),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            item { WidgetTitle(title, GlanceModifier.defaultWeight()) }
         }
     }
 
@@ -105,7 +124,7 @@ class NextBillsWidget : GlanceAppWidget() {
     private fun BillRow(item: NextBillItem, today: LocalDate) {
         val days = item.dueEpochDay - today.toEpochDay()
         WidgetRow(
-            modifier = GlanceModifier.fillMaxWidth().height(Dimensions.Component.minTouchTarget),
+            modifier = GlanceModifier.fillMaxWidth().height(ROW),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             item {
@@ -164,11 +183,16 @@ class NextBillsWidget : GlanceAppWidget() {
     }
 
     private companion object {
-        // Each step is one more 48dp row; vertical padding is Spacing.xs each side.
+        /** A bill: name over due date. Not a tap target of its own; the whole widget is one. */
+        val ROW = 40.dp
+        val SHORT_HEADER = 32.dp
+
+        // Vertical padding is Spacing.xs each side.
         val COMPACT = DpSize(180.dp, 56.dp)
-        val ONE_ROW = DpSize(180.dp, 104.dp)
-        val TWO_ROWS = DpSize(180.dp, 152.dp)
-        val THREE_ROWS = DpSize(180.dp, 200.dp)
+        val ONE_ROW = DpSize(180.dp, 80.dp) // 8 + 32 + 40
+        val TWO_ROWS = DpSize(180.dp, 120.dp)
+        val THREE_ROWS = DpSize(180.dp, 160.dp)
+        val FULL = DpSize(180.dp, 176.dp) // 8 + 48 + 3 x 40
     }
 }
 

@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.BillSource
 import com.pennywiseai.tracker.utils.Money
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -89,11 +90,12 @@ class NextBillsWidgetDataTest {
     }
 
     @Test
-    fun `snapshot survives a round trip and a bad one reads as nothing due`() {
+    fun `snapshot survives a round trip and a bad one reads as not built`() {
         val snapshot = NextBillsSnapshot(today.toEpochDay(), nextBills(listOf(bill("Streaming", "12.99", "USD", 1))))
 
         assertEquals(snapshot, NextBillsWidgetDataStore.decode(NextBillsWidgetDataStore.encode(snapshot)))
-        assertEquals(NextBillsSnapshot(), NextBillsWidgetDataStore.decode("not json"))
-        assertEquals(NextBillsSnapshot(), NextBillsWidgetDataStore.decode(null))
+        assertTrue(snapshot.isBuilt)
+        assertFalse(NextBillsWidgetDataStore.decode("not json").isBuilt)
+        assertFalse(NextBillsWidgetDataStore.decode(null).isBuilt)
     }
 }

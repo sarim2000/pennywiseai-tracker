@@ -33,15 +33,18 @@ data class NextBillItem(
 /**
  * The widget's snapshot. [asOfEpochDay] is the day it was built: it changes the
  * snapshot each day even when the bills don't, so a live widget redraws its
- * "Tomorrow" as "Today".
+ * "Tomorrow" as "Today". The default (0) is a snapshot not built yet.
  */
 @Serializable
 data class NextBillsSnapshot(
     val asOfEpochDay: Long = 0,
     val items: List<NextBillItem> = emptyList(),
-)
+) {
+    /** False until the worker first writes one: no items then doesn't mean nothing is due. */
+    val isBuilt: Boolean get() = asOfEpochDay != 0L
+}
 
-/** How many bills the widget lists; a standard 4×2 fits all three. */
+/** How many bills the widget lists; three fit from 160dp tall, a common 4×2. */
 const val NEXT_BILLS_MAX = 3
 
 /**
@@ -74,7 +77,7 @@ object NextBillsWidgetDataStore {
 
     fun encode(snapshot: NextBillsSnapshot): String = json.encodeToString(NextBillsSnapshot.serializer(), snapshot)
 
-    /** A missing or unreadable snapshot reads as nothing due. */
+    /** A missing or unreadable snapshot reads as not built yet. */
     fun decode(raw: String?): NextBillsSnapshot =
         raw?.let { runCatching { json.decodeFromString(NextBillsSnapshot.serializer(), it) }.getOrNull() } ?: NextBillsSnapshot()
 

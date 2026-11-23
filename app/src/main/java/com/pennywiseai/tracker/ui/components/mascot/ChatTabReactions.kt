@@ -238,7 +238,8 @@ internal class ChatTabReactions(
             var sawRunning = false
             scan.collect { status ->
                 val running = status == SmsScanStatus.Running
-                if (running && !scanning) clearFlash()
+                // A scan takes over from a reaction, all but a toggle, which keeps its hold.
+                if (running && !scanning && flash?.rank != RANK_TOGGLE) clearFlash()
                 scanning = running
                 publish()
                 // The beat belongs to the scan that just ended: it runs out on time, bar or not.

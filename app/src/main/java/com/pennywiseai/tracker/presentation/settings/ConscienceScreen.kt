@@ -151,6 +151,12 @@ fun ConscienceScreen(onNavigateBack: () -> Unit, viewModel: ConscienceViewModel 
         viewModel.refreshPermission()
         onPauseOrDispose { }
     }
+    fun needsPermission() =
+        android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
     // On Android 13+ turning it on asks for the permission first; a refusal leaves it off with a word on why.
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
@@ -161,16 +167,25 @@ fun ConscienceScreen(onNavigateBack: () -> Unit, viewModel: ConscienceViewModel 
         }
     }
     val onToggle: (Boolean) -> Unit = { enabled ->
-        val needsPermission = enabled &&
-            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
-            androidx.core.content.ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.POST_NOTIFICATIONS
-            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (needsPermission) {
+        if (enabled && needsPermission()) {
             permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         } else {
             viewModel.setEnabled(enabled)
+        }
+    }
+    // With the permission granted, only notifications switched off in system settings can stop the
+    // sample; the blocked status shows a button for those.
+    fun sendSample() {
+        val message = if (viewModel.tryIt()) R.string.conscience_try_sent else R.string.conscience_needs_permission
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+    }
+    // "Send me one" asks for the permission too, then sends; a refusal gets the same word on why.
+    val samplePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        viewModel.refreshPermission()
+        if (granted) {
+            sendSample()
+        } else {
+            Toast.makeText(context, R.string.conscience_needs_permission, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -207,8 +222,7 @@ fun ConscienceScreen(onNavigateBack: () -> Unit, viewModel: ConscienceViewModel 
             state = state,
             onAnother = viewModel::nextExample,
             onSend = {
-                val message = if (viewModel.tryIt()) R.string.conscience_try_sent else R.string.conscience_needs_permission
-                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                if (needsPermission()) samplePermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS) else sendSample()
             }
         )
 

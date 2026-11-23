@@ -52,7 +52,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -61,12 +60,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.node.GlobalPositionAwareModifierNode
+import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.pluralStringResource
@@ -78,6 +80,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
@@ -164,9 +167,7 @@ fun PennyWiseBottomNavigation(
             exit = navBarExit(),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .anchorsBarTop(normalChatAnchor)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 HorizontalDivider(
                     thickness = Dimensions.Component.dividerThickness,
@@ -271,9 +272,7 @@ fun PennyWiseBottomNavigation(
                         .padding(horizontal = Dimensions.Padding.content)
                         .padding(bottom = Dimensions.Component.floatingNavBottomGap)
                         .zIndex(1000f)
-                        .selectableGroup()
-                        // The tallest of the pill and the docked column: the chip clears an action stacked over Ask.
-                        .anchorsBarTop(floatingChatAnchor),
+                        .selectableGroup(),
                     verticalAlignment = Alignment.Bottom
                 ) {
                     FloatingNavPill(
@@ -328,7 +327,7 @@ fun PennyWiseBottomNavigation(
         }
 
         // Last, so it draws over both bars. Outside them, so neither the floating pill's
-        // clip nor the bars' blur layer cuts it off above the bar.
+        // clip nor the bars' blur layer cuts it off where it overhangs them.
         ChatReactionChip(
             chip = shownReaction?.chip,
             visible = visible && BottomNavItem.Chat in navigationItems,
@@ -535,31 +534,47 @@ private fun ChatTabMascot(
     }
 }
 
-/** Where the Chat slot sits on screen, in root pixels, for the chip above it. */
+/** Where the Chat slot sits on screen, for the chip beside it. */
 @Stable
 private class ChatSlotAnchor {
-    /** The Chat slot's horizontal centre. */
-    var centerX by mutableFloatStateOf(Float.NaN)
-
-    /** The top edge of the bar the slot sits in. */
-    var barTop by mutableFloatStateOf(Float.NaN)
+    /**
+     * The slot's bounds in root pixels, or null until it is placed: it goes when the slot
+     * leaves with its bar, so a bar coming back never shows the chip where it last was.
+     */
+    var bounds by mutableStateOf<Rect?>(null)
 }
 
-private fun Modifier.anchorsChatSlot(anchor: ChatSlotAnchor) = onGloballyPositioned {
-    anchor.centerX = it.positionInRoot().x + it.size.width / 2f
+private fun Modifier.anchorsChatSlot(anchor: ChatSlotAnchor) = this then ChatSlotAnchorElement(anchor)
+
+private data class ChatSlotAnchorElement(val anchor: ChatSlotAnchor) : ModifierNodeElement<ChatSlotAnchorNode>() {
+    override fun create() = ChatSlotAnchorNode(anchor)
+
+    override fun update(node: ChatSlotAnchorNode) {
+        node.anchor = anchor
+    }
 }
 
-private fun Modifier.anchorsBarTop(anchor: ChatSlotAnchor) = onGloballyPositioned {
-    anchor.barTop = it.positionInRoot().y
+private class ChatSlotAnchorNode(var anchor: ChatSlotAnchor) : Modifier.Node(), GlobalPositionAwareModifierNode {
+    override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
+        anchor.bounds = Rect(coordinates.positionInRoot(), coordinates.size.toSize())
+    }
+
+    override fun onDetach() {
+        anchor.bounds = null
+    }
 }
 
 /**
- * What a reaction says, in a small pill just above the Chat slot while it holds: the
- * amount a single save moved, or a word or a count for a moment. It rises in as the shape
- * appears and sinks out as the owl comes back. It echoes what the user just did, which
- * the screen they did it on already says, so TalkBack skips it, and it takes no touches. Centred on the slot (the
- * slot's measured centre, so RTL and the docked action need no special case), but kept a
- * gap inside the screen's edges.
+ * What a reaction says, in a small pill beside the Chat slot while it holds: the amount a
+ * single save moved, or a word or a count for a moment. It rises in as the shape appears
+ * and sinks out as the owl comes back. It echoes what the user just did, which the screen
+ * they did it on already says, so TalkBack skips it, and it takes no touches.
+ *
+ * It sits on the slot's start side, level with the owl, so it lies over the bar (the
+ * floating pill's end) and never over the content: above the bar it would land in a
+ * list's amount column and read as another row's amount. It is placed from the slot's
+ * measured bounds, so the docked action needs no special case, and kept a gap inside the
+ * screen's edges.
  */
 @Composable
 private fun ChatReactionChip(
@@ -606,14 +621,17 @@ private fun ChatReactionChip(
         val chip = measurables.firstOrNull()?.measure(
             constraints.copy(minWidth = 0, minHeight = 0, maxWidth = (constraints.maxWidth - 2 * gap).coerceAtLeast(0))
         )
+        val rtl = layoutDirection == LayoutDirection.Rtl
         layout(constraints.maxWidth, constraints.maxHeight) {
             val origin = coordinates?.positionInRoot()
-            if (chip == null || origin == null || anchor.centerX.isNaN() || anchor.barTop.isNaN()) return@layout
-            val centred = (anchor.centerX - origin.x - chip.width / 2f).roundToInt()
+            // Not until the slot is placed in the bar showing now.
+            val slot = anchor.bounds
+            if (chip == null || origin == null || slot == null) return@layout
+            val beside = if (rtl) slot.right + gap else slot.left - gap - chip.width
             val maxX = constraints.maxWidth - gap - chip.width
-            val x = if (maxX >= gap) centred.coerceIn(gap, maxX) else (constraints.maxWidth - chip.width) / 2
-            val y = (anchor.barTop - origin.y).roundToInt() - gap - chip.height
-            // Absolute: the anchor is already in screen terms, mirrored or not.
+            val x = if (maxX >= gap) (beside - origin.x).roundToInt().coerceIn(gap, maxX) else (constraints.maxWidth - chip.width) / 2
+            val y = (slot.center.y - origin.y - chip.height / 2f).roundToInt()
+            // Absolute: the slot is already in screen terms, mirrored or not.
             chip.place(x, y)
         }
     }

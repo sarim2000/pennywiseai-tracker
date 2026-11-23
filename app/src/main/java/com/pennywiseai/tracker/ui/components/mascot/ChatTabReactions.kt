@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 /**
  * What the Chat tab's owl turns into for a moment: a [shape] and [mood], the [cue] it
  * plays (null for the shape's own), its figure [value] (a jar's fill), and a [chip] shown
- * above the tab while it holds, for [holdMillis] or the tab's usual hold when null. A
+ * beside the tab while it holds, for [holdMillis] or the tab's usual hold when null. A
  * reaction of a higher [rank] takes over from one showing.
  */
 data class MascotReaction(
@@ -39,7 +39,7 @@ data class MascotReaction(
     val holdMillis: Long? = null,
 )
 
-/** What the chip above the Chat tab says while a reaction holds. Never a name or a message. */
+/** What the chip beside the Chat tab says while a reaction holds. Never a name or a message. */
 sealed interface ReactionChip
 
 /** The [money] a save of [type] moved; the type signs and colours it. */

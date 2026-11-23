@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,6 +27,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -346,7 +348,14 @@ private fun BudgetGroupsContent(
         summary.heroBudget(today)?.budgetId
     } else null
     val hero = summary.groups.firstOrNull { it.group.budget.id == heroId }
-    val otherGroups = if (summaryReady) summary.groups.filterNot { it.group.budget.id == heroId } else emptyList()
+    // While another month loads, the last month's cards stay (dimmed) under the spinner, so
+    // they keep their place and their meters ease to the new month instead of filling again.
+    val otherGroups = summary.groups.filterNot { it.group.budget.id == heroId }
+    val staleAlpha by animateFloatAsState(
+        if (summaryReady) 1f else Dimensions.Alpha.disabled,
+        MaterialTheme.motionScheme.fastEffectsSpec(),
+        label = "staleBudgets"
+    )
     var deleteGroupId by remember { mutableStateOf<Long?>(null) }
     var deleteGroupName by remember { mutableStateOf("") }
 
@@ -447,25 +456,28 @@ private fun BudgetGroupsContent(
                 onAddRate = onAddRate
             )
         }
-        if (hero != null) {
-            item(key = hero.group.budget.id) {
-                Box(Modifier.padding(top = BlockGap)) {
-                    renderBudget(hero, ListItemPosition.Single, true)
-                }
-            }
-        }
+        // The hero is the first of the same items, so a budget that turns hero (or stops
+        // being one) on a month switch keeps its card and its meter eases.
+        val budgets = listOfNotNull(hero) + otherGroups
         itemsIndexed(
-            items = otherGroups,
+            items = budgets,
             key = { _, group -> group.group.budget.id }
         ) { index, groupSpending ->
+            val isHero = hero != null && index == 0
+            val rowIndex = if (hero != null) index - 1 else index
             StaggeredEntrance(
-                delayMs = staggerDelayMs(index),
-                skip = hasAnimated,
+                delayMs = staggerDelayMs(maxOf(rowIndex, 0)),
+                skip = hasAnimated || isHero,
                 modifier = Modifier
                     .animateItem()
-                    .padding(top = if (index == 0) BlockGap else Spacing.none)
+                    .padding(top = if (isHero || rowIndex == 0) BlockGap else Spacing.none)
+                    .graphicsLayer { alpha = staleAlpha }
             ) {
-                renderBudget(groupSpending, ListItemPosition.from(index, otherGroups.size), false)
+                renderBudget(
+                    groupSpending,
+                    if (isHero) ListItemPosition.Single else ListItemPosition.from(rowIndex, otherGroups.size),
+                    isHero
+                )
             }
         }
     }

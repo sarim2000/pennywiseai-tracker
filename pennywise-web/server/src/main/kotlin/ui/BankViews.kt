@@ -562,8 +562,8 @@ object BankViews {
                                     "No. Reading messages, categorising transactions and the built-in AI " +
                                     "assistant all run on the phone itself, so it works offline.",
                                 "What does it cost?" to
-                                    "The app is free. An optional Pro upgrade adds PDF statement imports, " +
-                                    "CSV export, unlimited custom rules and duplicate-account merge.",
+                                    "The app is free. An optional Pro upgrade lifts the free limits on PDF " +
+                                    "statement imports, CSV export and custom rules, and adds duplicate-account merge.",
                             )
                         )
 

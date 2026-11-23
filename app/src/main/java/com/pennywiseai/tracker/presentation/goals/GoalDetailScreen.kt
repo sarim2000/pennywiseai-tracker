@@ -59,7 +59,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -97,7 +96,6 @@ import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -130,8 +128,16 @@ fun GoalDetailScreen(
     // Set only by the user's own Add money; the ring clears it once the new portion settles.
     var addedFrom by remember { mutableStateOf<BigDecimal?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val resources = LocalResources.current
+    // The 25 / 50 / 75% mark an Add just crossed, said once as the sweep lands. Keyed on the
+    // privacy switch too: hiding amounts restarts this, which cancels showSnackbar and so takes
+    // a message already on screen away with the ring, and drops one still waiting.
+    var milestone by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(milestone, AmountPrivacy.hidden) {
+        val m = milestone ?: return@LaunchedEffect
+        if (!AmountPrivacy.hidden) snackbarHostState.showSnackbar(resources.getString(milestoneMessage(m)))
+        milestone = null
+    }
     LaunchedEffect(sheet.done) {
         if (sheet.done) { sheet.addedFrom?.let { addedFrom = it }; mode = null; viewModel.resetSheet() }
     }
@@ -169,11 +175,10 @@ fun GoalDetailScreen(
             onAddedSettled = {
                 val from = addedFrom
                 addedFrom = null
-                // A quiet word as the sweep lands on a 25 / 50 / 75% mark. Not while amounts are
-                // hidden: the ring, and with it how far along the goal is, is hidden then too.
-                val milestone = from?.let { crossedMilestone(it, progress.saved, progress.goal.targetAmount) }
-                if (milestone != null && !AmountPrivacy.hidden) {
-                    scope.launch { snackbarHostState.showSnackbar(resources.getString(milestoneMessage(milestone))) }
+                // Not while amounts are hidden: the ring, and with it how far along the goal is,
+                // is hidden then too.
+                if (from != null && !AmountPrivacy.hidden) {
+                    crossedMilestone(from, progress.saved, progress.goal.targetAmount)?.let { milestone = it }
                 }
             },
             merchants = merchants,

@@ -16,6 +16,7 @@ import com.pennywiseai.tracker.domain.challenges.ChallengeRun
 import com.pennywiseai.tracker.domain.challenges.FOOD_AND_DINING
 import com.pennywiseai.tracker.domain.challenges.OTHERS
 import com.pennywiseai.tracker.domain.challenges.challengeCategories
+import com.pennywiseai.tracker.domain.challenges.inboxReadBefore
 import com.pennywiseai.tracker.domain.challenges.progress
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
@@ -46,7 +47,6 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -109,8 +109,11 @@ class ChallengesViewModel @Inject constructor(
             val to = run?.end?.let { maxOf(it, today) } ?: today
             // Where the last finished inbox scan read up to: a clean day must be behind it. Each
             // new cursor queries the rows afresh: a scan saves its rows before it moves the
-            // cursor, so the days it read never settle on rows from before it.
-            preferences.getLastScanTimestamp().distinctUntilChanged().flatMapLatest { scannedAt ->
+            // cursor, so the days it read never settle on rows from before it. A scan that owes
+            // the whole window (a Rebuild that deleted its rows) reads as nothing read.
+            combine(preferences.getLastScanTimestamp(), preferences.lastScanRecord) { at, record ->
+                at to (record?.owesFullWindow == true)
+            }.distinctUntilChanged().flatMapLatest { (scannedAt, owesFullWindow) ->
                 combine(
                     // A run counts the profile it was started under, whichever is selected now.
                     loader.scopedRows(from, to, run?.let { flowOf(it.profileId) } ?: preferences.selectedProfileId),
@@ -120,7 +123,7 @@ class ChallengesViewModel @Inject constructor(
                     val counted = challengeRows(rows, categories.parentNameOf())
                     // Matched by the category's current name: a rename moves its expenses with it.
                     val current = run?.let { r -> r.categoryId?.let { id -> categories.firstOrNull { it.id == id } }?.let { r.copy(categoryName = it.name) } ?: r }
-                    val progress = current?.progress(counted, today, tracking = problem == null, inboxReadBefore = readBefore(scannedAt))
+                    val progress = current?.progress(counted, today, tracking = problem == null, inboxReadBefore = inboxReadBefore(scannedAt, owesFullWindow))
                     // Days a gap in tracking left without rows: read the inbox before they count.
                     if (progress?.needsInboxRead == true && !scanning) catchUp(scannedAt, today)
                     // Shown as the result at once, not after the write lands: a list that briefly
@@ -196,10 +199,6 @@ class ChallengesViewModel @Inject constructor(
 
     private companion object {
         const val LOOKBACK_DAYS = 28L
-
-        /** The first day an inbox scan finished at [scannedAt] hasn't wholly read; nothing read without one. */
-        fun readBefore(scannedAt: Long?): LocalDate =
-            scannedAt?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() } ?: LocalDate.MIN
     }
 }
 

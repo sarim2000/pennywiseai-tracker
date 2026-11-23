@@ -1,11 +1,14 @@
 package com.pennywiseai.tracker.domain.challenges
 
+import com.pennywiseai.tracker.domain.smsimport.SmsScanRecord
+import com.pennywiseai.tracker.domain.smsimport.SmsScanState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
+import java.time.ZoneOffset
 
 class ChallengesTest {
 
@@ -80,6 +83,25 @@ class ChallengesTest {
         // Never scanned: nothing is clean, and nothing asks for a scan while paused.
         assertEquals(0, noSpend.progress(emptyList(), today, inboxReadBefore = LocalDate.MIN).cleanDays)
         assertFalse(noSpend.progress(emptyList(), today, tracking = false, inboxReadBefore = LocalDate.MIN).needsInboxRead)
+    }
+
+    @Test
+    fun `a rebuild that is running, cancelled, failed or killed reads nothing, so its deleted days can't win`() {
+        // A normal sync read up to Saturday, then a Rebuild deleted this week's rows.
+        val today = start.plusDays(5)
+        val cursor = today.atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+        for (state in listOf(SmsScanState.RUNNING, SmsScanState.CANCELLED, SmsScanState.FAILED)) {
+            val rebuild = SmsScanRecord(state, fullWindow = true)
+            val progress = noSpend.progress(emptyList(), today, inboxReadBefore = inboxReadBefore(cursor, rebuild.owesFullWindow, ZoneOffset.UTC))
+            assertEquals(state.name, 0, progress.cleanDays)
+            assertFalse(state.name, progress.finished)
+            assertTrue(state.name, progress.needsInboxRead)
+        }
+        // Once the Rebuild finishes clean, its cursor counts again.
+        val done = SmsScanRecord(SmsScanState.SUCCEEDED, fullWindow = true)
+        assertTrue(noSpend.progress(emptyList(), today, inboxReadBefore = inboxReadBefore(cursor, done.owesFullWindow, ZoneOffset.UTC)).won)
+        // An ordinary sync, even mid-run, keeps the cursor: it deletes nothing.
+        assertEquals(today, inboxReadBefore(cursor, SmsScanRecord(SmsScanState.RUNNING).owesFullWindow, ZoneOffset.UTC))
     }
 
     @Test

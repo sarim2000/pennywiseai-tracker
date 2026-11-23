@@ -2,7 +2,9 @@ package com.pennywiseai.tracker.domain.challenges
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
@@ -210,6 +212,16 @@ fun ChallengeRun.progress(
     }
     return ChallengeProgress(this, days, today, paused = !tracking)
 }
+
+/**
+ * The first day the inbox hasn't wholly been read, for [progress]'s `inboxReadBefore`: the
+ * day of the last finished scan ([lastScanAt]), or nothing while a scan [owesFullWindow]. A
+ * Rebuild deletes the window's rows before it reads the inbox again and only moves the
+ * cursor at the end, so while it runs, and after it's cancelled, fails or is killed, the
+ * cursor still points past days whose rows are gone.
+ */
+fun inboxReadBefore(lastScanAt: Long?, owesFullWindow: Boolean, zone: ZoneId = ZoneId.systemDefault()): LocalDate =
+    lastScanAt?.takeUnless { owesFullWindow }?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() } ?: LocalDate.MIN
 
 const val FOOD_AND_DINING = "Food & Dining"
 const val OTHERS = "Others"

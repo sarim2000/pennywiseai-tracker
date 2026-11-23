@@ -13,6 +13,7 @@ import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
@@ -250,7 +251,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
  * running [today]), the widget shows that budget alone: it already covers what a
  * category budget spends, so adding the two counts that spending twice (#1420). The
  * limit, spend and per-day figure are that budget's, and Saved / Overspent is [income]
- * less its spend, with no arrow: [prevSavings] is last period's income less every
+ * less its spend (a monthly budget only), with no arrow: [prevSavings] is last period's income less every
  * limit's spend, not this budget's. Its spend only stands in when the summary is in
  * [incomeCurrency]; otherwise savings fall back as below.
  *
@@ -275,7 +276,8 @@ internal fun widgetBudgetFigures(
     val dailyAllowance = hero?.dailyAllowance ?: if (pageDaysRemaining > 0 && remaining > BigDecimal.ZERO) {
         remaining.divide(BigDecimal(pageDaysRemaining), 0, RoundingMode.HALF_UP)
     } else BigDecimal.ZERO
-    val savingsHero = hero?.takeIf { summary.currency == incomeCurrency }
+    // A weekly hero's spend against a month's income would overstate savings.
+    val savingsHero = hero?.takeIf { summary.currency == incomeCurrency && it.periodType == BudgetPeriodType.MONTHLY }
     val netSavings = income - (savingsHero?.totalActual ?: pageLimitSpent)
     return BudgetWidgetData(
         totalSpent = spent,

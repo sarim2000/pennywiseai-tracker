@@ -59,6 +59,7 @@ import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.navigation.Appearance
 import com.pennywiseai.tracker.navigation.BackgroundAccess
+import com.pennywiseai.tracker.navigation.BottomNavItem
 import com.pennywiseai.tracker.navigation.Categories
 import com.pennywiseai.tracker.navigation.ExchangeRates
 import com.pennywiseai.tracker.navigation.Faq
@@ -177,7 +178,12 @@ internal fun settingsSearchIndex(sdkInt: Int = Build.VERSION.SDK_INT): List<Sett
         ),
         Row(R.string.appearance_fonts_section),
         Row(R.string.appearance_navigation_section),
-        Row(R.string.appearance_bottom_bar_section, R.string.appearance_bottom_bar_subtitle),
+        // Its switches are named after the tabs, so "insights" finds where to hide that tab.
+        Row(
+            R.string.appearance_bottom_bar_section,
+            R.string.appearance_bottom_bar_subtitle,
+            keywords = BottomNavItem.hideable.map { it.titleRes },
+        ),
         // Same gate as AppearanceScreen: Build.VERSION_CODES.S (Android 12).
         Row(
             R.string.appearance_blur_title,

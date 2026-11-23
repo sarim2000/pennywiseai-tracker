@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.settings
 import android.os.Build
 import com.lemonappdev.konsist.api.Konsist
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.navigation.BottomNavItem
 import com.pennywiseai.tracker.navigation.SettingsPage
 import com.pennywiseai.tracker.navigation.SettingsSection
 import org.junit.Assert.assertEquals
@@ -49,25 +50,27 @@ class SettingsSearchTest {
     fun `every row on a settings page is indexed or skipped on purpose`() {
         // Android 12, so rows Appearance shows only from then (Blur Effects) still have to be indexed.
         val indexed = settingsSearchIndex(Build.VERSION_CODES.S).flatMap { listOf(it.title) + it.keywords }.toSet()
-        val rowTitle = Regex("""(?<!sub)title = stringResource\((\w+)\.string\.(\w+)""")
+        // Any argument: a string resource, or a variable such as `tab.titleRes`.
+        val rowTitle = Regex("""(?<!sub)title = stringResource\(([\w.]+(?:\(\))?)""")
+        val resource = Regex("""(\w+)\.string\.(\w+)""")
         val pages = Konsist.scopeFromPackage("com.pennywiseai.tracker.presentation.settings", "app", "main").files
             .filter { it.name.matches(Regex("Settings\\w*Pages?|SettingsScreen|AppearanceScreen")) }
         assertTrue("no settings page files found. Did they move? Point this test at them.", pages.size >= 6)
         val missing = pages.flatMap { file ->
-            rowTitle.findAll(file.text).map { it.groupValues[1] to it.groupValues[2] }
-                .filterNot { (_, name) -> name in NOT_SEARCHABLE }
-                .filterNot { (rClass, name) ->
-                    val strings = if (rClass == "LearnedCategoriesR") LearnedCategoriesR.string::class.java else R.string::class.java
-                    strings.getField(name).getInt(null) in indexed
-                }
-                .map { (_, name) -> "${file.name}: $name" }
-                .toList()
+            rowTitle.findAll(file.text).map { it.groupValues[1] }.mapNotNull { arg ->
+                val (rClass, name) = resource.matchEntire(arg)?.destructured
+                    ?: return@mapNotNull "${file.name}: title from `$arg`".takeIf { arg !in VARIABLE_TITLES }
+                val strings = if (rClass == "LearnedCategoriesR") LearnedCategoriesR.string::class.java else R.string::class.java
+                "${file.name}: $name".takeIf { name !in NOT_SEARCHABLE && strings.getField(name).getInt(null) !in indexed }
+            }.toList()
         }.distinct()
         assertTrue(
-            "Settings rows missing from settingsSearchIndex (SettingsSearch.kt). Index them, " +
-                "or add them to NOT_SEARCHABLE with the reason:\n" + missing.joinToString("\n") { "  $it" },
+            "Settings rows missing from settingsSearchIndex (SettingsSearch.kt). Index them, or add them " +
+                "to NOT_SEARCHABLE (a variable: VARIABLE_TITLES) with the reason:\n" + missing.joinToString("\n") { "  $it" },
             missing.isEmpty(),
         )
+        // VARIABLE_TITLES says these are indexed.
+        BottomNavItem.hideable.forEach { assertTrue("${it.route} tab missing", it.titleRes in indexed) }
     }
 
     @Test
@@ -213,6 +216,16 @@ class SettingsSearchTest {
                 }
                 .associate { it.getAttribute("name") to it.textContent }
         }
+
+        /** Row titles passed through a variable, and where search covers them. */
+        val VARIABLE_TITLES = setOf(
+            // AppearanceScreen's bottom-bar tab switches: each tab's name is a keyword of Bottom bar.
+            "tab.titleRes",
+            // AppearanceScreen's navigation style choices, found through the Navigation row.
+            "style.titleRes()",
+            // SettingsPages' bar title: the page itself, indexed under its hub name.
+            "title",
+        )
 
         /** Settings rows search leaves out on purpose, and why. */
         val NOT_SEARCHABLE = setOf(

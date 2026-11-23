@@ -267,12 +267,13 @@ internal fun searchWords(query: String): List<String> = normalizeForSearch(query
  * a word ("curr" puts Currency above Recurring), and an earlier field beats a later
  * one. List order breaks ties. Only when nothing matches as typed, words may match
  * a whole word with a typo or two ([typoBudget]), so "bakup" finds Backup but
- * "date" doesn't also list "Data".
+ * "date" doesn't also list "Data". [fields] come [normalizeForSearch]ed, once per
+ * item, not on every keystroke.
  */
 internal fun <T> List<T>.matchingSearch(query: String, fields: (T) -> List<String>): List<T> {
     val words = searchWords(query)
     if (words.isEmpty()) return emptyList()
-    val items = map { it to fields(it).map(::normalizeForSearch) }
+    val items = map { it to fields(it) }
     return items.ranked(words, typos = false).ifEmpty { items.ranked(words, typos = true) }
 }
 
@@ -405,11 +406,23 @@ internal fun SettingsSearchField(
     )
 }
 
+/**
+ * What search compares for this entry, best field first: title, subtitle, keywords,
+ * page name, each [normalizeForSearch]ed. [string] resolves a string resource.
+ */
+internal fun SettingsSearchEntry.searchFields(string: (Int) -> String): List<String> = listOf(
+    string(title),
+    subtitle?.let(string).orEmpty(),
+    keywords.joinToString(" ") { string(it) },
+    parent?.let(string).orEmpty(),
+).map(::normalizeForSearch)
+
 private class ResolvedEntry(
     val entry: SettingsSearchEntry,
     val title: String,
     val subtitle: String?,
     val parent: String?,
+    /** [searchFields], resolved and normalized once with the index. */
     val fields: List<String>,
 )
 
@@ -422,11 +435,13 @@ internal fun SettingsSearchResults(query: String, contentPadding: PaddingValues,
     val resources = LocalResources.current
     val resolved = remember(resources) {
         settingsSearchIndex().map { entry ->
-            val title = resources.getString(entry.title)
-            val subtitle = entry.subtitle?.let(resources::getString)
-            val parent = entry.parent?.let(resources::getString)
-            val keywords = entry.keywords.joinToString(" ") { resources.getString(it) }
-            ResolvedEntry(entry, title, subtitle, parent, listOf(title, subtitle.orEmpty(), keywords, parent.orEmpty()))
+            ResolvedEntry(
+                entry,
+                title = resources.getString(entry.title),
+                subtitle = entry.subtitle?.let(resources::getString),
+                parent = entry.parent?.let(resources::getString),
+                fields = entry.searchFields(resources::getString),
+            )
         }
     }
     val results = remember(resolved, query) { resolved.matchingSearch(query) { it.fields } }
@@ -468,12 +483,7 @@ internal fun SettingsSearchResults(query: String, contentPadding: PaddingValues,
         }
         itemsIndexed(results, key = { _, it -> "${it.entry.title}/${it.entry.target}" }) { index, result ->
             val matchedSubtitle = result.subtitle != null &&
-                showsOwnSubtitle(
-                    words,
-                    normalizeForSearch(result.title),
-                    normalizeForSearch(result.subtitle),
-                    result.fields.map(::normalizeForSearch),
-                )
+                showsOwnSubtitle(words, result.fields[0], result.fields[1], result.fields)
             SettingsNavItem(
                 icon = result.entry.icon,
                 title = result.title,

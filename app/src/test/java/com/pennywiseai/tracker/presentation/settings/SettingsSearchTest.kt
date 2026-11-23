@@ -13,7 +13,8 @@ import com.pennywiseai.feature.learnedcategories.R as LearnedCategoriesR
 class SettingsSearchTest {
 
     /** Fields as the screen passes them: title, subtitle, keywords, page name. */
-    private fun List<List<String>>.search(query: String) = matchingSearch(query) { it }.map { it.first() }
+    private fun List<List<String>>.search(query: String) =
+        matchingSearch(query) { it.map(::normalizeForSearch) }.map { it.first() }
 
     private fun rows(vararg titles: String) = titles.map { listOf(it, "", "", "") }
 

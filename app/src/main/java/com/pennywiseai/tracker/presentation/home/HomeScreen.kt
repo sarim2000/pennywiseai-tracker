@@ -537,6 +537,7 @@ fun HomeScreen(
                                 question = guess,
                                 onOpen = viewModel::openWeeklyGuess,
                                 onDismiss = viewModel::dismissWeeklyGuess,
+                                onStop = viewModel::stopWeeklyGuess,
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                             )
                         }

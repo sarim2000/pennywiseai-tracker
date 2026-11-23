@@ -475,6 +475,7 @@
     <string name="weekly_guess_question">How much did you spend on %1$s last week, in %2$s?</string>
     <string name="weekly_guess_open">Make your guess</string>
     <string name="weekly_guess_not_now">Not now</string>
+    <string name="weekly_guess_stop">Don\'t ask again</string>
     <!-- %1$s is the week's dates, e.g. "Nov 9 – 15". -->
     <string name="weekly_guess_week">%1$s · from your bank messages</string>
     <string name="weekly_guess_your_guess">Your guess</string>

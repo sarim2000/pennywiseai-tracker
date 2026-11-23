@@ -189,6 +189,8 @@ open class UserPreferencesRepository internal constructor(
         // The first day ("2026-11-09") of the last week whose Home guess was answered or
         // dismissed. The guess itself is never stored. Device-local.
         val WEEKLY_GUESS_HANDLED_WEEK = stringPreferencesKey("weekly_guess_handled_week")
+        // "Don't ask again" on the weekly guess card. Device-local, like the other Home cards' choices.
+        val WEEKLY_GUESS_OFF = booleanPreferencesKey("weekly_guess_off")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -358,7 +360,7 @@ open class UserPreferencesRepository internal constructor(
             K.PAYDAY_SUGGESTION_HANDLED, K.RECURRING_HOME_CARD_SEEN, K.RECURRING_HOME_CARD_DISMISSED_AT,
             K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.CELEBRATED_MOMENTS,
             K.BUDGET_MONTH_CARD_DISMISSED,
-            K.WEEKLY_GUESS_HANDLED_WEEK,
+            K.WEEKLY_GUESS_HANDLED_WEEK, K.WEEKLY_GUESS_OFF,
             K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES, K.LAST_AUTH_TIMESTAMP, K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
@@ -1477,6 +1479,18 @@ open class UserPreferencesRepository internal constructor(
             dataStore.edit { it[PreferencesKeys.WEEKLY_GUESS_HANDLED_WEEK] = weekStart }
         } catch (_: IOException) {
             // Full disk: nothing stored, so the next visit asks again.
+        }
+    }
+
+    /** True once the user chose "Don't ask again" on the weekly guess. */
+    val weeklyGuessOff: Flow<Boolean> = dataStore.data
+        .map { it[PreferencesKeys.WEEKLY_GUESS_OFF] ?: false }
+
+    suspend fun stopWeeklyGuess() {
+        try {
+            dataStore.edit { it[PreferencesKeys.WEEKLY_GUESS_OFF] = true }
+        } catch (_: IOException) {
+            // Full disk: the card is gone for this session and the choice can be made again.
         }
     }
 

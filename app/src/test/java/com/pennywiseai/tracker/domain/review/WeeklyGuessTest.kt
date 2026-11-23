@@ -187,4 +187,13 @@ class WeeklyGuessTest {
         assertEquals(15, guessGapPercent(BigDecimal("230"), actual))
         assertEquals(50, guessGapPercent(BigDecimal("100"), actual))
     }
+
+    @Test
+    fun `asks until the week is handled or the guess is turned off`() {
+        assertTrue(asksWeeklyGuess(lastStart, handledWeek = null, off = false))
+        // An older week answered or put off doesn't stop this one.
+        assertTrue(asksWeeklyGuess(lastStart, handledWeek = "2026-11-02", off = false))
+        assertFalse(asksWeeklyGuess(lastStart, handledWeek = "2026-11-09", off = false))
+        assertFalse(asksWeeklyGuess(lastStart, handledWeek = null, off = true))
+    }
 }

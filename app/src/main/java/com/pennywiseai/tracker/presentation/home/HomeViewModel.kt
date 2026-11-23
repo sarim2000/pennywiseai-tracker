@@ -49,6 +49,7 @@ import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewPrompt
 import com.pennywiseai.tracker.domain.review.WeeklyGuessQuestion
+import com.pennywiseai.tracker.domain.review.asksWeeklyGuess
 import com.pennywiseai.tracker.domain.review.isCloseGuess
 import com.pennywiseai.tracker.domain.review.localFirstDayOfWeek
 import com.pennywiseai.tracker.domain.review.reviewPromptFor
@@ -1446,12 +1447,16 @@ class HomeViewModel @Inject constructor(
                     transactionRepository.observeSplitsForActiveTransactions(),
                 ) { _, _ -> },
                 _uiState.map { it.selectedCurrency }.distinctUntilChanged(),
-                userPreferencesRepository.weeklyGuessHandledWeek.distinctUntilChanged(),
+                combine(
+                    userPreferencesRepository.weeklyGuessHandledWeek.distinctUntilChanged(),
+                    userPreferencesRepository.weeklyGuessOff.distinctUntilChanged(),
+                    ::Pair,
+                ),
                 categoryRepository.getAllCategories(),
-            ) { day, _, currency, handled, categories -> GuessInputs(day, currency, handled, categories) }
-                .collectLatest { (day, currency, handled, categories) ->
+            ) { day, _, currency, (handled, off), categories -> GuessInputs(day, currency, handled, off, categories) }
+                .collectLatest { (day, currency, handled, off, categories) ->
                     val weekStart = reviewRange(ReviewKind.WEEK, -1, day, 1, localFirstDayOfWeek()).start
-                    _weeklyGuess.value = if (handled == weekStart.toString()) null else withContext(Dispatchers.Default) {
+                    _weeklyGuess.value = if (!asksWeeklyGuess(weekStart, handled, off)) null else withContext(Dispatchers.Default) {
                         val detail = periodReviewLoader.lastWeeks(GUESS_HISTORY_WEEKS + 1, day)
                         weeklyGuessQuestion(
                             weeks = detail.cycles,
@@ -1467,7 +1472,13 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private data class GuessInputs(val day: LocalDate, val currency: String, val handled: String?, val categories: List<CategoryEntity>)
+    private data class GuessInputs(
+        val day: LocalDate,
+        val currency: String,
+        val handled: String?,
+        val off: Boolean,
+        val categories: List<CategoryEntity>,
+    )
 
     fun openWeeklyGuess() {
         _guessSheet.value = _weeklyGuess.value?.let(::WeeklyGuessSheet)
@@ -1490,6 +1501,12 @@ class HomeViewModel @Inject constructor(
     /** "Not now": the card is gone until next week. */
     fun dismissWeeklyGuess() {
         _weeklyGuess.value?.let { handleWeeklyGuess(it.weekStart) }
+    }
+
+    /** "Don't ask again": the card never comes back. */
+    fun stopWeeklyGuess() {
+        _weeklyGuess.value = null
+        viewModelScope.launch { userPreferencesRepository.stopWeeklyGuess() }
     }
 
     fun closeWeeklyGuess() {

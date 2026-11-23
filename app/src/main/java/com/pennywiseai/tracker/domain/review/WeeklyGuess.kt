@@ -30,6 +30,13 @@ internal const val GUESS_HISTORY_WEEKS = 4
 const val CLOSE_GUESS_PERCENT = 15
 
 /**
+ * Whether Home asks about the week starting [weekStart]: not once the user chose "Don't
+ * ask again" ([off]), and not for a week already answered or put off ([handledWeek]).
+ */
+internal fun asksWeeklyGuess(weekStart: LocalDate, handledWeek: String?, off: Boolean): Boolean =
+    !off && handledWeek != weekStart.toString()
+
+/**
  * The question for the last of [weeks] (per currency, oldest first, ending with the week
  * asked about; Review's [CycleTotal]s), or null when that week has nothing to ask about.
  *

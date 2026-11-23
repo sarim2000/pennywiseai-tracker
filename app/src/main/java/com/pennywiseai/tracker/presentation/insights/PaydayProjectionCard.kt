@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.WarningAmber
@@ -73,6 +74,8 @@ internal fun PaydayProjectionCard(projection: PaydayProjection, modifier: Modifi
                 Text(
                     text = CurrencyFormatter.formatCurrency(projection.lowest, projection.currency),
                     style = PennyWiseText.amountMedium,
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, PennyWiseText.amountMedium.fontSize),
                     color = if (short != null && !hidden) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                 )
                 if (!hidden) {

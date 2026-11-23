@@ -28,6 +28,7 @@
     <string name="duplicate_accounts_message">Из-за разных форматов SMS банка или прежнего распознавания могли появиться дубли счетов с тремя и четырьмя цифрами. Если %1$s и %2$s — один и тот же счет, объединить их? Транзакции перейдут на счет с четырьмя цифрами, его история баланса сохранится, а будущие SMS будут автоматически относиться к нему.</string>
     <string name="duplicate_accounts_merge">Объединить и запомнить</string>
     <string name="duplicate_accounts_keep">Оставить раздельно</string>
+    <!-- Top-bar eye, shown on every screen while the user has hidden amounts: tapping it shows them again -->
     <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
     <!-- AI chat: the badge by the latest reply's mascot. Saved: the rows of an Add card were just saved -->
     <!-- Developer mode: a screen showing the mascot in every shape and mood, for checking it on a device -->

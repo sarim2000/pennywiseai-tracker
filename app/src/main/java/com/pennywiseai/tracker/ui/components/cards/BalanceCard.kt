@@ -327,8 +327,8 @@ fun BalanceCard(
                         )
                     }
                 }
-                // Safe to spend sits on a surface wash, so it takes the surface's inks, not the card's.
-                footer?.let { OnWash(outer, fill, it) }
+                // Safe to spend draws on the app's own surface, so it takes the app's inks, not the card's.
+                if (footer != null) MaterialTheme(colorScheme = outer, content = footer)
             }
         }
     }
@@ -742,7 +742,7 @@ private fun ChangeArrow(trend: ChangeTrend, fill: Color) {
     )
 }
 
-/** [content] on the hero's surface wash (a chip, Safe to spend), in [outer]'s own inks. */
+/** [content] on the hero's surface wash (the currency chip), in [outer]'s own inks. */
 @Composable
 private fun OnWash(outer: ColorScheme, fill: Color, content: @Composable () -> Unit) {
     val cardInk = MaterialTheme.colorScheme.onSurface

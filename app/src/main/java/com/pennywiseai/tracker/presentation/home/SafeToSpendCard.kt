@@ -89,7 +89,7 @@ fun SafeToSpendLine(
         onClick = if (isBalanceHidden) onReveal else onOpenBreakdown,
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Row(

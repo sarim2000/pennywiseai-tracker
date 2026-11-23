@@ -99,16 +99,27 @@ interface WidgetEntryPoint {
 
 /**
  * The in-app eye (Home's hide-amounts toggle), read before composing so the
- * first frame is already right, then followed live. Hidden totals stay hidden
- * on the home screen, where anyone near the phone can read them; what the
- * app shows with the eye closed (single transactions, goals) shows here too.
+ * first frame is already right, then followed live. Totals follow Home
+ * ([hidden]: hidden until the user reveals them), single transactions follow
+ * the rest of the app ([rowsHidden]: hidden only once the user chose to), so
+ * a fresh install's Recent widget isn't a column of dots.
  */
-class WidgetPrivacy(val hidden: Flow<Boolean>, val initial: Boolean) {
+class WidgetPrivacy(
+    val hidden: Flow<Boolean>,
+    val initial: Boolean,
+    val rowsHidden: Flow<Boolean> = hidden,
+    val rowsInitial: Boolean = initial
+) {
     companion object {
         suspend fun load(context: Context): WidgetPrivacy = try {
-            val flow = EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
-                .userPreferences().isBalanceHidden
-            WidgetPrivacy(flow, flow.first())
+            val prefs = EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
+                .userPreferences()
+            WidgetPrivacy(
+                prefs.isBalanceHidden,
+                prefs.isBalanceHidden.first(),
+                prefs.isAmountHiddenEverywhere,
+                prefs.isAmountHiddenEverywhere.first()
+            )
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -118,10 +129,15 @@ class WidgetPrivacy(val hidden: Flow<Boolean>, val initial: Boolean) {
 }
 
 private val LocalAmountsHidden = staticCompositionLocalOf { false }
+private val LocalRowAmountsHidden = staticCompositionLocalOf { false }
 
 /** Whether totals are hidden right now; for a widget that swaps more than the figure. */
 @Composable
 fun amountsHidden(): Boolean = LocalAmountsHidden.current
+
+/** Whether single transactions' amounts are hidden right now; see [exactText]. */
+@Composable
+fun rowAmountsHidden(): Boolean = LocalRowAmountsHidden.current
 
 private val LocalMirrored = staticCompositionLocalOf { false }
 
@@ -150,9 +166,11 @@ fun WidgetRoot(privacy: WidgetPrivacy, content: @Composable () -> Unit) {
     WidgetLanguageChanges.collectAsState().value
     val context = LocalContext.current.inAppLanguage()
     val hidden by privacy.hidden.collectAsState(privacy.initial)
+    val rowsHidden by privacy.rowsHidden.collectAsState(privacy.rowsInitial)
     CompositionLocalProvider(
         LocalContext provides context,
         LocalAmountsHidden provides hidden,
+        LocalRowAmountsHidden provides rowsHidden,
         LocalMirrored provides context.readsAgainstDevice()
     ) {
         GlanceTheme(
@@ -245,12 +263,14 @@ fun totalText(amount: BigDecimal, currency: String): String = when {
 fun wholeUnits(amount: BigDecimal): BigDecimal = amount.setScale(0, RoundingMode.HALF_UP)
 
 /**
- * One transaction's exact amount ("JD 3.2"). Like the app's transaction list,
- * single rows stay visible while the eye hides the totals.
+ * One transaction's exact amount ("JD 3.2"), or [HIDDEN_AMOUNT] once the user
+ * has hidden amounts. A home screen is in view of anyone near the phone, so a
+ * hidden row stays hidden here as it does in the app's list. Until the user
+ * chooses, rows show while Home's totals start hidden; see [WidgetPrivacy].
  */
 @Composable
 fun exactText(amount: BigDecimal, currency: String): String =
-    widgetMoney(LocalContext.current, amount, currency)
+    if (rowAmountsHidden()) HIDDEN_AMOUNT else widgetMoney(LocalContext.current, amount, currency)
 
 /**
  * [CurrencyFormatter.formatCurrency] for a widget: a space after a lettered

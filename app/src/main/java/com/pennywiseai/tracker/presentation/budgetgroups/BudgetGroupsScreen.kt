@@ -774,9 +774,10 @@ private fun SpendingPaceChart(
         paceValues.getOrNull(cumulativeSpending.lastIndex.coerceAtMost(paceValues.lastIndex))?.let { pace -> actual > pace }
     } ?: false
     val spendingColor = if (isOverPace) themeColors.error else themeColors.primary
-    // The pace line stays muted but visible: 3:1 on the card and on the spending wash it crosses.
+    // The pace line in onSurfaceVariant, as before, nudged only if it misses 3:1 on the card or
+    // on the spending wash it crosses.
     val card = themeColors.surfaceContainerLow
-    val paceColor = themeColors.onSurfaceVariant.copy(alpha = 0.4f).compositeOver(card).readableOn(
+    val paceColor = themeColors.onSurfaceVariant.readableOn(
         listOf(card, spendingColor.copy(alpha = 0.2f).compositeOver(card)),
         GRAPHIC_CONTRAST
     )

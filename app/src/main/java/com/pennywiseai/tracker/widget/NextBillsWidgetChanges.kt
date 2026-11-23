@@ -6,7 +6,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -19,13 +19,18 @@ import javax.inject.Inject
  */
 class NextBillsWidgetChanges @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val upcomingPaymentsLoader: UpcomingPaymentsLoader,
+    // Lazy: building the loader opens SharedPreferences (IgnoredAccountsStore), which
+    // must not happen on the main thread while the Application is injected.
+    private val upcomingPaymentsLoader: dagger.Lazy<UpcomingPaymentsLoader>,
 ) {
     /** Runs until cancelled. The day is fixed here: this only spots a change, and the worker reads today. */
     suspend fun watch() {
-        val today = LocalDate.now()
-        upcomingPaymentsLoader.observe(today, today.plusDays(NextBillsWidgetUpdateWorker.LOOKAHEAD_DAYS), includeOverdue = true)
-            .distinctUntilChanged().drop(1).flowOn(Dispatchers.Default)
-            .collect { NextBillsWidgetUpdateWorker.enqueueOneShot(context) }
+        withContext(Dispatchers.Default) {
+            val today = LocalDate.now()
+            upcomingPaymentsLoader.get()
+                .observe(today, today.plusDays(NextBillsWidgetUpdateWorker.LOOKAHEAD_DAYS), includeOverdue = true)
+                .distinctUntilChanged().drop(1)
+                .collect { NextBillsWidgetUpdateWorker.enqueueOneShot(context) }
+        }
     }
 }

@@ -65,7 +65,10 @@ interface NotificationPreferences {
 
     suspend fun resetConscienceFeedback()
 
-    /** Spends a slot, picks the comment and stores its remark in one edit; null when the cadence says no or no line is left. */
+    /**
+     * Spends a slot, picks the comment and stores its remark in one edit; null when the cadence
+     * says no or no line is left. A remark only saved overnight (not notified) spends no slot.
+     */
     suspend fun tryClaimConscience(
         candidates: List<ConscienceCandidate>,
         contentLocale: String,

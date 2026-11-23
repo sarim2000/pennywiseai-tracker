@@ -169,6 +169,18 @@ class ConscienceCadenceTest {
     }
 
     @Test
+    fun `a remark only saved overnight uses its line and kind but no slot`() {
+        val choice = ConscienceChoice(ConscienceFact.LateNight(food), ConscienceLine("late", 1), "en:late")
+        val log = ConscienceCadence.record(ConscienceLog(), choice, now, today, spendsSlot = false)
+
+        assertEquals(emptyList<Long>(), log.firedAtMillis)
+        assertEquals(mapOf("en:late" to today), log.lineUsedOnEpochDay)
+        assertEquals(mapOf("LATE_NIGHT_FOOD" to now), log.kindFiredAtMillis)
+        assertTrue(allows(log, ConscienceFrequency.NORMAL))
+        assertTrue(allows(log, ConscienceFrequency.LESS))
+    }
+
+    @Test
     fun `encode and decode round-trip`() {
         val log = ConscienceLog(
             firedAtMillis = listOf(now - day, now),

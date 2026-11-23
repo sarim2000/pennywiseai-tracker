@@ -747,7 +747,8 @@ open class UserPreferencesRepository internal constructor(
     }
 
     /**
-     * Spends a slot, picks the comment and stores it as a remark in one edit: the SMS
+     * Spends a slot (unless the remark is only saved overnight, see [ConscienceCadence.record]),
+     * picks the comment and stores it as a remark in one edit: the SMS
      * receiver and the notification listener can race, and only one may get the slot.
      * The switch and the muted kinds are re-read here, since they can change while the
      * history is read. Null when the cadence says no, no candidate has a line left, or
@@ -773,7 +774,7 @@ open class UserPreferencesRepository internal constructor(
             ) ?: return@edit
             val remark = remarkFor(choice) ?: return@edit
             prefs[PreferencesKeys.CONSCIENCE_LOG] =
-                ConscienceCadence.encode(ConscienceCadence.record(log, choice, nowMillis, todayEpochDay))
+                ConscienceCadence.encode(ConscienceCadence.record(log, choice, nowMillis, todayEpochDay, spendsSlot = remark.notified))
             prefs[PreferencesKeys.CONSCIENCE_REMARKS] =
                 conscienceJson.encodeToString(ConscienceRemarks.add(prefs.conscienceRemarks(nowMillis), remark, nowMillis))
             claimed = remark

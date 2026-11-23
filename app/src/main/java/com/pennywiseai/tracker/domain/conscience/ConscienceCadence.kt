@@ -93,10 +93,22 @@ object ConscienceCadence {
         List(if (ConscienceLines.key(contentLocale, line) in feedback.liked) LIKED_WEIGHT else 1) { line }
     }.randomOrNull(random)
 
-    fun record(log: ConscienceLog, choice: ConscienceChoice, nowMillis: Long, todayEpochDay: Long): ConscienceLog {
+    /**
+     * Logs [choice]. Only a remark that notified ([spendsSlot]) takes a slot of the day and
+     * the week; one only saved overnight still uses up its line and its kind's cooldown, so
+     * the night's purchases don't save the same thing twice.
+     */
+    fun record(
+        log: ConscienceLog,
+        choice: ConscienceChoice,
+        nowMillis: Long,
+        todayEpochDay: Long,
+        spendsSlot: Boolean = true,
+    ): ConscienceLog {
         val longestCooldown = ConscienceKind.entries.maxOf { kindCooldownMillis(it) }
+        val fired = if (spendsSlot) log.firedAtMillis + nowMillis else log.firedAtMillis
         return ConscienceLog(
-            firedAtMillis = (log.firedAtMillis + nowMillis).filter { nowMillis - it < WEEK_MILLIS },
+            firedAtMillis = fired.filter { nowMillis - it < WEEK_MILLIS },
             lineUsedOnEpochDay = (log.lineUsedOnEpochDay + (choice.lineKey to todayEpochDay))
                 .filterValues { todayEpochDay - it < LINE_COOLDOWN_DAYS },
             kindFiredAtMillis = (log.kindFiredAtMillis + (kindKey(choice.fact) to nowMillis))

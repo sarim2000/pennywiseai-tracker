@@ -285,6 +285,34 @@ interface TransactionDao {
     @Query("UPDATE transactions SET excluded_from_analytics = :excluded, updated_at = :updatedAt WHERE id = :transactionId AND excluded_from_analytics != :excluded")
     suspend fun setExcludedFromAnalytics(transactionId: Long, excluded: Boolean, updatedAt: LocalDateTime): Int
 
+    /**
+     * Sets only the reimbursement state (#1389): [status] is a [ReimbursementStatus] name or
+     * null, [reimbursedById] the incoming payment that paid it back.
+     */
+    @Query("UPDATE transactions SET reimbursement_status = :status, reimbursed_by_id = :reimbursedById, updated_at = :updatedAt WHERE id = :transactionId")
+    suspend fun setReimbursement(transactionId: Long, status: String?, reimbursedById: Long?, updatedAt: LocalDateTime): Int
+
+    /** Points a restored row at its restored payment; see BackupImporter. */
+    @Query("UPDATE transactions SET reimbursed_by_id = :reimbursedById WHERE id = :transactionId")
+    suspend fun setReimbursedById(transactionId: Long, reimbursedById: Long?)
+
+    /** Every reimbursable expense, pending or reimbursed, newest first. */
+    @Query("SELECT * FROM transactions WHERE reimbursement_status IS NOT NULL AND is_deleted = 0 ORDER BY date_time DESC")
+    fun observeReimbursables(): Flow<List<TransactionEntity>>
+
+    /** The expenses that [paymentId] paid back. */
+    @Query("SELECT * FROM transactions WHERE reimbursed_by_id = :paymentId AND is_deleted = 0 ORDER BY date_time DESC")
+    fun observeReimbursedBy(paymentId: Long): Flow<List<TransactionEntity>>
+
+    /** Incoming payments in [currency] from [since] on, newest first: what could have paid an expense back. */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE transaction_type = 'INCOME' AND is_deleted = 0 AND currency = :currency AND date_time >= :since
+        ORDER BY date_time DESC
+        LIMIT :limit
+    """)
+    suspend fun getReimbursementCandidates(currency: String, since: LocalDateTime, limit: Int): List<TransactionEntity>
+
     @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
     suspend fun countExplicitProfileMismatchForAccount(bankName: String, accountLast4: String, profileId: Long): Int
 

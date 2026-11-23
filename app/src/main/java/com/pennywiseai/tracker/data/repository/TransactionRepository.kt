@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -396,6 +397,31 @@ open class TransactionRepository @Inject constructor(
      */
     suspend fun setExcludedFromAnalytics(transactionId: Long, excluded: Boolean): Int =
         transactionDao.setExcludedFromAnalytics(transactionId, excluded, LocalDateTime.now())
+
+    /**
+     * Marks the row reimbursable ([ReimbursementStatus.PENDING]), reimbursed (optionally by
+     * the incoming payment [reimbursedById]) or, with null, not reimbursable (#1389). Only
+     * these columns are written, like [setExcludedFromAnalytics]. A link without
+     * REIMBURSED is dropped.
+     */
+    suspend fun setReimbursement(transactionId: Long, status: ReimbursementStatus?, reimbursedById: Long? = null): Int =
+        transactionDao.setReimbursement(
+            transactionId,
+            status?.name,
+            reimbursedById.takeIf { status == ReimbursementStatus.REIMBURSED && it != transactionId },
+            LocalDateTime.now()
+        )
+
+    fun observeReimbursables(): Flow<List<TransactionEntity>> = transactionDao.observeReimbursables()
+
+    fun observeReimbursedBy(paymentId: Long): Flow<List<TransactionEntity>> = transactionDao.observeReimbursedBy(paymentId)
+
+    /**
+     * Incoming payments that could have paid [expense] back: same currency, dated no earlier
+     * than the expense's day, newest first.
+     */
+    suspend fun getReimbursementCandidates(expense: TransactionEntity, limit: Int = 50): List<TransactionEntity> =
+        transactionDao.getReimbursementCandidates(expense.currency, expense.dateTime.toLocalDate().atStartOfDay(), limit)
 
     /** See [TransactionDao.getMovableMerchantRowIds]. */
     suspend fun getMovableMerchantRowIds(merchantName: String, category: String, types: Collection<TransactionType>): List<Long> =

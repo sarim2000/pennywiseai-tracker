@@ -199,8 +199,6 @@
     <string name="txn_list_budget_split_notice">Celkem se může od rozpočtu lišit kvůli rozděleným transakcím.</string>
     <string name="txn_list_group_today">Dnes</string>
     <string name="txn_list_group_yesterday">Včera</string>
-    <string name="txn_list_group_this_week">Tento týden</string>
-    <string name="txn_list_group_earlier">Dříve</string>
     <string name="txn_list_sort_newest">Nejnovější první</string>
     <string name="txn_list_sort_oldest">Nejstarší první</string>
     <string name="txn_list_sort_amount_highest">Nejvyšší částka</string>
@@ -404,15 +402,6 @@
     <string name="date_range_title">Vybrat rozsah data</string>
     <string name="date_range_ok">OK</string>
     <string name="date_range_cancel">Zrušit</string>
-    <string name="filter_row_more">Další filtry</string>
-    <plurals name="filter_row_more_active">
-        <item quantity="one">Další filtry (%1$d aktivní)</item>
-        <item quantity="few">Další filtry (%1$d aktivní)</item>
-        <item quantity="many">Další filtry (%1$d aktivní)</item>
-        <item quantity="other">Další filtry (%1$d aktivní)</item>
-    </plurals>
-    <string name="filter_row_collapse">Sbalit</string>
-    <string name="filter_row_expand">Rozbalit</string>
     <string name="split_editor_title">Rozdělit kategorie</string>
     <string name="split_editor_remove_all">Odstranit rozdělení</string>
     <string name="split_editor_add">Přidat rozdělení</string>

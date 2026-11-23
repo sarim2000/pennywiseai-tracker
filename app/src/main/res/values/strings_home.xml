@@ -146,7 +146,6 @@
     <string name="sms_scan_failed">Scan failed. Please try again.</string>
     <string name="sms_scan_cancelled">Scan cancelled</string>
     <string name="sms_scan_starting">Starting scan...</string>
-    <string name="sms_scan_indicator">Scanning SMS: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
     <string name="duration_hours_minutes">%1$dh %2$dm</string>
     <string name="duration_minutes_seconds">%1$dm %2$ds</string>

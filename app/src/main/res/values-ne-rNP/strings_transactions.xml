@@ -188,8 +188,6 @@
     <string name="txn_list_budget_split_notice">बाँडिएका लेनदेनका कारण कुल रकम बजेटभन्दा फरक हुन सक्छ</string>
     <string name="txn_list_group_today">आज</string>
     <string name="txn_list_group_yesterday">हिजो</string>
-    <string name="txn_list_group_this_week">यस हप्ता</string>
-    <string name="txn_list_group_earlier">अघिल्लो</string>
     <string name="txn_list_sort_newest">नयाँतम् पहिलो</string>
     <string name="txn_list_sort_oldest">पुरानो पहिलो</string>
     <string name="txn_list_sort_amount_highest">सबैभन्दा बढी रकम</string>
@@ -383,13 +381,6 @@
     <string name="date_range_title">मिति सीमा चयन गर्नुहोस्</string>
     <string name="date_range_ok">ठीक छ</string>
     <string name="date_range_cancel">रद्द गर्नुहोस्</string>
-    <string name="filter_row_more">थप फिल्टरहरू</string>
-    <plurals name="filter_row_more_active">
-        <item quantity="one">थप फिल्टरहरू (%1$d सक्रिय)</item>
-        <item quantity="other">थप फिल्टरहरू (%1$d सक्रिय)</item>
-    </plurals>
-    <string name="filter_row_collapse">सङ्कुचन गर्नुहोस्</string>
-    <string name="filter_row_expand">विस्तार गर्नुहोस्</string>
     <string name="split_editor_title">वर्ग बाँडफाँड</string>
     <string name="split_editor_remove_all">बाँडफाँड हटाउनुहोस्</string>
     <string name="split_editor_add">भाग थप्नुहोस्</string>

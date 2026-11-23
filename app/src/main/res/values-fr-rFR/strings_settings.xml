@@ -199,7 +199,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Télécharger le modèle IA (%1$d MB)</string>
     <string name="settings_ai_status_downloading">Téléchargement du modèle IA...</string>
-    <string name="settings_ai_status_paused">Téléchargement interrompu</string>
     <string name="settings_ai_status_completed">Modèle IA prêt pour le chat</string>
     <string name="settings_ai_status_failed">Échec du téléchargement</string>
     <string name="settings_ai_status_insufficient_space">Espace de stockage insuffisant</string>

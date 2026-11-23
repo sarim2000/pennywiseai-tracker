@@ -119,7 +119,6 @@
     <string name="sms_scan_failed">Не ўдалося прасканаваць. Паспрабуйце зноў.</string>
     <string name="sms_scan_cancelled">Сканаванне скасавана</string>
     <string name="sms_scan_starting">Пачынаем сканаванне...</string>
-    <string name="sms_scan_indicator">Сканаванне SMS: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
     <string name="duration_hours_minutes">%1$d гадз %2$d хв</string>
     <string name="duration_minutes_seconds">%1$d хв %2$d с</string>

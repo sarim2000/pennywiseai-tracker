@@ -219,8 +219,6 @@
     <string name="txn_list_budget_split_notice">Totals may differ from budget due to split transactions</string>
     <string name="txn_list_group_today">Today</string>
     <string name="txn_list_group_yesterday">Yesterday</string>
-    <string name="txn_list_group_this_week">This Week</string>
-    <string name="txn_list_group_earlier">Earlier</string>
     <string name="txn_list_sort_newest">Newest First</string>
     <string name="txn_list_sort_oldest">Oldest First</string>
     <string name="txn_list_sort_amount_highest">Highest Amount</string>
@@ -471,13 +469,6 @@
     <string name="date_range_title">Select Date Range</string>
     <string name="date_range_ok">OK</string>
     <string name="date_range_cancel">Cancel</string>
-    <string name="filter_row_more">More Filters</string>
-    <plurals name="filter_row_more_active">
-        <item quantity="one">More Filters (%1$d active)</item>
-        <item quantity="other">More Filters (%1$d active)</item>
-    </plurals>
-    <string name="filter_row_collapse">Collapse</string>
-    <string name="filter_row_expand">Expand</string>
     <string name="split_editor_title">Split Categories</string>
     <string name="split_editor_remove_all">Remove Splits</string>
     <string name="split_editor_add">Add Split</string>

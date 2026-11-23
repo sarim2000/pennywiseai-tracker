@@ -257,7 +257,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">تنزيل نموذج الذكاء الاصطناعي (%1$d MB)</string>
     <string name="settings_ai_status_downloading">جارٍ تنزيل نموذج الذكاء الاصطناعي...</string>
-    <string name="settings_ai_status_paused">توقف التنزيل</string>
     <string name="settings_ai_status_completed">نموذج الذكاء الاصطناعي جاهز للدردشة</string>
     <string name="settings_ai_status_failed">فشل التنزيل</string>
     <string name="settings_ai_status_insufficient_space">لا توجد مساحة تخزين كافية</string>

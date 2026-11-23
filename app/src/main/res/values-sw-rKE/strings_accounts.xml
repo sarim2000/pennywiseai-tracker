@@ -274,21 +274,6 @@
     <string name="loan_detail_enter_amount">Weka kiasi</string>
     <string name="loan_detail_amount_label">Kiasi</string>
     <string name="loan_detail_add">Ongeza</string>
-    <!-- ══ Accounts overview card (home) ══ -->
-    <string name="accounts_overview_title">Muhtasari wa Akaunti</string>
-    <string name="accounts_overview_bank_balance">Salio la Benki</string>
-    <string name="accounts_overview_bank_balance_count">Salio la Benki • %1$d</string>
-    <string name="accounts_overview_available_credit">Mkopo Unaopatikana</string>
-    <string name="accounts_overview_available_credit_count">Mkopo Unaopatikana • %1$d</string>
-    <string name="accounts_overview_balance">Salio</string>
-    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
-    <string name="accounts_overview_used">Imetumika: %1$s (%2$d%%)</string>
-    <string name="accounts_overview_available_limit">Kikomo Kinachopatikana</string>
-    <string name="accounts_overview_show_less">Onyesha Chache</string>
-    <plurals name="accounts_overview_view_all">
-        <item quantity="one">Ona Akaunti %1$d</item>
-        <item quantity="other">Ona Akaunti Zote %1$d</item>
-    </plurals>
     <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
     <!-- Net worth: what you own minus what you owe, per currency -->
 </resources>

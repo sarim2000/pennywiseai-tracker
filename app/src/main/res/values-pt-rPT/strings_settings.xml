@@ -203,7 +203,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Baixar modelo de IA (%1$d MB)</string>
     <string name="settings_ai_status_downloading">Baixando modelo de IA ...</string>
-    <string name="settings_ai_status_paused">Download interrompido</string>
     <string name="settings_ai_status_completed">Modelo IA pronto para bate-papo</string>
     <string name="settings_ai_status_failed">Download falhou</string>
     <string name="settings_ai_status_insufficient_space">Espaço de armazenamento insuficiente</string>

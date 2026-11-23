@@ -210,8 +210,6 @@
     <string name="txn_list_budget_split_notice">قد تختلف المجاميع عن الميزانية بسبب المعاملات المقسّمة</string>
     <string name="txn_list_group_today">اليوم</string>
     <string name="txn_list_group_yesterday">أمس</string>
-    <string name="txn_list_group_this_week">هذا الأسبوع</string>
-    <string name="txn_list_group_earlier">سابقًا</string>
     <string name="txn_list_sort_newest">الأحدث أولاً</string>
     <string name="txn_list_sort_oldest">الأقدم أولاً</string>
     <string name="txn_list_sort_amount_highest">أعلى مبلغ</string>
@@ -446,17 +444,6 @@
     <string name="date_range_title">اختر الفترة</string>
     <string name="date_range_ok">موافق</string>
     <string name="date_range_cancel">إلغاء</string>
-    <string name="filter_row_more">المزيد من الفلاتر</string>
-    <plurals name="filter_row_more_active">
-        <item quantity="zero">المزيد من الفلاتر (المفعّلة: %1$d)</item>
-        <item quantity="one">المزيد من الفلاتر (المفعّلة: %1$d)</item>
-        <item quantity="two">المزيد من الفلاتر (المفعّلة: %1$d)</item>
-        <item quantity="few">المزيد من الفلاتر (المفعّلة: %1$d)</item>
-        <item quantity="many">المزيد من الفلاتر (المفعّلة: %1$d)</item>
-        <item quantity="other">المزيد من الفلاتر (المفعّلة: %1$d)</item>
-    </plurals>
-    <string name="filter_row_collapse">طي</string>
-    <string name="filter_row_expand">توسيع</string>
     <string name="split_editor_title">تقسيم الفئات</string>
     <string name="split_editor_remove_all">إزالة كل التقسيمات</string>
     <string name="split_editor_add">إضافة تقسيم</string>

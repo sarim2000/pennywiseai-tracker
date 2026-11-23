@@ -197,8 +197,6 @@
     <string name="txn_list_budget_split_notice">Вынікі могуць адрознівацца ад бюджэту з-за падзеленых транзакцый</string>
     <string name="txn_list_group_today">Сёння</string>
     <string name="txn_list_group_yesterday">Учора</string>
-    <string name="txn_list_group_this_week">На гэтым тыдні</string>
-    <string name="txn_list_group_earlier">Раней</string>
     <string name="txn_list_sort_newest">Спачатку новыя</string>
     <string name="txn_list_sort_oldest">Спачатку старыя</string>
     <string name="txn_list_sort_amount_highest">Найбольшая сума</string>
@@ -400,15 +398,6 @@
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">Выберыце перыяд</string>
     <string name="date_range_cancel">Скасаваць</string>
-    <string name="filter_row_more">Яшчэ фільтры</string>
-    <plurals name="filter_row_more_active">
-        <item quantity="one">Яшчэ фільтры (актыўна: %1$d)</item>
-        <item quantity="few">Яшчэ фільтры (актыўна: %1$d)</item>
-        <item quantity="many">Яшчэ фільтры (актыўна: %1$d)</item>
-        <item quantity="other">Яшчэ фільтры (актыўна: %1$d)</item>
-    </plurals>
-    <string name="filter_row_collapse">Згарнуць</string>
-    <string name="filter_row_expand">Разгарнуць</string>
     <string name="split_editor_title">Падзел па катэгорыях</string>
     <string name="split_editor_remove_all">Выдаліць падзел</string>
     <string name="split_editor_add">Дадаць частку</string>

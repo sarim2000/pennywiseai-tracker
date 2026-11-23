@@ -193,7 +193,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">ดาวน์โหลดโมเดล AI (%1$d MB)</string>
     <string name="settings_ai_status_downloading">กำลังดาวน์โหลดโมเดล AI...</string>
-    <string name="settings_ai_status_paused">การดาวน์โหลดหยุดชะงัก</string>
     <string name="settings_ai_status_completed">โมเดล AI พร้อมแชทแล้ว</string>
     <string name="settings_ai_status_failed">ดาวน์โหลดไม่สำเร็จ</string>
     <string name="settings_ai_status_insufficient_space">พื้นที่จัดเก็บไม่เพียงพอ</string>

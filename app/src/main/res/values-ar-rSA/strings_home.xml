@@ -128,7 +128,6 @@
     <string name="sms_scan_failed">فشل الفحص. يرجى المحاولة مرة أخرى.</string>
     <string name="sms_scan_cancelled">تم إلغاء الفحص</string>
     <string name="sms_scan_starting">جارٍ بدء الفحص...</string>
-    <string name="sms_scan_indicator">جارٍ فحص الرسائل: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
     <string name="duration_hours_minutes">%1$d س %2$d د</string>
     <string name="duration_minutes_seconds">%1$d د %2$d ث</string>

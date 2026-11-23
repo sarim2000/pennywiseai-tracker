@@ -219,7 +219,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Спампаваць мадэль AI (%1$d МБ)</string>
     <string name="settings_ai_status_downloading">Спампоўваецца мадэль AI...</string>
-    <string name="settings_ai_status_paused">Спампоўванне перапынена</string>
     <string name="settings_ai_status_completed">Мадэль AI гатовая да чату</string>
     <string name="settings_ai_status_failed">Не ўдалося спампаваць</string>
     <string name="settings_ai_status_insufficient_space">Недастаткова месца</string>

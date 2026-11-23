@@ -111,7 +111,6 @@
     <string name="sms_scan_failed">स्क्यान असफल भयो। कृपया फेरि प्रयास गर्नुहोस्।</string>
     <string name="sms_scan_cancelled">स्क्यान रद्द भयो</string>
     <string name="sms_scan_starting">स्क्यान सुरु हुँदैछ...</string>
-    <string name="sms_scan_indicator">SMS स्क्यान गर्दै: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
     <string name="duration_hours_minutes">%1$dघ %2$dमि</string>
     <string name="duration_minutes_seconds">%1$dमि %2$dसे</string>

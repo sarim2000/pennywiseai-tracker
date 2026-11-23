@@ -277,21 +277,6 @@
     <string name="loan_detail_enter_amount">Entrez le montant</string>
     <string name="loan_detail_amount_label">Montant</string>
     <string name="loan_detail_add">Ajouter</string>
-    <!-- ══ Accounts overview card (home) ══ -->
-    <string name="accounts_overview_title">Aperçu des comptes clients</string>
-    <string name="accounts_overview_bank_balance">Solde bancaire</string>
-    <string name="accounts_overview_bank_balance_count">Solde bancaire • %1$d</string>
-    <string name="accounts_overview_available_credit">Crédit disponible</string>
-    <string name="accounts_overview_available_credit_count">Crédit disponible • %1$d</string>
-    <string name="accounts_overview_balance">Solde</string>
-    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
-    <string name="accounts_overview_used">Utilisé : %1$s (%2$d%%)</string>
-    <string name="accounts_overview_available_limit">Limite disponible</string>
-    <string name="accounts_overview_show_less">Afficher moins</string>
-    <plurals name="accounts_overview_view_all">
-        <item quantity="one">Voir tous les comptes %1$d</item>
-        <item quantity="other">Voir tous les comptes %1$d</item>
-    </plurals>
     <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
     <!-- Net worth: what you own minus what you owe, per currency -->
 </resources>

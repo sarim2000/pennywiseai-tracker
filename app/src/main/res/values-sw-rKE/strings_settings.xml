@@ -202,7 +202,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Pakua modeli ya AI (%1$d MB)</string>
     <string name="settings_ai_status_downloading">Inapakua modeli ya AI...</string>
-    <string name="settings_ai_status_paused">Upakuaji umekatizwa</string>
     <string name="settings_ai_status_completed">Modeli ya AI iko tayari kwa gumzo</string>
     <string name="settings_ai_status_failed">Upakuaji umeshindwa</string>
     <string name="settings_ai_status_insufficient_space">Hakuna nafasi ya kutosha ya kuhifadhi</string>

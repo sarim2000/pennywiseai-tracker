@@ -188,8 +188,6 @@
     <string name="txn_list_budget_split_notice">Jumla zinaweza kutofautiana na bajeti kwa sababu ya miamala iliyogawanywa</string>
     <string name="txn_list_group_today">Leo</string>
     <string name="txn_list_group_yesterday">Jana</string>
-    <string name="txn_list_group_this_week">Wiki Hii</string>
-    <string name="txn_list_group_earlier">Awali</string>
     <string name="txn_list_sort_newest">Mpya Kwanza</string>
     <string name="txn_list_sort_oldest">Za Zamani Kwanza</string>
     <string name="txn_list_sort_amount_highest">Kiasi Kikubwa Zaidi</string>
@@ -383,13 +381,6 @@
     <string name="date_range_title">Chagua Kipindi</string>
     <string name="date_range_ok">Sawa</string>
     <string name="date_range_cancel">Ghairi</string>
-    <string name="filter_row_more">Vichujio Zaidi</string>
-    <plurals name="filter_row_more_active">
-        <item quantity="one">Vichujio Zaidi (%1$d kinatumika)</item>
-        <item quantity="other">Vichujio Zaidi (%1$d vinatumika)</item>
-    </plurals>
-    <string name="filter_row_collapse">Kunja</string>
-    <string name="filter_row_expand">Panua</string>
     <string name="split_editor_title">Gawanya Kategoria</string>
     <string name="split_editor_remove_all">Ondoa Migawanyo</string>
     <string name="split_editor_add">Ongeza Mgawanyo</string>

@@ -202,7 +202,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">AI मोडेल डाउनलोड गर्नुहोस् (%1$d MB)</string>
     <string name="settings_ai_status_downloading">AI मोडेल डाउनलोड हुँदैछ...</string>
-    <string name="settings_ai_status_paused">डाउनलोड रोकियो</string>
     <string name="settings_ai_status_completed">AI मोडेल च्याटको लागि तयार छ</string>
     <string name="settings_ai_status_failed">डाउनलोड असफल</string>
     <string name="settings_ai_status_insufficient_space">पर्याप्त भण्डारण स्थान छैन</string>

@@ -221,7 +221,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Stáhnout model AI (%1$d MB)</string>
     <string name="settings_ai_status_downloading">Stahování AI modelu...</string>
-    <string name="settings_ai_status_paused">Stahování přerušeno</string>
     <string name="settings_ai_status_completed">AI model připraven k chatu</string>
     <string name="settings_ai_status_failed">Stahování se nezdařilo</string>
     <string name="settings_ai_status_insufficient_space">Nedostatek volného místa</string>

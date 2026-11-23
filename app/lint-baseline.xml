@@ -1533,50 +1533,6 @@
     <issue
         id="MissingQuantity"
         message="For locale &quot;es&quot; (Spanish) the following quantity should also be defined: `many`"
-        errorLine1="    &lt;plurals name=&quot;accounts_overview_view_all&quot;>"
-        errorLine2="    ^">
-        <location
-            file="src/main/res/values-es/strings_accounts.xml"
-            line="285"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="MissingQuantity"
-        message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)"
-        errorLine1="    &lt;plurals name=&quot;accounts_overview_view_all&quot;>"
-        errorLine2="    ^">
-        <location
-            file="src/main/res/values-fr-rFR/strings_accounts.xml"
-            line="289"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="MissingQuantity"
-        message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`"
-        errorLine1="    &lt;plurals name=&quot;accounts_overview_view_all&quot;>"
-        errorLine2="    ^">
-        <location
-            file="src/main/res/values-pt-rBR/strings_accounts.xml"
-            line="289"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="MissingQuantity"
-        message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`"
-        errorLine1="    &lt;plurals name=&quot;accounts_overview_view_all&quot;>"
-        errorLine2="    ^">
-        <location
-            file="src/main/res/values-pt-rPT/strings_accounts.xml"
-            line="289"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="MissingQuantity"
-        message="For locale &quot;es&quot; (Spanish) the following quantity should also be defined: `many`"
         errorLine1="    &lt;plurals name=&quot;analytics_transaction_count&quot;>"
         errorLine2="    ^">
         <location
@@ -4673,50 +4629,6 @@
         <location
             file="src/main/res/values-pt-rPT/strings_transactions.xml"
             line="378"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="MissingQuantity"
-        message="For locale &quot;es&quot; (Spanish) the following quantity should also be defined: `many`"
-        errorLine1="    &lt;plurals name=&quot;filter_row_more_active&quot;>"
-        errorLine2="    ^">
-        <location
-            file="src/main/res/values-es/strings_transactions.xml"
-            line="417"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="MissingQuantity"
-        message="For locale &quot;fr&quot; (French) the following quantity should also be defined: `many` (e.g. &quot;1000000 de jours&quot;)"
-        errorLine1="    &lt;plurals name=&quot;filter_row_more_active&quot;>"
-        errorLine2="    ^">
-        <location
-            file="src/main/res/values-fr-rFR/strings_transactions.xml"
-            line="418"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="MissingQuantity"
-        message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`"
-        errorLine1="    &lt;plurals name=&quot;filter_row_more_active&quot;>"
-        errorLine2="    ^">
-        <location
-            file="src/main/res/values-pt-rBR/strings_transactions.xml"
-            line="419"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="MissingQuantity"
-        message="For locale &quot;pt&quot; (Portuguese) the following quantity should also be defined: `many`"
-        errorLine1="    &lt;plurals name=&quot;filter_row_more_active&quot;>"
-        errorLine2="    ^">
-        <location
-            file="src/main/res/values-pt-rPT/strings_transactions.xml"
-            line="419"
             column="5"/>
     </issue>
 

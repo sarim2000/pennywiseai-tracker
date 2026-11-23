@@ -203,7 +203,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">KI-Modell herunterladen (%1$d MB)</string>
     <string name="settings_ai_status_downloading">KI-Modell wird heruntergeladen...</string>
-    <string name="settings_ai_status_paused">Download unterbrochen</string>
     <string name="settings_ai_status_completed">KI-Modell bereit für Chat</string>
     <string name="settings_ai_status_failed">Download fehlgeschlagen</string>
     <string name="settings_ai_status_insufficient_space">Nicht genügend Speicherplatz</string>

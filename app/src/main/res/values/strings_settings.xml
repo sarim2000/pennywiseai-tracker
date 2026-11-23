@@ -258,7 +258,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Download AI model (%1$d MB)</string>
     <string name="settings_ai_status_downloading">Downloading AI model...</string>
-    <string name="settings_ai_status_paused">Download interrupted</string>
     <string name="settings_ai_status_completed">AI model ready for chat</string>
     <string name="settings_ai_status_failed">Download failed</string>
     <string name="settings_ai_status_insufficient_space">Not enough storage space</string>

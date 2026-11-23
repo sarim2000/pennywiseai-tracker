@@ -199,8 +199,6 @@
     <string name="txn_list_budget_split_notice">Суммы могут отличаться от бюджета в связи с дробными операциями</string>
     <string name="txn_list_group_today">Сегодня</string>
     <string name="txn_list_group_yesterday">Вчера</string>
-    <string name="txn_list_group_this_week">Эта неделя</string>
-    <string name="txn_list_group_earlier">Ранее</string>
     <string name="txn_list_sort_newest">Сначала новые</string>
     <string name="txn_list_sort_oldest">Сначала старые</string>
     <string name="txn_list_sort_amount_highest">Самая высокая сумма</string>
@@ -404,15 +402,6 @@
     <string name="date_range_title">Выбрать диапазон дат</string>
     <string name="date_range_ok">ОК</string>
     <string name="date_range_cancel">Отмена</string>
-    <string name="filter_row_more">Больше фильтров</string>
-    <plurals name="filter_row_more_active">
-        <item quantity="one">Больше фильтров (%1$d активных)</item>
-        <item quantity="few">Больше фильтров (%1$d активных)</item>
-        <item quantity="many">Больше фильтров (%1$d активных)</item>
-        <item quantity="other">Больше фильтров (%1$d активных)</item>
-    </plurals>
-    <string name="filter_row_collapse">Свернуть</string>
-    <string name="filter_row_expand">Развернуть</string>
     <string name="split_editor_title">Разделить категории</string>
     <string name="split_editor_remove_all">Удалить разделы</string>
     <string name="split_editor_add">Добавить сплит</string>

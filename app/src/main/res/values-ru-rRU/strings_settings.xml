@@ -221,7 +221,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Скачать модель AI (%1$d MB)</string>
     <string name="settings_ai_status_downloading">Загрузка модели ИИ...</string>
-    <string name="settings_ai_status_paused">Загрузка прервана</string>
     <string name="settings_ai_status_completed">Модель AI готова к чату</string>
     <string name="settings_ai_status_failed">Ошибка загрузки</string>
     <string name="settings_ai_status_insufficient_space">Недостаточно места</string>

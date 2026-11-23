@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.presentation.plan
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -11,16 +10,15 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.domain.challenges.ChallengeKind
 import com.pennywiseai.tracker.domain.challenges.ChallengeOutcome
 import com.pennywiseai.tracker.domain.challenges.ChallengeProgress
-import com.pennywiseai.tracker.domain.challenges.ChallengeRow
 import com.pennywiseai.tracker.domain.challenges.ChallengeRun
 import com.pennywiseai.tracker.domain.challenges.FOOD_AND_DINING
 import com.pennywiseai.tracker.domain.challenges.OTHERS
 import com.pennywiseai.tracker.domain.challenges.challengeCategories
+import com.pennywiseai.tracker.domain.challenges.challengeRows
 import com.pennywiseai.tracker.domain.challenges.inboxReadBefore
+import com.pennywiseai.tracker.domain.challenges.namedAsNow
 import com.pennywiseai.tracker.domain.challenges.progress
-import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
-import com.pennywiseai.tracker.domain.spending.analyticsRowsFor
 import com.pennywiseai.tracker.utils.BackgroundAccessState
 import com.pennywiseai.tracker.utils.TrackingProblem
 import com.pennywiseai.tracker.utils.canReadSms
@@ -120,8 +118,7 @@ class ChallengesViewModel @Inject constructor(
                     categoryRepository.getAllCategories(),
                     smsScanManager.isScanRunning(),
                 ) { rows, categories, scanning ->
-                    // Matched by the category's current name: a rename moves its expenses with it.
-                    val current = run?.let { r -> r.categoryId?.let { id -> categories.firstOrNull { it.id == id } }?.let { r.copy(categoryName = it.name) } ?: r }
+                    val current = run?.namedAsNow(categories)
                     val counted = challengeRows(rows, categories.parentNameOf(), keep = current?.categoryName)
                     val progress = current?.progress(counted, today, tracking = problem == null, inboxReadBefore = inboxReadBefore(scannedAt, owesFullWindow))
                     // Days a gap in tracking left without rows: read the inbox before they count.
@@ -204,26 +201,4 @@ class ChallengesViewModel @Inject constructor(
     private companion object {
         const val LOOKBACK_DAYS = 28L
     }
-}
-
-/**
- * The spending Review counts ([analyticsRowsFor]: no transfers between own accounts,
- * loans or exclusions), one per row whatever its amount or currency. Card purchases
- * always count, whatever "count credit card as expense" says: that setting picks how
- * money is totalled, and a swipe at a restaurant is still spending that day. [keep] (the
- * running week's category) isn't rolled into a parent it was moved under mid-run.
- */
-internal fun challengeRows(
-    rows: List<TransactionWithSplits>,
-    parentOf: Map<String, String>,
-    keep: String? = null,
-): List<ChallengeRow> = analyticsRowsFor(rows, TransactionTypeFilter.SPENDING).map { row ->
-    val tx = row.transaction
-    ChallengeRow(
-        id = tx.id,
-        date = tx.dateTime.toLocalDate(),
-        // Only shares with something counted: a split's zero share doesn't spend its category.
-        categories = row.getAmountByCategory().filterValues { it.signum() > 0 }.keys.map { it.ifEmpty { OTHERS }.let { name -> if (name == keep) name else parentOf[name] ?: name } }.toSet(),
-        merchant = tx.merchantName,
-    )
 }

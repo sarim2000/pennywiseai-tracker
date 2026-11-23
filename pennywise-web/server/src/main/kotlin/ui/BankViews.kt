@@ -199,7 +199,7 @@ object BankViews {
 
             div(classes = "parse-arrow") {
                 i {}
-                span { +"Read on your phone — nothing sent anywhere" }
+                span { +"Read on your phone" }
             }
 
             div(classes = "parsed") {
@@ -315,7 +315,7 @@ object BankViews {
     private fun FlowContent.pageFooter() {
         div(classes = "footnote") {
             +"PennyWise is a free, open-source (AGPL-3.0) expense tracker. Bank SMS are parsed "
-            +"entirely on your device — nothing is uploaded, and there is no account to create. "
+            +"entirely on your device, and there is no account to create. "
             a(href = "/banks") { +"Browse all supported banks" }
             +"."
         }
@@ -340,9 +340,9 @@ object BankViews {
                 "only reads the SMS already sitting on your phone, which is why it needs SMS " +
                 "permission and nothing else.",
             "Is my $name transaction data sent anywhere?" to
-                "No. Parsing runs entirely on your device. There is no server, no account and no " +
-                "analytics on your financial data, and the source code is public so this can be " +
-                "verified.",
+                "Only if you choose to. Parsing runs entirely on your device, and there is no account " +
+                "and no analytics. Your data leaves the phone only through opt-in features you start, " +
+                "like reporting a parsing problem. The source code is public so this can be verified.",
             "What if a message from $name is read incorrectly?" to
                 "You can paste the message into the parser tool on this site to see exactly what " +
                 "PennyWise extracts, and report it in one click if it is wrong. Parser fixes ship " +
@@ -357,7 +357,7 @@ object BankViews {
         val pageTitle = bankTitle(name)
         val description = clampDescription(
             "Turn your $name SMS alerts into an automatic expense tracker. Free, open source, " +
-                "works offline on your phone — no bank login, nothing uploaded."
+                "works offline on your phone, with no bank login."
         )
 
         respondHtml(HttpStatusCode.OK) {
@@ -382,7 +382,7 @@ object BankViews {
                             p(classes = "lede") {
                                 +"$name already texts you every time money moves. PennyWise reads those "
                                 +"messages on your phone and builds your spending record from them — no "
-                                +"manual entry, no bank login, nothing leaves the device."
+                                +"manual entry and no bank login."
                             }
                         }
 
@@ -491,7 +491,7 @@ object BankViews {
         val description = clampDescription(
             "PennyWise reads SMS alerts from ${country.bankCount} banks in ${country.country} " +
                 "and tracks your spending in ${country.currency} automatically. Free, open " +
-                "source, fully offline."
+                "source, and parsed on your phone."
         )
 
         respondHtml(HttpStatusCode.OK) {

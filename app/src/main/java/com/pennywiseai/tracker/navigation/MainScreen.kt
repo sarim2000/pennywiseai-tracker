@@ -279,9 +279,11 @@ fun MainScreen(
 
     // Budgets, bills and goals live in the Plan tab; opened from elsewhere it shows
     // fresh on that section. A hidden Plan tab falls back to the standalone screens.
+    // Challenges have no standalone screen, so they open the hidden tab itself, as
+    // Home's "See all" opens a hidden Transactions tab.
     // [focusId] is the one budget or bill a Home row was tapped on.
     fun openPlan(from: BottomNavItem, section: PlanSection, focusId: Long? = null) {
-        if (BottomNavItem.Plan.route in themeState.hiddenNavTabs) {
+        if (BottomNavItem.Plan.route in themeState.hiddenNavTabs && section != PlanSection.CHALLENGES) {
             when (section) {
                 PlanSection.BILLS -> open(from, Subscriptions(focusBillId = focusId))
                 else -> openRoot(BudgetGroups(focusBudgetId = focusId))

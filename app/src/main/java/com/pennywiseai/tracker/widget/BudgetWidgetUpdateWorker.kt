@@ -22,16 +22,18 @@ import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
+import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.data.repository.budgetSpend
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.spending.budgetPace
+import com.pennywiseai.tracker.presentation.home.heroBudget
+import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
@@ -146,13 +148,14 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 val groupSpendingList = unifiedGroupSpending(raw, carries, convertSplit, convertLimit, ownWindows = false)
 
                 val limitGroups = groupSpendingList.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
-                val totalLimitBudget = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
                 val totalLimitSpent = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
-                val limitRemaining = totalLimitBudget - totalLimitSpent
-                val usage = widgetLimitUsage(totalLimitBudget, totalLimitSpent, groupSpendingList)
-                val dailyAllowance = if (raw.daysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
-                    limitRemaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
-                } else BigDecimal.ZERO
+                // The budget figures are Home's, so the widget shows what Home's hero does.
+                val figures = widgetBudgetFigures(
+                    homeBudgetSummary(raw, displayCurrency, baseCurrency) { amount, from, to ->
+                        currencyConversionService.convertAmountOrNull(amount, from, to)
+                    },
+                    today
+                )
                 val netSavings = totalIncome - totalLimitSpent
                 val savingsRate = if (totalIncome > BigDecimal.ZERO) {
                     (netSavings.toFloat() / totalIncome.toFloat() * 100f)
@@ -199,13 +202,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 val prevSavings = prevIncome - prevLimitSpent
                 val savingsDelta = netSavings - prevSavings
 
-                BudgetWidgetData(
-                    totalSpent = totalLimitSpent,
-                    totalLimit = totalLimitBudget,
-                    hasLimit = usage.hasLimit,
-                    remaining = limitRemaining,
-                    percentageUsed = usage.percentageUsed,
-                    dailyAllowance = dailyAllowance,
+                figures.copy(
                     totalIncome = totalIncome,
                     netSavings = netSavings,
                     savingsRate = savingsRate,
@@ -229,16 +226,8 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
                 val savingsDelta = spending.netSavings - prevSpending.netSavings
 
-                val limitRemaining = spending.totalLimitBudget - spending.totalLimitSpent
-                val usage = widgetLimitUsage(spending.totalLimitBudget, spending.totalLimitSpent, spending.groups)
-
-                BudgetWidgetData(
-                    totalSpent = spending.totalLimitSpent,
-                    totalLimit = spending.totalLimitBudget,
-                    hasLimit = usage.hasLimit,
-                    remaining = limitRemaining,
-                    percentageUsed = usage.percentageUsed,
-                    dailyAllowance = spending.dailyAllowance,
+                // The same summary Home reads in this mode.
+                widgetBudgetFigures(spending, today).copy(
                     totalIncome = spending.totalIncome,
                     netSavings = spending.netSavings,
                     savingsRate = spending.savingsRate,
@@ -258,6 +247,28 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
             Result.retry()
         }
     }
+}
+
+/**
+ * The widget's budget figures: the budget Home's hero leads with, alone, when there is
+ * one. An all-spending limit already covers what a category budget spends, so adding
+ * the two counts that spending and that money twice (#1420). With no such budget, the
+ * page's limits added up, as before.
+ */
+internal fun widgetBudgetFigures(summary: BudgetOverallSummary, today: LocalDate): BudgetWidgetData {
+    val hero = summary.heroBudget(today)?.let { h -> summary.groups.first { it.group.budget.id == h.budgetId } }
+    val limit = hero?.totalBudget ?: summary.totalLimitBudget
+    val spent = hero?.totalActual ?: summary.totalLimitSpent
+    val usage = widgetLimitUsage(limit, spent, hero?.let { listOf(it) } ?: summary.groups)
+    return BudgetWidgetData(
+        totalSpent = spent,
+        totalLimit = limit,
+        hasLimit = usage.hasLimit,
+        remaining = limit - spent,
+        percentageUsed = usage.percentageUsed,
+        dailyAllowance = hero?.dailyAllowance ?: summary.dailyAllowance,
+        currency = summary.currency
+    )
 }
 
 internal data class WidgetLimitUsage(val percentageUsed: Float, val hasLimit: Boolean)
@@ -293,7 +304,7 @@ internal fun widgetOverPace(today: LocalDate, groups: List<BudgetGroupSpending>)
  * current window, as on Budgets: its spending and its Extra budget, so the carry isn't
  * set against a month of a weekly budget's figures. [ownWindows] counts every budget
  * that way, for the owl's pace; without it the others count every transaction on the
- * page, as the widget's figures do for now (#1420). [carries] holds every budget's
+ * page, as the widget's savings figure does. [carries] holds every budget's
  * carry; [convertLimit] puts a stored (base-currency) limit into the display currency.
  */
 internal suspend fun unifiedGroupSpending(

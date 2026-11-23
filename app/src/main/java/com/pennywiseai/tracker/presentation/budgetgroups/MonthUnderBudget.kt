@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.semantics
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
+import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.components.celebration.CelebrationKeys
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
@@ -58,10 +59,19 @@ fun monthUnderBudget(today: LocalDate, previous: BudgetOverallSummary, dismissed
     }
     val kept = limits.isNotEmpty() &&
         limits.any { it.totalActual.signum() > 0 } &&
-        limits.all { it.totalActual <= it.totalBudget && !it.hasUnconvertedSpend }
+        limits.all { it.held() }
     return MonthUnderBudget(YearMonth.from(today).minusMonths(1), previous.currency)
         .takeIf { kept && it.key !in dismissed }
 }
+
+/**
+ * The limit and every category limit inside it held, all spending counted. A budget
+ * under its total can still have a category over its own limit (its meter is red).
+ */
+private fun BudgetGroupSpending.held(): Boolean =
+    totalActual <= totalBudget &&
+        !hasUnconvertedSpend &&
+        categorySpending.none { it.budgetAmount.signum() > 0 && it.actualAmount > it.budgetAmount }
 
 /**
  * [ready] is false until this visit has decided whether [win] exists. The Budgets list

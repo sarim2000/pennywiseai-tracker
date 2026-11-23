@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.preferences.eligibleBudgetMonthDismissals
+import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import org.junit.Assert.assertEquals
@@ -58,6 +59,20 @@ class MonthUnderBudgetTest {
         assertNull(monthUnderBudget(nov3, summary(), emptySet()))
         // Unconverted spend could hide an overspend.
         assertNull(monthUnderBudget(nov3, summary(group("100").copy(hasUnconvertedSpend = true)), emptySet()))
+    }
+
+    @Test
+    fun `a category over its own limit is no win, even with the total under`() {
+        fun cat(spent: String, limit: String) = BudgetCategorySpending(
+            categoryName = "Food", budgetAmount = BigDecimal(limit), actualAmount = BigDecimal(spent),
+            percentageUsed = 0f, dailySpend = BigDecimal.ZERO,
+        )
+        // Food 7,000 of 5,000 and Shopping 1,000 of 5,000: 8,000 of 10,000 overall.
+        val overInFood = group("8000", limit = "10000").copy(categorySpending = listOf(cat("7000", "5000"), cat("1000", "5000")))
+        assertNull(monthUnderBudget(nov3, summary(overInFood), emptySet()))
+        // A category with no limit of its own can't be over one.
+        val noCategoryLimit = group("8000", limit = "10000").copy(categorySpending = listOf(cat("7000", "0"), cat("1000", "5000")))
+        assertEquals("JOD", monthUnderBudget(nov3, summary(noCategoryLimit), emptySet())?.currency)
     }
 
     @Test

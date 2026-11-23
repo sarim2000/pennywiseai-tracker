@@ -86,11 +86,10 @@ object LandingViews {
                 div(classes = "lp-hero-art") {
                     attributes["aria-hidden"] = "true"
                     div(classes = "lp-blob shape-cookie") {}
-                    phone("home", "PennyWise home screen")
-                    div(classes = "lp-float lp-float-sms") {
-                        span(classes = "lp-float-k") { +"New from SMS" }
-                        // The newest row in the screenshot, so the hero shows one ledger.
-                        span(classes = "lp-float-v") { +"JD20 · Demo Cafe" }
+                    // One ledger across both frames: the Zomato SMS on the left is the newest row on the right.
+                    div(classes = "lp-shots") {
+                        shot("sms", "lp-shot-back")
+                        shot("home", "lp-shot-front", lazy = false)
                     }
                     div(classes = "lp-float lp-float-owl") {
                         owl()
@@ -132,8 +131,7 @@ object LandingViews {
                             h3 { +"Ask about your money" }
                             p { +"“What did I spend on food?” “Bills due next week?” The assistant runs entirely on your phone. On Android it uses Qwen 2.5, and you can dictate with the mic." }
                         }
-                        // Cropped above the chat's model-download card; the tile clips the bottom anyway.
-                        phone("ask", "", small = true, height = 868)
+                        shot("ask", "lp-shot-tile")
                     }
                     div(classes = "lp-tile lp-tile-ins") {
                         div(classes = "lp-tile-copy") {
@@ -141,7 +139,7 @@ object LandingViews {
                             h3 { +"Insights that look ahead" }
                             p { +"Trends by category, merchant or account, month-over-month comparisons and a forecast for the end of the month." }
                         }
-                        phone("ins", "", small = true)
+                        shot("insights", "lp-shot-tile")
                     }
                     tile("lp-tile-plan", "shape-sunny", "◎", "Budgets, bills & goals",
                         "Budgets with custom cycles, safe-to-spend and a daily allowance. Subscriptions are spotted for you, with reminders before they’re due.")
@@ -344,12 +342,16 @@ object LandingViews {
         }
     }
 
-    /** A phone frame holding a real screenshot of the app, swapped for the dark one in dark mode. */
-    private fun FlowContent.phone(shot: String, alt: String, small: Boolean = false, height: Int = 1105) {
-        div(classes = if (small) "lp-phone lp-phone-sm" else "lp-phone") {
-            unsafe {
-                +"""<picture><source srcset="/static/app/d-$shot.webp" media="(prefers-color-scheme: dark)"><img src="/static/app/$shot.webp" alt="$alt" width="540" height="$height" loading="${if (small) "lazy" else "eager"}"></picture>"""
-            }
+    /**
+     * A Play Store frame (fastlane/metadata/android/en-US/images/phoneScreenshots, 1080×1920, scaled
+     * to 600 wide). The frames carry their own device, headline and background, so the same image
+     * serves both themes. Decorative: the copy beside each one says the same thing.
+     */
+    private fun FlowContent.shot(name: String, classes: String, lazy: Boolean = true) {
+        img(src = "/static/app/store-$name.webp", alt = "", classes = "lp-shot $classes") {
+            width = "600"
+            height = "1067"
+            attributes["loading"] = if (lazy) "lazy" else "eager"
         }
     }
 
@@ -390,15 +392,15 @@ object LandingViews {
         .lp-proof b { color: var(--on-bg); font-size: 22px; font-weight: 800; margin-right: 4px; font-variant-numeric: tabular-nums; }
         .lp-hero-art { position: relative; display: grid; place-items: center; padding: 24px 0; }
         .lp-blob { position: absolute; width: min(460px, 100%); aspect-ratio: 1; background: var(--primary-container); }
-        .lp-phone { position: relative; width: min(300px, 78%); padding: 9px; border-radius: 46px; background: #111318; box-shadow: 0 0 0 1px var(--outline-variant), 0 30px 60px -28px rgba(16,24,40,.45); }
-        .lp-phone img { display: block; width: 100%; height: auto; border-radius: 38px; }
-        .lp-phone-sm { width: 220px; border-radius: 38px; padding: 7px; }
-        .lp-phone-sm img { border-radius: 31px; }
+        .lp-shot { display: block; height: auto; border-radius: var(--r-xl); box-shadow: 0 0 0 1px var(--outline-variant), 0 30px 60px -28px rgba(16,24,40,.45); }
+        /* Two frames fanned: each 60% wide (≈107% tall at 9:16), offset corner to corner. */
+        .lp-shots { position: relative; width: min(420px, 100%); aspect-ratio: 4 / 5; }
+        .lp-shots .lp-shot { position: absolute; width: 60%; }
+        .lp-shot-back { left: 0; top: 0; transform: rotate(-4deg); }
+        .lp-shot-front { right: 0; bottom: 0; transform: rotate(3deg); }
+        .lp-shot-tile { width: 220px; }
         .lp-float { position: absolute; display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: var(--r-lg); background: var(--surface-lowest); box-shadow: 0 12px 32px -12px rgba(16,24,40,.28); font-size: 14px; font-weight: 600; }
-        .lp-float-sms { top: 16%; left: -4%; flex-direction: column; align-items: flex-start; gap: 0; }
-        .lp-float-k { font-size: 12px; font-weight: 500; color: var(--on-variant); }
-        .lp-float-v { font-size: 16px; font-weight: 700; color: var(--on-bg); }
-        .lp-float-owl { bottom: 12%; right: -2%; padding: 8px 18px 8px 8px; }
+        .lp-float-owl { bottom: 4%; left: 0; padding: 8px 18px 8px 8px; }
         .lp-owl img { display: block; width: 44px; height: 44px; }
 
         /* Steps */
@@ -424,7 +426,7 @@ object LandingViews {
         .lp-tile-ask h3, .lp-tile-ask p { color: var(--on-primary-container); }
         .lp-tile-ask .lp-badge { background: var(--surface-lowest); color: var(--primary); }
         .lp-tile-ins { background: var(--surface-container); }
-        .lp-tile-ask .lp-phone, .lp-tile-ins .lp-phone { align-self: end; margin-bottom: -60px; }
+        .lp-tile-ask .lp-shot, .lp-tile-ins .lp-shot { align-self: end; margin-bottom: -60px; }
         .lp-tile-plan { background: var(--tertiary-container); }
         .lp-tile-plan h3, .lp-tile-plan p { color: var(--on-tertiary-container); }
         .lp-tile-plan .lp-badge { background: var(--surface-lowest); color: var(--on-tertiary-container); }
@@ -504,9 +506,8 @@ object LandingViews {
           .lp-step:last-child { border-radius: var(--r-xs) var(--r-xs) var(--r-xl) var(--r-xl); }
           .lp-bento { grid-template-columns: 1fr; }
           .lp-tile-ask, .lp-tile-ins { grid-column: auto; grid-template-columns: 1fr; }
-          .lp-tile-ask .lp-phone, .lp-tile-ins .lp-phone { justify-self: center; }
-          .lp-float-sms { left: 0; top: 8%; }
-          .lp-float-owl { right: 0; bottom: 6%; }
+          .lp-tile-ask .lp-shot, .lp-tile-ins .lp-shot { justify-self: center; }
+          .lp-float-owl { bottom: 0; }
           .lp-privacy { padding: 28px 22px; }
           .lp-pro { flex-direction: column; align-items: flex-start; padding: 24px; }
           .lp-links { grid-template-columns: 1fr; }

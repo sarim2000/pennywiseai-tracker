@@ -122,7 +122,7 @@ object ParseViews {
                             span(classes = "eyebrow") { +"Free tool" }
                             h1 { +"Bank SMS parser" }
                             p(classes = "lede") {
-                                +"Paste a bank SMS and see exactly what PennyWise reads from it, with the same parser that ships in the app. "
+                                +"Paste a bank SMS and see what PennyWise reads from it. This web demo covers fewer banks than the app. "
                                 +"Spot a mistake? Report it to help improve accuracy."
                             }
                         }

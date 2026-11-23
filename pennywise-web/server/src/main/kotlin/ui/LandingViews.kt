@@ -163,11 +163,12 @@ object LandingViews {
                 div {
                     sectionHead("See exactly what it reads", null)
                     p(classes = "lp-body") {
-                        +"The same parser that ships in the app runs on this site. Paste any bank SMS and watch "
-                        +"the amount, merchant, account and reference come out, colour-matched to the text they came from."
+                        +"Try a bank SMS in the web demo, or open a bank's page for a sample, and watch the amount, "
+                        +"merchant, account and reference come out, colour-matched to the text they came from. "
+                        +"The demo covers fewer banks than the app does."
                     }
                     div(classes = "cta-row") {
-                        a(href = "/tools/parse", classes = "btn btn-filled btn-lg") { +"Try the SMS parser" }
+                        a(href = "/tools/parse", classes = "btn btn-filled btn-lg") { +"Try the parser demo" }
                         a(href = "/banks", classes = "btn btn-outlined btn-lg") { +"Supported banks" }
                     }
                 }

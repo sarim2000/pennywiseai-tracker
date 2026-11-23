@@ -72,6 +72,7 @@ fun AchievementsScreen(
     val locked = list.orEmpty().filterNot { it.earned }
 
     PennyWiseScaffold(
+        revealAmountsAction = false, // shows no amounts
         title = stringResource(R.string.achievements_title),
         navigationIcon = {
             IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {

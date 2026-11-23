@@ -103,6 +103,14 @@ describe("AI relay", () => {
 
 		const init = (await (await mcp(token!, { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18" } })).json()) as any;
 		expect(init.result.protocolVersion).toBe("2025-06-18");
+		// The connector's picture: named in serverInfo and served from this host.
+		const icon = init.result.serverInfo.icons[0].src as string;
+		expect(new URL(icon).pathname).toBe("/icon.png");
+		for (const path of ["/icon.png", "/favicon.ico"]) {
+			const res = await call(path);
+			expect(res.status).toBe(200);
+			expect(res.headers.get("Content-Type")).toMatch(/^image\//);
+		}
 		const list = (await (await mcp(token!, { jsonrpc: "2.0", id: 2, method: "tools/list" })).json()) as any;
 		expect(list.result.tools.map((t: { name: string }) => t.name)).toContain("spending_summary");
 

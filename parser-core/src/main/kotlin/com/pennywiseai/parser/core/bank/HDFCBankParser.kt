@@ -52,16 +52,30 @@ class HDFCBankParser : BaseIndianBankParser() {
                 }
         }
 
-        // Check for HDFC Bank Card debit transactions - "Spent Rs.xxx From HDFC Bank Card xxxx At [MERCHANT] On xxx"
-        if (message.contains("From HDFC Bank Card", ignoreCase = true) &&
+        // HDFC Bank Card spends: "Spent Rs.xxx From HDFC Bank Card xxxx At [MERCHANT] On xxx",
+        // and the credit-card form "Spent Rs.xxx On HDFC Bank Card xxxx At ..[MERCHANT] On xxx",
+        // which pads the name with leading dots and marks a truncated name with "_".
+        if ((
+                message.contains("From HDFC Bank Card", ignoreCase = true) ||
+                    (
+                        message.startsWith("Spent", ignoreCase = true) &&
+                            message.contains("On HDFC Bank Card", ignoreCase = true)
+                        )
+                ) &&
             message.contains(" At ", ignoreCase = true) &&
             message.contains(" On ", ignoreCase = true)
         ) {
-            // Extract merchant between "At" and "On" using string operations for reliability
+            // Merchant runs from "At" to the "On" before the date, so a name like
+            // "GAME ON" survives; fall back to the next plain " On ".
             val atIndex = message.indexOf(" At ", ignoreCase = true)
-            val onIndex = message.indexOf(" On ", ignoreCase = true)
-            if (atIndex != -1 && onIndex != -1 && onIndex > atIndex) {
-                val merchant = message.substring(atIndex + 4, onIndex).trim()
+            val onIndex = if (atIndex == -1) {
+                -1
+            } else {
+                Regex("""\s+On\s+\d""", RegexOption.IGNORE_CASE).find(message, atIndex + 4)?.range?.first
+                    ?: message.indexOf(" On ", atIndex + 4, ignoreCase = true)
+            }
+            if (atIndex != -1 && onIndex != -1) {
+                val merchant = message.substring(atIndex + 4, onIndex).trim().trim('.', '_').trim()
                 if (merchant.isNotEmpty()) {
                     return cleanMerchantName(merchant)
                 }
@@ -476,8 +490,6 @@ class HDFCBankParser : BaseIndianBankParser() {
         return super.cleanMerchantName(merchant)
     }
 
-
-
     override fun isTransactionMessage(message: String): Boolean {
         // Skip E-Mandate notifications
         if (isEMandateNotification(message)) {
@@ -523,7 +535,6 @@ class HDFCBankParser : BaseIndianBankParser() {
         ) {
             return false
         }
-
 
         // Skip credit card payment confirmations
         if (lowerMessage.contains("received towards your credit card")) {

@@ -60,7 +60,12 @@ const mcpHandler = {
 				return rpcResult(id, {
 					protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
 					capabilities: { tools: { listChanged: false } },
-					serverInfo: { name: "pennywise", title: "PennyWise", version: "1.0.0" },
+					serverInfo: {
+						name: "pennywise",
+						title: "PennyWise",
+						version: "1.0.0",
+						icons: [{ src: `${new URL(request.url).origin}/icon.png`, mimeType: "image/png", sizes: ["512x512"] }],
+					},
 					instructions: INSTRUCTIONS,
 				});
 			}
@@ -129,6 +134,8 @@ const defaultHandler = {
 			}
 		}
 
+		// AI apps show the host's favicon beside the connector; without one they fall back to the parent domain's.
+		if (path === "/favicon.ico" || path === "/icon.png") return env.ASSETS.fetch(request);
 		if (path === "/") return new Response("PennyWise AI relay. Passes questions to your phone; stores none of them.\n");
 		return new Response("Not found", { status: 404 });
 	},

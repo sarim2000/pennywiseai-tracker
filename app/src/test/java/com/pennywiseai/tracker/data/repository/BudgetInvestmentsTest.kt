@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
+import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
@@ -14,6 +16,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
 import io.mockk.coEvery
 import io.mockk.every
@@ -28,7 +31,10 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.YearMonth
 
-/** Money put into an investment isn't spending: Budgets, Insights and Home leave it out of a budget alike. */
+/**
+ * Money put into an investment isn't spending, and an ignored account's isn't the user's: Budgets,
+ * Insights and Home leave both out of a budget alike.
+ */
 class BudgetInvestmentsTest {
 
     private val today = LocalDate.now()
@@ -69,7 +75,7 @@ class BudgetInvestmentsTest {
         tx(3, "900", TransactionType.INVESTMENT)
     )
 
-    private fun repository(group: BudgetWithCategories, txs: List<TransactionWithSplits>) = BudgetGroupRepository(
+    private fun repository(group: BudgetWithCategories, txs: List<TransactionWithSplits>, ignored: Set<String> = emptySet()) = BudgetGroupRepository(
         mockk<BudgetDao> { every { getActiveBudgetsWithCategories() } returns flowOf(listOf(group)) },
         mockk<TransactionSplitDao> {
             every { getTransactionsWithSplitsAllCurrencies(any(), any()) } returns flowOf(txs)
@@ -81,7 +87,10 @@ class BudgetInvestmentsTest {
             every { budgetCycleStartDay } returns flowOf(1)
             coEvery { getBudgetCycleStartDay() } returns 1
         },
-        mockk<CategoryDao> { coEvery { getAllCategoriesList() } returns emptyList() }
+        mockk<CategoryDao> { coEvery { getAllCategoriesList() } returns emptyList() },
+        mockk<IgnoredAccountsStore> { every { keysFlow } returns flowOf(ignored) },
+        mockk<CardDao> { every { getAllCards() } returns flowOf(emptyList()) },
+        mockk<AccountBalanceDao> { every { getAllLatestBalances() } returns flowOf(emptyList()) }
     )
 
     // XYZ has never had a rate.
@@ -100,8 +109,12 @@ class BudgetInvestmentsTest {
     }
 
     /** Budgets screen in both currency modes, then Home outside and in unified mode. */
-    private fun spentEverywhere(group: BudgetWithCategories): List<BigDecimal> = runBlocking {
-        val repo = repository(group, txs)
+    private fun spentEverywhere(
+        group: BudgetWithCategories,
+        txs: List<TransactionWithSplits> = this.txs,
+        ignored: Set<String> = emptySet()
+    ): List<BigDecimal> = runBlocking {
+        val repo = repository(group, txs, ignored)
         val raw = repo.getGroupSpendingAllCurrencies(month.year, month.monthValue).first()
         listOf(
             budgets(repo, unified = false).totalActual,
@@ -130,8 +143,48 @@ class BudgetInvestmentsTest {
     }
 
     @Test
+    fun `an all-spending budget counts card spend on every surface`() = runBlocking {
+        val spent = listOf(tx(1, "3898", TransactionType.EXPENSE), tx(2, "1000", TransactionType.CREDIT))
+        assertSpent("4898", spentEverywhere(budget(), spent))
+        val repo = repository(budget(), spent)
+        for (unified in listOf(false, true)) {
+            val plan = budgets(repo, unified)
+            assertEquals(plan.totalActual.toDouble(), plan.dailyCumulativeSpending.last(), 0.01)
+        }
+        val last = month.minusMonths(1)
+        val history = repository(
+            budget(),
+            listOf(tx(1, "100", TransactionType.EXPENSE, date = last.atDay(1)), tx(2, "50", TransactionType.CREDIT, date = last.atDay(1)))
+        ).getBudgetHistoryForMonth(budget().budget, last.year, last.monthValue, "INR")
+        assertEquals(0, BigDecimal("150").compareTo(history.single().spent))
+    }
+
+    @Test
     fun `a category budget leaves investments out everywhere`() {
         assertSpent("3898", spentEverywhere(budget("Others")))
+    }
+
+    @Test
+    fun `an ignored account's spend is left out of a budget's category line everywhere`() = runBlocking {
+        // ₹3,000 more under Others, on an account the user ignores (#826): the Transactions list
+        // hides it, so the Others line it opens mustn't count it either.
+        fun onIgnored(row: TransactionWithSplits) =
+            row.copy(transaction = row.transaction.copy(bankName = "Test Bank", accountNumber = "0000"))
+        val ignored = setOf("Test Bank_0000")
+        val withIgnored = txs + onIgnored(tx(4, "3000", TransactionType.EXPENSE))
+        assertSpent("3898", spentEverywhere(budget("Others"), withIgnored, ignored))
+        val repo = repository(budget("Others"), withIgnored, ignored)
+        for (unified in listOf(false, true)) {
+            val line = budgets(repo, unified).categorySpending.single { it.categoryName == "Others" }
+            assertEquals(0, BigDecimal("3898").compareTo(line.actualAmount))
+        }
+        val last = month.minusMonths(1)
+        val history = repository(
+            budget("Others"),
+            listOf(tx(1, "100", TransactionType.EXPENSE, date = last.atDay(1)), onIgnored(tx(2, "3000", TransactionType.EXPENSE, date = last.atDay(1)))),
+            ignored
+        ).getBudgetHistoryForMonth(budget("Others").budget, last.year, last.monthValue, "INR")
+        assertEquals(0, BigDecimal("100").compareTo(history.single().spent))
     }
 
     @Test

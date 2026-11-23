@@ -16,6 +16,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.presentation.budgetgroups.historyBudgetTotal
@@ -120,7 +121,7 @@ class BudgetRolloverRoutingTest {
             coEvery { getBudgetCycleStartDay() } returns 1
         }
         val categories = mockk<CategoryDao> { coEvery { getAllCategoriesList() } returns categoryList }
-        return BudgetGroupRepository(budgetDao, splitDao, prefs, categories)
+        return BudgetGroupRepository(budgetDao, splitDao, prefs, categories, mockk<IgnoredAccountsStore> { every { keysFlow } returns flowOf(emptySet()) }, mockk(), mockk())
     }
 
     // USD converts at half; XYZ has never had a rate.
@@ -433,6 +434,29 @@ class BudgetRolloverRoutingTest {
             .single { it.window.start == today }
         assertEquals(0, BigDecimal("30").compareTo(native.totalActual))
         assertEquals(0, native.totalActual.compareTo(nativeWeek.spent))
+    }
+
+    @Test
+    fun `in unified mode budget history counts other currencies like the card without rollover too`() = runBlocking {
+        val convert: suspend (String, BigDecimal) -> BigDecimal? = { from, amount -> conversion.convertAmountOrNull(amount, from, "JOD") }
+        // A category budget and one tracking all spending (#1410).
+        for (group in listOf(budget(rollover = false), budget(rollover = false).copy(categories = emptyList()))) {
+            val repo = repository(group, listOf(spend("30"), spend("20", "USD")))
+            val card = summary(repo, unified = true)
+            assertEquals(0, BigDecimal("40").compareTo(card.totalActual))
+            val thisWeek = repo.getBudgetHistoryForMonth(group.budget, today.year, today.monthValue, "JOD", convert)
+                .single { it.window.start == today }
+            assertEquals(0, card.totalActual.compareTo(thisWeek.spent))
+            val breakdown = repo.getBudgetWindowBreakdown(group.budget, resolveBudgetWindow(group.budget, today, 1), "JOD", convert)
+            assertEquals(0, card.totalActual.compareTo(breakdown.totalActual))
+            breakdown.categorySpending.forEach { assertEquals(0, card.totalActual.compareTo(it.actualAmount)) }
+            // Outside unified mode the USD purchase is in neither, as before.
+            val nativeWeek = repo.getBudgetHistoryForMonth(group.budget, today.year, today.monthValue, "JOD")
+                .single { it.window.start == today }
+            assertEquals(0, BigDecimal("30").compareTo(summary(repo, unified = false).totalActual))
+            assertEquals(0, BigDecimal("30").compareTo(nativeWeek.spent))
+            assertEquals(0, BigDecimal("30").compareTo(repo.getBudgetWindowBreakdown(group.budget, thisWeek.window, "JOD").totalActual))
+        }
     }
 
     @Test

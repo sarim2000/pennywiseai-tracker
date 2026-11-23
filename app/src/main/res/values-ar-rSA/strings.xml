@@ -28,6 +28,7 @@
     <string name="duplicate_accounts_message">قد تؤدي الاختلافات في صيغ الرسائل البنكية القصيرة، أو قراءتها بطريقة سابقة، إلى إنشاء حسابات مكررة بأرقام من ثلاث خانات وأربع خانات. إذا كان %1$s و%2$s الحساب نفسه، فهل تريد دمجهما؟ ستنتقل المعاملات إلى الحساب ذي الخانات الأربع، وسيُحتفظ بسجل رصيده، وستُسجَّل عليه الرسائل القادمة تلقائيًا.</string>
     <string name="duplicate_accounts_merge">دمج وتذكّر ذلك</string>
     <string name="duplicate_accounts_keep">إبقاؤهما منفصلين</string>
+    <!-- Top-bar eye, shown on every screen while the user has hidden amounts: tapping it shows them again -->
     <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
     <plurals name="dock_result_description">
         <item quantity="zero">لا معاملات جديدة</item>

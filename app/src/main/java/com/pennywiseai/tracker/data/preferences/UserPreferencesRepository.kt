@@ -1471,8 +1471,13 @@ open class UserPreferencesRepository internal constructor(
     val weeklyGuessHandledWeek: Flow<String?> = dataStore.data
         .map { it[PreferencesKeys.WEEKLY_GUESS_HANDLED_WEEK] }
 
+    /** A full disk leaves the week unmarked: the card comes back on the next visit instead of crashing Home. */
     suspend fun markWeeklyGuessHandled(weekStart: String) {
-        dataStore.edit { it[PreferencesKeys.WEEKLY_GUESS_HANDLED_WEEK] = weekStart }
+        try {
+            dataStore.edit { it[PreferencesKeys.WEEKLY_GUESS_HANDLED_WEEK] = weekStart }
+        } catch (_: IOException) {
+            // Full disk: nothing stored, so the next visit asks again.
+        }
     }
 
     /** True only the first time [key] is asked for. */

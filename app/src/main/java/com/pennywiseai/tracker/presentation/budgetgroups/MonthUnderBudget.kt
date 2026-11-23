@@ -93,9 +93,12 @@ fun monthUnderBudget(cycle: BudgetWindow, previous: BudgetOverallSummary, dismis
 /**
  * The limit and every category limit inside it held, all spending counted. A budget
  * under its total can still have a category over its own limit (its meter is red).
+ * With rollover, a carry that couldn't be counted leaves [totalBudget] short of the
+ * real limit (an overspent last period would have lowered it), so it can't be judged.
  */
 private fun BudgetGroupSpending.held(): Boolean =
     totalActual <= totalBudget &&
+        !carryIncomplete &&
         !hasUnconvertedSpend &&
         categorySpending.none { it.budgetAmount.signum() > 0 && it.actualAmount > it.budgetAmount }
 

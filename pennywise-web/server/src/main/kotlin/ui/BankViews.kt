@@ -301,7 +301,7 @@ object BankViews {
         section(classes = "end-cta") {
             h2 { +title }
             p {
-                +"Free and open source. Works offline — your messages never leave your phone. "
+                +"Free and open source. Parsing runs on your phone, and your data leaves it only through opt-in features you start. "
                 a(href = SOURCE_URL) {
                     attributes["rel"] = "noopener"
                     +"View the source"

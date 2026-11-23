@@ -73,7 +73,8 @@ object LandingViews {
                     h1 { +"Your bank already texts you. PennyWise does the rest." }
                     p(classes = "lp-lede") {
                         +"Every transaction SMS becomes a clean, searchable money timeline, with budgets, bills, "
-                        +"insights and an assistant you can ask anything. No account, no sign-up, nothing leaves your phone."
+                        +"insights and an assistant you can ask anything. No account, no sign-up, and your data leaves the phone "
+                        +"only through opt-in features you start."
                     }
                     downloadButtons()
                     ul(classes = "lp-proof") {
@@ -229,9 +230,9 @@ object LandingViews {
                         p { +"The code is open, so you don’t have to take our word for it." }
                     }
                     ul(classes = "lp-privacy-list") {
-                        privacyItem("No account, no sign-up", "There is no PennyWise server holding your data. It lives on your phone.")
-                        privacyItem("AI runs on-device", "Parsing and the assistant run locally. Your messages are never uploaded.")
-                        privacyItem("No ads, no trackers", "No analytics SDKs. Anything that leaves the phone is an opt-in feature you start yourself.")
+                        privacyItem("No account, no sign-up", "Your transactions are stored on your phone, not on a PennyWise server.")
+                        privacyItem("AI runs on-device", "SMS parsing, storage and the assistant all run on your phone.")
+                        privacyItem("No ads, no trackers", "No analytics SDKs. Your data leaves the phone only through opt-in features you start, like reporting a parsing problem.")
                         privacyItem("Open source (AGPL v3)", "Read every line on GitHub, or build it yourself.")
                     }
                 }

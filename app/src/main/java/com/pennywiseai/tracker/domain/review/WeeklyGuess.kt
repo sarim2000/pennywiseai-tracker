@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.domain.review
 
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -97,18 +97,20 @@ internal fun weeklyGuessQuestion(
 /**
  * Whether card purchases in [question]'s category, currency and week are missing from its
  * figure: Review follows "Count card spend as expense", and with it off they aren't
- * spending. [payments] are the weeks' charges ([PeriodDetail.paymentRows]).
+ * spending. [cards] are the weeks' card purchases ([PeriodDetail.cardRows]); a split one
+ * counts when any part of it lands in the category, as the review files splits.
  */
 internal fun leavesOutCardSpend(
     question: WeeklyGuessQuestion,
-    payments: List<TransactionEntity>,
+    cards: List<TransactionWithSplits>,
     creditAsExpense: Boolean,
     parentOf: Map<String, String>,
-): Boolean = !creditAsExpense && payments.any { tx ->
+): Boolean = !creditAsExpense && cards.any { row ->
+    val tx = row.transaction
     tx.transactionType == TransactionType.CREDIT &&
         tx.currency == question.currency &&
         tx.dateTime.toLocalDate() in question.weekStart..question.weekEnd &&
-        tx.category.ifEmpty { "Others" }.let { parentOf[it] ?: it } == question.category
+        row.getAmountByCategory().keys.any { it.ifEmpty { "Others" }.let { name -> parentOf[name] ?: name } == question.category }
 }
 
 /**

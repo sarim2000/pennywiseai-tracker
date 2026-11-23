@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.domain.review
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -203,8 +205,15 @@ class WeeklyGuessTest {
     @Test
     fun `card purchases in the asked category and week are flagged only while card spend is left out`() {
         val q = question(mapOf("USD" to weeks(mapOf("Food & Dining" to "40"))))!!
-        fun charge(category: String, day: LocalDate = lastStart.plusDays(2), currency: String = "USD", type: TransactionType = TransactionType.CREDIT) =
-            TransactionEntity(
+        fun charge(
+            category: String,
+            day: LocalDate = lastStart.plusDays(2),
+            currency: String = "USD",
+            type: TransactionType = TransactionType.CREDIT,
+            splits: List<String> = emptyList(),
+        ) = TransactionWithSplits(
+            transaction = TransactionEntity(
+                id = 1,
                 amount = BigDecimal.TEN,
                 merchantName = "Test Shop",
                 category = category,
@@ -212,7 +221,9 @@ class WeeklyGuessTest {
                 transactionType = type,
                 dateTime = day.atTime(12, 0),
                 transactionHash = "$category$day$currency$type",
-            )
+            ),
+            splits = splits.map { TransactionSplitEntity(transactionId = 1, category = it, amount = BigDecimal("5")) },
+        )
         val parentOf = mapOf("Restaurants" to "Food & Dining")
 
         assertTrue(leavesOutCardSpend(q, listOf(charge("Food & Dining")), creditAsExpense = false, parentOf))
@@ -226,6 +237,13 @@ class WeeklyGuessTest {
         assertFalse(leavesOutCardSpend(q, listOf(charge("Food & Dining", day = lastStart.minusDays(1))), creditAsExpense = false, parentOf))
         assertFalse(
             leavesOutCardSpend(q, listOf(charge("Food & Dining", type = TransactionType.EXPENSE)), creditAsExpense = false, parentOf),
+        )
+        // A split purchase counts where its parts land, not where it was first filed.
+        assertTrue(
+            leavesOutCardSpend(q, listOf(charge("Shopping", splits = listOf("Shopping", "Restaurants"))), creditAsExpense = false, parentOf),
+        )
+        assertFalse(
+            leavesOutCardSpend(q, listOf(charge("Food & Dining", splits = listOf("Shopping", "Travel"))), creditAsExpense = false, parentOf),
         )
     }
 }

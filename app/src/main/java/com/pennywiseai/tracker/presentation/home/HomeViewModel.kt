@@ -1484,7 +1484,7 @@ class HomeViewModel @Inject constructor(
                             preferred = currency,
                         )?.let { question ->
                             question.copy(
-                                cardSpendLeftOut = leavesOutCardSpend(question, detail.paymentRows, creditAsExpense, categories.parentNameOf()),
+                                cardSpendLeftOut = leavesOutCardSpend(question, detail.cardRows, creditAsExpense, categories.parentNameOf()),
                             )
                         }
                     }

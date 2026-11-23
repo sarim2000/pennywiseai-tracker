@@ -13,8 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +31,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.readableOn
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
@@ -259,15 +260,18 @@ private fun CategoryItem(
                 .padding(Dimensions.Padding.content),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Category with colored dot. A hidden one is dimmed so it reads as tucked away;
-            // only its name and dot, so the show/hide and edit controls stay at full strength.
-            CategoryChip(
-                category = category,
-                showText = true,
-                modifier = Modifier
-                    .weight(1f)
-                    .alpha(if (category.isHidden) Dimensions.Alpha.medium else 1f)
-            )
+            // Category with colored dot. A hidden one's name is dimmed so it reads as tucked
+            // away, but only as far as it still reads; the controls stay at full strength.
+            val ink = LocalContentColor.current
+            val card = MaterialTheme.colorScheme.surfaceContainerLow
+            val hiddenInk = remember(ink, card) { hiddenCategoryInk(ink, card) }
+            CompositionLocalProvider(LocalContentColor provides if (category.isHidden) hiddenInk else ink) {
+                CategoryChip(
+                    category = category,
+                    showText = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
             // Hide / unhide toggle — available for every category, including
             // system defaults (the whole point of #736).
@@ -313,3 +317,11 @@ private fun CategoryItem(
         }
     }
 }
+
+/**
+ * A hidden category's name: [ink] faded toward the [card], but never under 4.5:1 there.
+ * A flat 55% fade fell to 2.5:1 in Rosé Pine light; this keeps the dimming wherever the
+ * ink has contrast to spare and stops at the text floor.
+ */
+internal fun hiddenCategoryInk(ink: Color, card: Color): Color =
+    ink.copy(alpha = Dimensions.Alpha.medium).compositeOver(card).readableOn(listOf(card))

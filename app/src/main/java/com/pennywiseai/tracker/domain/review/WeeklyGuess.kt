@@ -189,9 +189,13 @@ internal fun snap(value: BigDecimal, step: BigDecimal): BigDecimal =
 fun isCloseGuess(guess: BigDecimal, actual: BigDecimal): Boolean =
     (guess - actual).abs().multiply(BigDecimal(100)) <= actual * BigDecimal(CLOSE_GUESS_PERCENT)
 
-/** How far off, as a whole percent of what was recorded. */
+/** Past this a percent says nothing more, and a tiny week against big history would overflow an Int. */
+private val MAX_GAP_PERCENT = BigDecimal(999)
+
+/** How far off, as a whole percent of what was recorded, at most [MAX_GAP_PERCENT]. */
 fun guessGapPercent(guess: BigDecimal, actual: BigDecimal): Int =
-    (guess - actual).abs().multiply(BigDecimal(100)).divide(actual, 0, RoundingMode.HALF_UP).toInt()
+    (guess - actual).abs().multiply(BigDecimal(100)).divide(actual, 0, RoundingMode.HALF_UP)
+        .min(MAX_GAP_PERCENT).toInt()
 
 /** No trailing zeros and no exponent: 200, not 2E+2, so figures compare and print plainly. */
 private fun BigDecimal.plain(): BigDecimal = stripTrailingZeros().let { if (it.scale() < 0) it.setScale(0) else it }

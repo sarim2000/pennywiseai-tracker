@@ -190,6 +190,8 @@ class WeeklyGuessTest {
         assertFalse(isCloseGuess(BigDecimal("100"), actual))
         assertEquals(15, guessGapPercent(BigDecimal("230"), actual))
         assertEquals(50, guessGapPercent(BigDecimal("100"), actual))
+        // A near-zero week against a big guess caps rather than wrapping past Int.MAX_VALUE.
+        assertEquals(999, guessGapPercent(BigDecimal("2000000"), BigDecimal("0.01")))
     }
 
     @Test

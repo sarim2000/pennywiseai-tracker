@@ -102,7 +102,6 @@ class SettingsSearchTest {
         val items = rows("Folder backup", "Default currency", "الإعدادات", "Dark", "Date format")
         assertEquals(listOf("Folder backup"), items.search("bakup")) // missing letter
         assertEquals(listOf("Folder backup"), items.search("bakcup")) // swapped letters
-        assertEquals(listOf("Folder backup"), items.search("bakc")) // typo while still typing
         assertEquals(listOf("Default currency"), items.search("curency defalt"))
         // Two typos only from 8 letters.
         assertEquals(listOf("Default currency"), items.search("curxenxy"))
@@ -111,10 +110,20 @@ class SettingsSearchTest {
         // Short words get no slack, or "dar" would find "Date" too.
         assertEquals(listOf("Dark"), items.search("dar"))
         assertTrue(items.search("drk").isEmpty())
-        // Nor do two letters after the Arabic article, or "الغم" would find every "الم…".
-        val arabic = rows("العملة", "المزامنة", "اللغة")
+        // Nor do 4 letters: one edit turns too many short words into others.
+        assertTrue(rows("Folder backup", "Fold").search("food").isEmpty())
+        // Nor do 4 letters or fewer after the Arabic article, or "الاسم" would find every "الا…".
+        val arabic = rows("العملة", "المزامنة", "اللغة", "الأسهم")
         assertTrue(arabic.search("الغم").isEmpty())
-        assertEquals(listOf("اللغة"), arabic.search("اللفه"))
+        assertTrue(arabic.search("اللفه").isEmpty())
+        assertTrue(arabic.search("الاسم").isEmpty())
+        assertEquals(listOf("المزامنة"), arabic.search("المزامنه")) // ة/ه fold, not a typo
+        assertEquals(listOf("المزامنة"), arabic.search("المزمنة"))
+        // A typo is spent on the whole word, never on the start of a longer one.
+        val longer = rows("Connect Claude / ChatGPT", "Restore data from backup", "Folder backup")
+        assertTrue(longer.search("cloud").isEmpty())
+        assertTrue(longer.search("reset").isEmpty())
+        assertTrue(longer.search("bakc").isEmpty())
         // Any exact hit turns typo matching off, so "date" doesn't also list "Data".
         assertEquals(listOf("Date format"), rows("Data", "Date format").search("date"))
         // Typo hits keep the field order: title before page name.

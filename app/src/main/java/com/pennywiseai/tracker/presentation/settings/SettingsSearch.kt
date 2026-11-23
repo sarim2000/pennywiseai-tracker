@@ -77,6 +77,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.text.Normalizer
+import kotlin.math.abs
 import com.pennywiseai.feature.learnedcategories.R as LearnedCategoriesR
 
 /**
@@ -265,7 +266,7 @@ internal fun searchWords(query: String): List<String> = normalizeForSearch(query
  * query, then by how well each word matched. A word starting a word beats one inside
  * a word ("curr" puts Currency above Recurring), and an earlier field beats a later
  * one. List order breaks ties. Only when nothing matches as typed, words may match
- * a word start with a typo or two ([typoBudget]), so "bakup" finds Backup but
+ * a whole word with a typo or two ([typoBudget]), so "bakup" finds Backup but
  * "date" doesn't also list "Data".
  */
 internal fun <T> List<T>.matchingSearch(query: String, fields: (T) -> List<String>): List<T> {
@@ -315,23 +316,29 @@ internal fun showsOwnSubtitle(words: List<String>, title: String, subtitle: Stri
 
 private fun typoMatches(word: String, text: String): Boolean {
     val budget = typoBudget(word)
-    // A token too short to be within budget of the word skips the matrix (a pasted wall of text stays cheap).
-    return budget > 0 && text.split(' ').any { it.length >= word.length - budget && typoDistance(word, it) <= budget }
+    // Lengths further apart than the budget can't be within it, so they skip the matrix
+    // (a pasted wall of text stays cheap).
+    return budget > 0 && text.split(' ').any { abs(it.length - word.length) <= budget && typoDistance(word, it) <= budget }
 }
 
 /**
- * Typos a query word this long may have: none up to 3 letters, or 2 after the Arabic
- * article ("الغم" would find every "الم…"), as short words would match too much; 2 from 8.
+ * Typos a query word may have, by its letters not counting the Arabic article: none
+ * under 5, as short words would match too much ("food" would find "fold", "الاسم"
+ * every "الا…"), 1 up to 7, 2 from 8.
  */
-private fun typoBudget(word: String) = when {
-    word.length <= 3 || (word.startsWith("ال") && word.length <= 4) -> 0
-    word.length <= 7 -> 1
-    else -> 2
+private fun typoBudget(word: String): Int {
+    val letters = if (word.startsWith("ال")) word.length - 2 else word.length
+    return when {
+        letters < 5 -> 0
+        letters <= 7 -> 1
+        else -> 2
+    }
 }
 
 /**
  * Fewest edits (insert, delete, replace, swap two neighbours) turning [word] into the
- * start of [token], so "bakc" finds "backup" while it is still being typed.
+ * whole [token]. Not a start of it: there the slack picks a different, longer word
+ * ("cloud" finds "Claude", "reset" finds "Restore"), and a wrong row is worse than none.
  */
 private fun typoDistance(word: String, token: String): Int {
     val d = Array(word.length + 1) { i -> IntArray(token.length + 1) { j -> if (i == 0) j else if (j == 0) i else 0 } }
@@ -344,7 +351,7 @@ private fun typoDistance(word: String, token: String): Int {
             }
         }
     }
-    return d[word.length].min()
+    return d[word.length][token.length]
 }
 
 /**

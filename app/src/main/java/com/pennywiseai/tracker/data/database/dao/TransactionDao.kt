@@ -120,6 +120,14 @@ interface TransactionDao {
     ): Flow<List<TransactionEntity>>
 
     @Query("""
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+        AND transaction_type = :type
+        ORDER BY date_time DESC
+    """)
+    fun getTransactionsByType(type: TransactionType): Flow<List<TransactionEntity>>
+
+    @Query("""
         SELECT category FROM transactions
         WHERE is_deleted = 0
         GROUP BY category

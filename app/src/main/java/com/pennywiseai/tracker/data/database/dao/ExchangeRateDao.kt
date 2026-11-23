@@ -11,6 +11,9 @@ interface ExchangeRateDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertExchangeRate(exchangeRate: ExchangeRateEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertExchangeRates(exchangeRates: List<ExchangeRateEntity>)
+
     @Query("SELECT * FROM exchange_rates WHERE from_currency = :fromCurrency AND to_currency = :toCurrency AND expires_at > :currentTime")
     suspend fun getExchangeRate(fromCurrency: String, toCurrency: String, currentTime: LocalDateTime = LocalDateTime.now()): ExchangeRateEntity?
 

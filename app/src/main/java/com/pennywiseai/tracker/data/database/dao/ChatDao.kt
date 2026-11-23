@@ -22,6 +22,9 @@ interface ChatDao {
     @Query("DELETE FROM chat_messages WHERE timestamp < :before")
     suspend fun deleteMessagesBefore(before: Long)
 
+    @Query("SELECT COUNT(*) FROM chat_messages")
+    suspend fun getMessageCount(): Int
+
     @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC")
     suspend fun getAllMessagesForContext(): List<ChatMessage>
 }

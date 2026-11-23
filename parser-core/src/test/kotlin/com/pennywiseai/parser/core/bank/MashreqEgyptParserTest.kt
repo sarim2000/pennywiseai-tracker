@@ -33,6 +33,10 @@ class MashreqEgyptParserTest {
             "Your OTP is 654321. Please use it to complete your card transaction online. Please do not share this code with anyone.",
         "Arabic OTP" to
             "123456 هو الرمز السري لمرة واحدة لهذه المعاملة.  يرجى عدم مشاركته  مع أحد.",
+        "Negated debit (was not debited)" to
+            "لم يتم خصم مبلغ EGP 3000 من حسابك # ******123456. لمزيد من التفاصيل، يرجى تسجيل الدخول على تطبيق Mashreq Egypt",
+        "Negated credit (was not credited)" to
+            "لم تتم إضافة مبلغ EGP 4500 إلى حسابك # ******123456. لمزيد من التفاصيل، يرجى تسجيل الدخول على تطبيق Mashreq Egypt",
         "Transfer request received (not the debit itself)" to
             "تم استلام طلب تحويل أموال  إلى EGP 1500 برقم مرجعي MAC1234567890123. اذا لم تتقدم بهذا الطلب، يرجى  التواصل  مع \"مساعد المشرق الذكي\" من خلال \"خدمة العملاء\" داخل تطبيق Mashreq Egypt",
         "Financial inclusion limit warning" to

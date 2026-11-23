@@ -53,12 +53,12 @@ class MashreqEgyptParser : BankParser() {
             label = "InstaPay Transfer"
         ),
         Shape(
-            Regex("""تم\s+خصم\s+مبلغ\s+(?<cur>[A-Z]{3})\s*$AMT\s+من\s+حسابك\s*#?\s*(?<acct>[*Xx\d]+)"""),
+            Regex("""${WORD_START}تم\s+خصم\s+مبلغ\s+(?<cur>[A-Z]{3})\s*$AMT\s+من\s+حسابك\s*#?\s*(?<acct>[*Xx\d]+)"""),
             TransactionType.EXPENSE,
             label = "Account Debit"
         ),
         Shape(
-            Regex("""تمت?\s+[إا]ضافة\s+مبلغ\s+(?<cur>[A-Z]{3})\s*$AMT\s+[إا]لى\s+حسابك\s*#?\s*(?<acct>[*Xx\d]+)"""),
+            Regex("""${WORD_START}تمت?\s+[إا]ضافة\s+مبلغ\s+(?<cur>[A-Z]{3})\s*$AMT\s+[إا]لى\s+حسابك\s*#?\s*(?<acct>[*Xx\d]+)"""),
             TransactionType.INCOME,
             label = "Account Credit"
         ),
@@ -97,6 +97,9 @@ class MashreqEgyptParser : BankParser() {
 
     private companion object {
         const val AMT = """(?<amt>[\d,]+(?:\.\d+)?)"""
+        // "تم" must start a word: "لم يتم خصم" / "لم تتم إضافة" ("was not debited/credited")
+        // contain "تم خصم" / "تم إضافة" inside "يتم" / "تتم" and must not match.
+        const val WORD_START = """(?<![ء-ي])"""
         // Every shape captures the currency as "cur"; the Arabic tokens mean EGP.
         const val EGP = """(?<cur>جم|جنيه|EGP)"""
         val ISO_CODE = Regex("""[A-Z]{3}""")

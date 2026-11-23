@@ -89,7 +89,8 @@ object LandingViews {
                     phone("home", "PennyWise home screen")
                     div(classes = "lp-float lp-float-sms") {
                         span(classes = "lp-float-k") { +"New from SMS" }
-                        span(classes = "lp-float-v") { +"₹1,250 · FreshMart" }
+                        // The newest row in the screenshot, so the hero shows one ledger.
+                        span(classes = "lp-float-v") { +"JD20 · Demo Cafe" }
                     }
                     div(classes = "lp-float lp-float-owl") {
                         owl()
@@ -131,7 +132,8 @@ object LandingViews {
                             h3 { +"Ask about your money" }
                             p { +"“What did I spend on food?” “Bills due next week?” The assistant runs Qwen 2.5 entirely on your phone, and you can dictate with the mic." }
                         }
-                        phone("ask", "", small = true)
+                        // Cropped above the chat's model-download card; the tile clips the bottom anyway.
+                        phone("ask", "", small = true, height = 868)
                     }
                     div(classes = "lp-tile lp-tile-ins") {
                         div(classes = "lp-tile-copy") {
@@ -343,10 +345,10 @@ object LandingViews {
     }
 
     /** A phone frame holding a real screenshot of the app, swapped for the dark one in dark mode. */
-    private fun FlowContent.phone(shot: String, alt: String, small: Boolean = false) {
+    private fun FlowContent.phone(shot: String, alt: String, small: Boolean = false, height: Int = 1105) {
         div(classes = if (small) "lp-phone lp-phone-sm" else "lp-phone") {
             unsafe {
-                +"""<picture><source srcset="/static/app/d-$shot.webp" media="(prefers-color-scheme: dark)"><img src="/static/app/$shot.webp" alt="$alt" width="540" height="1105" loading="${if (small) "lazy" else "eager"}"></picture>"""
+                +"""<picture><source srcset="/static/app/d-$shot.webp" media="(prefers-color-scheme: dark)"><img src="/static/app/$shot.webp" alt="$alt" width="540" height="$height" loading="${if (small) "lazy" else "eager"}"></picture>"""
             }
         }
     }

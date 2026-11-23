@@ -21,7 +21,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -33,6 +32,7 @@ import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GroupSummary
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.spending.CardTotals
+import com.pennywiseai.tracker.ui.components.AmountByCurrency
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
@@ -400,14 +400,12 @@ internal fun HomeAccountsSection(
                         subtitle = pluralStringResource(R.plurals.home_accounts_unused_limit_cards, cardsWithLimit, cardsWithLimit),
                         subtitleMaxLines = 1
                     )
-                    // One currency per line: on one line, three currencies left the title
-                    // no room. A hidden or single figure has no separator and stays one line.
-                    Text(
-                        text = CurrencyFormatter.formatByCurrency(CardTotals.unusedLimit(creditCards))
-                            .replace(" · ", "\n"),
+                    // One currency per line: on one line, three currencies left the title no room.
+                    AmountByCurrency(
+                        totals = CardTotals.unusedLimit(creditCards),
                         style = PennyWiseText.amountRow,
                         color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.End
+                        horizontalAlignment = Alignment.End
                     )
                 }
             }

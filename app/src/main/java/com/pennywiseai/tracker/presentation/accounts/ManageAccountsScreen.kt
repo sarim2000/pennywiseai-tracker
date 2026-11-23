@@ -31,6 +31,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.domain.spending.CardBillStatus
 import com.pennywiseai.tracker.domain.spending.CardTotals
+import com.pennywiseai.tracker.ui.components.AmountByCurrency
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
@@ -47,6 +48,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -772,13 +774,13 @@ private fun CardTotalsCard(
             if (withLimit > 0) {
                 CardTotalFigure(
                     label = stringResource(R.string.manage_accounts_cards_unused_limit),
-                    value = CurrencyFormatter.formatByCurrency(CardTotals.unusedLimit(cards, ::accountCurrency))
+                    totals = CardTotals.unusedLimit(cards, ::accountCurrency)
                 )
             }
             if (knownBills > 0) {
                 CardTotalFigure(
                     label = stringResource(R.string.manage_accounts_cards_unpaid_bills),
-                    value = CurrencyFormatter.formatByCurrency(CardTotals.unpaidBills(cardBills))
+                    totals = CardTotals.unpaidBills(cardBills)
                 )
             }
         }
@@ -802,10 +804,10 @@ private fun CardTotalsCard(
 }
 
 @Composable
-private fun CardTotalFigure(label: String, value: String) {
+private fun CardTotalFigure(label: String, totals: Map<String, Money>) {
     Column(Modifier.semantics(mergeDescendants = true) {}) {
         Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = value, style = PennyWiseText.amountRow)
+        AmountByCurrency(totals = totals, style = PennyWiseText.amountRow)
     }
 }
 

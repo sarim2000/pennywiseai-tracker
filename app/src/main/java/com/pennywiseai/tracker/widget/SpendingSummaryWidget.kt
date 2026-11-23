@@ -51,7 +51,7 @@ import java.math.BigDecimal
 class SpendingSummaryWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Responsive(
-        setOf(NARROW, NARROW.withBar(), NARROW.withMeta(), WIDE, WIDE.withBar(), WIDE.withMeta(), WIDE.withHero())
+        setOf(NARROW, NARROW.withBar(), NARROW.withMeta(), WIDE, WIDE.withBar(), WIDE.withMeta(), HERO)
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -77,8 +77,8 @@ class SpendingSummaryWidget : GlanceAppWidget() {
         val context = LocalContext.current
         val size = LocalSize.current
         val wide = size.width >= WIDE.width
-        // A tall single row (One UI lays a 4x1 out ~118dp high): the figures and the + grow into it.
-        val hero = wide && size.height >= WIDE.withHero().height
+        // A tall, long single row (One UI lays a 4x1 out ~501x118dp): the figures and the + grow into it.
+        val hero = size.width >= HERO.width && size.height >= HERO.height
         WidgetRow(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -178,8 +178,9 @@ class SpendingSummaryWidget : GlanceAppWidget() {
         // needs ~10dp under label + figure, the "of … · …/day" line ~18dp more.
         fun DpSize.withBar() = copy(height = 72.dp)
         fun DpSize.withMeta() = copy(height = 88.dp)
-        // Room for a headline figure and the thick bar over the meta line.
-        fun DpSize.withHero() = copy(height = 108.dp)
+        // Room for a headline figure and the thick bar over the meta line, and
+        // for "CHF 12,345" beside "CHF 1,234" and the 56dp + at those sizes.
+        val HERO = DpSize(420.dp, 108.dp)
     }
 }
 

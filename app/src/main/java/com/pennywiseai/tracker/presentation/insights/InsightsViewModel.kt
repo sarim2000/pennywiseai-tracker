@@ -10,9 +10,11 @@ import com.pennywiseai.tracker.domain.insights.Insight
 import com.pennywiseai.tracker.domain.insights.InsightFact
 import com.pennywiseai.tracker.domain.insights.InsightsLoader
 import com.pennywiseai.tracker.domain.insights.InsightsSnapshot
+import com.pennywiseai.tracker.domain.insights.PaydayProjectionLoader
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.CycleTotal
 import com.pennywiseai.tracker.domain.review.ReviewRange
+import com.pennywiseai.tracker.domain.spending.PaydayProjection
 import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -47,13 +50,19 @@ data class InsightsUiState(
     val hasHistory: Boolean = false,
     /** How long this currency's money would last; null without enough history. */
     val runway: Runway? = null,
+    /** Whether this currency's balance covers the bills due before payday; null without a known balance. */
+    val paydayProjection: PaydayProjection? = null,
 ) {
     /** Nothing recorded this cycle and nothing to say. */
     val isEmpty: Boolean get() = currencies.isEmpty()
 }
 
 /** [chosen] when it still has something to show, else the busiest currency. */
-internal fun insightsUiState(snapshot: InsightsSnapshot, chosen: String?): InsightsUiState {
+internal fun insightsUiState(
+    snapshot: InsightsSnapshot,
+    chosen: String?,
+    projections: Map<String, PaydayProjection> = emptyMap(),
+): InsightsUiState {
     val reviewed = snapshot.review.currencies.filter { it.hasActivity }
     // A currency with only a subscription in it (an annual bill, say) still gets a page for its monthly cost,
     // and a runway stands on earlier months, so a quiet cycle still has it to show.
@@ -74,6 +83,7 @@ internal fun insightsUiState(snapshot: InsightsSnapshot, chosen: String?): Insig
         subscriptionsMonthly = currency?.let { snapshot.subscriptionsMonthly[it] },
         hasHistory = snapshot.review.hasOlder,
         runway = currency?.let { snapshot.runways[it] },
+        paydayProjection = currency?.let { projections[it] },
     )
 }
 
@@ -93,6 +103,7 @@ private const val HOME_COUNT = 2
 @HiltViewModel
 class InsightsViewModel @Inject constructor(
     loader: InsightsLoader,
+    paydayProjectionLoader: PaydayProjectionLoader,
     private val insightPreferences: InsightPreferences,
     private val savedStateHandle: SavedStateHandle,
     @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
@@ -110,10 +121,15 @@ class InsightsViewModel @Inject constructor(
         .flowOn(defaultDispatcher)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** Only the Insights page reads it, through [state]: Home's card never starts it. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val projections = today.flatMapLatest { paydayProjectionLoader.observe(it) }
+        .onStart { emit(emptyMap()) }
+
     /** Null while loading. */
     val state: StateFlow<InsightsUiState?> =
-        combine(snapshot, savedStateHandle.getStateFlow<String?>(KEY_CURRENCY, null)) { loaded, chosen ->
-            loaded?.let { insightsUiState(it, chosen) }
+        combine(snapshot, savedStateHandle.getStateFlow<String?>(KEY_CURRENCY, null), projections) { loaded, chosen, payday ->
+            loaded?.let { insightsUiState(it, chosen, payday) }
         }.flowOn(defaultDispatcher).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Not dismissed, what matters most first; Home picks its card from these with [homeInsights]. */

@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.insights
 
 import androidx.lifecycle.SavedStateHandle
 import com.pennywiseai.tracker.domain.insights.InsightsLoader
+import com.pennywiseai.tracker.domain.insights.PaydayProjectionLoader
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -9,6 +10,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -38,7 +40,9 @@ class InsightsViewModelTest {
             ranOn = currentCoroutineContext()[ContinuationInterceptor]
             awaitCancellation()
         }
-        val viewModel = InsightsViewModel(loader, mockk(relaxed = true), SavedStateHandle(), background)
+        val payday = mockk<PaydayProjectionLoader>()
+        every { payday.observe(any()) } returns flowOf(emptyMap())
+        val viewModel = InsightsViewModel(loader, payday, mockk(relaxed = true), SavedStateHandle(), background)
 
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect {} }
         advanceUntilIdle()

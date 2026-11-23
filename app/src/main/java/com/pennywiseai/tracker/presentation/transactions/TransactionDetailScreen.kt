@@ -11,22 +11,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -36,6 +40,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
@@ -56,7 +61,9 @@ import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.RevealAmountsAction
 import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.ui.components.SplitItem
+import com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -76,6 +83,8 @@ fun TransactionDetailScreen(
     onDuplicateTransaction: (Long) -> Unit = {},
     onNavigateToGoal: (Long) -> Unit = {},
     onCreateGoal: () -> Unit = {},
+    /** The list of this raw merchant's or this category's transactions (the other one null), in [currency]. */
+    onOpenRelated: (merchant: String?, category: String?, currency: String) -> Unit = { _, _, _ -> },
     viewModel: TransactionDetailViewModel = hiltViewModel(),
     goalsViewModel: TransactionGoalsViewModel = hiltViewModel(),
     splitViewModel: SplitBillViewModel = hiltViewModel()
@@ -207,6 +216,9 @@ fun TransactionDetailScreen(
         }
     }
     var showCategoryPicker by rememberSaveable { mutableStateOf(false) }
+    // "More from" names the merchant as the header does (alias first); the list searches the raw name.
+    val merchantDisplay = LocalMerchantDisplay.current
+    val merchantAlias by viewModel.currentMerchantAlias.collectAsStateWithLifecycle()
     val reportMistake: () -> Unit = {
         val reportUrl = viewModel.getReportUrl()
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(reportUrl))) }
@@ -258,6 +270,32 @@ fun TransactionDetailScreen(
                     showActions = transaction != null,
                     onEdit = { viewModel.enterEditMode() },
                     menu = { dismiss ->
+                        transaction?.let { txn ->
+                            val merchant = txn.merchantName.takeIf { it.isNotBlank() }
+                            // A split row's categories are its parts, and Unsorted is several names.
+                            val category = txn.category.takeIf { hasSplits == false && !isUnsortedCategory(it) }
+                            merchant?.let {
+                                RelatedMenuItem(
+                                    text = stringResource(R.string.txn_detail_menu_more_from, merchantAlias ?: merchantDisplay(it) ?: it),
+                                    icon = Icons.Outlined.Storefront,
+                                    onClick = {
+                                        dismiss()
+                                        onOpenRelated(it, null, txn.currency)
+                                    }
+                                )
+                            }
+                            category?.let {
+                                RelatedMenuItem(
+                                    text = stringResource(R.string.txn_detail_menu_more_in, categoryLabel(it)),
+                                    icon = Icons.Outlined.Category,
+                                    onClick = {
+                                        dismiss()
+                                        onOpenRelated(null, it, txn.currency)
+                                    }
+                                )
+                            }
+                            if (merchant != null || category != null) HorizontalDivider()
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.txn_detail_menu_add_to_group)) },
                             leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
@@ -712,6 +750,16 @@ private fun TransactionDetailContent(
             )
         }
     }
+}
+
+/** A "More from"/"More in" link: one line, since a merchant's name can be long. */
+@Composable
+private fun RelatedMenuItem(text: String, icon: ImageVector, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        leadingIcon = { Icon(icon, contentDescription = null) },
+        onClick = onClick
+    )
 }
 
 /**

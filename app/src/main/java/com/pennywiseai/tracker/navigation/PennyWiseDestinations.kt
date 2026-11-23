@@ -206,6 +206,8 @@ data object LearnedCategories : NavKey
 data class TransactionsWithFilter(
     /** Null lists every category: a calendar day's transactions. */
     val category: String? = null,
+    /** A raw merchant name, searched for: a transaction's "More from". */
+    val merchant: String? = null,
     val period: String? = null,
     val currency: String? = null,
     val startDate: Long? = null,

@@ -236,6 +236,12 @@ fun PennyWiseNavHost(
                                 },
                                 onCreateGoal = {
                                     backStack.navigate(GoalEdit())
+                                },
+                                // Back to that list if it's already open, so "More from" from a
+                                // row it listed doesn't stack the same list again.
+                                onOpenRelated = { merchant, category, currency ->
+                                    val list = relatedTransactions(merchant, category, currency)
+                                    backStack.replaceLast(list) { it == list }
                                 }
                             )
                         }
@@ -550,6 +556,7 @@ fun PennyWiseNavHost(
                     entry<TransactionsWithFilter> { args ->
                         com.pennywiseai.tracker.presentation.transactions.TransactionsScreen(
                             initialCategory = args.category,
+                            initialMerchant = args.merchant,
                             initialPeriod = args.period,
                             initialCurrency = args.currency,
                             initialCustomStartEpochDay = args.startDate,
@@ -570,6 +577,14 @@ fun PennyWiseNavHost(
         }
     }
 }
+
+/** A transaction's "More from" (its [merchant]) or "More in" (its [category]): all time, in its [currency]. */
+internal fun relatedTransactions(merchant: String?, category: String?, currency: String) = TransactionsWithFilter(
+    category = category,
+    merchant = merchant,
+    period = com.pennywiseai.tracker.presentation.common.TimePeriod.ALL.name,
+    currency = currency,
+)
 
 /** Where an insight's button leads; the domain names the target, the app picks the screen. */
 private fun insightDestination(action: InsightAction): NavKey = when (action) {

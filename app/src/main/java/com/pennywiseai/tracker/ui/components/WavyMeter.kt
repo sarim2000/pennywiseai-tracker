@@ -39,8 +39,9 @@ fun WavyMeter(
     fillIn: Boolean = !dense,
 ) {
     // The drawn fraction is read only inside the bar's draw lambda, so easing doesn't recompose.
-    val shown = animateMeterFraction(fraction.coerceIn(0f, 1f), fillIn = fillIn)
-    MeterBar(shown, color, trackColor, modifier, dense)
+    val target = fraction.coerceIn(0f, 1f)
+    val shown = animateMeterFraction(target, fillIn = fillIn)
+    MeterBar(shown, target, color, trackColor, modifier, dense)
 }
 
 /**
@@ -57,9 +58,10 @@ fun WavyMeter(
     dense: Boolean = false,
     fillIn: Boolean = !dense,
 ) {
-    val shown = animateMeterFraction(fraction.coerceIn(0f, 1f), fillIn = fillIn)
+    val target = fraction.coerceIn(0f, 1f)
+    val shown = animateMeterFraction(target, fillIn = fillIn)
     val tint by animateColorAsState(color(shown.value), MaterialTheme.motionScheme.fastEffectsSpec(), label = "meterColor")
-    MeterBar(shown, tint, trackColor, modifier, dense)
+    MeterBar(shown, target, tint, trackColor, modifier, dense)
 }
 
 /**
@@ -75,18 +77,38 @@ fun HideableMeter(hidden: Boolean, meter: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun MeterBar(shown: State<Float>, color: Color, trackColor: Color, modifier: Modifier, dense: Boolean) {
+private fun MeterBar(
+    shown: State<Float>,
+    target: Float,
+    color: Color,
+    trackColor: Color,
+    modifier: Modifier,
+    dense: Boolean,
+) {
+    // A bar headed for an end (full or near empty) stays flat all the way: the indicator's own
+    // amplitude easing, started mid-sweep, doesn't settle back to flat once the sweep ends.
+    val amplitude = when {
+        target <= FLAT_BELOW || target >= FLAT_FROM -> FlatAmplitude
+        dense -> DenseAmplitude
+        else -> WavyProgressIndicatorDefaults.indicatorAmplitude
+    }
     LinearWavyProgressIndicator(
         progress = { shown.value },
         modifier = modifier.fillMaxWidth(),
         color = color,
         trackColor = trackColor,
         stopSize = Dimensions.Component.wavyMeterStop,
-        amplitude = if (dense) DenseAmplitude else WavyProgressIndicatorDefaults.indicatorAmplitude,
+        amplitude = amplitude,
         wavelength = if (dense) Dimensions.Component.wavyMeterDenseWavelength else WavyProgressIndicatorDefaults.LinearDeterminateWavelength,
         waveSpeed = Dimensions.Component.wavyMeterStop,
     )
 }
 
 /** About a third of the standard crest, flat at the very ends like the default. */
-private val DenseAmplitude: (Float) -> Float = { p -> if (p <= 0.1f || p >= 0.95f) 0f else 0.35f }
+private val DenseAmplitude: (Float) -> Float = { p -> if (p <= FLAT_BELOW || p >= FLAT_FROM) 0f else 0.35f }
+
+private val FlatAmplitude: (Float) -> Float = { 0f }
+
+// Where the default amplitude goes flat, at either end of the bar.
+private const val FLAT_BELOW = 0.1f
+private const val FLAT_FROM = 0.95f

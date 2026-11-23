@@ -7,6 +7,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -298,10 +299,14 @@ fun PennyWiseApp(
                     title = { Text(stringResource(R.string.update_ready_title)) },
                     text = { Text(stringResource(R.string.update_ready_body)) },
                     confirmButton = {
-                        TextButton(onClick = onUpdateRestart) { Text(stringResource(R.string.update_restart)) }
+                        TextButton(onClick = onUpdateRestart, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.update_restart))
+                        }
                     },
                     dismissButton = {
-                        TextButton(onClick = onUpdateLater) { Text(stringResource(R.string.update_later)) }
+                        TextButton(onClick = onUpdateLater, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.update_later))
+                        }
                     }
                 )
             }

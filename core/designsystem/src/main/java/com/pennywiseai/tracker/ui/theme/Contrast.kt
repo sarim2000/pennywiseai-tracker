@@ -5,7 +5,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -49,7 +48,13 @@ val ColorScheme.neutralSurfaces: List<Color>
         surfaceContainerHigh, surfaceContainerHighest,
     )
 
-private val readableCache = ConcurrentHashMap<List<ULong>, Color>()
+/** How many nudged colours [readableOn] keeps; the app's tokens across a scheme come to a few hundred. */
+private const val READABLE_CACHE_SIZE = 512
+
+/** Least recently used first out, so a caller that nudges ever-new colours can't grow it without bound. */
+private val readableCache = object : LinkedHashMap<List<ULong>, Color>(READABLE_CACHE_SIZE, 0.75f, true) {
+    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<List<ULong>, Color>?) = size > READABLE_CACHE_SIZE
+}
 
 /**
  * Material's press and focus state layer: the content colour at this opacity over the whole
@@ -86,21 +91,21 @@ fun Color.readableOn(
         return lowest
     }
     if (minContrast(this) >= minimum) return this
-    // ponytail: unbounded in theory, but keys are (token × scheme) — a few hundred at most.
     // The two lists' sizes keep (backgrounds [A, B], layers [C]) apart from ([A], [B, C]).
     val key = listOf(value, minimum.toRawBits().toULong(), backgrounds.size.toULong()) +
         backgrounds.map { it.value } + layers.map { it.value }
-    return readableCache.getOrPut(key) {
-        val toWhite = minContrast(Color.White) > minContrast(Color.Black)
-        val lab = Oklab.of(this)
-        var lo = 0f
-        var hi = 1f
-        repeat(16) {
-            val mid = (lo + hi) / 2
-            if (minContrast(lab.toward(toWhite, mid, alpha)) >= minimum + NUDGE_MARGIN) hi = mid else lo = mid
-        }
-        lab.toward(toWhite, hi, alpha)
+    synchronized(readableCache) { readableCache[key] }?.let { return it }
+    val toWhite = minContrast(Color.White) > minContrast(Color.Black)
+    val lab = Oklab.of(this)
+    var lo = 0f
+    var hi = 1f
+    repeat(16) {
+        val mid = (lo + hi) / 2
+        if (minContrast(lab.toward(toWhite, mid, alpha)) >= minimum + NUDGE_MARGIN) hi = mid else lo = mid
     }
+    val nudged = lab.toward(toWhite, hi, alpha)
+    synchronized(readableCache) { readableCache[key] = nudged }
+    return nudged
 }
 
 /** An sRGB colour in Oklab polar form ([ColorSpaces.Oklab]), for moving its lightness while its hue holds. */

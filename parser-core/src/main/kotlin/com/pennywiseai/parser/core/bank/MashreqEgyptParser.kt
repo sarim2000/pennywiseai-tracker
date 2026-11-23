@@ -73,6 +73,7 @@ class MashreqEgyptParser : BankParser() {
             val m = shape.regex.find(body) ?: continue
             val amount = m.groups["amt"]!!.value.replace(",", "").toBigDecimalOrNull() ?: return null
             val digits = m.groups["acct"]!!.value.filter { it.isDigit() }
+            val currency = m.groups["cur"]!!.value.uppercase().takeIf { it.matches(ISO_CODE) } ?: getCurrency()
             return ParsedTransaction(
                 amount = amount,
                 type = shape.type,
@@ -85,7 +86,10 @@ class MashreqEgyptParser : BankParser() {
                 timestamp = timestamp,
                 bankName = getBankName(),
                 isFromCard = shape.isFromCard,
-                currency = m.groups["cur"]!!.value.uppercase().takeIf { it.matches(ISO_CODE) } ?: getCurrency()
+                currency = currency,
+                // The card and accounts are kept in EGP: a USD card spend must not create
+                // (or re-currency) the account as USD.
+                accountCurrency = if (currency != getCurrency()) getCurrency() else null
             )
         }
         return null

@@ -66,7 +66,8 @@ class MashreqEgyptParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "MY FAWRY",
                     accountLast4 = "1234",
-                    isFromCard = true
+                    isFromCard = true,
+                    expectNullAccountCurrency = true
                 )
             ),
             ParserTestCase(
@@ -79,7 +80,9 @@ class MashreqEgyptParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "NETFLIX.COM",
                     accountLast4 = "1234",
-                    isFromCard = true
+                    isFromCard = true,
+                    // The card's account stays in EGP, so a USD spend can't re-currency it.
+                    accountCurrency = "EGP"
                 )
             ),
             ParserTestCase(

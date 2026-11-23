@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.animations
 
 import android.os.SystemClock
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MotionScheme
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.math.hypot
 import kotlin.math.max
 
@@ -37,7 +39,7 @@ import kotlin.math.max
  * lags [target] by the one frame it takes to take that still.
  *
  * Only the app's own window is caught: a dialog or sheet open over it just swaps.
- * With "Remove animations" the theme swaps at once and no still is taken.
+ * With "Remove animations", or if the still can't be taken, the theme swaps at once.
  *
  * While [enabled] is false the theme also swaps at once, and a reveal under way
  * drops its still in the same frame. App Lock's cover passes false: the still is
@@ -79,8 +81,9 @@ fun <T> ThemeReveal(
             center.value = revealOrigin(origin.value, touchedAt.value, SystemClock.uptimeMillis(), size.value)
             radius.snapTo(0f)
             // The layer still holds the last frame drawn with the old theme.
-            still = layer.toImageBitmap()
+            still = captureStill { layer.toImageBitmap() }
             shown = target
+            if (still == null) return@LaunchedEffect
             // Re-theming the whole app is a heavy frame: start the clock after it, or the
             // spring is mostly spent before the first frame of the reveal is drawn.
             withFrameNanos { }
@@ -119,6 +122,25 @@ fun <T> ThemeReveal(
         content(shown)
     }
 }
+
+/**
+ * A full-window bitmap, or null when it can't be had (no memory for it on an old
+ * phone, a layer that can't be read back). The theme then just swaps, which beats
+ * a change that never applies.
+ */
+private suspend fun captureStill(capture: suspend () -> ImageBitmap): ImageBitmap? = try {
+    capture()
+} catch (e: CancellationException) {
+    throw e
+} catch (e: Exception) {
+    Log.w(TAG, "Theme reveal skipped, no still: ${e.javaClass.simpleName}")
+    null
+} catch (_: OutOfMemoryError) {
+    Log.w(TAG, "Theme reveal skipped, no memory for the still")
+    null
+}
+
+private const val TAG = "ThemeReveal"
 
 /** A plain box for values only draw and the reveal read; writing it never invalidates. */
 private class Holder<V>(var value: V)

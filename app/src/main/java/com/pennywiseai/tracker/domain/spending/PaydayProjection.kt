@@ -78,9 +78,11 @@ data class PaydayProjection(
                 .filter { it.currency == currency && !it.date.isBefore(today) && !it.date.isAfter(today.plusDays(MAX_DAYS)) }
                 .minByOrNull { it.date }
             val until = income?.date ?: cycleEnd.plusDays(1)
+            // An overdue card bill moves to today first, so it's cut like any other when payday is today.
             val due = bills
-                .filter { it.amount.currency == currency && it.dueDate.isBefore(until) && (it.isCardBill || !it.dueDate.isBefore(today)) }
+                .filter { it.amount.currency == currency && (it.isCardBill || !it.dueDate.isBefore(today)) }
                 .map { if (it.dueDate.isBefore(today)) it.copy(dueDate = today) else it }
+                .filter { it.dueDate.isBefore(until) }
                 .sortedBy { it.dueDate }
             var running = balance
             var lowest = balance

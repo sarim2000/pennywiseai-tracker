@@ -106,6 +106,16 @@ class PaydayProjectionTest {
     }
 
     @Test
+    fun `on payday an overdue card bill is the income's to pay`() {
+        val card = Bill("Card", Money(d("200"), "INR"), today.minusDays(2), BillSource.Card("Test Bank", "1234"))
+        val p = project("100", listOf(card), incomes = listOf(salary(today)))
+        assertEquals(today, p.until)
+        assertTrue(p.bills.isEmpty())
+        assertEquals(d("100"), p.lowest)
+        assertNull(p.belowZeroFrom)
+    }
+
+    @Test
     fun `calculate keeps each currency apart and skips estimated balances`() {
         fun account(last4: String, balance: String, currency: String = "INR", type: String = "SAVINGS") = AccountBalanceEntity(
             bankName = "Test Bank", accountLast4 = last4, balance = d(balance),

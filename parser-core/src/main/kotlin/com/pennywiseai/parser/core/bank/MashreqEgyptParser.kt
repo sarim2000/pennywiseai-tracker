@@ -97,9 +97,10 @@ class MashreqEgyptParser : BankParser() {
 
     private companion object {
         const val AMT = """(?<amt>[\d,]+(?:\.\d+)?)"""
-        // "تم" must start a word: "لم يتم خصم" / "لم تتم إضافة" ("was not debited/credited")
-        // contain "تم خصم" / "تم إضافة" inside "يتم" / "تتم" and must not match.
-        const val WORD_START = """(?<![ء-ي])"""
+        // "تم" must start a word, optionally with the conjunction "و" attached ("وتم خصم"):
+        // "لم يتم خصم" / "لم تتم إضافة" ("was not debited/credited") contain "تم خصم" /
+        // "تم إضافة" inside "يتم" / "تتم" and must not match.
+        const val WORD_START = """(?<![ء-ي])و?"""
         // Every shape captures the currency as "cur"; the Arabic tokens mean EGP.
         const val EGP = """(?<cur>جم|جنيه|EGP)"""
         val ISO_CODE = Regex("""[A-Z]{3}""")

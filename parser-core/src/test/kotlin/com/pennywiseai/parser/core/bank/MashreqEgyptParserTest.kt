@@ -143,6 +143,32 @@ class MashreqEgyptParserTest {
                     isFromCard = false
                 )
             ),
+            ParserTestCase(
+                name = "Account debit with attached conjunction (وتم)",
+                message = "تم تنفيذ طلبك وتم خصم مبلغ EGP 3000 من حسابك # ******123456.",
+                sender = "Mashreq NEO",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("3000"),
+                    currency = "EGP",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Account Debit",
+                    accountLast4 = "3456",
+                    isFromCard = false
+                )
+            ),
+            ParserTestCase(
+                name = "Account credit with attached conjunction (وتمت)",
+                message = "تم تنفيذ طلبك وتمت إضافة مبلغ EGP 4500 إلى حسابك # ******123456.",
+                sender = "Mashreq NEO",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("4500"),
+                    currency = "EGP",
+                    type = TransactionType.INCOME,
+                    merchant = "Account Credit",
+                    accountLast4 = "3456",
+                    isFromCard = false
+                )
+            ),
         ) + nonTransactions.map { (name, message) ->
             ParserTestCase(name = "Ignored: $name", message = message, sender = sender, shouldParse = false)
         }

@@ -261,7 +261,8 @@ fun PennyWiseApp(
         isAmoledMode = themeUiState.isAmoledMode,
         appFont = themeUiState.appFont,
     )
-    ThemeReveal(look) { shown ->
+    // The cover is drawn under the reveal's still, so no reveal runs while it's up.
+    ThemeReveal(look, enabled = !covered) { shown ->
         PennyWiseTheme(
             darkTheme = shown.darkTheme,
             dynamicColor = shown.dynamicColor,

@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
@@ -36,11 +37,16 @@ import kotlin.math.max
  *
  * Only the app's own window is caught: a dialog or sheet open over it just swaps.
  * With "Remove animations" the theme swaps at once and no still is taken.
+ *
+ * While [enabled] is false the theme also swaps at once, and a reveal under way
+ * drops its still in the same frame. App Lock's cover passes false: the still is
+ * drawn above [content], so it would otherwise show the unlocked screen over it.
  */
 @Composable
 fun <T> ThemeReveal(
     target: T,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     content: @Composable (shown: T) -> Unit,
 ) {
     var shown by remember { mutableStateOf(target) }
@@ -56,10 +62,12 @@ fun <T> ThemeReveal(
     // A spatial spring: an overshoot past the far corner is invisible, so it's free.
     // Above the app's theme, so the scheme is named rather than read from MaterialTheme.
     val spec = remember { MotionScheme.expressive().slowSpatialSpec<Float>() }
+    // Read in draw, so the still is gone from the very frame that turns this off.
+    val drawStill by rememberUpdatedState(enabled)
 
-    LaunchedEffect(target) {
+    LaunchedEffect(target, enabled) {
         if (target == shown) return@LaunchedEffect
-        if (!animationsEnabled || size.value == Size.Zero) {
+        if (!enabled || !animationsEnabled || size.value == Size.Zero) {
             shown = target
             return@LaunchedEffect
         }
@@ -96,7 +104,7 @@ fun <T> ThemeReveal(
                 size.value = this.size
                 layer.record { this@drawWithContent.drawContent() }
                 drawLayer(layer)
-                val old = still ?: return@drawWithContent
+                val old = still?.takeIf { drawStill } ?: return@drawWithContent
                 val hole = Path().apply { addOval(Rect(center.value, radius.value)) }
                 clipPath(hole, ClipOp.Difference) { drawImage(old) }
             }

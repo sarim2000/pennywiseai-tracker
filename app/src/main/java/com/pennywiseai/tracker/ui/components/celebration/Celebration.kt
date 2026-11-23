@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.data.preferences.CelebrationSeeds
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import kotlin.math.cos
 import kotlin.math.sin
@@ -136,9 +137,12 @@ object CelebrationKeys {
 
     /**
      * Claimed with the first visit's tiers. When it's among the fresh claims, those tiers
-     * are history (an install or upgrade), recorded without confetti.
+     * are history (an install, upgrade or restore), recorded without confetti.
      */
-    const val ACHIEVEMENTS_SEEDED = "achievements_seeded"
+    const val ACHIEVEMENTS_SEEDED = CelebrationSeeds.ACHIEVEMENTS
+
+    /** Seeds every goal already reached when a goal is first opened (an install, upgrade or restore). */
+    const val GOALS_SEEDED = CelebrationSeeds.GOALS
 
     /** Whether the [fresh] claims from an Achievements visit deserve confetti. */
     fun celebratesAchievements(fresh: Set<String>): Boolean = ACHIEVEMENTS_SEEDED !in fresh && fresh.isNotEmpty()

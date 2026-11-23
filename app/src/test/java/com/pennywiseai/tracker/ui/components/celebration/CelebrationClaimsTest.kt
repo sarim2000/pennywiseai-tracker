@@ -75,6 +75,33 @@ class CelebrationClaimsTest {
     }
 
     @Test
+    fun `goals reached before the first goal opened here never cheer, later ones do`() = runBlocking {
+        val old = CelebrationKeys.goalReached("old")
+        var queries = 0
+        repository.seedCelebrations(CelebrationKeys.GOALS_SEEDED) { queries++; listOf(old) }
+        // Seeded once: a second open skips the goals query.
+        repository.seedCelebrations(CelebrationKeys.GOALS_SEEDED) { queries++; listOf(CelebrationKeys.goalReached("new")) }
+        assertEquals(1, queries)
+        assertFalse(repository.celebrateOnce(old))
+        assertTrue(repository.celebrateOnce(CelebrationKeys.goalReached("new")))
+    }
+
+    @Test
+    fun `after a restore, restored goals and badges are recorded again without confetti`() = runBlocking {
+        val a1 = CelebrationKeys.achievement("streak", 1)
+        assertFalse(visitAchievements(a1))
+        repository.seedCelebrations(CelebrationKeys.GOALS_SEEDED) { emptyList() }
+        repository.forgetCelebrationSeeds()
+        // The restore brought a long-reached goal and a higher tier: history, not news.
+        val restored = CelebrationKeys.goalReached("restored")
+        repository.seedCelebrations(CelebrationKeys.GOALS_SEEDED) { listOf(restored) }
+        assertFalse(repository.celebrateOnce(restored))
+        assertFalse(visitAchievements(a1, CelebrationKeys.achievement("streak", 2)))
+        // What was already claimed stays claimed.
+        assertFalse(repository.celebrateOnce(a1))
+    }
+
+    @Test
     fun `a full disk celebrates nothing so the next visit can retry`() = runBlocking {
         val broken = UserPreferencesRepository(diskFull()) {}
         val key = CelebrationKeys.goalReached("a")

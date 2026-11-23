@@ -62,6 +62,17 @@ internal object SmsScanAllTimeMigration : androidx.datastore.core.DataMigration<
 }
 
 /**
+ * Celebration claims meaning "what was already earned is recorded, without confetti"
+ * ([UserPreferencesRepository.seedCelebrations]). A restore forgets them, so restored
+ * history is recorded the same way.
+ */
+object CelebrationSeeds {
+    const val ACHIEVEMENTS = "achievements_seeded"
+    const val GOALS = "goals_seeded"
+    val ALL = setOf(ACHIEVEMENTS, GOALS)
+}
+
+/**
  * Dismissal keys still worth keeping: those for [keepMonth], the month the cycle whose card
  * can still show ends in, or none when no card can. Keys look like `budget_month:2026-10:JOD`.
  */
@@ -1444,6 +1455,38 @@ open class UserPreferencesRepository internal constructor(
 
     /** True only the first time [key] is asked for. */
     suspend fun celebrateOnce(key: String): Boolean = claimCelebrations(listOf(key)).isNotEmpty()
+
+    /**
+     * The first time [seed] is asked for, claims [history] with it, silently: what was already
+     * earned on an install, an upgrade or a restore is history, not news. Later calls do nothing
+     * and skip [history]'s query. A full disk claims nothing, so a later visit retries.
+     */
+    suspend fun seedCelebrations(seed: String, history: suspend () -> Collection<String>) {
+        try {
+            if (seed in dataStore.data.first()[PreferencesKeys.CELEBRATED_MOMENTS].orEmpty()) return
+            val keys = history()
+            dataStore.edit { prefs ->
+                prefs[PreferencesKeys.CELEBRATED_MOMENTS] = prefs[PreferencesKeys.CELEBRATED_MOMENTS].orEmpty() + keys + seed
+            }
+        } catch (_: IOException) {
+            // Nothing recorded; the next visit seeds again.
+        }
+    }
+
+    /**
+     * After a restore, which brings goals and history this device never saw: the next visit
+     * seeds again (see [seedCelebrations]), so a restored, long-reached goal doesn't cheer.
+     */
+    suspend fun forgetCelebrationSeeds() {
+        try {
+            dataStore.edit { prefs ->
+                val celebrated = prefs[PreferencesKeys.CELEBRATED_MOMENTS] ?: return@edit
+                prefs[PreferencesKeys.CELEBRATED_MOMENTS] = celebrated - CelebrationSeeds.ALL
+            }
+        } catch (_: IOException) {
+            // A full disk leaves the old seeds: restored history may cheer once.
+        }
+    }
 
     /** "Month ended under budget" cards the user closed, one key per currency. */
     val budgetMonthCardsDismissed: Flow<Set<String>> = dataStore.data

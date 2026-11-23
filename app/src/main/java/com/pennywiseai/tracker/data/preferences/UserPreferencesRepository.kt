@@ -28,6 +28,7 @@ import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
@@ -1517,16 +1518,22 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
+    // By the raw JSON: every other preference write re-emits dataStore.data.
     val challenges: Flow<ChallengeState> = dataStore.data
-        .map { ChallengeState.fromJson(it[PreferencesKeys.CHALLENGES]) }
+        .map { it[PreferencesKeys.CHALLENGES] }
+        .distinctUntilChanged()
+        .map { ChallengeState.fromJson(it) }
 
-    /** Applies [change] to the stored challenges in one edit. */
-    suspend fun updateChallenges(change: (ChallengeState) -> ChallengeState) {
+    /** Applies [change] to the stored challenges in one edit. False if it couldn't be saved (full disk). */
+    suspend fun updateChallenges(change: (ChallengeState) -> ChallengeState): Boolean = try {
         dataStore.edit { preferences ->
             val current = ChallengeState.fromJson(preferences[PreferencesKeys.CHALLENGES])
             val next = change(current)
             if (next != current) preferences[PreferencesKeys.CHALLENGES] = next.toJson()
         }
+        true
+    } catch (_: IOException) {
+        false
     }
 
     // Replace UPI VPAs with matching contact names at display time.

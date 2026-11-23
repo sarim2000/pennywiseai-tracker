@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.challenges.ChallengeDay
@@ -58,6 +59,7 @@ import com.pennywiseai.tracker.domain.challenges.ChallengeOutcome
 import com.pennywiseai.tracker.domain.challenges.ChallengeProgress
 import com.pennywiseai.tracker.domain.challenges.ChallengeRun
 import com.pennywiseai.tracker.domain.challenges.DayStatus
+import com.pennywiseai.tracker.ui.components.TrackingProblemCard
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -67,11 +69,13 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.celebration.Celebration
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
+import com.pennywiseai.tracker.ui.components.rememberSmsAccess
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.TrackingProblem
 import java.time.LocalDate
 import java.time.format.TextStyle
 
@@ -83,19 +87,42 @@ import java.time.format.TextStyle
 fun PlanChallengesScreen(
     host: PlanTabHost,
     onOpenTransaction: (Long) -> Unit,
+    onOpenBackgroundAccess: () -> Unit,
     viewModel: ChallengesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val celebrate by viewModel.celebrate.collectAsStateWithLifecycle()
     var confirmGiveUp by rememberSaveable { mutableStateOf(false) }
+    val smsAccess = rememberSmsAccess(onGranted = viewModel::refreshTracking)
+    // Every fix (SMS access, background restriction) happens outside the app.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshTracking()
+        onPauseOrDispose { }
+    }
 
     Box(Modifier.fillMaxSize()) {
         PlanListScreen(host) {
             val shown = state ?: return@PlanListScreen
+            val problem = shown.trackingProblem
+            // Nothing can be checked while messages aren't read, so a run waits and none starts.
+            if (problem != null) {
+                item(key = "tracking") {
+                    TrackingProblemCard(
+                        problem = problem,
+                        onFix = { if (problem == TrackingProblem.SMS_ACCESS) smsAccess.request() else onOpenBackgroundAccess() },
+                        modifier = Modifier.animateItem(),
+                    )
+                }
+            }
             val active = shown.active
             if (active != null) {
                 item(key = "active") {
-                    ActiveChallengeCard(active, onGiveUp = { confirmGiveUp = true }, onOpenTransaction = onOpenTransaction)
+                    ActiveChallengeCard(
+                        active,
+                        onGiveUp = { confirmGiveUp = true },
+                        onOpenTransaction = onOpenTransaction,
+                        modifier = Modifier.animateItem(),
+                    )
                 }
                 return@PlanListScreen
             }
@@ -103,13 +130,21 @@ fun PlanChallengesScreen(
                 item(key = "result") {
                     ResultCard(
                         outcome,
+                        canStart = problem == null,
                         onTryAgain = { viewModel.start(outcome.run.kind, outcome.run.categoryName, outcome.run.categoryId) },
                         onDone = viewModel::dismissResult,
+                        modifier = Modifier.animateItem(),
                     )
                 }
             }
             item(key = "presets") {
-                ChallengePresets(categories = shown.categories, afterResult = shown.result != null, onStart = { kind, name -> viewModel.start(kind, name) })
+                ChallengePresets(
+                    categories = shown.categories,
+                    afterResult = shown.result != null,
+                    canStart = problem == null,
+                    onStart = { kind, name -> viewModel.start(kind, name) },
+                    modifier = Modifier.animateItem(),
+                )
             }
         }
         Celebration(play = celebrate, onFinished = viewModel::onCelebrated)
@@ -154,19 +189,24 @@ private fun ChallengeRun.icon(): ImageVector = when (kind) {
 /** A day as TalkBack reads it: "Thursday, 20 Nov: clean". */
 @Composable
 private fun ChallengeDay.description(): String {
-    val date = AppDates.pattern("EEEE").format(date) + ", " + AppDates.dayMonthFormatter().format(date)
+    val label = AppDates.pattern("EEEE").format(date) + ", " + AppDates.dayMonthFormatter().format(date)
     val state = when (status) {
         DayStatus.CLEAN -> stringResource(R.string.challenge_day_clean)
         DayStatus.MISSED -> stringResource(R.string.challenge_day_missed, misses.joinToString { it.merchant })
-        DayStatus.TODAY -> stringResource(R.string.challenge_day_today)
+        DayStatus.PENDING -> stringResource(if (date == LocalDate.now()) R.string.challenge_day_today else R.string.challenge_day_pending)
         DayStatus.FUTURE -> stringResource(R.string.challenge_day_future)
     }
-    return stringResource(R.string.challenge_day_description, date, state)
+    return stringResource(R.string.challenge_day_description, label, state)
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun ActiveChallengeCard(progress: ChallengeProgress, onGiveUp: () -> Unit, onOpenTransaction: (Long) -> Unit) {
+private fun ActiveChallengeCard(
+    progress: ChallengeProgress,
+    onGiveUp: () -> Unit,
+    onOpenTransaction: (Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val run = progress.run
     val scheme = MaterialTheme.colorScheme
     val ink = scheme.onTertiaryContainer
@@ -174,7 +214,7 @@ private fun ActiveChallengeCard(progress: ChallengeProgress, onGiveUp: () -> Uni
     var picked by rememberSaveable(run.startEpochDay, run.kind) { mutableStateOf<Long?>(null) }
     val pickedDay = progress.days.firstOrNull { it.date.toEpochDay() == picked && it.status == DayStatus.MISSED }
     PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         containerColor = scheme.tertiaryContainer,
     ) {
@@ -247,7 +287,10 @@ private fun DayDots(days: List<ChallengeDay>, picked: LocalDate?, onPick: (Chall
     val scheme = MaterialTheme.colorScheme
     val ink = scheme.onTertiaryContainer
     val cookie = MaterialShapes.Cookie9Sided.toShape()
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    val showMisses = stringResource(R.string.challenge_day_show_misses)
+    // No gap between columns: each tap target takes its full seventh of the row (48dp
+    // from a ~380dp-wide phone), and the dots keep their gap as padding inside it.
+    Row(Modifier.fillMaxWidth()) {
         days.forEach { day ->
             val description = day.description()
             val missed = day.status == DayStatus.MISSED
@@ -255,7 +298,7 @@ private fun DayDots(days: List<ChallengeDay>, picked: LocalDate?, onPick: (Chall
                 Modifier
                     .weight(1f)
                     .clip(MaterialTheme.shapes.medium)
-                    .then(if (missed) Modifier.clickable(role = Role.Button) { onPick(day) } else Modifier)
+                    .then(if (missed) Modifier.clickable(onClickLabel = showMisses, role = Role.Button) { onPick(day) } else Modifier)
                     .clearAndSetSemantics { contentDescription = description }
                     .padding(vertical = Spacing.xs),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -263,11 +306,12 @@ private fun DayDots(days: List<ChallengeDay>, picked: LocalDate?, onPick: (Chall
             ) {
                 val (shape, fill) = when (day.status) {
                     DayStatus.CLEAN -> cookie to ink
-                    DayStatus.MISSED, DayStatus.TODAY -> CircleShape to scheme.surfaceContainerLowest
+                    DayStatus.MISSED, DayStatus.PENDING -> CircleShape to scheme.surfaceContainerLowest
                     DayStatus.FUTURE -> CircleShape to ink.copy(alpha = Dimensions.Alpha.categoryTint).compositeOver(scheme.tertiaryContainer)
                 }
                 Box(
                     Modifier
+                        .padding(horizontal = Spacing.xxs)
                         .widthIn(max = Dimensions.Icon.avatarLarge)
                         .fillMaxWidth()
                         .aspectRatio(1f)
@@ -279,7 +323,7 @@ private fun DayDots(days: List<ChallengeDay>, picked: LocalDate?, onPick: (Chall
                     val glyph = when (day.status) {
                         DayStatus.CLEAN -> Icons.Default.Check to scheme.tertiaryContainer
                         DayStatus.MISSED -> Icons.Default.Close to scheme.onSurfaceVariant
-                        DayStatus.TODAY -> Icons.Default.Schedule to ink
+                        DayStatus.PENDING -> Icons.Default.Schedule to ink
                         DayStatus.FUTURE -> null
                     }
                     glyph?.let { (icon, tint) ->
@@ -296,14 +340,17 @@ private fun DayDots(days: List<ChallengeDay>, picked: LocalDate?, onPick: (Chall
     }
 }
 
-/** The owl on how today is going. Today only settles tomorrow, so it says "so far". */
+/** The owl on how today is going. Today only settles later, so it says "so far". */
 @Composable
 private fun MascotLine(progress: ChallengeProgress) {
     val run = progress.run
     val today = progress.today
     val missedToday = today?.status == DayStatus.MISSED
     val line = when {
+        progress.paused -> stringResource(R.string.challenge_paused)
         missedToday -> stringResource(R.string.challenge_today_missed, today.misses.firstOrNull()?.merchant.orEmpty())
+        // The window is over and its last day waits out the grace day.
+        today == null -> stringResource(R.string.challenge_last_day_settling)
         run.kind == ChallengeKind.NO_SPEND_DAYS -> stringResource(R.string.challenge_today_no_spend)
         else -> stringResource(R.string.challenge_today_no_category, categoryLabel(run.categoryName.orEmpty()))
     }
@@ -316,23 +363,29 @@ private fun MascotLine(progress: ChallengeProgress) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Mascot(size = Dimensions.Icon.large, mood = if (missedToday) MascotMood.Calm else MascotMood.Happy)
+        Mascot(size = Dimensions.Icon.large, mood = if (missedToday || progress.paused) MascotMood.Calm else MascotMood.Happy)
         Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
 /** A finished challenge: a win cheers, a miss says how close it came. */
 @Composable
-private fun ResultCard(outcome: ChallengeOutcome, onTryAgain: () -> Unit, onDone: () -> Unit) {
+private fun ResultCard(
+    outcome: ChallengeOutcome,
+    canStart: Boolean,
+    onTryAgain: () -> Unit,
+    onDone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val run = outcome.run
     val scheme = MaterialTheme.colorScheme
     val headline = when {
         outcome.won -> stringResource(R.string.challenge_won_title)
         run.target - outcome.cleanDays <= CLOSE -> stringResource(R.string.challenge_close_title, outcome.cleanDays, run.target)
-        else -> stringResource(R.string.challenge_lost_title, outcome.cleanDays, run.target)
+        else -> pluralStringResource(R.plurals.challenge_lost_title, run.target, outcome.cleanDays, run.target)
     }
     PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         containerColor = if (outcome.won) scheme.tertiaryContainer else scheme.surfaceContainerLow,
     ) {
@@ -356,7 +409,7 @@ private fun ResultCard(outcome: ChallengeOutcome, onTryAgain: () -> Unit, onDone
                 shapes = ButtonDefaults.shapes(),
             ) { Text(stringResource(R.string.challenge_done)) }
             if (!outcome.won) {
-                Button(onClick = onTryAgain, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.challenge_try_again)) }
+                Button(onClick = onTryAgain, enabled = canStart, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.challenge_try_again)) }
             }
         }
     }
@@ -364,9 +417,15 @@ private fun ResultCard(outcome: ChallengeOutcome, onTryAgain: () -> Unit, onDone
 
 /** The challenges to start: no-spend days, then a week without each of the user's top categories. */
 @Composable
-private fun ChallengePresets(categories: List<String>, afterResult: Boolean, onStart: (ChallengeKind, String?) -> Unit) {
+private fun ChallengePresets(
+    categories: List<String>,
+    afterResult: Boolean,
+    canStart: Boolean,
+    onStart: (ChallengeKind, String?) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val presets = listOf(ChallengeKind.NO_SPEND_DAYS to null) + categories.map { ChallengeKind.CATEGORY_WEEK to it }
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
         SectionHeaderV2(
             title = stringResource(if (afterResult) R.string.challenges_try_another else R.string.challenges_start_one),
             subtitle = stringResource(R.string.challenges_subtitle),
@@ -381,7 +440,7 @@ private fun ChallengePresets(categories: List<String>, afterResult: Boolean, onS
                     PlanIconBadge(icon = run.icon(), color = color, index = i)
                     RowLabels(title = title, subtitle = run.description(), titleMaxLines = 2, subtitleMaxLines = 3)
                     val startLabel = stringResource(R.string.challenge_start_description, title)
-                    FilledTonalButton(onClick = { onStart(kind, category) }, shapes = ButtonDefaults.shapes()) {
+                    FilledTonalButton(onClick = { onStart(kind, category) }, enabled = canStart, shapes = ButtonDefaults.shapes()) {
                         // "Start" alone doesn't say which, out of context.
                         Text(stringResource(R.string.challenge_start), Modifier.semantics { contentDescription = startLabel })
                     }

@@ -1,8 +1,10 @@
 package com.pennywiseai.tracker.presentation.plan
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
@@ -11,12 +13,22 @@ import com.pennywiseai.tracker.domain.challenges.ChallengeOutcome
 import com.pennywiseai.tracker.domain.challenges.ChallengeProgress
 import com.pennywiseai.tracker.domain.challenges.ChallengeRow
 import com.pennywiseai.tracker.domain.challenges.ChallengeRun
+import com.pennywiseai.tracker.domain.challenges.FOOD_AND_DINING
+import com.pennywiseai.tracker.domain.challenges.OTHERS
 import com.pennywiseai.tracker.domain.challenges.challengeCategories
 import com.pennywiseai.tracker.domain.challenges.progress
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.spending.analyticsRowsFor
-import com.pennywiseai.tracker.domain.spending.defaultTypeFilter
+import com.pennywiseai.tracker.utils.BackgroundAccessState
+import com.pennywiseai.tracker.utils.TrackingProblem
+import com.pennywiseai.tracker.utils.canReadSms
+import com.pennywiseai.tracker.utils.canReceiveSms
+import com.pennywiseai.tracker.utils.isBackgroundRestricted
+import com.pennywiseai.tracker.utils.trackingProblem
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +40,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
@@ -43,12 +57,15 @@ data class ChallengesUiState(
     val result: ChallengeOutcome? = null,
     /** The categories a "week without" is offered for. */
     val categories: List<String> = emptyList(),
+    /** What stops bank messages being read; while set, nothing starts and no day settles. */
+    val trackingProblem: TrackingProblem? = null,
 )
 
 /** Plan → Challenges: one challenge at a time, its days worked out from the same rows as Review. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ChallengesViewModel @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val loader: PeriodReviewLoader,
     private val categoryRepository: CategoryRepository,
     private val preferences: UserPreferencesRepository,
@@ -65,22 +82,35 @@ class ChallengesViewModel @Inject constructor(
         }
     }.distinctUntilChanged()
 
-    val state: StateFlow<ChallengesUiState?> = combine(preferences.challenges, today, ::Pair)
-        .flatMapLatest { (stored, today) ->
+    /** Whether bank messages are being read at all: a win needs days that were watched. */
+    private val tracking = MutableStateFlow(currentTrackingProblem())
+
+    private fun currentTrackingProblem(): TrackingProblem? = trackingProblem(
+        context.canReadSms() && context.canReceiveSms(),
+        BackgroundAccessState(backgroundRestricted = context.isBackgroundRestricted()),
+    )
+
+    /** Call on resume and after a grant: every fix happens outside this screen. */
+    fun refreshTracking() {
+        tracking.value = currentTrackingProblem()
+    }
+
+    val state: StateFlow<ChallengesUiState?> = combine(preferences.challenges, today, tracking, ::Triple)
+        .flatMapLatest { (stored, today, problem) ->
             val run = stored.active
             // The run's window and the four weeks the category list is ranked over.
             val lookback = today.minusDays(LOOKBACK_DAYS)
             val from = run?.start?.let { minOf(it, lookback) } ?: lookback
             val to = run?.end?.let { maxOf(it, today) } ?: today
             combine(
-                loader.scopedRows(from, to),
-                preferences.countCreditCardAsExpense,
+                // A run counts the profile it was started under, whichever is selected now.
+                loader.scopedRows(from, to, run?.let { flowOf(it.profileId) } ?: preferences.selectedProfileId),
                 categoryRepository.getAllCategories(),
-            ) { rows, creditAsExpense, categories ->
-                val counted = challengeRows(rows, creditAsExpense, categories.parentNameOf())
+            ) { rows, categories ->
+                val counted = challengeRows(rows, categories.parentNameOf())
                 // Matched by the category's current name: a rename moves its expenses with it.
                 val current = run?.let { r -> r.categoryId?.let { id -> categories.firstOrNull { it.id == id } }?.let { r.copy(categoryName = it.name) } ?: r }
-                val progress = current?.progress(counted, today)
+                val progress = current?.progress(counted, today, tracking = problem == null)
                 // Shown as the result at once, not after the write lands: a list that briefly
                 // showed only the presets would keep them anchored and push the result off screen.
                 val finished = progress?.takeIf { it.finished }?.let { ChallengeOutcome(run, it.cleanDays, it.won) }
@@ -88,9 +118,14 @@ class ChallengesViewModel @Inject constructor(
                 ChallengesUiState(
                     active = progress?.takeUnless { it.finished },
                     result = finished ?: stored.unseenResult,
-                    categories = challengeCategories(counted.filter { it.date >= lookback && it.date < today }),
+                    categories = challengeCategories(
+                        counted.filter { it.date >= lookback && it.date < today },
+                        food = categories.nameForBuiltin(FOOD_AND_DINING),
+                        others = setOf(OTHERS, categories.nameForBuiltin(OTHERS)),
+                    ),
+                    trackingProblem = problem,
                 )
-            }
+            }.flowOn(Dispatchers.Default)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -103,16 +138,17 @@ class ChallengesViewModel @Inject constructor(
     private fun commit(outcome: ChallengeOutcome) {
         viewModelScope.launch {
             var recorded = false
-            preferences.updateChallenges { state ->
+            val saved = preferences.updateChallenges { state ->
                 state.finish(outcome.run, outcome.cleanDays, outcome.won).also { recorded = it.active == null && state.active != null }
             }
-            if (recorded && outcome.won && preferences.celebrateOnce(outcome.run.celebrationKey)) _celebrate.value = true
+            if (saved && recorded && outcome.won && preferences.celebrateOnce(outcome.run.celebrationKey)) _celebrate.value = true
         }
     }
 
     fun onCelebrated() { _celebrate.value = false }
 
     fun start(kind: ChallengeKind, categoryName: String?, categoryId: Long? = null) {
+        if (tracking.value != null) return
         viewModelScope.launch {
             val categories = categoryRepository.getAllCategories().first()
             // A retry passes the id from the run that just ended, so a rename still
@@ -121,7 +157,7 @@ class ChallengesViewModel @Inject constructor(
             val name = renamed?.name ?: categoryName
             val id = renamed?.id
                 ?: categoryName?.let { wanted -> categories.firstOrNull { it.name == wanted }?.id }
-            val run = ChallengeRun.start(kind, name, LocalDate.now(), id)
+            val run = ChallengeRun.start(kind, name, LocalDate.now(), id, preferences.selectedProfileId.first())
             preferences.updateChallenges { it.markSeen().copy(active = run) }
         }
     }
@@ -141,20 +177,21 @@ class ChallengesViewModel @Inject constructor(
 }
 
 /**
- * The expenses Review counts ([analyticsRowsFor]: no transfers between own accounts,
- * loans or exclusions), one per row whatever its amount or currency.
+ * The spending Review counts ([analyticsRowsFor]: no transfers between own accounts,
+ * loans or exclusions), one per row whatever its amount or currency. Card purchases
+ * always count, whatever "count credit card as expense" says: that setting picks how
+ * money is totalled, and a swipe at a restaurant is still spending that day.
  */
 internal fun challengeRows(
     rows: List<TransactionWithSplits>,
-    creditAsExpense: Boolean,
     parentOf: Map<String, String>,
-): List<ChallengeRow> = analyticsRowsFor(rows, defaultTypeFilter(creditAsExpense)).map { row ->
+): List<ChallengeRow> = analyticsRowsFor(rows, TransactionTypeFilter.SPENDING).map { row ->
     val tx = row.transaction
     ChallengeRow(
         id = tx.id,
         date = tx.dateTime.toLocalDate(),
         // Only shares with something counted: a split's zero share doesn't spend its category.
-        categories = row.getAmountByCategory().filterValues { it.signum() > 0 }.keys.map { it.ifEmpty { "Others" }.let { name -> parentOf[name] ?: name } }.toSet(),
+        categories = row.getAmountByCategory().filterValues { it.signum() > 0 }.keys.map { it.ifEmpty { OTHERS }.let { name -> parentOf[name] ?: name } }.toSet(),
         merchant = tx.merchantName,
     )
 }

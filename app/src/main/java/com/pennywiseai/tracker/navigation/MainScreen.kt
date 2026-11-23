@@ -591,6 +591,7 @@ fun MainScreen(
                             PlanSection.CHALLENGES -> PlanChallengesScreen(
                                 host = host,
                                 onOpenTransaction = { openRoot(TransactionDetail(it)) },
+                                onOpenBackgroundAccess = { openRoot(BackgroundAccess) },
                             )
                         }
                     }

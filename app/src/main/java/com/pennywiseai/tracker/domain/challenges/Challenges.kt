@@ -21,13 +21,15 @@ enum class ChallengeKind {
  */
 @Serializable
 data class ChallengeRun(
-    /** Set when the challenge starts. Older saved runs have none until the next load. */
-    val id: String? = null,
+    /** Set when the challenge starts, so a rename or a same-day restart is still this run. */
+    val id: String = "",
     val kind: ChallengeKind = ChallengeKind.NO_SPEND_DAYS,
     /** The (top-level) category a [ChallengeKind.CATEGORY_WEEK] goes without, by its name when started. */
     val categoryName: String? = null,
     /** That category's id, so a rename doesn't lose the challenge's expenses; null for older runs. */
     val categoryId: Long? = null,
+    /** The profile whose expenses count (null for all), as selected when started. */
+    val profileId: Long? = null,
     val startEpochDay: Long = 0,
     val length: Int = WEEK,
     val target: Int = NO_SPEND_TARGET,
@@ -38,24 +40,28 @@ data class ChallengeRun(
     /** Whether [row] spoils its day. */
     fun counts(row: ChallengeRow): Boolean = kind == ChallengeKind.NO_SPEND_DAYS || categoryName in row.categories
 
-    /**
-     * The same start, whatever its category is called now.
-     * A missing id matches nothing, so two runs from before ids existed are not the same one.
-     */
-    fun sameAs(other: ChallengeRun?): Boolean = other != null && id != null && id == other.id
+    /** The same start, whatever its category is called now. */
+    fun sameAs(other: ChallengeRun?): Boolean = other != null && id == other.id
 
-    /** Once per run: the same challenge started another day is a new moment. */
-    val celebrationKey: String get() = "challenge:$start:$kind"
+    /** Once per run: the same challenge started again is a new moment. */
+    val celebrationKey: String get() = "challenge:$id"
 
     companion object {
         const val WEEK = 7
         const val NO_SPEND_TARGET = 3
 
-        fun start(kind: ChallengeKind, categoryName: String?, today: LocalDate, categoryId: Long? = null) = ChallengeRun(
-            id = newChallengeId(),
+        fun start(
+            kind: ChallengeKind,
+            categoryName: String?,
+            today: LocalDate,
+            categoryId: Long? = null,
+            profileId: Long? = null,
+        ) = ChallengeRun(
+            id = UUID.randomUUID().toString(),
             kind = kind,
             categoryName = categoryName.takeIf { kind == ChallengeKind.CATEGORY_WEEK },
             categoryId = categoryId.takeIf { kind == ChallengeKind.CATEGORY_WEEK },
+            profileId = profileId,
             startEpochDay = today.toEpochDay(),
             length = WEEK,
             target = if (kind == ChallengeKind.NO_SPEND_DAYS) NO_SPEND_TARGET else WEEK,
@@ -99,27 +105,8 @@ data class ChallengeState(
 
         /** Empty for nothing stored, or for state this version can't read. */
         fun fromJson(raw: String?): ChallengeState =
-            raw?.let { runCatching { json.decodeFromString(serializer(), it) }.getOrNull()?.ensuredIds() } ?: ChallengeState()
+            raw?.let { runCatching { json.decodeFromString(serializer(), it) }.getOrNull() } ?: ChallengeState()
     }
-}
-
-private fun newChallengeId(): String = UUID.randomUUID().toString()
-
-/**
- * Gives every stored run an id, so the next save keeps it.
- * An older run has none on disk: the id is derived from the run, so a second read of the
- * same JSON agrees and giving up still finds the one on screen.
- */
-private fun ChallengeState.ensuredIds(): ChallengeState = copy(
-    active = active?.withId(),
-    history = history.map { it.copy(run = it.run.withId()) },
-)
-
-private fun ChallengeRun.withId(): ChallengeRun = if (id != null) this else copy(id = legacyChallengeId())
-
-private fun ChallengeRun.legacyChallengeId(): String {
-    val name = "$kind|$startEpochDay|${categoryName.orEmpty()}|${categoryId ?: ""}"
-    return UUID.nameUUIDFromBytes(name.toByteArray(Charsets.UTF_8)).toString()
 }
 
 /** One counted expense: its day and its top-level categories (a split can carry several). */
@@ -134,8 +121,11 @@ enum class DayStatus {
     CLEAN,
     MISSED,
 
-    /** Today with nothing against it yet: it only settles once the day is over (late SMS). */
-    TODAY,
+    /**
+     * Nothing counted yet, but not settled: today, the [GRACE_DAYS] after it (a bank
+     * message can land late), or any day while messages can't be read.
+     */
+    PENDING,
     FUTURE,
 }
 
@@ -144,57 +134,74 @@ data class ChallengeDay(val date: LocalDate, val status: DayStatus, val misses: 
 data class ChallengeProgress(
     val run: ChallengeRun,
     val days: List<ChallengeDay>,
-    /** 1-based day of the window today falls on. */
-    val dayNumber: Int,
-    /** Today is past the window's last day. */
-    val over: Boolean = false,
+    /** The day it was worked out on. */
+    val on: LocalDate,
+    /** Messages can't be read, so no day settles and nothing finishes. */
+    val paused: Boolean = false,
 ) {
+    /** 1-based day of the window [on] falls on; the last one while its grace day runs. */
+    val dayNumber: Int get() = (ChronoUnit.DAYS.between(run.start, on) + 1).toInt().coerceIn(1, run.length)
+
     val cleanDays: Int get() = days.count { it.status == DayStatus.CLEAN }
     val won: Boolean get() = cleanDays >= run.target
 
+    /** Every day has settled: the window and the grace after it are over. */
+    val over: Boolean get() = !paused && on.minusDays(GRACE_DAYS).isAfter(run.end)
+
     /**
-     * Won early, or the window is over. A loss waits for the window's end even when it's
-     * certain, so an expense corrected the same day (made a transfer) can still clear it.
+     * Won early, or every day settled. A loss waits for that even when it's certain, so an
+     * expense corrected later (made a transfer) can still clear its day.
      */
     val finished: Boolean get() = won || over
 
     /** The target is still within reach. */
-    val winnable: Boolean get() = cleanDays + days.count { it.status == DayStatus.TODAY || it.status == DayStatus.FUTURE } >= run.target
+    val winnable: Boolean get() = cleanDays + days.count { it.status == DayStatus.PENDING || it.status == DayStatus.FUTURE } >= run.target
 
-    val today: ChallengeDay? get() = days.getOrNull(dayNumber - 1)
+    /** Today, while it's inside the window. */
+    val today: ChallengeDay? get() = days.firstOrNull { it.date == on }
 }
+
+/** Days a clean day waits after it ends before it counts, for bank messages that arrive late. */
+const val GRACE_DAYS = 1L
 
 /**
  * Each day of [this] run on [today]. A day with a counted expense is missed at once (more
- * messages can't undo it); a day without one is only clean once it has ended.
+ * messages can't undo it); a day without one is only clean once [GRACE_DAYS] have passed
+ * after it, and only while [tracking] (messages are being read at all).
  */
-fun ChallengeRun.progress(rows: List<ChallengeRow>, today: LocalDate): ChallengeProgress {
+fun ChallengeRun.progress(rows: List<ChallengeRow>, today: LocalDate, tracking: Boolean = true): ChallengeProgress {
     val misses = rows.filter(::counts).groupBy { it.date }
+    val settledBefore = today.minusDays(GRACE_DAYS)
     val days = (0 until length).map { i ->
         val date = start.plusDays(i.toLong())
         val hits = misses[date].orEmpty()
         val status = when {
             date.isAfter(today) -> DayStatus.FUTURE
             hits.isNotEmpty() -> DayStatus.MISSED
-            date == today -> DayStatus.TODAY
-            else -> DayStatus.CLEAN
+            tracking && date.isBefore(settledBefore) -> DayStatus.CLEAN
+            else -> DayStatus.PENDING
         }
         ChallengeDay(date, status, if (status == DayStatus.MISSED) hits else emptyList())
     }
-    // ponytail: a clean day settles at midnight, so a message dated that day arriving later
-    // can't undo a win already recorded; hold days for a grace period if banks lag that much.
-    return ChallengeProgress(this, days, (ChronoUnit.DAYS.between(start, today) + 1).toInt().coerceIn(1, length), today.isAfter(end))
+    return ChallengeProgress(this, days, today, paused = !tracking)
 }
 
 const val FOOD_AND_DINING = "Food & Dining"
+const val OTHERS = "Others"
 
 /**
  * The categories worth a "week without", most expenses first (by count: no money is summed),
- * Food & Dining leading when the user has any. Others says nothing to go without.
+ * [food] (Food & Dining, by its current name) leading when the user has any. [others] says
+ * nothing to go without.
  */
-fun challengeCategories(rows: List<ChallengeRow>, limit: Int = 3): List<String> {
-    val ranked = rows.flatMap { it.categories }.filter { it.isNotBlank() && it != "Others" }
+fun challengeCategories(
+    rows: List<ChallengeRow>,
+    food: String = FOOD_AND_DINING,
+    others: Set<String> = setOf(OTHERS),
+    limit: Int = 3,
+): List<String> {
+    val ranked = rows.flatMap { it.categories }.filter { it.isNotBlank() && it !in others }
         .groupingBy { it }.eachCount().entries.sortedByDescending { it.value }.map { it.key }
-    val ordered = if (FOOD_AND_DINING in ranked) listOf(FOOD_AND_DINING) + (ranked - FOOD_AND_DINING) else ranked
-    return ordered.take(limit).ifEmpty { listOf(FOOD_AND_DINING) }
+    val ordered = if (food in ranked) listOf(food) + (ranked - food) else ranked
+    return ordered.take(limit).ifEmpty { listOf(food) }
 }

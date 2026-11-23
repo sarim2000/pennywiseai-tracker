@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
@@ -30,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.util.lerp
-import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.theme.GoogleSansFlexAxes
 import com.pennywiseai.tracker.ui.theme.LocalGoogleSansFlexActive
@@ -40,6 +38,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -63,8 +62,7 @@ internal fun WelcomeTitle(
     onPlayed: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val brand = stringResource(R.string.app_name)
-    val brandStart = text.indexOf(brand)
+    val brandStart = text.indexOf(BRAND)
     val enabled = LocalGoogleSansFlexActive.current && rememberAnimationsEnabled()
     // Decided on first composition: after a rotation, a language switch or a
     // return to this step, [played] is already set and the title stays still.
@@ -74,7 +72,7 @@ internal fun WelcomeTitle(
         return
     }
 
-    val progress = remember(brand) { List(brand.length) { Animatable(0f) } }
+    val progress = remember { List(BRAND.length) { Animatable(0f) } }
     val spec = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
     val windowInfo = LocalWindowInfo.current
     val drawn = remember { CompletableDeferred<Unit>() }
@@ -83,9 +81,10 @@ internal fun WelcomeTitle(
         // screen: the splash holds the first draw, and the starting window covers
         // the app until it has drawn. Wait for the title's own first draw and for
         // the window to take focus (the starting window never does), then for the
-        // frames to settle, so the sweep plays where it can be seen.
+        // frames to settle, so the sweep plays where it can be seen. Focus is
+        // capped: in split screen or under a dialog the window may never get it.
         drawn.await()
-        snapshotFlow { windowInfo.isWindowFocused }.first { it }
+        withTimeoutOrNull(MAX_FOCUS_WAIT_MS) { snapshotFlow { windowInfo.isWindowFocused }.first { it } }
         awaitSteadyFrames()
         onPlayed()
         delay(LEAD_IN_MS)
@@ -192,6 +191,16 @@ private fun fontWeightAdjustment(configuration: Configuration): Int =
     } else {
         0
     }
+
+/**
+ * The brand as the welcome title spells it. Not `R.string.app_name`: build
+ * types override that ("PennyWise Debug"), and the title would no longer
+ * contain it.
+ */
+private const val BRAND = "PennyWise"
+
+/** The longest wait for window focus before the wordmark plays anyway. */
+private const val MAX_FOCUS_WAIT_MS = 1_000L
 
 /** Letters start this thin: a sketch of the wordmark before it inks in. */
 private const val START_WEIGHT = 200f

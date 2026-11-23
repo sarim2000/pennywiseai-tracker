@@ -159,29 +159,25 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 } else 0f
 
                 // Previous month savings for delta — same aggregator, same currency
-                // converters, so the delta isn't skewed by stale logic on either side.
-                val (prevCategoryAmounts, _, prevTypeAmounts) = aggregateBudgetCategorySpending(
-                    transactions = raw.prevCycleTransactions,
-                    convertSplit = convertSplit,
-                    convertIncome = { tx ->
-                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                // converters, and each LIMIT budget's lines counted as the current side
+                // counts them (a parent's line takes in its sub-categories, #1425), so the
+                // delta isn't skewed by different logic on either side. Type buckets come
+                // from prevTypeAmounts, not prevCategoryAmounts.
+                var prevLimitSpent = BigDecimal.ZERO
+                for (group in raw.budgetsWithCategories) {
+                    if (group.budget.groupType != BudgetGroupType.LIMIT) continue
+                    val (prevCategoryAmounts, _, prevTypeAmounts) = aggregateBudgetCategorySpending(
+                        transactions = raw.prevCycleTransactions,
+                        convertSplit = convertSplit,
+                        convertIncome = { tx ->
+                            currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                        },
+                        parentOf = group.lineParents(raw.parentOf)
+                    )
+                    for (cat in group.categories) {
+                        prevLimitSpent += (if (cat.matchType != null) prevTypeAmounts[cat.matchType]
+                            else prevCategoryAmounts[cat.categoryName]) ?: BigDecimal.ZERO
                     }
-                )
-
-                // Split LIMIT-group buckets into category vs type buckets so the
-                // previous-month spend picks up type-bucket amounts too (they live
-                // in prevTypeAmounts, not prevCategoryAmounts).
-                val limitBuckets = raw.budgetsWithCategories
-                    .filter { it.budget.groupType == BudgetGroupType.LIMIT }
-                    .flatMap { it.categories }
-                val limitCategoryNames = limitBuckets.filter { it.matchType == null }
-                    .map { it.categoryName }.toSet()
-                val limitMatchTypes = limitBuckets.mapNotNull { it.matchType }.toSet()
-
-                val prevLimitSpent = limitCategoryNames.fold(BigDecimal.ZERO) { acc, catName ->
-                    acc + (prevCategoryAmounts[catName] ?: BigDecimal.ZERO)
-                } + limitMatchTypes.fold(BigDecimal.ZERO) { acc, t ->
-                    acc + (prevTypeAmounts[t] ?: BigDecimal.ZERO)
                 }
 
                 var prevIncome = BigDecimal.ZERO

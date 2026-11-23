@@ -151,6 +151,12 @@ class BudgetSubCategoryLinesTest {
     }
 
     @Test
+    fun `unified mode's pace line counts a parent's sub-category, as its total does`() {
+        val card = budgets(repository(budget(rollover = false, "Food & Dining")), unified = true)
+        assertEquals(550.0, card.dailyCumulativeSpending.last(), 0.01)
+    }
+
+    @Test
     fun `budget history counts a parent's sub-category, in both modes`() = runBlocking {
         val group = budget(rollover = false, "Food & Dining")
         for (convert in listOf(null, asIs)) {

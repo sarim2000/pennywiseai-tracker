@@ -46,7 +46,7 @@ private data class Activity(val remarks: List<ConscienceRemark>, val feedback: C
 
 private data class Device(val canPost: Boolean, val learning: Boolean = false, val exampleIndex: Int = 0, val locales: String = "")
 
-/** The Conscience screen, which only a language with the full set opens ([ConscienceText.full]). */
+/** The Conscience screen, which only a language with lines opens ([ConscienceText.speaksAppLanguage]). */
 @HiltViewModel
 class ConscienceViewModel @Inject constructor(
     @ApplicationContext private val context: Context,

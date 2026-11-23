@@ -65,17 +65,13 @@ interface NotificationPreferences {
 
     suspend fun resetConscienceFeedback()
 
-    /**
-     * Spends a slot, picks the comment and stores its remark in one edit; null when the cadence
-     * says no or no line is left. Only [full] applies the screen's settings and keeps the remark.
-     */
+    /** Spends a slot, picks the comment and stores its remark in one edit; null when the cadence says no or no line is left. */
     suspend fun tryClaimConscience(
         candidates: List<ConscienceCandidate>,
         contentLocale: String,
         nowMillis: Long,
         todayEpochDay: Long,
         random: Random,
-        full: Boolean,
         remarkFor: (ConscienceChoice) -> ConscienceRemark?,
     ): ConscienceRemark?
 }

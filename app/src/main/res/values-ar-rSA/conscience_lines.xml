@@ -9,9 +9,6 @@
 <resources>
     <string name="conscience_content_locale">ar</string>
 
-    <!-- Every kind and the Conscience screen: see values/conscience_lines.xml. -->
-    <bool name="conscience_full">true</bool>
-
     <!-- Words the placeholders take. They live here, not in strings_conscience.xml, so Crowdin can't change a word the lines are written around. All masculine with no article, so ال{category} and verb agreement work for each. -->
     <string name="conscience_category_food">أكل</string>
     <string name="conscience_category_entertainment">ترفيه</string>

@@ -36,10 +36,7 @@ object ConscienceNotifier {
         return ensureChannel(context).getNotificationChannel(CHANNEL_ID)?.importance != NotificationManager.IMPORTANCE_NONE
     }
 
-    /**
-     * Posts remark [remarkId]. "Liked it" only shows where the language has the full
-     * set ([ConscienceText.full]); "Not this one" always does.
-     */
+    /** Posts remark [remarkId], with its "Liked it" and "Not this one" actions. */
     fun post(
         context: Context,
         text: ConscienceText,
@@ -95,9 +92,7 @@ object ConscienceNotifier {
                     .setContentIntent(contentIntent)
                     .build()
             )
-        if (text.full) {
-            builder.addAction(0, text.string(R.string.conscience_action_like), actions.react(remarkId, lineKey, liked = true))
-        }
+        builder.addAction(0, text.string(R.string.conscience_action_like), actions.react(remarkId, lineKey, liked = true))
         builder.addAction(0, text.string(R.string.conscience_action_dislike), actions.react(remarkId, lineKey, liked = false))
         ensureChannel(context, text).notify(tag, NOTIFICATION_ID, builder.build())
     }

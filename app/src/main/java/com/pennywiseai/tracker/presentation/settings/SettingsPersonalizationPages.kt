@@ -169,17 +169,7 @@ internal fun NotificationsPage(onNavigate: (NavKey) -> Unit, settingsViewModel: 
             Toast.makeText(context, R.string.settings_budget_alerts_needs_permission, Toast.LENGTH_LONG).show()
         }
     }
-    val conscienceText = remember(context) { ConscienceText(context) }
-    val conscienceAvailable = conscienceText.speaksAppLanguage
-    val consciencePermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            settingsViewModel.setConscienceEnabled(true)
-        } else {
-            Toast.makeText(context, R.string.conscience_needs_permission, Toast.LENGTH_LONG).show()
-        }
-    }
+    val conscienceAvailable = remember(context) { ConscienceText(context).speaksAppLanguage }
     fun needsNotificationPermission() =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             androidx.core.content.ContextCompat.checkSelfPermission(
@@ -248,8 +238,8 @@ internal fun NotificationsPage(onNavigate: (NavKey) -> Unit, settingsViewModel: 
             },
             position = ListItemPosition.from(row++, rowCount)
         )
-        if (conscienceText.full) {
-            // The full set has its own screen, with the switch at the top.
+        if (conscienceAvailable) {
+            // Its own screen, with the switch at the top.
             SettingsNavItem(
                 icon = Icons.Default.Psychology,
                 title = stringResource(R.string.conscience_title),
@@ -257,21 +247,6 @@ internal fun NotificationsPage(onNavigate: (NavKey) -> Unit, settingsViewModel: 
                     if (conscienceEnabled) R.string.conscience_nav_subtitle_on else R.string.conscience_nav_subtitle_off
                 ),
                 onClick = { onNavigate(Conscience) },
-                position = ListItemPosition.from(row++, rowCount)
-            )
-        } else if (conscienceAvailable) {
-            SettingsSwitchRow(
-                icon = Icons.Default.Psychology,
-                title = stringResource(R.string.conscience_title),
-                subtitle = stringResource(R.string.conscience_settings_subtitle),
-                checked = conscienceEnabled,
-                onCheckedChange = { enabled ->
-                    if (enabled && needsNotificationPermission()) {
-                        consciencePermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                    } else {
-                        settingsViewModel.setConscienceEnabled(enabled)
-                    }
-                },
                 position = ListItemPosition.from(row++, rowCount)
             )
         }

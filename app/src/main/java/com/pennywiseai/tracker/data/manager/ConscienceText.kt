@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceCategory
 import com.pennywiseai.tracker.domain.conscience.ConscienceFact
-import com.pennywiseai.tracker.domain.conscience.ConscienceKind
 import com.pennywiseai.tracker.domain.conscience.ConscienceLine
 import com.pennywiseai.tracker.domain.conscience.ConscienceLines
 import com.pennywiseai.tracker.domain.conscience.ConscienceWords
@@ -24,18 +23,9 @@ class ConscienceText(context: Context) {
     /** The language the lines actually came from, after any fallback to English. */
     val contentLocale: String = localized.getString(R.string.conscience_content_locale)
 
-    /** False in an app language with no lines of its own: the toggle hides and nothing fires. */
+    /** False in an app language with no lines of its own: the screen hides and nothing fires. */
     val speaksAppLanguage: Boolean =
         ConscienceLines.speaks(contentLocale, localized.resources.configuration.locales[0].language)
-
-    /**
-     * Whether this language speaks every kind and gets the Conscience screen, reactions
-     * and recent remarks (Arabic for now), or only [ConscienceKind.BASIC] behind a switch.
-     */
-    val full: Boolean = speaksAppLanguage && localized.resources.getBoolean(R.bool.conscience_full)
-
-    /** The kinds this language may say. */
-    val kinds: Set<ConscienceKind> = if (full) ConscienceKind.entries.toSet() else ConscienceKind.BASIC
 
     private val words = object : ConscienceWords {
         // The lines' own language, not the configured one: a fallback to English must not get another language's weekdays.

@@ -738,10 +738,6 @@ open class UserPreferencesRepository internal constructor(
      * The switch and the muted kinds are re-read here, since they can change while the
      * history is read. Null when the cadence says no, no candidate has a line left, or
      * [remarkFor] can't render the choice.
-     *
-     * Without [full] (a language with only the basic kinds) the screen's settings don't
-     * apply: they can't be seen or changed there, yet survive a language switch or a
-     * restore. Nor is the remark kept, since nothing there lists it.
      */
     override suspend fun tryClaimConscience(
         candidates: List<ConscienceCandidate>,
@@ -749,27 +745,23 @@ open class UserPreferencesRepository internal constructor(
         nowMillis: Long,
         todayEpochDay: Long,
         random: Random,
-        full: Boolean,
         remarkFor: (ConscienceChoice) -> ConscienceRemark?,
     ): ConscienceRemark? {
         var claimed: ConscienceRemark? = null
         dataStore.edit { prefs ->
             claimed = null
             if (prefs[PreferencesKeys.CONSCIENCE_ENABLED] != true) return@edit
-            val muted = if (full) prefs.conscienceMutedKinds() else emptySet()
-            val frequency = if (full) prefs.conscienceFrequency() else ConscienceFrequency.NORMAL
+            val muted = prefs.conscienceMutedKinds()
             val log = ConscienceCadence.decode(prefs[PreferencesKeys.CONSCIENCE_LOG] ?: emptySet())
             val choice = ConscienceCadence.choose(
                 candidates.filter { it.fact.kind !in muted }, log, prefs.conscienceFeedback(),
-                frequency, contentLocale, nowMillis, todayEpochDay, random
+                prefs.conscienceFrequency(), contentLocale, nowMillis, todayEpochDay, random
             ) ?: return@edit
             val remark = remarkFor(choice) ?: return@edit
             prefs[PreferencesKeys.CONSCIENCE_LOG] =
                 ConscienceCadence.encode(ConscienceCadence.record(log, choice, nowMillis, todayEpochDay))
-            if (full) {
-                prefs[PreferencesKeys.CONSCIENCE_REMARKS] =
-                    conscienceJson.encodeToString(ConscienceRemarks.add(prefs.conscienceRemarks(nowMillis), remark, nowMillis))
-            }
+            prefs[PreferencesKeys.CONSCIENCE_REMARKS] =
+                conscienceJson.encodeToString(ConscienceRemarks.add(prefs.conscienceRemarks(nowMillis), remark, nowMillis))
             claimed = remark
         }
         return claimed

@@ -144,8 +144,8 @@ fun ConscienceScreen(onNavigateBack: () -> Unit, viewModel: ConscienceViewModel 
     val context = LocalContext.current
     val locales = LocalConfiguration.current.locales.toLanguageTags()
     LaunchedEffect(locales) {
-        // Switched to a language without the full set: the restored back stack must not keep this screen.
-        if (!ConscienceText(context).full) onNavigateBack() else viewModel.onLocalesChanged(locales)
+        // Switched to a language without lines: the restored back stack must not keep this screen.
+        if (!ConscienceText(context).speaksAppLanguage) onNavigateBack() else viewModel.onLocalesChanged(locales)
     }
     LifecycleResumeEffect(Unit) {
         viewModel.refreshPermission()

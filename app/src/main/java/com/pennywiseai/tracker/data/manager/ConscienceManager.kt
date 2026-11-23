@@ -60,10 +60,9 @@ class ConscienceManager @Inject constructor(
         if (!preferences.conscienceEnabled.first()) return
         val text = ConscienceText(context)
         if (!text.speaksAppLanguage) return
-        // Late at night with the screen off the user is likely asleep: no notification. Where the
-        // screen lists recent remarks the remark is kept there; elsewhere it's dropped, spending no slot.
+        // Late at night with the screen off the user is likely asleep: no notification, only a
+        // remark kept on the Conscience screen.
         val quiet = isQuietHour(LocalTime.now()) && !isScreenOn()
-        if (quiet && !text.full) return
         if (appForeground.isInForeground()) return
         // Checked before a slot is claimed, so none is spent on something invisible.
         if (!ConscienceNotifier.canPost(context)) return
@@ -104,7 +103,6 @@ class ConscienceManager @Inject constructor(
             .toSet() + today
         val ledgerStart = transactionRepository.getOldestTransactionDateTime()?.toLocalDate()
         val facts = ConscienceDetectors.detect(current, history, ledgerStart, activeDates, refunds)
-            .filter { it.kind in text.kinds }
         if (facts.isEmpty()) return
 
         // The candidates only hold lines that rendered, so rendering inside the claim can't fail on a bad line.
@@ -113,8 +111,7 @@ class ConscienceManager @Inject constructor(
             text.contentLocale,
             nowMillis,
             LocalDate.now().toEpochDay(),
-            Random.Default,
-            full = text.full
+            Random.Default
         ) { choice ->
             text.render(choice.fact, choice.line)?.let { line ->
                 ConscienceRemark(

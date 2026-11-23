@@ -36,8 +36,8 @@ object ConscienceRemarks {
     /**
      * Applies a reaction to the line behind [lineKey], and marks remark [remarkId]
      * when it's still stored. The first reaction to a remark wins: null when it
-     * already has one. A remark that's gone (pruned, or posted where the screen
-     * isn't shown) still rates its line, so "Not this one" always holds.
+     * already has one. A remark that's gone (pruned, or posted before remarks were
+     * kept) still rates its line, so "Not this one" always holds.
      */
     fun react(
         remarks: List<ConscienceRemark>,

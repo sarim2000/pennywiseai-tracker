@@ -32,15 +32,7 @@ enum class ConscienceKind {
     LATE_NIGHT,
     RECORD_DAY,
     SPIKE,
-    HELLO;
-
-    companion object {
-        /**
-         * What every language with lines says. The rest speak only where the lines turn on
-         * the full set (conscience_full), Arabic for now.
-         */
-        val BASIC: Set<ConscienceKind> = setOf(POSITIVE, REPEAT, LATE_NIGHT)
-    }
+    HELLO,
 }
 
 /** At most once a day and three times a week, or at most once a week. */

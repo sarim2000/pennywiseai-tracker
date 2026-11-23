@@ -20,11 +20,6 @@
     <!-- The language these lines are written in (a BCP 47 tag such as ar or pt-BR); part of every stored line key. -->
     <string name="conscience_content_locale">en</string>
 
-    <!-- Whether this language speaks every kind and gets the Conscience screen, or only wins,
-         repeat runs and late nights behind a switch. Arabic only for now: these lines are
-         ready, but turn it on per language once someone has read the rest of its lines. -->
-    <bool name="conscience_full">false</bool>
-
     <!-- Words the placeholders take. They live here, not in strings_conscience.xml, so Crowdin can't change a word the lines are written around. -->
     <string name="conscience_category_food">food</string>
     <string name="conscience_category_entertainment">fun</string>

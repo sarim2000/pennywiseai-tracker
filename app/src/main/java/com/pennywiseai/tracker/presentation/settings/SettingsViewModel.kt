@@ -190,10 +190,6 @@ class SettingsViewModel @Inject constructor(
 
     val conscienceEnabled = userPreferencesRepository.conscienceEnabled
 
-    fun setConscienceEnabled(enabled: Boolean) {
-        viewModelScope.launch { userPreferencesRepository.setConscienceEnabled(enabled) }
-    }
-
     // Replace UPI VPAs with contact names (gated by READ_CONTACTS).
     val useContactsForVpa = userPreferencesRepository.useContactsForVpa
 

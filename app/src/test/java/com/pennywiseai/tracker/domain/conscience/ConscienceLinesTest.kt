@@ -166,17 +166,6 @@ class ConscienceLinesTest {
     }
 
     @Test
-    fun `only Arabic speaks the full set for now`() {
-        fun full(dir: File): String? {
-            val nodes = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(File(dir, "conscience_lines.xml"))
-                .getElementsByTagName("bool")
-            return (0 until nodes.length).map { nodes.item(it) }
-                .firstOrNull { it.attributes.getNamedItem("name").nodeValue == "conscience_full" }?.textContent
-        }
-        assertEquals(mapOf("values" to "false", "values-ar-rSA" to "true"), localeDirs.associate { it.name to full(it) })
-    }
-
-    @Test
     fun `a sample walks every kind before it repeats one`() {
         val kinds = (0 until ConscienceKind.entries.size).map { ConscienceLines.sample(it).first.kind }
         assertEquals(ConscienceKind.entries.toSet(), kinds.toSet())

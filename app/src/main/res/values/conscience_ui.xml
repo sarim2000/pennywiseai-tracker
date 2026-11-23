@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    What only the full conscience shows: the Conscience screen, the "Liked it" action
-    and its confirmations. It ships only in a language whose conscience_lines.xml turns
-    conscience_full on (Arabic for now), so this file isn't named strings*.xml and stays
-    out of Crowdin, the same as the lines: no translator works on a screen nobody in
-    their language can open. Move these into strings_conscience.xml once the full set
-    reaches a language that Crowdin translates.
+    The Conscience screen, the "Liked it" action and its confirmations. Only an app
+    language with its own conscience_lines.xml shows them, so this file isn't named
+    strings*.xml and stays out of Crowdin, the same as the lines: no translator works
+    on a screen nobody in their language can open. Move these into strings_conscience.xml
+    once the conscience reaches a language that Crowdin translates.
 -->
 <resources>
     <!-- The row on the Notifications page that opens the screen -->

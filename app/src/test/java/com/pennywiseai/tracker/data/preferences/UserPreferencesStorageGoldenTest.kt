@@ -61,7 +61,7 @@ class UserPreferencesStorageGoldenTest {
     @Before
     fun setUp() {
         store = PreferenceDataStoreFactory.create(
-            migrations = listOf(SmsScanAllTimeMigration, BudgetMonthCardDismissalsMigration),
+            migrations = listOf(SmsScanAllTimeMigration),
             scope = scope,
             produceFile = { File(tmp.root, "user_preferences.preferences_pb") }
         )

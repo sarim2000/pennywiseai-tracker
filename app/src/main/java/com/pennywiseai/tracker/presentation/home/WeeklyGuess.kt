@@ -74,12 +74,13 @@ data class WeeklyGuessSheet(
     val celebrate: Boolean = false,
 )
 
-/** Home's weekly question in the prompt slot: the owl, the question, a way in and "Not now". */
+/** Home's weekly question in the prompt slot: the owl, the question, a way in, "Not now" and "Don't ask again". */
 @Composable
 internal fun WeeklyGuessCard(
     question: WeeklyGuessQuestion,
     onOpen: () -> Unit,
     onDismiss: () -> Unit,
+    onStop: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -116,11 +117,13 @@ internal fun WeeklyGuessCard(
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(R.string.weekly_guess_open))
             }
         }
-        TextButton(
-            onClick = onDismiss,
-            modifier = Modifier.padding(start = Spacing.md + Dimensions.Icon.hero + Spacing.xs, bottom = Spacing.xs),
-        ) {
-            Text(stringResource(R.string.weekly_guess_not_now), color = MaterialTheme.colorScheme.onTertiaryContainer)
+        FlowRow(modifier = Modifier.padding(start = Spacing.md + Dimensions.Icon.hero + Spacing.xs, bottom = Spacing.xs)) {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.weekly_guess_not_now), color = MaterialTheme.colorScheme.onTertiaryContainer)
+            }
+            TextButton(onClick = onStop) {
+                Text(stringResource(R.string.weekly_guess_stop), color = MaterialTheme.colorScheme.onTertiaryContainer)
+            }
         }
     }
 }
@@ -172,11 +175,22 @@ internal fun WeeklyGuessSheet(
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    text = stringResource(R.string.weekly_guess_week, DateRangeUtils.formatDateRange(question.weekStart, question.weekEnd)),
+                    text = DateRangeUtils.formatDateRange(question.weekStart, question.weekEnd),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
+                if (question.cardSpendLeftOut) {
+                    Text(
+                        text = stringResource(
+                            R.string.weekly_guess_card_left_out,
+                            stringResource(R.string.settings_card_spend_as_expense_title),
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 if (guess == null) {
                     GuessPicker(question, onLockIn)
                 } else {
@@ -316,7 +330,7 @@ private fun GuessReveal(
                 autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, recordedStyle.fontSize),
             )
             Text(
-                text = stringResource(R.string.weekly_guess_your_guess) + " · " + CurrencyFormatter.formatCurrency(guess, currency),
+                text = stringResource(R.string.weekly_guess_your_guess_amount, CurrencyFormatter.formatCurrency(guess, currency)),
                 style = MaterialTheme.typography.titleMedium.money(),
             )
             Text(

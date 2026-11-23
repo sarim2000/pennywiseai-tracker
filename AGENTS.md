@@ -108,6 +108,7 @@ replaces `.git/hooks`, so move any existing hooks there first).
 | Performance | `docs/performance.md` | Baseline Profiles, Macrobenchmark, startup/scroll/memory/APK-size report (`scripts/perf-report.sh`), leak checks |
 | Supported banks | `docs/BANK_SUPPORT.md`, `docs/supported-banks.json` | Which banks/patterns are covered (170 banks, 26 countries) |
 | AI access (MCP relay, dashboard) | `docs/ai-access.md`, `relay/README.md`, `docs/adr/0002-*` | Touching `aiaccess/`, the relay or the dashboard |
+| Debug demo data | `docs/debug-demo-data.md` | Seeding a fresh Debug install with `./scripts/seed-debug.sh` for UI, chart or Chat checks |
 | Roadmap / requirements | `docs/planned-features.md`, `docs/prd-unified-currency.md` | Feature scope / intent |
 
 **Skills** (in `.agents/skills/`, shared by every agent; `.claude/skills/` only

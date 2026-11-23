@@ -67,7 +67,7 @@ fun TagPieChart(
     ) {
         Box(contentAlignment = Alignment.Center) {
             PieChart(
-                modifier = Modifier.size(Dimensions.Component.insightsChartHeight),
+                modifier = Modifier.size(Dimensions.Component.insightsChartHeight).sweepIn(),
                 data = chartData,
                 onPieClick = { clickedPie ->
                     val pieIndex = indexOfPie(clickedPie)

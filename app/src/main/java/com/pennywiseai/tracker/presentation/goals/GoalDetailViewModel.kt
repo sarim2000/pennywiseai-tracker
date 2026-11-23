@@ -11,10 +11,12 @@ import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalRepository
 import com.pennywiseai.tracker.ui.components.celebration.CelebrationKeys
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -71,9 +73,20 @@ class GoalDetailViewModel @Inject constructor(
     /** True while a goal's first-ever "Reached" is being celebrated. */
     val celebrate: StateFlow<Boolean> = _celebrate.asStateFlow()
 
+    // The first goal opened on this device, or since a restore, records every goal already
+    // reached without confetti, as Achievements does: an upgrade or a restore is history, not news.
+    private val seeded = viewModelScope.async {
+        preferences.seedCelebrations(CelebrationKeys.GOALS_SEEDED) {
+            goalRepository.observeGoals().first()
+                .filter { it.saved >= it.goal.targetAmount }
+                .map { CelebrationKeys.goalReached(it.goal.uid) }
+        }
+    }
+
     /** The screen shows this goal as reached: cheer, the first time only. */
     fun onShownReached(goalUid: String) {
         viewModelScope.launch {
+            seeded.await()
             if (preferences.celebrateOnce(CelebrationKeys.goalReached(goalUid))) _celebrate.value = true
         }
     }

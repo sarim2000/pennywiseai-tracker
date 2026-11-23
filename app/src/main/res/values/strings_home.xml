@@ -475,15 +475,18 @@
     <string name="weekly_guess_question">How much did you spend on %1$s last week, in %2$s?</string>
     <string name="weekly_guess_open">Make your guess</string>
     <string name="weekly_guess_not_now">Not now</string>
-    <!-- %1$s is the week's dates, e.g. "Nov 9 – 15". -->
-    <string name="weekly_guess_week">%1$s · from your bank messages</string>
+    <string name="weekly_guess_stop">Don\'t ask again</string>
+    <!-- %1$s is the setting's name, "Count card spend as expense". -->
+    <string name="weekly_guess_card_left_out">Card purchases aren\'t counted: \"%1$s\" is off in Settings.</string>
     <string name="weekly_guess_your_guess">Your guess</string>
+    <!-- %1$s is the guessed amount. -->
+    <string name="weekly_guess_your_guess_amount">Your guess · %1$s</string>
     <string name="weekly_guess_lock_in">Lock in my guess</string>
     <string name="weekly_guess_hit">Sharp guess!</string>
     <string name="weekly_guess_miss">Now you know</string>
     <!-- %1$d is a whole percent. -->
     <string name="weekly_guess_hit_body">Within %1$d%% of what was recorded.</string>
-    <string name="weekly_guess_miss_body">Most of us guess off. Now you have the real figure.</string>
+    <string name="weekly_guess_miss_body">Most of us guess off. Now you have the recorded figure.</string>
     <string name="weekly_guess_recorded">Recorded</string>
     <!-- %1$s is an amount, %2$d a whole percent. -->
     <string name="weekly_guess_gap">Off by %1$s (%2$d%%)</string>

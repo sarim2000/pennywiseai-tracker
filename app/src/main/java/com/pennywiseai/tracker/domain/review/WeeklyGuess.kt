@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.domain.review
 
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -13,7 +15,7 @@ data class WeeklyGuessQuestion(
     val weekEnd: LocalDate,
     val category: String,
     val currency: String,
-    /** What the bank messages recorded: Review's net spend in [category], never zero. */
+    /** What was recorded (bank messages and anything added by hand): Review's net spend in [category], never zero. */
     val actual: BigDecimal,
     /** The slider's top: about twice a usual week, and always room above [actual]. */
     val max: BigDecimal,
@@ -21,6 +23,8 @@ data class WeeklyGuessQuestion(
     val step: BigDecimal,
     /** Quick picks at an eighth, a quarter, half and three quarters of [max]. */
     val chips: List<BigDecimal>,
+    /** Card purchases in this category and week that [actual] leaves out: see [leavesOutCardSpend]. */
+    val cardSpendLeftOut: Boolean = false,
 )
 
 /** Weeks of history the slider's top is drawn from. */
@@ -28,6 +32,17 @@ internal const val GUESS_HISTORY_WEEKS = 4
 
 /** A guess this close to the recorded figure, in percent of it, counts as a hit. */
 const val CLOSE_GUESS_PERCENT = 15
+
+/**
+ * Whether Home asks about the week starting [weekStart]: not once the user chose "Don't
+ * ask again" ([off]), not for a week already answered or put off ([handledWeek]), and not
+ * while a scan runs ([scanning]): the figure would move under the guess.
+ */
+internal fun asksWeeklyGuess(weekStart: LocalDate, handledWeek: String?, off: Boolean, scanning: Boolean): Boolean =
+    !off && !scanning && handledWeek != weekStart.toString()
+
+/** How long writes have to settle before the weekly question reads five weeks again. */
+internal const val GUESS_SETTLE_MS = 500L
 
 /**
  * The question for the last of [weeks] (per currency, oldest first, ending with the week
@@ -77,6 +92,25 @@ internal fun weeklyGuessQuestion(
         chips = listOf("0.125", "0.25", "0.5", "0.75").map { snap(max * BigDecimal(it), step) }
             .filter { it.signum() > 0 }.distinct(),
     )
+}
+
+/**
+ * Whether card purchases in [question]'s category, currency and week are missing from its
+ * figure: Review follows "Count card spend as expense", and with it off they aren't
+ * spending. [cards] are the weeks' card purchases ([PeriodDetail.cardRows]); a split one
+ * counts when any part of it lands in the category, as the review files splits.
+ */
+internal fun leavesOutCardSpend(
+    question: WeeklyGuessQuestion,
+    cards: List<TransactionWithSplits>,
+    creditAsExpense: Boolean,
+    parentOf: Map<String, String>,
+): Boolean = !creditAsExpense && cards.any { row ->
+    val tx = row.transaction
+    tx.transactionType == TransactionType.CREDIT &&
+        tx.currency == question.currency &&
+        tx.dateTime.toLocalDate() in question.weekStart..question.weekEnd &&
+        row.getAmountByCategory().keys.any { it.ifEmpty { "Others" }.let { name -> parentOf[name] ?: name } == question.category }
 }
 
 /**
@@ -155,9 +189,13 @@ internal fun snap(value: BigDecimal, step: BigDecimal): BigDecimal =
 fun isCloseGuess(guess: BigDecimal, actual: BigDecimal): Boolean =
     (guess - actual).abs().multiply(BigDecimal(100)) <= actual * BigDecimal(CLOSE_GUESS_PERCENT)
 
-/** How far off, as a whole percent of what was recorded. */
+/** Past this a percent says nothing more, and a tiny week against big history would overflow an Int. */
+private val MAX_GAP_PERCENT = BigDecimal(999)
+
+/** How far off, as a whole percent of what was recorded, at most [MAX_GAP_PERCENT]. */
 fun guessGapPercent(guess: BigDecimal, actual: BigDecimal): Int =
-    (guess - actual).abs().multiply(BigDecimal(100)).divide(actual, 0, RoundingMode.HALF_UP).toInt()
+    (guess - actual).abs().multiply(BigDecimal(100)).divide(actual, 0, RoundingMode.HALF_UP)
+        .min(MAX_GAP_PERCENT).toInt()
 
 /** No trailing zeros and no exponent: 200, not 2E+2, so figures compare and print plainly. */
 private fun BigDecimal.plain(): BigDecimal = stripTrailingZeros().let { if (it.scale() < 0) it.setScale(0) else it }

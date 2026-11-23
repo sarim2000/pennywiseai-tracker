@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
+import com.pennywiseai.tracker.data.repository.BudgetWindow
 import com.pennywiseai.tracker.data.repository.overlaps
 import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
 import com.pennywiseai.tracker.utils.inAppLanguage
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -77,36 +79,45 @@ class BudgetGroupsViewModel @Inject constructor(
         )
 
     /**
-     * The day the under-budget card is judged against. [refreshDate] moves it when the
-     * screen resumes, so a ViewModel that lives across midnight doesn't keep yesterday's card.
+     * The day the under-budget card is judged against. [refreshDate] moves it on resume and
+     * at midnight, so a ViewModel that lives across midnight doesn't keep yesterday's card.
      */
     private val today = MutableStateFlow(LocalDate.now())
 
+    /** The budget cycle whose card can show today, or null; it follows the cycle start day. */
+    private val cardCycle: Flow<BudgetWindow?> =
+        combine(today, userPreferencesRepository.budgetCycleStartDay) { day, startDay -> underBudgetCycle(day, startDay) }
+            .distinctUntilChanged()
+
     /**
-     * Last month's spending limits all kept, during the first week of this one.
+     * The cycle that just ended kept every monthly spending limit, during the week after it.
      * [UnderBudgetCardState.ready] stays false until that decision arrives, including "no card".
      */
-    val underBudget: StateFlow<UnderBudgetCardState> = today.flatMapLatest { day ->
-        val decided: Flow<MonthUnderBudget?> = if (day.dayOfMonth > UNDER_BUDGET_CARD_DAYS) {
-            // Past the first week there's nothing to show: skip last month's query.
+    val underBudget: StateFlow<UnderBudgetCardState> = cardCycle.flatMapLatest { cycle ->
+        val decided: Flow<MonthUnderBudget?> = if (cycle == null) {
+            // No cycle ended in the last week: skip the query.
             flowOf(null)
         } else {
             combine(
-                // Flagged: spending in another currency it can't count would hide an overspend.
-                budgetSummaryProvider.summary(YearMonth.from(day).minusMonths(1), flagUncounted = true),
+                // Read as of the cycle's last day, so each budget's window is the cycle that just
+                // ended. Flagged: spending in another currency it can't count would hide an overspend.
+                budgetSummaryProvider.summary(YearMonth.from(cycle.end), flagUncounted = true, today = cycle.end),
                 userPreferencesRepository.budgetMonthCardsDismissed,
-            ) { summary, dismissed -> monthUnderBudget(day, summary, dismissed) }
+            ) { summary, dismissed -> monthUnderBudget(cycle, summary, dismissed) }
         }
         // The StateFlow starts not-ready, so a deep link waits for this decision instead of
-        // scrolling before a late card shifts the rows. A new day replaces that value.
+        // scrolling before a late card shifts the rows. A new cycle replaces that value.
         decided.map { win -> UnderBudgetCardState(win = win, ready = true) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UnderBudgetCardState())
 
-    /** Called on resume; a new day recounts, the same day does nothing. */
+    /** Called on resume and at midnight; a new day recounts, the same day does nothing. */
     fun refreshDate() {
         val now = LocalDate.now()
         today.value = now
-        viewModelScope.launch { userPreferencesRepository.pruneBudgetMonthDismissals(now, UNDER_BUDGET_CARD_DAYS) }
+        viewModelScope.launch {
+            val cycle = underBudgetCycle(now, userPreferencesRepository.budgetCycleStartDay.first())
+            userPreferencesRepository.pruneBudgetMonthDismissals(cycle?.let { YearMonth.from(it.end) })
+        }
     }
 
     private val _celebrate = MutableStateFlow(false)
@@ -124,7 +135,7 @@ class BudgetGroupsViewModel @Inject constructor(
 
     fun dismissUnderBudget(win: MonthUnderBudget) {
         viewModelScope.launch {
-            userPreferencesRepository.dismissBudgetMonthCard(win.key, today.value, UNDER_BUDGET_CARD_DAYS)
+            userPreferencesRepository.dismissBudgetMonthCard(win.key, win.month)
         }
     }
 

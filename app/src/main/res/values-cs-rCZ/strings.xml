@@ -28,6 +28,7 @@
     <string name="duplicate_accounts_message">Kvůli rozdílným formátům bankovních SMS nebo dřívějšímu zpracování mohly vzniknout duplicitní účty s třemi a čtyřmi číslicemi. Pokud jsou %1$s a %2$s stejný účet, chcete je sloučit? Transakce se přesunou na čtyřmístný účet, jeho historie zůstatku zůstane zachována a budoucí SMS ho budou používat automaticky.</string>
     <string name="duplicate_accounts_merge">Sloučit a zapamatovat</string>
     <string name="duplicate_accounts_keep">Ponechat zvlášť</string>
+    <!-- Top-bar eye, shown on every screen while the user has hidden amounts: tapping it shows them again -->
     <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
     <!-- AI chat: the badge by the latest reply's mascot. Saved: the rows of an Add card were just saved -->
     <!-- Developer mode: a screen showing the mascot in every shape and mood, for checking it on a device -->

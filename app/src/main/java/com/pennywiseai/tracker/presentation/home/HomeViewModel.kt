@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
+import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.data.ledger.convertedSpent
 import com.pennywiseai.tracker.data.ledger.forTotals
@@ -45,11 +46,14 @@ import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.domain.review.GUESS_HISTORY_WEEKS
+import com.pennywiseai.tracker.domain.review.GUESS_SETTLE_MS
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewPrompt
 import com.pennywiseai.tracker.domain.review.WeeklyGuessQuestion
+import com.pennywiseai.tracker.domain.review.asksWeeklyGuess
 import com.pennywiseai.tracker.domain.review.isCloseGuess
+import com.pennywiseai.tracker.domain.review.leavesOutCardSpend
 import com.pennywiseai.tracker.domain.review.localFirstDayOfWeek
 import com.pennywiseai.tracker.domain.review.reviewPromptFor
 import com.pennywiseai.tracker.domain.review.reviewRange
@@ -71,6 +75,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -86,6 +92,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -237,6 +244,13 @@ class HomeViewModel @Inject constructor(
     // Resolved against the selected/display currency in updateUIStateForCurrency so the
     // Lent pill stays in sync when the user switches currency tabs.
     private var currentMonthLentByCurrency: Map<String, BigDecimal> = emptyMap()
+
+    // Which inputs of the hero's month figures have arrived: the maps above start empty,
+    // and an empty map reads as a real ₹0. isMonthReady holds the card back until all three have.
+    private var currentMonthLoaded = false
+    private var lastMonthLoaded = false
+    private var loanLossLoaded = false
+    private val monthLoaded get() = currentMonthLoaded && lastMonthLoaded && loanLossLoaded
 
     // Track if user has manually selected a currency to prevent auto-reset
     private var hasUserSelectedCurrency = false
@@ -395,8 +409,8 @@ class HomeViewModel @Inject constructor(
         combine(
             _currentCycleWindow,
             today,
-            _uiState.map { it.budgetSummary }.distinctUntilChanged(),
-        ) { window, day, budgets -> Triple(window.second, day, budgets?.safeToSpendCap(day)) },
+            _uiState.loadedBudgets(),
+        ) { window, day, budgets -> Triple(window.second, day, budgets.safeToSpendCap(day)) },
         combine(
             userPreferencesRepository.unifiedCurrencyMode,
             userPreferencesRepository.displayCurrency,
@@ -775,6 +789,7 @@ class HomeViewModel @Inject constructor(
                 // so settlement losses silently stopped reaching "Spent" after #571.
                 .collect { (settledLoans, keep) ->
                     currentMonthLoanLossByCurrency = loanRepository.settlementLossByCurrency(settledLoans, keep)
+                    loanLossLoaded = true
                     updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
                 }
         }
@@ -1432,13 +1447,14 @@ class HomeViewModel @Inject constructor(
      * Last week's guess, until it's answered or dismissed. Follows the date, the rows in
      * scope, Home's currency, the categories and the splits: a split save changes the
      * recorded total without changing the transaction count. Reads nothing for a week
-     * already handled.
+     * already handled, or while a scan runs: every imported row would rerun five weeks.
+     * Other bursts of writes settle for [GUESS_SETTLE_MS] before the read.
      */
     private fun observeWeeklyGuess() {
         viewModelScope.launch {
             combine(
                 // The card-spend setting changes Review's figures without changing any rows.
-                combine(today, userPreferencesRepository.countCreditCardAsExpense.distinctUntilChanged()) { day, _ -> day },
+                combine(today, userPreferencesRepository.countCreditCardAsExpense.distinctUntilChanged(), ::Pair),
                 // Splits land in their own table, sometimes after the transaction row, so the
                 // question has to recompute on that write too or it keeps the old total.
                 combine(
@@ -1446,12 +1462,27 @@ class HomeViewModel @Inject constructor(
                     transactionRepository.observeSplitsForActiveTransactions(),
                 ) { _, _ -> },
                 _uiState.map { it.selectedCurrency }.distinctUntilChanged(),
-                userPreferencesRepository.weeklyGuessHandledWeek.distinctUntilChanged(),
+                combine(
+                    userPreferencesRepository.weeklyGuessHandledWeek.distinctUntilChanged(),
+                    userPreferencesRepository.weeklyGuessOff.distinctUntilChanged(),
+                    _uiState.map { it.isScanning }.distinctUntilChanged(),
+                    ::Triple,
+                ),
                 categoryRepository.getAllCategories(),
-            ) { day, _, currency, handled, categories -> GuessInputs(day, currency, handled, categories) }
-                .collectLatest { (day, currency, handled, categories) ->
+            ) { (day, creditAsExpense), _, currency, (handled, off, scanning), categories ->
+                GuessInputs(day, creditAsExpense, currency, handled, off, scanning, categories)
+            }
+                .collectLatest { (day, creditAsExpense, currency, handled, off, scanning, categories) ->
                     val weekStart = reviewRange(ReviewKind.WEEK, -1, day, 1, localFirstDayOfWeek()).start
-                    _weeklyGuess.value = if (handled == weekStart.toString()) null else withContext(Dispatchers.Default) {
+                    // A scan can move the figure: an open guess not yet locked in closes, and
+                    // the card comes back with the fresh question once the scan is done.
+                    if (scanning) _guessSheet.update { it?.takeIf { sheet -> sheet.guess != null } }
+                    if (!asksWeeklyGuess(weekStart, handled, off, scanning)) {
+                        _weeklyGuess.value = null
+                        return@collectLatest
+                    }
+                    delay(GUESS_SETTLE_MS)
+                    _weeklyGuess.value = withContext(Dispatchers.Default) {
                         val detail = periodReviewLoader.lastWeeks(GUESS_HISTORY_WEEKS + 1, day)
                         weeklyGuessQuestion(
                             weeks = detail.cycles,
@@ -1461,13 +1492,25 @@ class HomeViewModel @Inject constructor(
                             food = categories.nameForBuiltin("Food & Dining"),
                             others = setOf("Others", categories.nameForBuiltin("Others")),
                             preferred = currency,
-                        )
+                        )?.let { question ->
+                            question.copy(
+                                cardSpendLeftOut = leavesOutCardSpend(question, detail.cardRows, creditAsExpense, categories.parentNameOf()),
+                            )
+                        }
                     }
                 }
         }
     }
 
-    private data class GuessInputs(val day: LocalDate, val currency: String, val handled: String?, val categories: List<CategoryEntity>)
+    private data class GuessInputs(
+        val day: LocalDate,
+        val creditAsExpense: Boolean,
+        val currency: String,
+        val handled: String?,
+        val off: Boolean,
+        val scanning: Boolean,
+        val categories: List<CategoryEntity>,
+    )
 
     fun openWeeklyGuess() {
         _guessSheet.value = _weeklyGuess.value?.let(::WeeklyGuessSheet)
@@ -1490,6 +1533,12 @@ class HomeViewModel @Inject constructor(
     /** "Not now": the card is gone until next week. */
     fun dismissWeeklyGuess() {
         _weeklyGuess.value?.let { handleWeeklyGuess(it.weekStart) }
+    }
+
+    /** "Don't ask again": the card never comes back. */
+    fun stopWeeklyGuess() {
+        _weeklyGuess.value = null
+        viewModelScope.launch { userPreferencesRepository.stopWeeklyGuess() }
     }
 
     fun closeWeeklyGuess() {
@@ -1603,8 +1652,10 @@ class HomeViewModel @Inject constructor(
         // Store the breakdown map for later use when switching currencies
         if (isCurrentMonth) {
             currentMonthBreakdownMap = breakdownByCurrency
+            currentMonthLoaded = true
         } else {
             lastMonthBreakdownMap = breakdownByCurrency
+            lastMonthLoaded = true
         }
 
         // Update available currencies — merge transaction currencies with existing account currencies
@@ -1662,7 +1713,9 @@ class HomeViewModel @Inject constructor(
                     lastMonthExpenses = lastBreakdown.expenses,
                     lastMonthSamePointExpenses = lastSamePoint,
                     selectedCurrency = selectedCurrency,
-                    availableCurrencies = availableCurrencies
+                    availableCurrencies = availableCurrencies,
+                    // Read now, not at launch: an earlier, slower conversion landing last can't hide the card again.
+                    isMonthReady = monthLoaded
                 )
                 calculateMonthlyChange()
             }
@@ -1691,7 +1744,8 @@ class HomeViewModel @Inject constructor(
                 lastMonthExpenses = lastBreakdown.expenses,
                 lastMonthSamePointExpenses = lastMonthSamePointBreakdownMap[selectedCurrency]?.expenses ?: BigDecimal.ZERO,
                 selectedCurrency = selectedCurrency,
-                availableCurrencies = availableCurrencies
+                availableCurrencies = availableCurrencies,
+                isMonthReady = monthLoaded
             )
             calculateMonthlyChange()
         }
@@ -1768,6 +1822,7 @@ data class HomeUiState(
     val upcomingSubscriptionsByCurrency: Map<String, Money> = emptyMap(),
     /** The soonest-due active EXPENSE subscription, for the card's "Next:" line. */
     val nextDueSubscription: SubscriptionEntity? = null,
+    /** Null until the budgets load; with no budget it's a summary with no groups. */
     val budgetSummary: BudgetOverallSummary? = null,
     val accountBalances: List<AccountBalanceEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),
@@ -1786,12 +1841,31 @@ data class HomeUiState(
     val transactionHeatmap: Map<Long, Int> = emptyMap(),
     val isBalanceHidden: Boolean = true,
     val isBalanceReady: Boolean = false,
+    /** This cycle's totals, its settlement losses and last cycle's totals have loaded: until then the month figures' zeros aren't real. */
+    val isMonthReady: Boolean = false,
     val isApproximateBalance: Boolean = false,
     val lastMonthSpendingHistory: List<BigDecimal> = emptyList(),
     val loanSummary: LoanSummary? = null,
     val selectedProfileId: Long? = null,
     val profiles: List<ProfileEntity> = emptyList()
 )
+
+/**
+ * Whether Home's hero has everything it draws: the balances, the month's totals, the
+ * budgets, and (with accounts to count) Safe to spend worked out against those budgets.
+ * Until then it stays a skeleton, so a cold start never shows a placeholder "Spent ₹0"
+ * or a Safe to spend the budget hasn't capped yet.
+ */
+internal fun HomeUiState.isHeroReady(safeToSpend: SafeToSpendUi?): Boolean =
+    isBalanceReady && isMonthReady && budgetSummary != null &&
+        (safeToSpend != null || accountBalances.isEmpty())
+
+/**
+ * The budgets Safe to spend is capped by, from the first loaded summary on. A null summary
+ * is still loading, not "no budget": passing it on would show an uncapped figure.
+ */
+internal fun Flow<HomeUiState>.loadedBudgets(): Flow<BudgetOverallSummary> =
+    mapNotNull { it.budgetSummary }.distinctUntilChanged()
 
 /** Pref key for an account in the Safe to spend selection. */
 internal fun safeToSpendKey(account: AccountBalanceEntity) = "${account.bankName}_${account.accountLast4}"

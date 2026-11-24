@@ -47,10 +47,15 @@ class BudgetWidgetFiguresTest {
     )
 
     /**
-     * The widget's figures for [budgets], with ₹50,000 of income, the page's 22 days left
-     * in March, the page's limits added up as its savings spend, and ₹1,000 saved last period.
+     * The widget's figures for [budgets], with ₹50,000 of income counted from [incomeFrom],
+     * the page's 22 days left in March, and ₹1,000 saved last period. The page's limits
+     * are Home's added up, its spend [pageSpent] when given.
      */
-    private suspend fun figures(vararg budgets: BudgetWithCategories): Pair<BudgetWidgetData, BudgetOverallSummary> {
+    private suspend fun figures(
+        vararg budgets: BudgetWithCategories,
+        pageSpent: String? = null,
+        incomeFrom: LocalDate = march.start,
+    ): Pair<BudgetWidgetData, BudgetOverallSummary> {
         val raw = BudgetGroupSpendingRaw(
             budgetsWithCategories = budgets.toList(),
             windowedSpend = emptyList(),
@@ -69,10 +74,13 @@ class BudgetWidgetFiguresTest {
         val widget = widgetBudgetFigures(
             summary,
             today,
+            pageLimitBudget = summary.totalLimitBudget,
+            pageLimitSpent = pageSpent?.let { BigDecimal(it) } ?: summary.totalLimitSpent,
+            pageGroups = summary.groups,
             pageDaysRemaining = 22,
+            incomeFrom = incomeFrom,
             income = BigDecimal("50000"),
             incomeCurrency = "INR",
-            pageLimitSpent = summary.totalLimitSpent,
             prevSavings = BigDecimal("1000"),
         )
         return widget to summary
@@ -126,5 +134,32 @@ class BudgetWidgetFiguresTest {
         assertEquals(84f, widget.savingsRate, 0.01f)
         // Last period's figure added up every limit, so no arrow against it.
         assertNull(widget.savingsDelta)
+    }
+
+    @Test fun `without an all-spending budget the page's spend stands, not each budget's own window`() = runTest {
+        // Home counts the weekly Food budget's ₹5,000 this week; the page also holds
+        // ₹4,000 from an earlier week of March.
+        val (widget, summary) = figures(budget(1, "16500", listOf("Food" to "16500"), window = week), pageSpent = "9000")
+        assertAmount("5000", summary.totalLimitSpent)
+        assertAmount("9000", widget.totalSpent)
+        assertAmount("7500", widget.remaining)
+        // Spent, remaining and savings agree on the one figure.
+        assertAmount("41000", widget.netSavings)
+    }
+
+    @Test fun `savings keep the page's spend when the income starts before the monthly budget`() = runTest {
+        // On March 1 a weekly budget's window reaches back to February 23, so the page's
+        // income does too; the all-spending budget's March spend would leave out that week.
+        val (widget, _) = figures(
+            budget(1, "40000"),
+            budget(2, "16500", listOf("Food" to "16500")),
+            incomeFrom = LocalDate.of(2026, 2, 23),
+        )
+        // The budget figures are still the all-spending budget's.
+        assertAmount("40000", widget.totalLimit)
+        assertAmount("8000", widget.totalSpent)
+        // Savings: income less the page's limits, its arrow against last period.
+        assertAmount("37000", widget.netSavings)
+        assertAmount("36000", widget.savingsDelta!!)
     }
 }

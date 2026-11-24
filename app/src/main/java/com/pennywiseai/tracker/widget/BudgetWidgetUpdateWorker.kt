@@ -150,6 +150,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 val groupSpendingList = unifiedGroupSpending(raw, carries, convertSplit, convertLimit, ownWindows = false)
 
                 val limitGroups = groupSpendingList.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+                val totalLimitBudget = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
                 val totalLimitSpent = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
 
                 // Previous month savings for delta — same aggregator, same currency
@@ -190,16 +191,20 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     ) ?: continue
                 }
 
-                // The budget figures are Home's, so the widget shows what Home's hero does.
+                // Home's summary picks the hero, so the widget shows what Home's hero does.
                 widgetBudgetFigures(
                     homeBudgetSummary(raw, displayCurrency, baseCurrency) { amount, from, to ->
                         currencyConversionService.convertAmountOrNull(amount, from, to)
                     },
                     today,
+                    pageLimitBudget = totalLimitBudget,
+                    pageLimitSpent = totalLimitSpent,
+                    pageGroups = groupSpendingList,
                     pageDaysRemaining = raw.daysRemaining,
+                    // totalIncome is read from allTransactions: every budget's windows on the page.
+                    incomeFrom = raw.windowedSpend.minOfOrNull { it.window.start } ?: today,
                     income = totalIncome,
                     incomeCurrency = displayCurrency,
-                    pageLimitSpent = totalLimitSpent,
                     prevSavings = prevIncome - prevLimitSpent
                 ).copy(
                     currency = currency,
@@ -223,10 +228,13 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 widgetBudgetFigures(
                     spending,
                     today,
+                    pageLimitBudget = spending.totalLimitBudget,
+                    pageLimitSpent = spending.totalLimitSpent,
+                    pageGroups = spending.groups,
                     pageDaysRemaining = spending.daysRemaining,
+                    incomeFrom = spending.pageWindow.start,
                     income = spending.totalIncome,
                     incomeCurrency = currency,
-                    pageLimitSpent = spending.totalLimitSpent,
                     prevSavings = prevSpending.netSavings
                 ).copy(
                     currency = currency,
@@ -248,36 +256,44 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
 /**
  * The widget's figures. When Home's hero leads with a budget (an all-spending limit
- * running [today]), the widget shows that budget alone: it already covers what a
- * category budget spends, so adding the two counts that spending twice (#1420). The
- * limit, spend and per-day figure are that budget's, and Saved / Overspent is [income]
- * less its spend (a monthly budget only), with no arrow: [prevSavings] is last period's income less every
- * limit's spend, not this budget's. Its spend only stands in when the summary is in
- * [incomeCurrency]; otherwise savings fall back as below.
+ * running [today], picked from Home's [summary]), the widget shows that budget alone: it
+ * already covers what a category budget spends, so adding the two counts that spending
+ * twice (#1420). The limit, spend and per-day figure are that budget's, and Saved /
+ * Overspent is [income] less its spend, with no arrow: [prevSavings] is last period's
+ * income less every limit's spend, not this budget's. Its spend only stands in for a
+ * monthly budget in [incomeCurrency] whose window starts no later than [incomeFrom] (the
+ * first day [income] counts), so no income is set against spending it leaves out;
+ * otherwise savings fall back as below.
  *
- * With no such budget, the page's limits are added up, as before: the per-day figure is
- * what's left over [pageDaysRemaining] (the page window's days left, not one budget's),
- * and Saved / Overspent is [income] less [pageLimitSpent], its arrow against [prevSavings].
+ * With no such budget, the page's figures stand, as before: [pageLimitBudget] and
+ * [pageLimitSpent] (every transaction on the page, not each budget's own window), the
+ * per-day figure what's left over [pageDaysRemaining], and Saved / Overspent [income]
+ * less [pageLimitSpent], its arrow against [prevSavings].
  */
 internal fun widgetBudgetFigures(
     summary: BudgetOverallSummary,
     today: LocalDate,
+    pageLimitBudget: BigDecimal,
+    pageLimitSpent: BigDecimal,
+    pageGroups: List<BudgetGroupSpending>,
     pageDaysRemaining: Int,
+    incomeFrom: LocalDate,
     income: BigDecimal,
     incomeCurrency: String,
-    pageLimitSpent: BigDecimal,
     prevSavings: BigDecimal
 ): BudgetWidgetData {
     val hero = summary.heroBudgetGroup(today)
-    val limit = hero?.totalBudget ?: summary.totalLimitBudget
-    val spent = hero?.totalActual ?: summary.totalLimitSpent
+    val limit = hero?.totalBudget ?: pageLimitBudget
+    val spent = hero?.totalActual ?: pageLimitSpent
     val remaining = limit - spent
-    val usage = widgetLimitUsage(limit, spent, hero?.let { listOf(it) } ?: summary.groups)
+    val usage = widgetLimitUsage(limit, spent, hero?.let { listOf(it) } ?: pageGroups)
     val dailyAllowance = hero?.dailyAllowance ?: if (pageDaysRemaining > 0 && remaining > BigDecimal.ZERO) {
         remaining.divide(BigDecimal(pageDaysRemaining), 0, RoundingMode.HALF_UP)
     } else BigDecimal.ZERO
-    // A weekly hero's spend against a month's income would overstate savings.
-    val savingsHero = hero?.takeIf { summary.currency == incomeCurrency && it.periodType == BudgetPeriodType.MONTHLY }
+    // A weekly hero's spend, or a month that starts after the income does, would overstate savings.
+    val savingsHero = hero?.takeIf {
+        summary.currency == incomeCurrency && it.periodType == BudgetPeriodType.MONTHLY && !it.windowStart.isAfter(incomeFrom)
+    }
     val netSavings = income - (savingsHero?.totalActual ?: pageLimitSpent)
     return BudgetWidgetData(
         totalSpent = spent,

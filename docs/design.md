@@ -213,9 +213,36 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
   than before, including light-on-dark text inside the light theme (snackbars,
   filled buttons), since grade follows the theme, not the surface.
   `typographyFor(appFont, latinScript, darkTheme)` picks it.
-- **Never animate a font axis.** Every axis value is a separate typeface;
-  animating `wght` or `ROND` re-lays out the text every frame. Animate size,
-  colour or alpha instead.
+- **Axis animation only through the quantized cache.** Every axis setting is
+  a separate Android `Typeface`, and Compose caches only 16; building fonts per
+  frame janks and can crash. Animate an axis only with
+  `TextStyle.withFlexAxes(...)` (`GoogleSansFlexAxes.kt`): it snaps `wght` to
+  25, `ROND` and `GRAD` to 10 and `opsz` to the `OPTICAL_SIZES` stops, and
+  serves families and typefaces from bounded process-wide caches. Never build
+  a `Font` or `FontFamily` in a composable. Read the animated value through a
+  quantized `derivedStateOf`, so the text recomposes per grid step, not per
+  frame. Prefer `GRAD` for emphasis: it thickens strokes without changing
+  widths, so nothing reflows; `wght` does reflow. Skip the animation under
+  reduced motion (`rememberAnimationsEnabled()`) and when
+  `LocalGoogleSansFlexActive` is false (system font, SN Pro, non-Latin locale;
+  `withFlexAxes` returns the style unchanged then anyway). Keep one text node
+  per label for TalkBack. The places that animate axes:
+  - NavDock items and chips/toggles: `GRAD` up when selected or pressed;
+  - the collapsing top-app-bar title (`CustomTitleTopAppBar`, `TitleMorph`):
+    both the expanded and the collapsed title go from `ROND` 100 at `opsz` 32
+    (expanded) to `ROND` 40 at `opsz` 22 (collapsed) in six steps of the
+    collapse fraction. Under reduced motion each title holds its resting
+    style (expanded `ROND` 100, collapsed `ROND` 40) without morphing, so the
+    bar looks the same at rest either way. Bars that never expand (fixed
+    bars, `PennyWiseScaffold`'s default bar) take the collapsed cut through
+    `barTitleStyle()`, so every bar title matches at rest;
+  - the onboarding "PennyWise" wordmark (inside the welcome title): once per
+    onboarding, each letter inks in from thin to the title's weight (`wght`,
+    with a passing `GRAD` swell), its line breaks held so nothing re-wraps.
+    It starts once the title has been drawn, the window has focus and frames
+    arrive steadily, not at first composition: on a cold start the splash and
+    the starting window cover the app while Compose already runs frames, and a
+    sweep timed from composition would finish before anything is seen.
 - No wider (`wdth`) cut for the expanded app-bar title: long translated titles
   already wrap, and the axis would add ~120 KB.
 - The picker draws each option in its own family, and its tiles grow with their

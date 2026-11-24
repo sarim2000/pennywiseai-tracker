@@ -23,7 +23,6 @@ import com.pennywiseai.tracker.navigation.transactionsFor
 import com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupEditUiState
 import com.pennywiseai.tracker.presentation.budgetgroups.CategoryBudgetItem
 import com.pennywiseai.tracker.presentation.budgetgroups.categoryRows
-import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
 import com.pennywiseai.tracker.widget.unifiedGroupSpending
 import io.mockk.coEvery
 import io.mockk.every

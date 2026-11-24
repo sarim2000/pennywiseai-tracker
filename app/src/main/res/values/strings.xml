@@ -8,6 +8,8 @@
     <string name="widget_description_category_pie">This month\'s spending by category as a pie chart with legend.</string>
     <string name="widget_name_add_transaction">Cash spend</string>
     <string name="widget_name_summary">Spending Summary</string>
+    <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
+    <string name="widget_add_to_home_screen">Add to home screen</string>
 
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Add Transaction</string>

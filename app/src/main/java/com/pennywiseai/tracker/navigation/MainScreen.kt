@@ -59,6 +59,7 @@ import com.pennywiseai.tracker.presentation.home.HomeScreen
 import com.pennywiseai.tracker.presentation.plan.PlanGoalsScreen
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
+import com.pennywiseai.tracker.presentation.settings.ConscienceScreen
 import com.pennywiseai.tracker.presentation.settings.FAQScreen
 import com.pennywiseai.tracker.presentation.settings.MascotPlaygroundScreen
 import com.pennywiseai.tracker.presentation.settings.SettingsScreen
@@ -660,6 +661,10 @@ fun MainScreen(
                 onNavigateBack = { backFrom(tab, key) },
                 onNavigate = { openFromSettings(tab, it) }
             )
+        }
+
+        entry<Conscience> { key ->
+            ConscienceScreen(onNavigateBack = { backFrom(tab, key) })
         }
 
         entry<MascotPlayground> { key ->

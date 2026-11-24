@@ -42,7 +42,7 @@ fun SettingsSectionScreen(
             SettingsSection.PLANNING -> PlanningPage(onNavigate)
             SettingsSection.CURRENCY -> CurrencyPage(onNavigate)
             SettingsSection.FORMATS -> FormatsPage()
-            SettingsSection.NOTIFICATIONS -> NotificationsPage()
+            SettingsSection.NOTIFICATIONS -> NotificationsPage(onNavigate)
             SettingsSection.SECURITY -> SecurityPage()
             SettingsSection.DATA -> DataPage(onNavigate)
             SettingsSection.AI -> AiPage(onNavigate)

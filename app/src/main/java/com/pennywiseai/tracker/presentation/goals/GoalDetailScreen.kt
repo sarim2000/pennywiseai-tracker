@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -59,6 +60,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -89,6 +91,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.widget.WidgetPinning
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -217,6 +220,8 @@ private fun GoalManagement(
     onDelete: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val canPin = remember { WidgetPinning.isSupported(context) }
     val archived = progress.status == GoalStatus.ARCHIVED
     // Repeat fits a goal that has run its course: Reached, or Missed.
     val canRepeat = progress.status == GoalStatus.REACHED || progress.status == GoalStatus.MISSED
@@ -237,6 +242,14 @@ private fun GoalManagement(
                         text = { Text(stringResource(R.string.goal_menu_repeat)) },
                         leadingIcon = { Icon(Icons.Default.Repeat, contentDescription = null) },
                         onClick = { open = false; onRepeat() },
+                    )
+                }
+                // The widget shows only goals that aren't archived; an archived one would read "Goal removed".
+                if (canPin && !archived) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.widget_add_to_home_screen)) },
+                        leadingIcon = { Icon(Icons.Default.Widgets, contentDescription = null) },
+                        onClick = { open = false; WidgetPinning.pinGoalWidget(context, progress.goal.id) },
                     )
                 }
                 DropdownMenuItem(

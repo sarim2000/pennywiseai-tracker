@@ -265,11 +265,12 @@ fun PennyWiseApp(
 
     // Play's update sheet and the restart dialog wait for Home's first screen: not over
     // onboarding, the lock screen, another tab, or a form or sheet (Restart would lose it).
-    // Re-checked on each return to Home and each resume (`unlocked` drops until a fresh
-    // lock check); the manager keeps a version from being offered twice.
+    // Re-checked on each return to Home and each resume: keyed by the resume too, since a
+    // fast lock check can bring `unlocked` back before Compose ever sees it drop. The
+    // manager keeps a version from being offered twice.
     var homeOnTop by remember { mutableStateOf(false) }
     val updateSafe = themeUiState.hasCompletedOnboarding && currentRoute == Home && homeOnTop && unlocked && !covered
-    LaunchedEffect(updateSafe) { if (updateSafe) onUpdateCheck() }
+    LaunchedEffect(updateSafe, lockChecksAtResume) { if (updateSafe) onUpdateCheck() }
 
     val look = Look(
         darkTheme = darkTheme,

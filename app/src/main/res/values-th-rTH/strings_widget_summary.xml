@@ -9,6 +9,7 @@
     <string name="widget_budget_empty_title">ยังไม่มีงบประมาณ</string>
     <string name="widget_budget_empty_hint">ตั้งวงเงินรายเดือนเพื่อดูว่าเหลือเท่าไหร่</string>
     <string name="widget_budget_create">สร้างงบประมาณ</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
     <string name="widget_budget_preview_meta">จาก 3,600 · 120/วัน</string>
     <string name="widget_cash_label">เงินสด</string>
     <string name="widget_cash_spend">จ่ายเงินสด</string>

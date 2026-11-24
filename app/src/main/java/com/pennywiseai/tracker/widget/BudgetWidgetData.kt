@@ -14,5 +14,10 @@ data class BudgetWidgetData(
     val netSavings: BigDecimal = BigDecimal.ZERO,
     val savingsRate: Float = 0f,
     val savingsDelta: BigDecimal? = null,
-    val currency: String = "INR"
+    val currency: String = "INR",
+    /**
+     * Whether a limit running today is past an even spend over its own window.
+     * Null when none is running, or in a snapshot from before this was stored.
+     */
+    val overPace: Boolean? = null
 )

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -58,16 +59,20 @@ class PlanningRepository @Inject constructor(
          * LIMIT groups live today with something to spend against. Targets and expected
          * amounts aren't limits: "left" means nothing for them. A limit the screen shows as
          * zero for want of an exchange rate is still a limit, an overall one or the sum of its
-         * categories' allocations: kept, without a figure for it.
+         * categories' allocations: kept, without a figure for it. One rollover carried down to
+         * 0 ([BudgetGroupSpending.hasLimit]) is used up, not missing: kept, with a limit of 0.
          */
         internal fun budgetStatuses(summary: BudgetOverallSummary, today: LocalDate): List<BudgetStatus> = summary.groups
             .filter { g ->
                 g.group.budget.groupType == BudgetGroupType.LIMIT &&
-                    (g.totalBudget.signum() > 0 || g.group.totalBudgetAmount.signum() > 0) &&
+                    (g.hasLimit || g.group.totalBudgetAmount.signum() > 0) &&
                     !today.isBefore(g.windowStart) && !today.isAfter(g.windowEnd)
             }
             .map { g ->
-                BudgetStatus(g.group.budget.name, summary.currency, g.totalBudget.takeIf { it.signum() > 0 }, g.totalActual, g.windowStart, g.windowEnd)
+                // Clamped: category limits round each conversion, the carry cap rounds the sum,
+                // so a budget carried down to 0 can come out a cent under it.
+                val limit = g.totalBudget.max(BigDecimal.ZERO).takeIf { g.hasLimit }
+                BudgetStatus(g.group.budget.name, summary.currency, limit, g.totalActual, g.windowStart, g.windowEnd)
             }
 
         /**

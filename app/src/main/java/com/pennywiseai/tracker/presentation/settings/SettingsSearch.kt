@@ -452,6 +452,18 @@ internal fun SettingsSearchResults(query: String, contentPadding: PaddingValues,
     }
     val results = remember(resolved, query) { resolved.matchingSearch(query) { it.fields } }
     val words = remember(query) { searchWords(query) }
+    // Not keyed by query: a new state per keystroke has no earlier positions, so
+    // animateItem() never runs. A new query scrolls to the top instead, so its count (the
+    // first item, a live region) is composed and announced. Only a new one: Back from a
+    // result restores the same query and keeps the place.
+    val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    var scrolledFor by rememberSaveable { mutableStateOf(query) }
+    LaunchedEffect(query) {
+        if (query != scrolledFor) {
+            scrolledFor = query
+            listState.scrollToItem(0)
+        }
+    }
 
     if (results.isEmpty()) {
         Text(
@@ -473,9 +485,7 @@ internal fun SettingsSearchResults(query: String, contentPadding: PaddingValues,
             .imePadding(),
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
-        // A new query starts at the top, so its count (the first item, a live region) is
-        // composed and announced. Keyed by query, so coming back from a result keeps the place.
-        state = rememberSaveable(query, saver = LazyListState.Saver) { LazyListState() },
+        state = listState,
     ) {
         item(key = "count") {
             Text(

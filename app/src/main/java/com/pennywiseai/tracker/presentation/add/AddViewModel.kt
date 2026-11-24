@@ -12,8 +12,11 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.model.MerchantSuggestion
+import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
@@ -31,7 +34,10 @@ import com.pennywiseai.tracker.ui.components.pickerDefault
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -57,6 +63,7 @@ class AddViewModel @Inject constructor(
     private val receiptManager: ReceiptManager,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val learnedSendersStore: LearnedSendersStore,
+    private val profilePreferences: UserPreferencesRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -108,6 +115,27 @@ class AddViewModel @Inject constructor(
     // Tracks the in-flight merchant→category lookup so a newer merchant/type
     // change supersedes a slower earlier one instead of landing stale. (#678)
     private var merchantSuggestionJob: Job? = null
+
+    // What was last typed into the merchant field; cleared once a suggestion is picked.
+    private val merchantQuery = MutableStateFlow("")
+
+    /** Past merchants for what's typed (#1392), from the profile in view; a tap fills the field. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val merchantSuggestions: StateFlow<List<MerchantSuggestion>> = merchantQuery
+        .mapLatest { typed ->
+            if (typed.isBlank()) return@mapLatest emptyList()
+            delay(MerchantSuggestions.DEBOUNCE_MS)
+            try {
+                transactionRepository.suggestMerchants(typed, profilePreferences.selectedProfileId.first())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Only a hint: the form works without it.
+                Log.w("AddViewModel", "Merchant suggestions failed", e)
+                emptyList()
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // One save per open form; a failed or refused insert keeps the draft (see [SaveGate]).
     private val saveGate = SaveGate()
@@ -348,6 +376,7 @@ class AddViewModel @Inject constructor(
     }
 
     fun updateTransactionMerchant(merchant: String) {
+        merchantQuery.value = merchant
         _transactionUiState.update { currentState ->
             currentState.copy(
                 merchant = merchant,
@@ -378,6 +407,12 @@ class AddViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /** A past merchant picked under the field: fills it (and its learned category) and hides the row. */
+    fun pickMerchantSuggestion(suggestion: MerchantSuggestion) {
+        updateTransactionMerchant(suggestion.merchantName)
+        merchantQuery.value = ""
     }
 
     fun updateTransactionCategory(category: String) {

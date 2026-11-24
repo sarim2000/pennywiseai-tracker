@@ -44,6 +44,7 @@ class AddViewModelDraftTest {
                 receiptManager = mockk(relaxed = true),
                 unrecognizedSmsRepository = mockk(relaxed = true),
                 learnedSendersStore = mockk(relaxed = true),
+                profilePreferences = mockk(relaxed = true),
                 savedStateHandle = SavedStateHandle(mapOf("type" to type.name, "amount" to "12")),
             )
             try {

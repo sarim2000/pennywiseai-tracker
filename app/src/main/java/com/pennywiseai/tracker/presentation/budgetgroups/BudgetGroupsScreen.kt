@@ -918,6 +918,8 @@ private fun SpendingPaceChart(
  * The rows behind a budget's category line: [category] over the days its spend was counted, in
  * every profile, as a budget isn't kept per profile. With [currencyOnly] only rows written in
  * [currency], as a budget counts outside unified mode; without it every currency, converted.
+ * [without]: the budget's other lines, left out of [category]'s sub-categories, as a
+ * sub-category with its own line doesn't count toward its parent's (#1425).
  */
 data class BudgetCategoryRows(
     val category: String,
@@ -925,6 +927,7 @@ data class BudgetCategoryRows(
     val end: LocalDate,
     val currency: String,
     val currencyOnly: Boolean,
+    val without: List<String> = emptyList(),
 )
 
 /**
@@ -937,4 +940,5 @@ internal fun BudgetGroupSpending.categoryRows(category: String, currency: String
     end = minOf(windowEnd, displayedCapDate).coerceAtLeast(windowStart),
     currency = currency,
     currencyOnly = !unified,
+    without = group.categories.filter { it.matchType == null && it.categoryName != category }.map { it.categoryName },
 )

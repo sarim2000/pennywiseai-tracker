@@ -213,7 +213,9 @@ data class TransactionsWithFilter(
     /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
     val currencyOnly: Boolean = false,
     /** Every profile's rows, whatever profile is selected: the list behind a budget, which counts them all. */
-    val allProfiles: Boolean = false
+    val allProfiles: Boolean = false,
+    /** A budget's other lines, which count their own spend: left out of [category]'s list where they're its sub-categories (#1425). */
+    val withoutCategories: List<String> = emptyList()
 ) : NavKey
 
 /**

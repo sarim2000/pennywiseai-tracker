@@ -17,7 +17,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
-import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk

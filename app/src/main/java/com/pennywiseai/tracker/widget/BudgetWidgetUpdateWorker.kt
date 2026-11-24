@@ -27,10 +27,10 @@ import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.data.repository.budgetSpend
+import com.pennywiseai.tracker.data.repository.heroBudgetGroup
+import com.pennywiseai.tracker.data.repository.homeBudgetSummary
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.spending.budgetPace
-import com.pennywiseai.tracker.presentation.home.heroBudget
-import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -268,7 +268,7 @@ internal fun widgetBudgetFigures(
     pageLimitSpent: BigDecimal,
     prevSavings: BigDecimal
 ): BudgetWidgetData {
-    val hero = summary.heroBudget(today)?.let { h -> summary.groups.first { it.group.budget.id == h.budgetId } }
+    val hero = summary.heroBudgetGroup(today)
     val limit = hero?.totalBudget ?: summary.totalLimitBudget
     val spent = hero?.totalActual ?: summary.totalLimitSpent
     val remaining = limit - spent

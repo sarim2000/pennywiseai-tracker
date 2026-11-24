@@ -10,10 +10,10 @@ import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetWindow
+import com.pennywiseai.tracker.data.repository.homeBudgetSummary
 import com.pennywiseai.tracker.presentation.home.assertAmount
 import com.pennywiseai.tracker.presentation.home.fakeConvert
 import com.pennywiseai.tracker.presentation.home.heroBudget
-import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
 import com.pennywiseai.tracker.presentation.home.tx
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

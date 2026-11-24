@@ -8,6 +8,7 @@
     <string name="widget_description_category_pie">As despesas deste mês por categoria num gráfico circular com legenda.</string>
     <string name="widget_name_add_transaction">Despesa em dinheiro</string>
     <string name="widget_name_summary">Resumo de despesas</string>
+    <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Adicionar transação</string>
     <string name="shortcut_add_transaction_short">Adicionar</string>

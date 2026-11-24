@@ -8,6 +8,7 @@
     <string name="widget_description_category_pie">การใช้จ่ายเดือนนี้แยกตามหมวดหมู่ เป็นกราฟวงกลมพร้อมคำอธิบาย</string>
     <string name="widget_name_add_transaction">จ่ายเงินสด</string>
     <string name="widget_name_summary">สรุปการใช้จ่าย</string>
+    <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">เพิ่มธุรกรรม</string>
     <string name="shortcut_add_transaction_short">เพิ่ม</string>

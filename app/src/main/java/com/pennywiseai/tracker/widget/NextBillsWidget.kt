@@ -123,6 +123,9 @@ class NextBillsWidget : GlanceAppWidget() {
     @Composable
     private fun BillRow(item: NextBillItem, today: LocalDate) {
         val days = item.dueEpochDay - today.toEpochDay()
+        // Two lines overflow the 40dp row from 1.3x font scale (1.15x still fits): drop the
+        // due label there and keep its red or amber on the name, so "Overdue" isn't lost.
+        val bigText = LocalContext.current.resources.configuration.fontScale > LARGE_FONT_SCALE
         WidgetRow(
             modifier = GlanceModifier.fillMaxWidth().height(ROW),
             verticalAlignment = Alignment.CenterVertically,
@@ -133,13 +136,13 @@ class NextBillsWidget : GlanceAppWidget() {
                         text = item.name,
                         maxLines = 1,
                         style = TextStyle(
-                            color = GlanceTheme.colors.onSurface,
+                            color = if (bigText && days <= 1) dueColor(days) else GlanceTheme.colors.onSurface,
                             fontSize = Typography.bodyMedium.fontSize,
                             fontWeight = FontWeight.Medium,
                             textAlign = startTextAlign(),
                         ),
                     )
-                    WidgetLabel(dueLabel(days), color = dueColor(days))
+                    if (!bigText) WidgetLabel(dueLabel(days), color = dueColor(days))
                 }
             }
             item { Spacer(GlanceModifier.width(Spacing.sm)) }
@@ -186,6 +189,7 @@ class NextBillsWidget : GlanceAppWidget() {
         /** A bill: name over due date. Not a tap target of its own; the whole widget is one. */
         val ROW = 40.dp
         val SHORT_HEADER = 32.dp
+        const val LARGE_FONT_SCALE = 1.2f
 
         // Vertical padding is Spacing.xs each side.
         val COMPACT = DpSize(180.dp, 56.dp)

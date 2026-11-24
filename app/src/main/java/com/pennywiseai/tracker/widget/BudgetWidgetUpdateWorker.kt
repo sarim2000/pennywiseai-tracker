@@ -176,7 +176,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     )
                     for (cat in group.categories) {
                         prevLimitSpent += (if (cat.matchType != null) prevTypeAmounts[cat.matchType]
-                            else prevCategoryAmounts[cat.categoryName]) ?: BigDecimal.ZERO
+                        else prevCategoryAmounts[cat.categoryName]) ?: BigDecimal.ZERO
                     }
                 }
 

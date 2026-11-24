@@ -155,7 +155,7 @@ class TrackingCheckupWidget : GlanceAppWidget() {
  * the verdict stays readable and no line is cut in half.
  */
 private fun textLines(context: Context, height: Dp): Pair<Int, Int> {
-    val title = lineHeight(context, Typography.titleSmall.fontSize)
+    val title = lineHeight(context, Typography.titleMedium.fontSize) // WidgetTitle's size
     val detail = lineHeight(context, Typography.bodySmall.fontSize)
     return listOf(2 to 2, 2 to 1, 1 to 1).firstOrNull { (t, d) -> t * title + d * detail <= height.value } ?: (1 to 0)
 }

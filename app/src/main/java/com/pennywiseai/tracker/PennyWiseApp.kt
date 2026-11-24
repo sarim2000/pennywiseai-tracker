@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -68,7 +69,7 @@ fun PennyWiseApp(
     openChat: Long? = null,
     onOpenChatHandled: (() -> Unit)? = null,
     updateReady: Boolean = false,
-    onUpdateCheck: () -> Unit = {},
+    onUpdateCheck: (stillSafe: () -> Boolean) -> Unit = {},
     onUpdateRestart: () -> Unit = {},
     onUpdateLater: () -> Unit = {}
 ) {
@@ -267,10 +268,12 @@ fun PennyWiseApp(
     // onboarding, the lock screen, another tab, or a form or sheet (Restart would lose it).
     // Re-checked on each return to Home and each resume: keyed by the resume too, since a
     // fast lock check can bring `unlocked` back before Compose ever sees it drop. The
-    // manager keeps a version from being offered twice.
+    // manager keeps a version from being offered twice. Play answers asynchronously, so
+    // the manager asks again before it opens the sheet, in case the user has left Home.
     var homeOnTop by remember { mutableStateOf(false) }
     val updateSafe = themeUiState.hasCompletedOnboarding && currentRoute == Home && homeOnTop && unlocked && !covered
-    LaunchedEffect(updateSafe, lockChecksAtResume) { if (updateSafe) onUpdateCheck() }
+    val updateSafeNow by rememberUpdatedState(updateSafe)
+    LaunchedEffect(updateSafe, lockChecksAtResume) { if (updateSafe) onUpdateCheck { updateSafeNow } }
 
     val look = Look(
         darkTheme = darkTheme,

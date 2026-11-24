@@ -13,7 +13,7 @@ import javax.inject.Singleton
 class InAppUpdateManager @Inject constructor() {
     val restartPrompt: StateFlow<Boolean> = MutableStateFlow(false)
 
-    fun checkForUpdate(activity: Activity, launcher: ActivityResultLauncher<IntentSenderRequest>) {}
+    fun checkForUpdate(activity: Activity, launcher: ActivityResultLauncher<IntentSenderRequest>, stillSafe: () -> Boolean) {}
 
     fun onUpdateFlowResult(resultCode: Int) {}
 

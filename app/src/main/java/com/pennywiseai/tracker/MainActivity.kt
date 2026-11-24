@@ -162,7 +162,7 @@ class MainActivity : FragmentActivity() {
                     chatDrafts.requestOpen()
                 },
                 updateReady = updateReady,
-                onUpdateCheck = { inAppUpdateManager.checkForUpdate(this, updateFlow) },
+                onUpdateCheck = { stillSafe -> inAppUpdateManager.checkForUpdate(this, updateFlow, stillSafe) },
                 onUpdateRestart = inAppUpdateManager::completeUpdate,
                 onUpdateLater = inAppUpdateManager::dismissRestart
             )

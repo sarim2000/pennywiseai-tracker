@@ -62,8 +62,13 @@ class InAppUpdateManager @Inject constructor(
      * Call each time Home shows, unlocked and onboarded: offers a new version until
      * the user declines it (remembered across launches), and re-raises a download
      * that's waiting. [launcher] reports the sheet's result to [onUpdateFlowResult].
+     * [stillSafe] is asked again once Play answers: the user may have left Home since.
      */
-    fun checkForUpdate(activity: Activity, launcher: ActivityResultLauncher<IntentSenderRequest>) {
+    fun checkForUpdate(
+        activity: Activity,
+        launcher: ActivityResultLauncher<IntentSenderRequest>,
+        stillSafe: () -> Boolean
+    ) {
         // Activity-scoped: removed once the activity stops, so it never fires on a dead one.
         appUpdateManager.appUpdateInfo.addOnSuccessListener(activity) { info ->
             if (info.installStatus() == InstallStatus.DOWNLOADED) {
@@ -78,7 +83,7 @@ class InAppUpdateManager @Inject constructor(
                 declinedVersion = prefs.getInt(KEY_DECLINED_VERSION, NONE),
                 startedVersion = startedVersion
             )
-            if (!offer || activity.isFinishing || activity.isDestroyed) return@addOnSuccessListener
+            if (!offer || !stillSafe() || activity.isFinishing || activity.isDestroyed) return@addOnSuccessListener
             // Only a flow that started counts, so a failed launch is retried next time.
             val started = try {
                 appUpdateManager.startUpdateFlowForResult(

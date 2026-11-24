@@ -7,12 +7,12 @@ finished rendering — on the marketing site for a privacy-first app. Self-hosti
 removes a render-blocking cross-origin round trip, which matters for the mobile
 connections most of these pages are read on.
 
-Both families are licensed under the SIL Open Font License 1.1, which permits
+All families are licensed under the SIL Open Font License 1.1, which permits
 redistribution and bundling.
 
 | File | Family | Upstream |
 |---|---|---|
-| `archivo-variable-latin.woff2` | Archivo (variable, wght 600–800, latin subset) | https://github.com/Omnibus-Type/Archivo |
+| `google-sans-flex-latin.woff2` | Google Sans Flex (variable, wght 400–800, latin subset) | https://fonts.google.com/specimen/Google+Sans+Flex |
 | `ibm-plex-mono-400-latin.woff2` | IBM Plex Mono Regular (latin subset) | https://github.com/IBM/plex |
 | `ibm-plex-mono-500-latin.woff2` | IBM Plex Mono Medium (latin subset) | https://github.com/IBM/plex |
 
@@ -20,7 +20,7 @@ Latin-subset builds, as served by the Google Fonts CDN.
 
 ## SIL Open Font License 1.1
 
-Copyright (c) Omnibus-Type (Archivo)
+Copyright (c) Google LLC (Google Sans Flex)
 Copyright (c) IBM Corp. (IBM Plex Mono)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

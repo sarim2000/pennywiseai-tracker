@@ -40,7 +40,9 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.SmsScanRunning
 import com.pennywiseai.tracker.data.preferences.PrivacyPreferences
+import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
@@ -60,7 +62,7 @@ import java.math.RoundingMode
 import java.util.Locale
 
 /*
- * What every widget shares, so the seven read as one family: the app's own
+ * What every widget shares, so the eight read as one family: the app's own
  * language and reading direction, the in-app eye, how money reads at a
  * glance, and the few parts (header, + button, progress bar, empty state).
  */
@@ -95,6 +97,8 @@ fun Context.latinString(@StringRes id: Int, vararg args: Any): String =
 @InstallIn(SingletonComponent::class)
 interface WidgetEntryPoint {
     fun userPreferences(): PrivacyPreferences
+    fun scanPreferences(): ScanPreferences
+    fun smsScanRunning(): SmsScanRunning
 }
 
 /**
@@ -299,10 +303,10 @@ object WidgetDefaults {
 
 /** Section title: the widget's name, as in its header. */
 @Composable
-fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier) {
+fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier, maxLines: Int = 1) {
     Text(
         text = inAppDirection(text),
-        maxLines = 1,
+        maxLines = maxLines,
         modifier = modifier,
         style = TextStyle(
             color = GlanceTheme.colors.onSurface,
@@ -315,10 +319,15 @@ fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier) {
 
 /** Small supporting text: a figure's label, a row's meta line. */
 @Composable
-fun WidgetLabel(text: String, modifier: GlanceModifier = GlanceModifier, color: ColorProvider? = null) {
+fun WidgetLabel(
+    text: String,
+    modifier: GlanceModifier = GlanceModifier,
+    color: ColorProvider? = null,
+    maxLines: Int = 1
+) {
     Text(
         text = inAppDirection(text),
-        maxLines = 1,
+        maxLines = maxLines,
         modifier = modifier,
         style = TextStyle(
             color = color ?: GlanceTheme.colors.onSurfaceVariant,

@@ -9,6 +9,7 @@ import java.time.LocalDate
  * and the one [currency] that screen shows it in. Budgets are never added together: two
  * limits over different windows have no shared "remaining". [limit] is null when there's no
  * exchange rate to show it in [currency]: the limit is set, but what's left can't be told.
+ * A [limit] of 0 is one rollover carried down to nothing: used up.
  */
 data class BudgetStatus(
     val name: String,

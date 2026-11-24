@@ -110,6 +110,9 @@ class TransactionsViewModel @Inject constructor(
     private val _categoriesFromBudget = MutableStateFlow(false)
     val categoriesFromBudget: StateFlow<Boolean> = _categoriesFromBudget.asStateFlow()
 
+    // Set by a budget line's drill-down: (its category, the sub-categories it leaves out). See leaveOutOf.
+    private val leftOut = MutableStateFlow<Pair<String, Set<String>>?>(null)
+
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.ALL)
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
 
@@ -748,7 +751,7 @@ class TransactionsViewModel @Inject constructor(
                 // Not on a pinned list: a review's category that fell to zero is empty, not every other category.
                 val currentFilter = _categoryFilter.value
                 if (currentFilter != null && currentFilter !in categories && pinnedCurrency.value == null) {
-                    _categoryFilter.value = null
+                    clearCategoryFilter()
                 }
             }
             .launchIn(viewModelScope)
@@ -760,6 +763,7 @@ class TransactionsViewModel @Inject constructor(
             budgetCycleStartDay.map { "cycle" },
             categoryFilter.map { "category" },
             categoriesFilter.map { "categories" },
+            leftOut.map { "leftOut" },
             transactionTypeFilter.map { "typeFilter" },
             _selectedProfileId.map { "profileFilter" },
             _profileAccountKeys.map { "profileAccountKeys" },
@@ -922,11 +926,14 @@ class TransactionsViewModel @Inject constructor(
         _selectedPeriod.value = period
     }
 
+    // Either drops a budget line's leftOut: it belongs to the filter it came with (see leaveOutOf).
     fun setCategoryFilter(category: String) {
+        leftOut.value = null
         _categoryFilter.value = category
     }
 
     fun clearCategoryFilter() {
+        leftOut.value = null
         _categoryFilter.value = null
     }
 
@@ -990,6 +997,30 @@ class TransactionsViewModel @Inject constructor(
         if (profilePinned) return
         profilePinned = true
         _selectedProfileId.value = profileId
+    }
+
+    /**
+     * A transaction's "More from"/"More in" list, opened from a row in [profileId]: with one
+     * profile selected it lists that row's profile instead, so the row and its history aren't
+     * filtered out; with every profile selected it stays on all. Pinned like [pinProfile].
+     */
+    fun keepRowProfile(profileId: Long) {
+        if (profilePinned) return
+        profilePinned = true
+        viewModelScope.launch {
+            if (userPreferencesRepository.selectedProfileId.first() != null) _selectedProfileId.value = profileId
+        }
+    }
+
+    /**
+     * While the list filters on [category] alone, leaves out [names]: a budget line's list,
+     * [names] being the budget's other category lines. Only those that are sub-categories of
+     * [category] change anything, as a sub-category with its own line doesn't count toward its
+     * parent's (#1425). Call it after the category filter is set: setting, changing or
+     * removing the category filter drops it, so it can't come back on a later filter.
+     */
+    fun leaveOutOf(category: String, names: Collection<String>) {
+        leftOut.value = names.toSet().takeIf { it.isNotEmpty() }?.let { category to it }
     }
 
     /**
@@ -1287,7 +1318,7 @@ class TransactionsViewModel @Inject constructor(
             ?: _categoryFilter.value?.let { listOf(it) }
             ?: emptyList()
         val next = if (category in current) current - category else current + category
-        _categoryFilter.value = null
+        clearCategoryFilter()
         _categoriesFromBudget.value = false
         _categoriesFilter.value = next.ifEmpty { null }
     }
@@ -1330,9 +1361,7 @@ class TransactionsViewModel @Inject constructor(
         // matching on `category` alone found nothing for either — and the
         // available-categories auto-clear then dropped the filter and showed
         // everything (#749).
-        // A parent category includes its sub-categories (#374).
-        val effectiveCategories = (categories?.takeIf { it.isNotEmpty() } ?: category?.let { listOf(it) })
-            ?.let { this.categories.value.values.toList().expandWithChildren(it) }
+        val effectiveCategories = listedCategories(category, categories, this.categories.value.values.toList(), leftOut.value)
         val range = periodRange(period, cycleRange)
         val baseFlow = if (range == null) {
             transactionRepository.getAllTransactions()
@@ -1489,6 +1518,23 @@ private data class BudgetParams(
     val categories: String?,
     val transactionType: String?
 )
+
+/**
+ * The categories the list shows, null for every category. A parent category includes its
+ * sub-categories (#374). [leftOut] (a budget line's category, the budget's other lines) takes
+ * those lines off while the list filters on that one category alone, so a sub-category with
+ * its own line isn't listed under its parent's line too (#1425).
+ */
+internal fun listedCategories(
+    category: String?,
+    categories: List<String>?,
+    all: List<CategoryEntity>,
+    leftOut: Pair<String, Set<String>>?
+): Set<String>? {
+    val names = (categories?.takeIf { it.isNotEmpty() } ?: category?.let { listOf(it) })
+        ?.let { all.expandWithChildren(it) } ?: return null
+    return leftOut?.takeIf { categories.isNullOrEmpty() && it.first == category }?.let { names - it.second } ?: names
+}
 
 /**
  * Self-transfer suggestion heuristic (#385): pair each EXPENSE with an INCOME row

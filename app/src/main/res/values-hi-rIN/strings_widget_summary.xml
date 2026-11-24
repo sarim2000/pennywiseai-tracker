@@ -9,6 +9,7 @@
     <string name="widget_budget_empty_title">अभी कोई बजट नहीं</string>
     <string name="widget_budget_empty_hint">कितना बचा है यह देखने के लिए मासिक लिमिट सेट करें।</string>
     <string name="widget_budget_create">बजट बनाएँ</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
     <string name="widget_budget_preview_meta">3,600 में से · 120/दिन</string>
     <string name="widget_cash_label">कैश</string>
     <string name="widget_cash_spend">कैश खर्च</string>

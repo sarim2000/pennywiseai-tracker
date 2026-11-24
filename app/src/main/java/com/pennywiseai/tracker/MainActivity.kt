@@ -62,6 +62,9 @@ class MainActivity : FragmentActivity() {
         const val EXTRA_OPEN_SPENDING_TYPE = "com.pennywiseai.tracker.OPEN_SPENDING_TYPE"
         const val EXTRA_OPEN_SPENDING_CURRENCY_ONLY = "com.pennywiseai.tracker.OPEN_SPENDING_CURRENCY_ONLY"
 
+        /** The tracking check-up widget: open the SMS check-up. */
+        const val EXTRA_OPEN_SMS_CHECKUP = "com.pennywiseai.tracker.OPEN_SMS_CHECKUP"
+
         /** A question said to the quick add mic: Chat opens with it in the box, not sent. */
         const val EXTRA_CHAT_TEXT = "com.pennywiseai.tracker.CHAT_TEXT"
 
@@ -175,6 +178,13 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // SMS access and background limits are changed in system Settings, which the
+        // tracking check-up widget can't hear about; coming back here is the moment.
+        com.pennywiseai.tracker.widget.WidgetRefresher.refreshTrackingCheckup(this)
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(
@@ -218,6 +228,8 @@ class MainActivity : FragmentActivity() {
                 )
             intent.getBooleanExtra(EXTRA_OPEN_INSIGHTS, false) ->
                 com.pennywiseai.tracker.navigation.Insights
+            intent.getBooleanExtra(EXTRA_OPEN_SMS_CHECKUP, false) ->
+                com.pennywiseai.tracker.navigation.SmsCheckup
             intent.getBooleanExtra(EXTRA_CREATE_GOAL, false) ->
                 com.pennywiseai.tracker.navigation.BudgetGroups(
                     createGoal = true, tapId = android.os.SystemClock.elapsedRealtime()

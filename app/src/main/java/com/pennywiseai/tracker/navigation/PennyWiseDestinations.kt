@@ -188,6 +188,10 @@ data object Webhooks : NavKey
 @Serializable
 data object AiAccess : NavKey
 
+/** The conscience's own screen, in a language that has its lines. Opens inside the tab. */
+@Serializable
+data object Conscience : NavKey
+
 /** Developer mode's mascot playground. It opens inside the tab, under the bottom bar. */
 @Serializable
 data object MascotPlayground : NavKey
@@ -206,6 +210,8 @@ data object LearnedCategories : NavKey
 data class TransactionsWithFilter(
     /** Null lists every category: a calendar day's transactions. */
     val category: String? = null,
+    /** A raw merchant name, searched for: a transaction's "More from". */
+    val merchant: String? = null,
     val period: String? = null,
     val currency: String? = null,
     val startDate: Long? = null,
@@ -214,6 +220,10 @@ data class TransactionsWithFilter(
     val currencyOnly: Boolean = false,
     /** Every profile's rows, whatever profile is selected: the list behind a budget, which counts them all. */
     val allProfiles: Boolean = false,
+    /** A "More from"/"More in" row's profile: the list keeps to it when one profile is selected. */
+    val rowProfileId: Long? = null,
+    /** A budget's other lines, which count their own spend: left out of [category]'s list where they're its sub-categories (#1425). */
+    val withoutCategories: List<String> = emptyList(),
     /** A [com.pennywiseai.tracker.domain.model.TransactionTypeFilter] name; null lists every type. */
     val type: String? = null
 ) : NavKey

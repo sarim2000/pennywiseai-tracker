@@ -14,7 +14,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -103,6 +106,8 @@ fun ProfileAvatar(
             contentAlignment = Alignment.Center,
         ) {
             val avatarResId = imageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
+            // A photo that won't load (deleted, or a format this Android can't decode) shows initials.
+            var photoFailed by remember(imageUri) { mutableStateOf(false) }
             when {
                 avatarResId != null -> Image(
                     painter = painterResource(id = avatarResId),
@@ -110,11 +115,12 @@ fun ProfileAvatar(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
-                imageUri != null -> AsyncImage(
+                imageUri != null && !photoFailed -> AsyncImage(
                     model = imageUri,
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
+                    onError = { photoFailed = true },
                 )
                 else -> {
                     val initials = remember(name) {

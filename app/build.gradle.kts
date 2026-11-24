@@ -23,8 +23,8 @@ android {
         applicationId = "com.pennywiseai.tracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 110
-        versionName = "2.26.0"
+        versionCode = 111
+        versionName = "2.27.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -359,6 +359,8 @@ dependencies {
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)
+    // A real SQLite for DAO queries on the JVM (MerchantSuggestionsTest); test-only, so the APK stays free of it.
+    testImplementation(libs.androidx.sqlite.bundled.jvm)
     // Architecture guardrails (ArchitectureTest): parses app sources, test-only.
     testImplementation(libs.konsist)
     androidTestImplementation(libs.androidx.room.testing)

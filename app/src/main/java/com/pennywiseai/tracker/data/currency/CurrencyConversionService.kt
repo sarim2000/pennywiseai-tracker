@@ -1,9 +1,9 @@
 package com.pennywiseai.tracker.data.currency
 
 import com.pennywiseai.shared.domain.money.MinorUnits
+import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
-import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.concurrent.ConcurrentHashMap
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
@@ -22,6 +21,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -242,8 +242,9 @@ class CurrencyConversionService @Inject constructor(
                     unsupportedCurrencies.remove(code)
                 }
             }
+            val expiresAtUnix = storedExpiryUnix(response.nextUpdateTimeUnix)
             val nextUpdateTime = LocalDateTime.ofInstant(
-                Instant.ofEpochSecond(response.nextUpdateTimeUnix),
+                Instant.ofEpochSecond(expiresAtUnix),
                 ZoneId.systemDefault()
             )
             val lastUpdateTime = LocalDateTime.ofInstant(
@@ -286,7 +287,7 @@ class CurrencyConversionService @Inject constructor(
                                     updatedAt = lastUpdateTime,
                                     updatedAtUnix = response.lastUpdateTimeUnix,
                                     expiresAt = nextUpdateTime,
-                                    expiresAtUnix = response.nextUpdateTimeUnix
+                                    expiresAtUnix = expiresAtUnix
                                 )
                                 exchangeRateDao.insertExchangeRate(entity)
                             }
@@ -299,6 +300,15 @@ class CurrencyConversionService @Inject constructor(
             lastFailedRefreshTime = System.currentTimeMillis()
         }
     }
+
+    /**
+     * The provider's next-update time, floored at an hour from now. The provider
+     * can serve a response whose next update has already passed (or the device
+     * clock runs ahead). Stored as-is, every row is expired on write, so the Home
+     * rates observer refetched on each of its own writes, in a tight loop.
+     */
+    private fun storedExpiryUnix(nextUpdateTimeUnix: Long): Long =
+        maxOf(nextUpdateTimeUnix, (System.currentTimeMillis() + TimeConstants.MILLIS_PER_HOUR) / 1000)
 
     /**
      * Get the base currency for the app
@@ -316,7 +326,7 @@ class CurrencyConversionService @Inject constructor(
         // and the stored uppercase DB row, instead of missing and refetching.
         val from = fromCurrency.uppercase()
         val to = toCurrency.uppercase()
-        val cacheKey = "${from}_${to}"
+        val cacheKey = "${from}_$to"
         if (isCacheValid()) {
             val cached = rateCache[cacheKey]
             if (cached != null) return cached
@@ -357,8 +367,9 @@ class CurrencyConversionService @Inject constructor(
             if (response != null) {
                 lastFailedRefreshTime = 0L
                 val allRates = response.rates
+                val expiresAtUnix = storedExpiryUnix(response.nextUpdateTimeUnix)
                 val nextUpdateTime = LocalDateTime.ofInstant(
-                    Instant.ofEpochSecond(response.nextUpdateTimeUnix),
+                    Instant.ofEpochSecond(expiresAtUnix),
                     ZoneId.systemDefault()
                 )
                 val lastUpdateTime = LocalDateTime.ofInstant(
@@ -392,8 +403,8 @@ class CurrencyConversionService @Inject constructor(
                         provider = response.provider,
                         updatedAt = lastUpdateTime,
                         updatedAtUnix = response.lastUpdateTimeUnix,
-                        expiresAt = nextUpdateTime, // Use the API's actual next update time
-                        expiresAtUnix = response.nextUpdateTimeUnix
+                        expiresAt = nextUpdateTime,
+                        expiresAtUnix = expiresAtUnix
                     )
 
                     exchangeRateDao.insertExchangeRate(entity)
@@ -411,10 +422,6 @@ class CurrencyConversionService @Inject constructor(
         return null
     }
 
-    /**
-     * Check if we should refresh rates for the given base currency
-     * Returns true if rates are stale or we don't have any rates
-     */
     /**
      * True only when every cross pair we'd store for [currencies] already has a
      * fresh (non-expired or cached) rate. Unlike [shouldRefreshRates]'s single

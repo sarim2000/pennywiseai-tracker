@@ -222,23 +222,16 @@ class BudgetSummaryProvider @Inject constructor(
         val convert: suspend (String, BigDecimal) -> BigDecimal? = { fromCurrency, amount ->
             currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
         }
-        // Rollover: added up as the carry is, so what shows spent is what carries.
-        if (group.budget.rolloverEnabled) return budgetSpend(group, transactions, parentOf, convert).let { it.amount to it.incomplete }
-        if (group.categories.isEmpty()) {
-            var skipped = false
-            val total = transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
-                val tx = txWithSplits.transaction.forTotals() ?: return@fold acc
-                // Investments aren't spending (see budgetSpend).
-                if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE) return@fold acc
-                // Skip unconvertible amounts rather than counting them at face value (#670).
-                convert(tx.currency, tx.amount)?.let { acc + it } ?: run { skipped = true; acc }
-            }
-            return total to skipped
+        // Rollover, or all spending (card spend included): added up as the carry and the
+        // native card are, so every screen shows the same spent. No rate: left out, flagged (#670).
+        if (group.budget.rolloverEnabled || group.categories.isEmpty()) {
+            return budgetSpend(group, transactions, parentOf, convert).let { it.amount to it.incomplete }
         }
         val aggregation = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
             transactions = transactions,
             convertSplit = convert,
-            convertIncome = { tx -> convert(tx.currency, tx.amount) }
+            convertIncome = { tx -> convert(tx.currency, tx.amount) },
+            parentOf = group.lineParents(parentOf)
         )
         val catNames = group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
         val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
@@ -275,7 +268,7 @@ class BudgetSummaryProvider @Inject constructor(
             transactions,
             convertSplit = keepBase,
             convertIncome = { null },
-            parentOf = parentOf
+            parentOf = group.lineParents(parentOf)
         )
         if (group.categories.isEmpty()) return aggregation.skippedCategories.isNotEmpty()
         return leftOut(group, aggregation)
@@ -397,15 +390,16 @@ class BudgetSummaryProvider @Inject constructor(
             daysRemaining = 0
         }
 
-        // A rollover budget's rows credit a parent with its sub-categories (#374) and
-        // its fallback limit counts every row, as its carry does.
+        // Rows credit a parent with its sub-categories (#374) but for one with its own
+        // row (#1425), as in native mode. A rollover budget's fallback limit counts every
+        // row, as its carry does.
         val rollover = group.budget.rolloverEnabled
         val allCategorySpending = if (group.categories.isEmpty()) emptyList() else {
             val (categoryAmounts, categoryLimitBoosts, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
                 transactions = txsInDisplay,
                 convertSplit = convert,
                 convertIncome = { tx -> convert(tx.currency, tx.amount) },
-                parentOf = if (rollover) parentOf else emptyMap()
+                parentOf = group.lineParents(parentOf)
             )
             val days = displayedWindow.days.coerceAtLeast(1)
             group.categories.map { cat ->
@@ -455,13 +449,15 @@ class BudgetSummaryProvider @Inject constructor(
         } else BigDecimal.ZERO
 
         suspend fun buildGroupPace(
-            categoryNames: Set<String>?,
             matchTypes: Set<String>,
             groupBudget: BigDecimal
         ): Pair<List<Double>, List<Double>> {
             if (daysElapsed < 1) return emptyList<Double>() to emptyList()
             val effectiveDays = daysElapsed
-            val dailyAmounts = DoubleArray(displayedWindow.days)
+            // Each line as the total counts it: a parent's sub-categories (#374) but for one
+            // with its own line (#1425), its refunds floored at zero (#1381).
+            val lineOf = group.paceLineOf(parentOf)
+            val lines = PaceLines(displayedWindow.days)
 
             for (rawWithSplits in txsInDisplay) {
                 val txWithSplits = rawWithSplits.forTotals() ?: continue
@@ -478,52 +474,32 @@ class BudgetSummaryProvider @Inject constructor(
                 val convertedAmount = currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)?.toDouble() ?: continue
 
                 if (tx.transactionType.name in matchTypes) {
-                    dailyAmounts[dayIndex] += convertedAmount
+                    lines.add(PaceLines.typeLine(tx.transactionType.name), dayIndex, convertedAmount)
                 } else if (tx.transactionType !in com.pennywiseai.tracker.data.repository.BudgetGroupRepository.BUDGET_TYPE_BUCKETS) {
-                    if (categoryNames == null) {
-                        dailyAmounts[dayIndex] += convertedAmount
-                    } else {
-                        for ((cat, amount) in txWithSplits.getAmountByCategory()) {
-                            val catName = cat.ifEmpty { "Others" }
-                            if (catName in categoryNames) {
-                                currencyConversionService.convertAmountOrNull(amount, tx.currency, displayCurrency)
-                                    ?.let { dailyAmounts[dayIndex] += it.toDouble() }
-                            }
-                        }
+                    for ((cat, amount) in txWithSplits.getAmountByCategory()) {
+                        val line = lineOf(cat.ifEmpty { "Others" }) ?: continue
+                        currencyConversionService.convertAmountOrNull(amount, tx.currency, displayCurrency)
+                            ?.let { lines.add(line, dayIndex, it.toDouble()) }
                     }
                 }
             }
 
-            // Subtract Refund (DEDUCT_SPENT) income on the day it occurred.
+            // Subtract Refund (DEDUCT_SPENT) income on the day it occurred, from the
+            // line it's filed against, as the total and native mode's pace do (#1381).
             for (txWithSplits in txsInDisplay) {
                 val tx = txWithSplits.transaction
                 if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) continue
                 if (tx.budgetImpactType != com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT) continue
+                val line = tx.budgetCategory?.let(lineOf) ?: continue
 
                 val dayIndex = (java.time.temporal.ChronoUnit.DAYS.between(displayedWindow.start, tx.dateTime.toLocalDate()).toInt())
                     .coerceIn(0, displayedWindow.days - 1)
 
                 val convertedAmount = currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)?.toDouble() ?: continue
-
-                if (categoryNames == null) {
-                    dailyAmounts[dayIndex] -= convertedAmount
-                } else {
-                    for ((cat, amount) in txWithSplits.getAmountByCategory()) {
-                        val catName = cat.ifEmpty { "Others" }
-                        if (catName in categoryNames) {
-                            currencyConversionService.convertAmountOrNull(amount, tx.currency, displayCurrency)
-                                ?.let { dailyAmounts[dayIndex] -= it.toDouble() }
-                        }
-                    }
-                }
+                lines.add(line, dayIndex, -convertedAmount)
             }
 
-            val cumulative = mutableListOf<Double>()
-            var runningTotal = 0.0
-            for (i in 0 until effectiveDays) {
-                runningTotal += dailyAmounts[i]
-                cumulative.add(runningTotal)
-            }
+            val cumulative = lines.cumulative(effectiveDays)
             val pace = mutableListOf<Double>()
             if (groupBudget > BigDecimal.ZERO && displayedWindow.days > 0) {
                 val dailyPace = groupBudget.toDouble() / displayedWindow.days
@@ -534,11 +510,8 @@ class BudgetSummaryProvider @Inject constructor(
             return cumulative to pace
         }
 
-        // A rollover budget's pace includes a parent's sub-categories, as its total does.
-        val catNames = if (group.categories.isEmpty()) null else group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
-            .let { names -> if (rollover) names + parentOf.filterValues { it in names }.keys else names }
         val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
-        val (cumSpending, budgetPace) = buildGroupPace(catNames, matchTypes, convertedTotalBudget)
+        val (cumSpending, budgetPace) = buildGroupPace(matchTypes, convertedTotalBudget)
 
         return BudgetGroupSpending(
             group = group,

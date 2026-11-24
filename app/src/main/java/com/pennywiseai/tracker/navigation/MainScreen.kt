@@ -51,6 +51,7 @@ import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
 import com.pennywiseai.tracker.presentation.add.QuickAddDraft
 import com.pennywiseai.tracker.presentation.add.QuickAddSheet
 import com.pennywiseai.tracker.presentation.add.QuickAddViewModel
+import com.pennywiseai.tracker.presentation.budgetgroups.BudgetCategoryRows
 import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.home.HomeFigureRows
@@ -58,6 +59,7 @@ import com.pennywiseai.tracker.presentation.home.HomeScreen
 import com.pennywiseai.tracker.presentation.plan.PlanGoalsScreen
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
+import com.pennywiseai.tracker.presentation.settings.ConscienceScreen
 import com.pennywiseai.tracker.presentation.settings.FAQScreen
 import com.pennywiseai.tracker.presentation.settings.MascotPlaygroundScreen
 import com.pennywiseai.tracker.presentation.settings.SettingsScreen
@@ -124,6 +126,18 @@ internal fun transactionsFor(rows: HomeFigureRows) = Transactions(
     currencyOnly = rows.currencyOnly,
     profilePinned = true,
     profileId = rows.profileId,
+)
+
+/** The list behind a budget's category line: its category, its days, its currency, every profile. */
+internal fun transactionsFor(rows: BudgetCategoryRows) = TransactionsWithFilter(
+    category = rows.category,
+    period = TimePeriod.CUSTOM.name,
+    currency = rows.currency,
+    startDate = rows.start.toEpochDay(),
+    endDate = rows.end.toEpochDay(),
+    currencyOnly = rows.currencyOnly,
+    allProfiles = true,
+    withoutCategories = rows.without,
 )
 
 /** The full Add form, carrying what the quick sheet held so nothing is typed twice. */
@@ -567,9 +581,7 @@ fun MainScreen(
                                 onNavigateToGroupEdit = { openRoot(BudgetGroupEdit(it)) },
                                 onNavigateToHistory = { groupId, year, month -> openRoot(BudgetHistory(groupId, year, month)) },
                                 onNavigateToExchangeRates = { openRoot(ExchangeRates) },
-                                onNavigateToCategory = { category, yearMonth, currency ->
-                                    openRoot(TransactionsWithFilter(category, yearMonth, currency))
-                                },
+                                onNavigateToCategory = { rows -> openRoot(transactionsFor(rows)) },
                                 onNavigateToGoal = { openRoot(GoalDetail(it)) },
                                 onNavigateToGoalEdit = { openRoot(GoalEdit(it)) },
                             )
@@ -658,6 +670,10 @@ fun MainScreen(
                 onNavigateBack = { backFrom(tab, key) },
                 onNavigate = { openFromSettings(tab, it) }
             )
+        }
+
+        entry<Conscience> { key ->
+            ConscienceScreen(onNavigateBack = { backFrom(tab, key) })
         }
 
         entry<MascotPlayground> { key ->

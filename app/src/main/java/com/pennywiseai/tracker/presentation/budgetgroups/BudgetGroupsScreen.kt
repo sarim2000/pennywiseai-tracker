@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
@@ -80,12 +82,14 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.widget.WidgetPinning
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.*
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.YearMonth
 
 /** Gap between the blocks of a Plan section (switch, hero, list); rows inside a block sit 2dp apart. */
@@ -105,7 +109,7 @@ fun BudgetGroupsScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToGroupEdit: (Long) -> Unit = {},
     onNavigateToHistory: (Long, Int, Int) -> Unit = { _, _, _ -> },
-    onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> },
+    onNavigateToCategory: (BudgetCategoryRows) -> Unit = {},
     onNavigateToGoal: (Long) -> Unit = {},
     onNavigateToGoalEdit: (Long) -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
@@ -116,6 +120,11 @@ fun BudgetGroupsScreen(
     focusBudgetId: Long? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // A new day moves days left on, as Home does.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshDate()
+        onPauseOrDispose { }
+    }
     val goalsSection: (@Composable () -> Unit)? = if (planTab != null) null else {
         {
             com.pennywiseai.tracker.presentation.goals.GoalsSection(
@@ -156,6 +165,7 @@ fun BudgetGroupsScreen(
                     title = stringResource(if (planTab != null) R.string.nav_plan else R.string.budgets_title),
                     overline = if (planTab != null) planOverline() else null,
                     hasBackButton = planTab == null,
+                    actionContent = { if (uiState.hasGroups) PinBudgetWidgetMenu() },
                     navigationContent = {
                         IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
@@ -242,11 +252,32 @@ fun BudgetGroupsScreen(
                     val month = uiState.summaryMonth ?: selectedMonth
                     onNavigateToHistory(groupId, month.year, month.monthValue)
                 },
-                onCategoryClick = { category ->
-                    val month = uiState.summaryMonth ?: selectedMonth
-                    onNavigateToCategory(category, month.toString(), uiState.summary?.currency ?: uiState.currency)
+                onCategoryClick = { spending, category ->
+                    onNavigateToCategory(
+                        spending.categoryRows(category, uiState.summary?.currency ?: uiState.currency, uiState.isUnifiedMode)
+                    )
                 },
                 onAddRate = onNavigateToExchangeRates
+            )
+        }
+    }
+}
+
+/** "Add to home screen" for the Budget Overview widget, where the launcher can pin one. */
+@Composable
+private fun PinBudgetWidgetMenu() {
+    val context = LocalContext.current
+    if (!remember { WidgetPinning.isSupported(context) }) return
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }, shapes = IconButtonDefaults.shapes()) {
+            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.budgets_more_options))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, shape = MaterialTheme.shapes.large) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.widget_add_to_home_screen)) },
+                leadingIcon = { Icon(Icons.Default.Widgets, contentDescription = null) },
+                onClick = { open = false; WidgetPinning.pinBudgetWidget(context) },
             )
         }
     }
@@ -326,7 +357,7 @@ private fun BudgetGroupsContent(
     onMoveGroupUp: (Long) -> Unit,
     onMoveGroupDown: (Long) -> Unit,
     onNavigateToHistory: (Long) -> Unit,
-    onCategoryClick: (String) -> Unit,
+    onCategoryClick: (BudgetGroupSpending, String) -> Unit,
     onAddRate: () -> Unit = {}
 ) {
     val summary = uiState.summary ?: return
@@ -435,7 +466,7 @@ private fun BudgetGroupsContent(
                 onMoveUp = { onMoveGroupUp(budget.id) },
                 onMoveDown = { onMoveGroupDown(budget.id) },
                 onViewHistory = { onNavigateToHistory(budget.id) },
-                onCategoryClick = onCategoryClick,
+                onCategoryClick = { onCategoryClick(spending, it) },
                 onAddRate = onAddRate
             )
         }
@@ -882,3 +913,32 @@ private fun SpendingPaceChart(
         )
     }
 }
+
+/**
+ * The rows behind a budget's category line: [category] over the days its spend was counted, in
+ * every profile, as a budget isn't kept per profile. With [currencyOnly] only rows written in
+ * [currency], as a budget counts outside unified mode; without it every currency, converted.
+ * [without]: the budget's other lines, left out of [category]'s sub-categories, as a
+ * sub-category with its own line doesn't count toward its parent's (#1425).
+ */
+data class BudgetCategoryRows(
+    val category: String,
+    val start: LocalDate,
+    val end: LocalDate,
+    val currency: String,
+    val currencyOnly: Boolean,
+    val without: List<String> = emptyList(),
+)
+
+/**
+ * [category]'s line on this card as [BudgetCategoryRows]: the budget's own window, not the list's
+ * This Month, up to the day its spend runs to.
+ */
+internal fun BudgetGroupSpending.categoryRows(category: String, currency: String, unified: Boolean) = BudgetCategoryRows(
+    category = category,
+    start = windowStart,
+    end = minOf(windowEnd, displayedCapDate).coerceAtLeast(windowStart),
+    currency = currency,
+    currencyOnly = !unified,
+    without = group.categories.filter { it.matchType == null && it.categoryName != category }.map { it.categoryName },
+)

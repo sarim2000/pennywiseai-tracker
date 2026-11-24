@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.LocaleList
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -139,6 +140,12 @@ fun OnBoardingScreen(
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED
+    // Onboarding is a single back-stack entry, so without this system Back on any step
+    // finished the activity instead of returning to the previous step.
+    BackHandler(enabled = uiState.canGoBack) { viewModel.goToPreviousStep() }
+    // Hoisted past the step transitions so the wordmark plays once per onboarding,
+    // not again on coming back to the first step.
+    var wordmarkPlayed by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         bottomBar = {
             OnBoardingBottomBar(
@@ -201,7 +208,9 @@ fun OnBoardingScreen(
             when (step) {
                 OnBoardingStep.WELCOME -> WelcomeStep(
                     uiState = uiState,
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    wordmarkPlayed = wordmarkPlayed,
+                    onWordmarkPlayed = { wordmarkPlayed = true }
                 )
                 OnBoardingStep.PROFILE -> ProfileStep(
                     uiState = uiState,
@@ -228,7 +237,9 @@ fun OnBoardingScreen(
 @Composable
 private fun WelcomeStep(
     uiState: OnBoardingUiState,
-    viewModel: OnBoardingViewModel
+    viewModel: OnBoardingViewModel,
+    wordmarkPlayed: Boolean,
+    onWordmarkPlayed: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -250,11 +261,14 @@ private fun WelcomeStep(
 
         Spacer(modifier = Modifier.height(Spacing.xl))
 
-        Text(
+        WelcomeTitle(
             text = stringResource(R.string.onboarding_welcome_title),
-            style = MaterialTheme.typography.headlineLarge,
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            ),
+            played = wordmarkPlayed,
+            onPlayed = onWordmarkPlayed
         )
 
         Spacer(modifier = Modifier.height(Spacing.md))
@@ -1078,9 +1092,6 @@ private fun OnBoardingBottomBar(
     onSkip: () -> Unit,
     onStartScan: () -> Unit
 ) {
-    val isFirstStep = uiState.currentStep == OnBoardingStep.WELCOME
-    val canGoBack = !isFirstStep && !uiState.isScanning
-
     // Keep the controls above the system navigation bar under edge-to-edge (#563):
     // the Scaffold's bottomBar slot doesn't apply navigation-bar insets on its own,
     // so without this the gesture/3-button nav bar overlaps the Next button.
@@ -1102,7 +1113,7 @@ private fun OnBoardingBottomBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Back button
-            if (canGoBack) {
+            if (uiState.canGoBack) {
                 IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,

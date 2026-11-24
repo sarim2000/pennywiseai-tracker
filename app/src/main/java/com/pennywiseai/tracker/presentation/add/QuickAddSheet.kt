@@ -78,6 +78,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.model.MerchantSuggestion
+import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.model.VoiceEntry
 import com.pennywiseai.tracker.domain.model.AmountInput
 import com.pennywiseai.tracker.ui.components.AmountKeyboardBar
@@ -104,6 +106,8 @@ import com.pennywiseai.tracker.ui.voice.rememberVoiceInput
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -330,6 +334,37 @@ private fun QuickAddForm(
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val resources = LocalResources.current
+    // Past merchants for what's typed in "where" (#1392); none once one is picked, until typing resumes.
+    var merchantSuggestions by remember { mutableStateOf(emptyList<MerchantSuggestion>()) }
+    var pickedMerchant by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        snapshotFlow { whereState.text.toString() }.collectLatest { typed ->
+            if (typed.isBlank() || typed == pickedMerchant) {
+                merchantSuggestions = emptyList()
+                return@collectLatest
+            }
+            delay(MerchantSuggestions.DEBOUNCE_MS)
+            merchantSuggestions = viewModel.suggestMerchants(typed, setup.profileId)
+        }
+    }
+
+    /** Fills "where", and the category learned for that merchant when none is picked yet. */
+    fun pickMerchant(suggestion: MerchantSuggestion) {
+        val name = suggestion.merchantName
+        pickedMerchant = name
+        whereState.setTextAndPlaceCursorAtEnd(name)
+        if (category != null) return
+        scope.launch {
+            val mapped = viewModel.categoryFor(name) ?: return@launch
+            val ofTypeNow = if (income) setup.incomeCategories else setup.expenseCategories
+            // Still unpicked, still this merchant, and a category of the type in view (one of the other type is left).
+            if (category == null && whereState.text.toString() == name && ofTypeNow.any { it.name == mapped }) {
+                category = mapped
+                pinned = mapped
+            }
+        }
+    }
+
     // Filled by voice: what's left is a tap on a category, not typing.
     LaunchedEffect(Unit) { if (heard == null || amountState.text.isEmpty()) focus.requestFocus() }
 
@@ -452,6 +487,7 @@ private fun QuickAddForm(
                 shape = RoundedField.shape,
                 modifier = Modifier.fillMaxWidth()
             )
+            MerchantSuggestionRow(merchantSuggestions, onPick = ::pickMerchant)
             // One scrolling row, most-used first, after the full searchable list: the usual
             // pick is in view and Save stays above the keyboard.
             Row(

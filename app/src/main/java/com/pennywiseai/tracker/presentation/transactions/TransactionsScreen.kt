@@ -67,6 +67,14 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+/**
+ * List bottom padding (above [bottomBarClearance]) that lets the last row scroll a
+ * full gap clear of the Export + Add stack: the Scaffold's 16dp FAB margin, two
+ * small FABs in their 48dp touch-target slots with the gap between, then the gap.
+ */
+private val TransactionsFabStackClearance =
+    Spacing.md + Dimensions.Component.minTouchTarget * 2 + Spacing.sm + Spacing.md
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun TransactionsScreen(
@@ -82,6 +90,10 @@ fun TransactionsScreen(
     // Only initialProfileId's rows (null for all), leaving the selected profile as it is
     profilePinned: Boolean = false,
     initialProfileId: Long? = null,
+    // The profile of the row a "More from"/"More in" link came from (see keepRowProfile)
+    rowProfileId: Long? = null,
+    // A budget's other lines, left out of initialCategory's list where they're its sub-categories (#1425)
+    excludedCategories: List<String> = emptyList(),
     // Account key / tag carried by an analytics group drill-down (#422)
     initialAccount: String? = null,
     initialTag: String? = null,
@@ -276,6 +288,8 @@ fun TransactionsScreen(
         )
         if (currencyOnly) initialCurrency?.let(viewModel::pinCurrency)
         if (profilePinned) viewModel.pinProfile(initialProfileId)
+        rowProfileId?.let(viewModel::keepRowProfile)
+        initialCategory?.let { viewModel.leaveOutOf(it, excludedCategories) }
     }
 
     // Track if we've already processed these specific nav params
@@ -295,6 +309,8 @@ fun TransactionsScreen(
                 initialTag,
                 initialTransactionType
             )
+            // Setting the category above dropped it.
+            initialCategory?.let { viewModel.leaveOutOf(it, excludedCategories) }
             processedNavParams = true
         }
     }
@@ -553,8 +569,11 @@ fun TransactionsScreen(
                 state = listState,
                 modifier = Modifier.fillMaxSize().overScrollVertical(),
                 contentPadding = PaddingValues(
-                    bottom = paddingValues.calculateBottomPadding() + bottomBarClearance +
-                        if (selectionMode) Spacing.Layout.scrollBottomPadding else Dimensions.Component.fabScrollClearance
+                    bottom = paddingValues.calculateBottomPadding() + bottomBarClearance + when {
+                        selectionMode -> Spacing.Layout.scrollBottomPadding
+                        navDock != null -> Dimensions.Component.fabScrollClearance
+                        else -> TransactionsFabStackClearance
+                    }
                 ),
                 flingBehavior = rememberOverscrollFlingBehavior { listState }
             ) {

@@ -5,10 +5,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetBucketInput
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
@@ -52,7 +54,10 @@ data class BudgetGroupEditUiState(
     val categories: List<CategoryBudgetItem> = emptyList(),
     val availableCategories: List<String> = emptyList(),
     val availableTypeBuckets: List<TypeBucketOption> = emptyList(),
+    /** Each category's own spending this month, its sub-categories' not in it. */
     val categorySpending: Map<String, BigDecimal> = emptyMap(),
+    /** Sub-category → parent name, for the rows' "Spent" hints ([withSpentHints]). */
+    val parentOf: Map<String, String> = emptyMap(),
     val typeSpending: Map<String, BigDecimal> = emptyMap(),
     val currency: String = "INR",
     val availableCurrencies: List<String> = emptyList(),
@@ -114,6 +119,24 @@ data class BudgetGroupEditUiState(
         val since = BudgetRollover.sinceAfterEdit(before, after, today, globalStartDay, sameScope) ?: return false
         return !since.isBefore(startDate)
     }
+
+    /**
+     * Each category row's "Spent" hint as the budget will count it: its own spending plus
+     * its sub-categories', but for a sub-category with its own row here (#1425).
+     */
+    internal fun withSpentHints(): BudgetGroupEditUiState {
+        val lineOf = parentOf - categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
+        return copy(
+            categories = categories.map { item ->
+                if (item.matchType != null) item
+                else item.copy(
+                    currentSpending = categorySpending.entries.fold(BigDecimal.ZERO) { sum, (name, amount) ->
+                        if (name == item.categoryName || lineOf[name] == item.categoryName) sum + amount else sum
+                    }
+                )
+            }
+        )
+    }
 }
 
 @HiltViewModel
@@ -123,7 +146,8 @@ class BudgetGroupEditViewModel @Inject constructor(
     private val budgetGroupRepository: BudgetGroupRepository,
     private val categoryRepository: CategoryRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val currencyConversionService: CurrencyConversionService
 ) : ViewModel() {
 
     private val groupId: Long = savedStateHandle.get<Long>("groupId") ?: -1L
@@ -137,10 +161,10 @@ class BudgetGroupEditViewModel @Inject constructor(
 
     private fun loadData() {
         viewModelScope.launch {
-            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            // A limit is entered and stored in the base currency in both modes: every
+            // budget screen reads it so, converting it when unified shows another (#1417).
+            val currency = userPreferencesRepository.baseCurrency.first()
             val unifiedMode = userPreferencesRepository.unifiedCurrencyMode.first()
-            val displayCurrency = userPreferencesRepository.displayCurrency.first()
-            val currency = if (unifiedMode) displayCurrency else baseCurrency
             val currencies = CurrencyFormatter.getSupportedCurrencies()
 
             val today = LocalDate.now()
@@ -153,7 +177,16 @@ class BudgetGroupEditViewModel @Inject constructor(
             // of cadence — it's a quick glance, not the authoritative spend
             // figure. The authoritative spend figure is what the home card
             // shows, which honours the budget's own period window.
-            val transactions = transactionRepository.getTransactionsWithSplitsFiltered(startDate, endDate, currency).first()
+            // Unified mode counts every currency, as the budget does, converted into the
+            // form's; spending with no rate is left out.
+            val transactions = if (unifiedMode) {
+                transactionRepository.getTransactionsWithSplitsFiltered(startDate, endDate).first()
+            } else {
+                transactionRepository.getTransactionsWithSplitsFiltered(startDate, endDate, currency).first()
+            }
+            suspend fun inFormCurrency(amount: BigDecimal, from: String): BigDecimal? =
+                if (from.equals(currency, ignoreCase = true)) amount
+                else currencyConversionService.convertAmountOrNull(amount, from, currency)
             // Mirror the main budget screen's routing: type-bucket-eligible
             // outflows (INVESTMENT) are summed per type, everything else per
             // category. Keeps the edit screen's "current spending" hint accurate
@@ -161,13 +194,15 @@ class BudgetGroupEditViewModel @Inject constructor(
             val categorySpending = mutableMapOf<String, BigDecimal>()
             val typeSpending = mutableMapOf<String, BigDecimal>()
             transactions.forEach { txWithSplits ->
-                val type = txWithSplits.transaction.transactionType
+                val tx = txWithSplits.transaction
+                val type = tx.transactionType
                 if (type == TransactionType.INCOME || type == TransactionType.TRANSFER) return@forEach
                 if (type in BudgetGroupRepository.BUDGET_TYPE_BUCKETS) {
-                    typeSpending[type.name] = (typeSpending[type.name] ?: BigDecimal.ZERO) +
-                        txWithSplits.transaction.amount
+                    val amount = inFormCurrency(tx.amount, tx.currency) ?: return@forEach
+                    typeSpending[type.name] = (typeSpending[type.name] ?: BigDecimal.ZERO) + amount
                 } else {
-                    txWithSplits.getAmountByCategory().forEach { (category, amount) ->
+                    txWithSplits.getAmountByCategory().forEach { (category, splitAmount) ->
+                        val amount = inFormCurrency(splitAmount, tx.currency) ?: return@forEach
                         val categoryName = category.ifEmpty { "Others" }
                         categorySpending[categoryName] = (categorySpending[categoryName] ?: BigDecimal.ZERO) + amount
                     }
@@ -178,15 +213,12 @@ class BudgetGroupEditViewModel @Inject constructor(
                 val groups = budgetGroupRepository.getActiveGroups().first()
                 val group = groups.find { it.budget.id == groupId }
                 if (group != null) {
+                    // A category row's hint is filled in by withSpentHints.
                     val assignedCategories = group.categories.map {
                         CategoryBudgetItem(
                             categoryName = it.categoryName,
                             amount = it.budgetAmount,
-                            currentSpending = if (it.matchType != null) {
-                                typeSpending[it.matchType] ?: BigDecimal.ZERO
-                            } else {
-                                categorySpending[it.categoryName] ?: BigDecimal.ZERO
-                            },
+                            currentSpending = it.matchType?.let { type -> typeSpending[type] } ?: BigDecimal.ZERO,
                             matchType = it.matchType
                         )
                     }
@@ -199,7 +231,9 @@ class BudgetGroupEditViewModel @Inject constructor(
                         categories = assignedCategories,
                         categorySpending = categorySpending,
                         typeSpending = typeSpending,
-                        currency = b.currency,
+                        // Read as the base currency whatever the column says, as every
+                        // budget screen reads it; saving puts the column right.
+                        currency = currency,
                         availableCurrencies = currencies,
                         // Editing: trust the budget's own persisted period
                         // type + anchor + dates. We re-derive the displayed
@@ -218,7 +252,7 @@ class BudgetGroupEditViewModel @Inject constructor(
                         savedScope = group.categories.map { it.categoryName to it.matchType }.toSet(),
                         globalStartDay = userPreferencesRepository.getBudgetCycleStartDay(),
                         isLoading = false
-                    )
+                    ).withSpentHints()
                 }
             } else {
                 val cycleStartDay = userPreferencesRepository.getBudgetCycleStartDay()
@@ -262,8 +296,10 @@ class BudgetGroupEditViewModel @Inject constructor(
                     availableCategories = available,
                     availableTypeBuckets = ALL_TYPE_BUCKETS.filter { opt ->
                         current.none { it.matchType == opt.typeName }
-                    }
-                )
+                    },
+                    // A budget's rows are expense categories, so theirs is the hierarchy they need.
+                    parentOf = expenseCategories.parentNameOf()
+                ).withSpentHints()
             }
         }
     }
@@ -304,12 +340,12 @@ class BudgetGroupEditViewModel @Inject constructor(
 
     fun addCategory(categoryName: String) {
         val current = _uiState.value.categories.toMutableList()
-        val spending = _uiState.value.categorySpending[categoryName] ?: BigDecimal.ZERO
-        current.add(CategoryBudgetItem(categoryName, BigDecimal.ZERO, spending))
+        current.add(CategoryBudgetItem(categoryName, BigDecimal.ZERO))
+        // A sub-category's row takes its spend off its parent's hint.
         _uiState.value = _uiState.value.copy(
             categories = current,
             availableCategories = _uiState.value.availableCategories - categoryName
-        )
+        ).withSpentHints()
     }
 
     fun removeCategory(categoryName: String) {
@@ -327,7 +363,7 @@ class BudgetGroupEditViewModel @Inject constructor(
             availableTypeBuckets = if (restoredType != null) {
                 _uiState.value.availableTypeBuckets + restoredType
             } else _uiState.value.availableTypeBuckets
-        )
+        ).withSpentHints()
     }
 
     fun updateCategoryAmount(categoryName: String, amount: BigDecimal) {

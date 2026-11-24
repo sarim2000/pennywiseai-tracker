@@ -236,6 +236,9 @@ object Dimensions {
         val goalRing = 56.dp
         val goalRingStroke = 6.dp
 
+        /** A 25 / 50 / 75% milestone dot on the goal ring: a third of its stroke across. */
+        val goalRingMilestoneDot = 2.dp
+
         /** A goal ring in a list row (the Add to goal picker), and its stroke. */
         val goalRingSmall = 40.dp
         val goalRingSmallStroke = 4.dp
@@ -267,7 +270,7 @@ object Dimensions {
         /** Standard FAB diameter. */
         val fab = 56.dp
 
-        /** How far a FAB stack sits above the bottom edge, clearing the nav bar. */
+        /** How far a FAB stack sits above the system bar inset, clearing the nav bar. */
         val fabBottomInset = 96.dp
 
         /**

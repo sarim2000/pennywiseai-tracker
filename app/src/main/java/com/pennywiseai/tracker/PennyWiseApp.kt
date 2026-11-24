@@ -35,6 +35,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
+import com.pennywiseai.tracker.data.preferences.AccentColor
+import com.pennywiseai.tracker.data.preferences.AppFont
+import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.navigation.AppLock
 import com.pennywiseai.tracker.navigation.BudgetGroups
 import com.pennywiseai.tracker.navigation.Home
@@ -44,6 +47,7 @@ import com.pennywiseai.tracker.navigation.Plan
 import com.pennywiseai.tracker.navigation.navigate
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.ui.ShakeToHideAmounts
+import com.pennywiseai.tracker.ui.animations.ThemeReveal
 import com.pennywiseai.tracker.ui.components.AmountBarScreenHost
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
@@ -267,65 +271,89 @@ fun PennyWiseApp(
     val updateSafe = themeUiState.hasCompletedOnboarding && currentRoute == Home && homeOnTop && unlocked && !covered
     LaunchedEffect(updateSafe) { if (updateSafe) onUpdateCheck() }
 
-    PennyWiseTheme(
+    val look = Look(
         darkTheme = darkTheme,
         dynamicColor = themeUiState.isDynamicColorEnabled,
         themeStyle = themeUiState.themeStyle,
         accentColor = themeUiState.accentColor,
         isAmoledMode = themeUiState.isAmoledMode,
         appFont = themeUiState.appFont,
-        blurEffects = themeUiState.blurEffectsEnabled,
-        redSpending = themeUiState.redSpending
-    ) {
-        Box(Modifier.fillMaxSize()) {
-            // + − × ÷ = on the keyboard for every amount field on a screen.
-            AmountBarScreenHost {
-                PennyWiseNavHost(
-                    backStack = backStack,
-                    // Out of the accessibility tree too, or TalkBack reads what the cover hides.
-                    modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
-                    onEditComplete = onEditComplete ?: {},
-                    widgetPlan = widgetPlan,
-                    onWidgetPlanHandled = { widgetPlan = null },
-                    onHomeOnTopChange = { homeOnTop = it }
-                )
-            }
-            // A Play update finished downloading. A dialog, so it can't queue Home's Undo snackbar.
-            if (updateReady && updateSafe) {
-                AlertDialog(
-                    onDismissRequest = onUpdateLater,
-                    // Back is "Later"; a stray tap outside isn't.
-                    properties = DialogProperties(dismissOnClickOutside = false),
-                    title = { Text(stringResource(R.string.update_ready_title)) },
-                    text = { Text(stringResource(R.string.update_ready_body)) },
-                    confirmButton = {
-                        TextButton(onClick = onUpdateRestart, shapes = ButtonDefaults.shapes()) {
-                            Text(stringResource(R.string.update_restart))
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = onUpdateLater, shapes = ButtonDefaults.shapes()) {
-                            Text(stringResource(R.string.update_later))
-                        }
-                    }
-                )
-            }
-            if (covered) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
-                        // Swallow touches meant for the screen it hides.
-                        .pointerInput(Unit) {
-                            awaitPointerEventScope {
-                                while (true) awaitPointerEvent().changes.forEach { it.consume() }
+    )
+    // The cover is drawn under the reveal's still, so no reveal runs while it's up.
+    ThemeReveal(look, enabled = !covered) { shown, statusBars, navBars ->
+        PennyWiseTheme(
+            darkTheme = shown.darkTheme,
+            // The old look's still covers each bar until the circle passes it.
+            darkStatusBars = statusBars.darkTheme,
+            darkNavigationBars = navBars.darkTheme,
+            dynamicColor = shown.dynamicColor,
+            themeStyle = shown.themeStyle,
+            accentColor = shown.accentColor,
+            isAmoledMode = shown.isAmoledMode,
+            appFont = shown.appFont,
+            blurEffects = themeUiState.blurEffectsEnabled,
+            redSpending = themeUiState.redSpending
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                // + − × ÷ = on the keyboard for every amount field on a screen.
+                AmountBarScreenHost {
+                    PennyWiseNavHost(
+                        backStack = backStack,
+                        // Out of the accessibility tree too, or TalkBack reads what the cover hides.
+                        modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
+                        onEditComplete = onEditComplete ?: {},
+                        widgetPlan = widgetPlan,
+                        onWidgetPlanHandled = { widgetPlan = null },
+                        onHomeOnTopChange = { homeOnTop = it }
+                    )
+                }
+                // A Play update finished downloading. A dialog, so it can't queue Home's Undo snackbar.
+                if (updateReady && updateSafe) {
+                    AlertDialog(
+                        onDismissRequest = onUpdateLater,
+                        // Back is "Later"; a stray tap outside isn't.
+                        properties = DialogProperties(dismissOnClickOutside = false),
+                        title = { Text(stringResource(R.string.update_ready_title)) },
+                        text = { Text(stringResource(R.string.update_ready_body)) },
+                        confirmButton = {
+                            TextButton(onClick = onUpdateRestart, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.update_restart))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = onUpdateLater, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.update_later))
                             }
                         }
-                )
+                    )
+                }
+                if (covered) {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.background)
+                            // Swallow touches meant for the screen it hides.
+                            .pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) awaitPointerEvent().changes.forEach { it.consume() }
+                                }
+                            }
+                    )
+                }
             }
         }
     }
 }
+
+/** What [ThemeReveal] spreads: everything that changes how the whole app looks. */
+private data class Look(
+    val darkTheme: Boolean,
+    val dynamicColor: Boolean,
+    val themeStyle: ThemeStyle,
+    val accentColor: AccentColor,
+    val isAmoledMode: Boolean,
+    val appFont: AppFont,
+)
 
 /**
  * Whether to hide the app behind a plain cover. The lock screen is pushed only

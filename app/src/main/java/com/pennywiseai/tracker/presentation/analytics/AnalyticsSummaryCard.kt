@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.analytics
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,10 +33,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
+import com.pennywiseai.tracker.ui.components.RevealAmountsAction
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -70,51 +73,62 @@ fun AnalyticsSummaryCard(
         shape = MaterialTheme.shapes.extraLargeIncreased,
         color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
-        Column(
-            modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.smd)
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            // Settles on a period change, and shrinks to fit rather than clipping:
-            // a clipped total reads as a smaller, wrong figure.
-            val totalStyle = MaterialTheme.typography.displayMediumEmphasized.money()
-            key(currency) {
-                AnimatedCurrencyText(
-                    text = CurrencyFormatter.formatCurrency(totalAmount, currency),
-                    style = totalStyle,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    autoSize = TextAutoSize.StepBased(
-                        minFontSize = PennyWiseText.autoSizeFloor,
-                        maxFontSize = totalStyle.fontSize
-                    )
+        Box {
+            Column(
+                modifier = Modifier.padding(Spacing.lg),
+                verticalArrangement = Arrangement.spacedBy(Spacing.smd)
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-            if (!AmountPrivacy.hidden) {
-                history?.change?.let { change ->
-                    PeriodChangeChip(change = change, kind = history.kind, typeFilter = typeFilter)
-                }
-                if (history != null && history.periods.size > 1) {
-                    PeriodBarChart(
-                        bars = history.periods.map { period ->
-                            PeriodBar(
-                                key = period.start,
-                                label = period.shortLabel(history.kind),
-                                spokenLabel = period.fullLabel(history.kind),
-                                amount = period.amount,
-                                hasData = period.hasData
-                            )
-                        },
-                        currency = history.currency,
-                        modifier = Modifier.padding(top = Spacing.smd)
+                // Settles on a period change, and shrinks to fit rather than clipping:
+                // a clipped total reads as a smaller, wrong figure.
+                val totalStyle = MaterialTheme.typography.displayMediumEmphasized.money()
+                key(currency) {
+                    AnimatedCurrencyText(
+                        text = CurrencyFormatter.formatCurrency(totalAmount, currency),
+                        style = totalStyle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        autoSize = TextAutoSize.StepBased(
+                            minFontSize = PennyWiseText.autoSizeFloor,
+                            maxFontSize = totalStyle.fontSize
+                        ),
+                        decimalSeparator = CurrencyFormatter.decimalSeparator(currency),
                     )
                 }
+                if (!AmountPrivacy.hidden) {
+                    history?.change?.let { change ->
+                        PeriodChangeChip(change = change, kind = history.kind, typeFilter = typeFilter)
+                    }
+                    if (history != null && history.periods.size > 1) {
+                        PeriodBarChart(
+                            bars = history.periods.map { period ->
+                                PeriodBar(
+                                    key = period.start,
+                                    label = period.shortLabel(history.kind),
+                                    spokenLabel = period.fullLabel(history.kind),
+                                    amount = period.amount,
+                                    hasData = period.hasData
+                                )
+                            },
+                            currency = history.currency,
+                            modifier = Modifier.padding(top = Spacing.smd)
+                        )
+                    }
+                }
+                forecast?.let { ForecastDisclosure(it) }
             }
-            forecast?.let { ForecastDisclosure(it) }
+            // The eye sits in the corner, as on Home's hero, instead of in a crowded top
+            // bar. It overlays the card, so the label and total don't move when it shows:
+            // centred on the label's line, its glyph on the content's right edge.
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = Spacing.lg - 14.dp, end = Spacing.lg - 12.dp)
+            ) { RevealAmountsAction() }
         }
     }
 }

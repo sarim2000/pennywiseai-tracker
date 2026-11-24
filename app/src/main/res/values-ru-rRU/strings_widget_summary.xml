@@ -9,6 +9,7 @@
     <string name="widget_budget_empty_title">Бюджета пока нет</string>
     <string name="widget_budget_empty_hint">Задайте месячный лимит, чтобы видеть остаток.</string>
     <string name="widget_budget_create">Создать бюджет</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
     <string name="widget_budget_preview_meta">из 3 600 · 120/день</string>
     <string name="widget_cash_label">Наличные</string>
     <string name="widget_cash_spend">Расход наличными</string>

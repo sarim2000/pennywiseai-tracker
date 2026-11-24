@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.data.repository
 
+import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
@@ -10,12 +12,29 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupEditUiState
+import com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupEditViewModel
+import com.pennywiseai.tracker.utils.inAppLanguage
+import com.pennywiseai.tracker.widget.BudgetWidgetUpdateWorker
+import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.mockkStatic
+import io.mockk.slot
+import io.mockk.unmockkObject
+import io.mockk.unmockkStatic
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -23,7 +42,11 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.YearMonth
 
-/** A budget is marked incomplete only for its own spending that had no rate (#670). */
+/**
+ * A budget is marked incomplete only for its own spending that had no rate (#670), and
+ * a new budget's limit reads as the figure its form showed (#1417).
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
 class BudgetSummaryProviderTest {
 
     private val today = LocalDate.of(2026, 11, 16)
@@ -54,12 +77,14 @@ class BudgetSummaryProviderTest {
         transactions: List<TransactionWithSplits>,
         parentOf: Map<String, String> = emptyMap(),
         // USD converts 1:1; XYZ has never had a rate.
-        rate: (amount: BigDecimal, from: String) -> BigDecimal? = { amount, from -> amount.takeIf { from != "XYZ" } }
+        rate: (amount: BigDecimal, from: String) -> BigDecimal? = { amount, from -> amount.takeIf { from != "XYZ" } },
+        base: String = "JOD",
+        display: String = "JOD"
     ): BudgetSummaryProvider {
         val prefs = mockk<CurrencyPreferences> {
-            every { baseCurrency } returns flowOf("JOD")
+            every { baseCurrency } returns flowOf(base)
             every { unifiedCurrencyMode } returns flowOf(unified)
-            every { displayCurrency } returns flowOf("JOD")
+            every { displayCurrency } returns flowOf(display)
         }
         val raw = BudgetGroupSpendingRaw(
             budgetsWithCategories = budgets,
@@ -90,7 +115,7 @@ class BudgetSummaryProviderTest {
         )
         val repo = mockk<BudgetGroupRepository> {
             every { getGroupSpendingAllCurrencies(any(), any()) } returns flowOf(raw)
-            every { getGroupSpending(any(), any(), "JOD") } returns flowOf(baseSummary)
+            every { getGroupSpending(any(), any(), base) } returns flowOf(baseSummary)
             coEvery { parentOf() } returns parentOf
         }
         val conversion = mockk<CurrencyConversionService> {
@@ -118,15 +143,20 @@ class BudgetSummaryProviderTest {
     }
 
     @Test
-    fun `unified - a budget with no categories ignores rows it never counts`() {
+    fun `unified - a budget with no categories is incomplete for card spend with no rate`() {
+        // It counts card spend as its native card does, so leaving one out reads low.
         val all = budget(1, "Everything")
         assertEquals(
-            mapOf("Everything" to false),
+            mapOf("Everything" to true),
             flags(provider(true, listOf(all), listOf(tx(1, "10", "Others", "XYZ", TransactionType.CREDIT))))
         )
         assertEquals(
             mapOf("Everything" to true),
             flags(provider(true, listOf(all), listOf(tx(1, "10", "Others", "XYZ"))))
+        )
+        assertEquals(
+            mapOf("Everything" to false),
+            flags(provider(true, listOf(all), listOf(tx(1, "10", "Others", "XYZ", TransactionType.TRANSFER))))
         )
     }
 
@@ -215,6 +245,93 @@ class BudgetSummaryProviderTest {
         }
         assertEquals(0, BigDecimal("20").compareTo(food.totalActual))
         assertTrue(food.hasUnconvertedSpend)
+    }
+
+    // 1 USD = 80 INR; XYZ has never had a rate.
+    private fun fx(amount: BigDecimal, from: String, to: String): BigDecimal? = when {
+        from == to -> amount
+        from == "INR" && to == "USD" -> amount.divide(BigDecimal(80))
+        from == "USD" && to == "INR" -> amount * BigDecimal(80)
+        else -> null
+    }
+
+    /** The New Budget form, base INR and display USD, saving a 1000 limit on Food: the form's state and what it stored. */
+    private fun newBudgetFromForm(unified: Boolean, transactions: List<TransactionWithSplits>): Pair<BudgetGroupEditUiState, BudgetEntity> {
+        val currency = slot<String>()
+        val limit = slot<BigDecimal>()
+        val repo = mockk<BudgetGroupRepository> {
+            coEvery {
+                createGroup(any(), any(), any(), capture(currency), any(), any(), capture(limit), any(), any(), any(), any(), any(), any())
+            } returns 1L
+        }
+        val prefs = mockk<UserPreferencesRepository> {
+            every { baseCurrency } returns flowOf("INR")
+            every { unifiedCurrencyMode } returns flowOf(unified)
+            every { displayCurrency } returns flowOf("USD")
+            coEvery { getBudgetCycleStartDay() } returns 1
+        }
+        val txs = mockk<TransactionRepository> {
+            every { getTransactionsWithSplitsFiltered(any(), any()) } returns flowOf(transactions)
+            every { getTransactionsWithSplitsFiltered(any(), any(), any()) } returns flowOf(transactions)
+        }
+        val conversion = mockk<CurrencyConversionService> {
+            coEvery { convertAmountOrNull(any(), any(), any(), any()) } answers { fx(firstArg(), secondArg(), thirdArg()) }
+        }
+        val categories = mockk<CategoryRepository> { every { getExpenseCategories() } returns flowOf(emptyList()) }
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        mockkStatic("com.pennywiseai.tracker.utils.AppLanguageKt")
+        mockkObject(BudgetWidgetUpdateWorker.Companion)
+        try {
+            every { any<Context>().inAppLanguage() } returns mockk(relaxed = true)
+            every { BudgetWidgetUpdateWorker.enqueueOneShot(any()) } just Runs
+            val form = BudgetGroupEditViewModel(mockk(relaxed = true), SavedStateHandle(), repo, categories, prefs, txs, conversion)
+            form.updateName("Food")
+            form.updateOverallAmount("1000")
+            form.save()
+            val stored = BudgetEntity(
+                id = 1, name = "Food", limitAmount = limit.captured, periodType = BudgetPeriodType.MONTHLY,
+                startDate = window.start, endDate = window.end, currency = currency.captured, groupType = BudgetGroupType.LIMIT
+            )
+            return form.uiState.value to stored
+        } finally {
+            unmockkObject(BudgetWidgetUpdateWorker.Companion)
+            unmockkStatic("com.pennywiseai.tracker.utils.AppLanguageKt")
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun `unified - a new budget's limit reads as the figure its form showed (#1417)`() {
+        val (form, stored) = newBudgetFromForm(
+            unified = true,
+            transactions = listOf(tx(1, "100", "Food", "INR"), tx(2, "10", "Food", "USD"), tx(3, "5", "Food", "XYZ"))
+        )
+        val food = runBlocking {
+            provider(
+                unified = true, budgets = listOf(BudgetWithCategories(stored, emptyList())), transactions = emptyList(),
+                rate = { amount, from -> fx(amount, from, "USD") }, base = "INR", display = "USD"
+            ).summary(YearMonth.from(today)).first().groups.single()
+        }
+        // The card shows the form's 1000, in the form's currency, converted: not 1000 of another currency.
+        assertEquals(
+            fx(BigDecimal("1000"), form.currency, "USD")?.stripTrailingZeros()?.toPlainString(),
+            food.totalBudget.stripTrailingZeros().toPlainString()
+        )
+        // ₹1,000 is $12.50.
+        assertEquals(0, BigDecimal("12.5").compareTo(food.totalBudget))
+        assertEquals("INR", form.currency)
+        assertEquals("INR", stored.currency)
+        // Spent, in the form's currency: ₹100 + $10 as ₹800; XYZ has no rate and is left out.
+        assertEquals(0, BigDecimal("900").compareTo(form.categorySpending["Food"]))
+    }
+
+    @Test
+    fun `base currency only - a new budget's form and limit stay in the base currency`() {
+        val (form, stored) = newBudgetFromForm(unified = false, transactions = listOf(tx(1, "100", "Food", "INR")))
+        assertEquals("INR", form.currency)
+        assertEquals("INR", stored.currency)
+        assertEquals(0, BigDecimal("1000").compareTo(stored.limitAmount))
+        assertEquals(0, BigDecimal("100").compareTo(form.categorySpending["Food"]))
     }
 
     @Test

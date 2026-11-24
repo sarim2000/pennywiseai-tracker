@@ -41,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -68,6 +69,7 @@ import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.tabular
 import com.pennywiseai.tracker.ui.theme.warning
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -208,18 +210,25 @@ fun BalanceCard(
                     },
                 )
                 val heroStyle = PennyWiseText.heroAmount
-                AnimatedCurrencyText(
-                    text = if (budget != null) {
-                        hidden(budget.remaining.abs(), budget.currency)
-                    } else {
-                        hidden(currentMonthExpenses, currency)
-                    },
-                    style = heroStyle,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    // A long amount shrinks to fit rather than wrapping mid-number.
-                    autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, heroStyle.fontSize),
-                )
+                // A different figure is a first show, not a change of value, so it swaps
+                // without rolling: another currency (amounts can't be compared), month spend
+                // vs a budget's remainder, another budget, or crossing from left to over.
+                val heroCurrency = budget?.currency ?: currency
+                key(heroCurrency, budget?.budgetId, budget?.let { it.remaining.signum() < 0 }) {
+                    AnimatedCurrencyText(
+                        text = if (budget != null) {
+                            hidden(budget.remaining.abs(), budget.currency)
+                        } else {
+                            hidden(currentMonthExpenses, currency)
+                        },
+                        style = heroStyle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        // A long amount shrinks to fit rather than wrapping mid-number.
+                        autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, heroStyle.fontSize),
+                        decimalSeparator = CurrencyFormatter.decimalSeparator(heroCurrency),
+                    )
+                }
                 // Hidden amounts hide the meter too: a known limit and its fill give the spend away.
                 if (budget != null && !isBalanceHidden) BudgetMeter(budget = budget)
                 HeroFooter(
@@ -710,7 +719,9 @@ private fun SummaryItem(
     }
 }
 
-private const val MASK = "••••••"
+// The formatter's own mask: the app-wide switch can land a frame before Home's
+// isBalanceHidden, and a second, longer mask would flash in between.
+private const val MASK = AmountPrivacy.MASK
 
 /** The meter turns warning here, and error at [DANGER_AT] (fractions of the limit used). */
 private const val WARNING_AT = 0.7f

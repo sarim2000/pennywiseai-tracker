@@ -182,6 +182,23 @@ class CurrencyFormatterTest {
     }
 
     @Test
+    fun `a fractional amount shows every minor digit, a whole one shows none`() {
+        CurrencyFormatter.numberFormatStyle = NumberFormatStyle.AUTO
+        assertEquals("$448.60", CurrencyFormatter.formatCurrency(BigDecimal("448.6"), "USD"))
+        assertEquals("$145.40", CurrencyFormatter.formatCurrency(-145.4, "USD").removePrefix("-"))
+        assertEquals("$461", CurrencyFormatter.formatCurrency(BigDecimal("461.00"), "USD"))
+        // Rounds to a whole amount at the currency's precision: no ".00".
+        assertEquals("$449", CurrencyFormatter.formatCurrency(BigDecimal("448.999"), "USD"))
+        assertTrue(CurrencyFormatter.formatCurrency(BigDecimal("1.5"), "JOD").contains("1.500"))
+        // The symbol-fallback path (PKR/LKR) pads the same way.
+        assertEquals("Rs1,234.50", CurrencyFormatter.formatCurrency(BigDecimal("1234.5"), "PKR"))
+        assertEquals(
+            "$448.60",
+            CurrencyFormatter.formatByCurrency(mapOf("USD" to Money(BigDecimal("448.6"), "USD")))
+        )
+    }
+
+    @Test
     fun `formatByCurrency keeps PKR and LKR distinguishable in a mixed total`() {
         val out = CurrencyFormatter.formatByCurrency(
             mapOf("PKR" to Money(BigDecimal(500), "PKR"), "LKR" to Money(BigDecimal(500), "LKR"))
@@ -397,6 +414,23 @@ class CurrencyFormatterTest {
             assertEquals("PAID ••••", CurrencyFormatter.maskAmountsIn("PAID 50"))
         } finally {
             AmountPrivacy.hidden = false
+        }
+    }
+
+    @Test
+    fun `decimalSeparator is the separator formatCurrency prints`() {
+        // The odometer splits formatCurrency's text on this character; a mismatch
+        // reads the fraction as grouping and rolls the wrong way.
+        for (style in NumberFormatStyle.entries) {
+            CurrencyFormatter.numberFormatStyle = style
+            for (code in CurrencyFormatter.getSupportedCurrencies()) {
+                val text = CurrencyFormatter.formatCurrency(BigDecimal("1234.567"), code, maskIfHidden = false)
+                // 1234 plus the fraction digits shown; the separator sits just before them.
+                val fractionDigits = text.count { it.isDigit() } - 4
+                if (fractionDigits == 0) continue
+                val separator = text[text.indexOfLast { it.isDigit() } - fractionDigits]
+                assertEquals("$code ($style): $text", separator, CurrencyFormatter.decimalSeparator(code))
+            }
         }
     }
 }

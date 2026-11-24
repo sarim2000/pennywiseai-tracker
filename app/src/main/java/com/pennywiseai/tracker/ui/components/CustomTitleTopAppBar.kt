@@ -1,19 +1,15 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -28,36 +24,41 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.TopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.animations.pwFadeIn
 import com.pennywiseai.tracker.ui.animations.pwFadeOut
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
 import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.GoogleSansFlexAxes
+import com.pennywiseai.tracker.ui.theme.LocalGoogleSansFlexActive
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.withFlexAxes
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import kotlin.math.roundToInt
@@ -81,9 +82,15 @@ fun CustomTitleTopAppBar(
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
     hazeState: HazeState = HazeState(),
-    blurEffects: Boolean = LocalBlurEffects.current
+    blurEffects: Boolean = LocalBlurEffects.current,
+    /** [RevealAmountsAction] first in the actions. Home has its own eye. */
+    revealAmountsAction: Boolean = !isHomeScreen,
 ) {
     val collapsedFraction = scrollBehaviorLarge.state.collapsedFraction
+    val actions: @Composable () -> Unit = {
+        if (revealAmountsAction) RevealAmountsAction()
+        actionContent()
+    }
 
     // LargeTopAppBar — only when we have a separate large behavior
     if (scrollBehaviorLarge != scrollBehaviorSmall) {
@@ -95,7 +102,7 @@ fun CustomTitleTopAppBar(
             isHomeScreen = isHomeScreen,
             hasBackButton = hasBackButton,
             collapsedFraction = collapsedFraction,
-            actionContent = actionContent,
+            actionContent = actions,
             navigationContent = navigationContent,
             extraInfoCard = extraInfoCard,
             hazeState = hazeState,
@@ -111,12 +118,14 @@ fun CustomTitleTopAppBar(
         subtitle = subtitle,
         isHomeScreen = isHomeScreen,
         hasBackButton = hasBackButton,
-        actionContent = actionContent,
+        actionContent = actions,
         navigationContent = navigationContent,
         userName = userName,
         profileImageUri = profileImageUri,
         profileBackgroundColor = profileBackgroundColor,
         collapsedFraction = if (scrollBehaviorLarge != scrollBehaviorSmall) collapsedFraction else 1f,
+        // A bar that never expands has nothing to morph from: plain titleLarge.
+        morphState = if (scrollBehaviorLarge != scrollBehaviorSmall) scrollBehaviorLarge.state else null,
         modifier = modifier,
     )
 }
@@ -174,9 +183,11 @@ private fun LargerTopAppBar(
                 overline = overline,
                 trailing = actionContent,
                 isHomeScreen = isHomeScreen,
+                morphState = scrollBehaviorLarge.state,
                 // The bar's 4dp inset, so the title and the avatar both sit on the 16dp content
                 // margin. Home's greeting (extraInfoCard) brings its own content padding.
                 modifier = modifier.padding(horizontal = Spacing.xs),
+                titleAlpha = CollapsingTitleFade.expanded(collapsedFraction),
                 extraInfoCard = extraInfoCard,
             )
             if (subtitle != null) {
@@ -186,7 +197,9 @@ private fun LargerTopAppBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(start = Dimensions.Padding.content)
+                    modifier = Modifier
+                        .padding(start = Dimensions.Padding.content)
+                        .graphicsLayer { alpha = CollapsingTitleFade.expanded(collapsedFraction) }
                 )
             }
         }
@@ -199,8 +212,13 @@ private fun LargerTopAppBar(
                 title = title,
                 overline = overline,
                 isHomeScreen = isHomeScreen,
+                morphState = scrollBehaviorLarge.state,
                 titleMaxLines = 2,
                 modifier = modifier,
+                // M3 also draws this slot in the bar's collapsed top row (fading in late), still
+                // in our large style: a ghost behind the regular bar's centred title. Fading the
+                // large title out early hides that copy as well.
+                titleAlpha = CollapsingTitleFade.expanded(collapsedFraction),
                 extraInfoCard = extraInfoCard,
             )
         },
@@ -211,7 +229,9 @@ private fun LargerTopAppBar(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     // Lines up with the title's start inset.
-                    modifier = Modifier.padding(start = Spacing.smd)
+                    modifier = Modifier
+                        .padding(start = Spacing.smd)
+                        .graphicsLayer { alpha = CollapsingTitleFade.expanded(collapsedFraction) }
                 )
             }
         },
@@ -287,6 +307,7 @@ private fun TabRootHeader(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TitleForLargeTopAppBar(
     modifier: Modifier = Modifier,
@@ -294,7 +315,9 @@ private fun TitleForLargeTopAppBar(
     overline: String? = null,
     trailing: @Composable () -> Unit = {},
     isHomeScreen: Boolean,
+    morphState: TopAppBarState,
     titleMaxLines: Int = 1,
+    titleAlpha: Float = 1f,
     extraInfoCard: @Composable () -> Unit = {},
 ) {
     Column(
@@ -313,7 +336,11 @@ private fun TitleForLargeTopAppBar(
                     .padding(start = Spacing.smd),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .graphicsLayer { alpha = titleAlpha }
+                ) {
                     if (overline != null) {
                         Text(
                             text = overline,
@@ -325,7 +352,7 @@ private fun TitleForLargeTopAppBar(
                     }
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.headlineLargeEmphasized,
+                        style = collapsingTitleStyle(MaterialTheme.typography.headlineLargeEmphasized, morphState, restStep = 0),
                         textAlign = TextAlign.Start,
                         maxLines = titleMaxLines,
                         overflow = TextOverflow.Ellipsis,
@@ -355,6 +382,7 @@ private fun RegularTopAppBar(
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
     collapsedFraction: Float,
+    morphState: TopAppBarState?,
 ) {
     BlurredAnimatedVisibility(
         visible = collapsedFraction > 0.01f,
@@ -408,11 +436,14 @@ private fun RegularTopAppBar(
             // claimed to have no action button — so the nine screens that
             // claimed an action button while rendering none ended up with the
             // title visibly off to the right.
+            // Shows only once the large title has faded out, so the two never overlap.
+            val titleModifier = Modifier.graphicsLayer { alpha = CollapsingTitleFade.collapsed(collapsedFraction) }
             val barTitle: @Composable () -> Unit = {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = collapsingTitleStyle(MaterialTheme.typography.titleLarge, morphState, restStep = TitleMorph.STEPS),
                     textAlign = TextAlign.Center,
+                    modifier = titleModifier,
                 )
             }
             if (subtitle == null) {
@@ -434,7 +465,7 @@ private fun RegularTopAppBar(
                 TopAppBar(
                     title = barTitle,
                     subtitle = {
-                        Text(text = subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(text = subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = titleModifier)
                     },
                     titleHorizontalAlignment = Alignment.CenterHorizontally,
                     colors = barColors,
@@ -452,6 +483,89 @@ private fun RegularTopAppBar(
     }
 }
 
+/**
+ * How the large and the collapsed title hand over while the bar collapses. The two bars are
+ * stacked and already fade as a whole (`1 - f` and `f`); with only that, both titles sit at
+ * mid opacity in the same band mid-collapse and read as a doubled title. On top of it, the
+ * large title is gone by [HANDOFF] and the collapsed one starts there — a fade-through, so
+ * at most one title is ever visible. The bars' chrome (back arrow, actions) keeps its fade.
+ */
+internal object CollapsingTitleFade {
+    const val HANDOFF = 0.5f
+
+    /** Extra alpha for the large title at [collapsedFraction]: 1 when expanded, 0 from [HANDOFF]. */
+    fun expanded(collapsedFraction: Float): Float = (1f - collapsedFraction / HANDOFF).coerceIn(0f, 1f)
+
+    /** Extra alpha for the collapsed bar's title: 0 up to [HANDOFF], 1 when collapsed. */
+    fun collapsed(collapsedFraction: Float): Float = ((collapsedFraction - HANDOFF) / (1f - HANDOFF)).coerceIn(0f, 1f)
+}
+
+/**
+ * How the bar title's Google Sans Flex axes move as the bar collapses. The
+ * expanded and collapsed titles are two texts crossfading, and both take the
+ * same axes at every point, so the handover reads as one title changing shape.
+ *
+ * Expanded is the Expressive heading: `ROND` 100 at the expanded title's
+ * optical size. Collapsed tightens to `ROND` 40 at the bar title's optical
+ * size: crisper in the dense 64dp row beside the icons, while keeping some of
+ * the heading's softness (`ROND` 0 is the body cut and would read as copy).
+ */
+internal object TitleMorph {
+    /** `ROND` 100 → 40 in `ROUNDNESS_STEP`s: every step is a distinct, cached variant. */
+    const val STEPS = 6
+    const val EXPANDED_ROUNDNESS = GoogleSansFlexAxes.HEADING_ROUNDNESS
+    const val COLLAPSED_ROUNDNESS = 40f
+
+    /** The step for [collapsedFraction]: 0 expanded … [STEPS] collapsed. */
+    fun step(collapsedFraction: Float): Int = (collapsedFraction.coerceIn(0f, 1f) * STEPS).roundToInt()
+}
+
+/**
+ * This title style at [step] of the morph. `opsz` runs from [expandedSize] to
+ * [collapsedSize]; it changes advance widths by under 1% over that range, so
+ * the start-aligned expanded title's end and the centred bar title's edges
+ * move by a dp or so in total, over three steps — not visible as jitter.
+ * `ROND` never changes widths.
+ */
+internal fun TextStyle.morphedTitle(step: Int, expandedSize: TextUnit, collapsedSize: TextUnit): TextStyle {
+    val t = step.toFloat() / TitleMorph.STEPS
+    return withFlexAxes(
+        roundness = TitleMorph.EXPANDED_ROUNDNESS + (TitleMorph.COLLAPSED_ROUNDNESS - TitleMorph.EXPANDED_ROUNDNESS) * t,
+        opticalSize = expandedSize.value + (collapsedSize.value - expandedSize.value) * t,
+    )
+}
+
+/**
+ * [base] (a theme style) morphed to [state]'s point along the collapse, or
+ * [base] itself without Google Sans Flex. The fraction is read through the
+ * quantized step, so the title recomposes a few times per collapse rather than
+ * on every scrolled pixel.
+ *
+ * Without a collapsing bar ([state] null), or under reduced motion, nothing
+ * morphs: each title holds the style it rests at with animations on,
+ * [restStep] (0 for the expanded title, [TitleMorph.STEPS] for the bar title),
+ * so every bar title looks the same at rest, collapsing or fixed.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun collapsingTitleStyle(base: TextStyle, state: TopAppBarState?, restStep: Int): TextStyle {
+    if (!LocalGoogleSansFlexActive.current) return base
+    val animate = rememberAnimationsEnabled()
+    val step by remember(state, animate) {
+        derivedStateOf { if (state != null && animate) TitleMorph.step(state.collapsedFraction) else restStep }
+    }
+    val typography = MaterialTheme.typography
+    return base.morphedTitle(step, typography.headlineLargeEmphasized.fontSize, typography.titleLarge.fontSize)
+}
+
+/**
+ * The title style of a bar that never expands (a plain M3 `TopAppBar`): the
+ * cut a collapsed [CustomTitleTopAppBar] title rests at, so fixed and
+ * collapsing bars match.
+ */
+@Composable
+internal fun barTitleStyle(): TextStyle = collapsingTitleStyle(MaterialTheme.typography.titleLarge, state = null, restStep = TitleMorph.STEPS)
+
 /** Home's start-aligned title: avatar plus the user's name. */
 @Composable
 private fun HomeBarTitle(
@@ -463,49 +577,15 @@ private fun HomeBarTitle(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(start = Spacing.xs)
     ) {
-        Box(
-            modifier = Modifier
-                .size(Dimensions.Icon.large)
-                .clip(CircleShape)
-                .background(
-                    if (profileBackgroundColor != 0) Color(profileBackgroundColor)
-                    else MaterialTheme.colorScheme.primaryContainer
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
-            if (avatarResId != null) {
-                Image(
-                    painter = painterResource(id = avatarResId),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else if (profileImageUri != null) {
-                AsyncImage(
-                    model = profileImageUri,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                val initials = remember(userName) {
-                    val parts = userName.trim().split("\\s+".toRegex())
-                    if (parts.size >= 2) {
-                        "${parts.first().first()}${parts.last().first()}".uppercase()
-                    } else {
-                        userName.trim().take(2).uppercase()
-                    }
-                }
-                Text(
-                    text = initials,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
+        // The shared avatar, so a photo that won't load shows initials here too.
+        ProfileAvatar(
+            name = userName,
+            imageUri = profileImageUri,
+            backgroundColor = profileBackgroundColor,
+            size = Dimensions.Icon.large,
+            shape = CircleShape,
+            initialsStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+        )
         Spacer(modifier = Modifier.width(Spacing.smd))
         Text(
             text = userName.ifBlank { "PennyWise" },

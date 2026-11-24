@@ -104,8 +104,9 @@ fun HomeScreen(
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // Time to full display: the balance and recent list show data, not skeletons.
-    ReportDrawnWhen { !uiState.isLoading && uiState.isBalanceReady }
+    val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
+    // Time to full display: the hero and recent list show data, not skeletons.
+    ReportDrawnWhen { !uiState.isLoading && uiState.isHeroReady(safeToSpend) }
     val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
     val currentCycleWindow by viewModel.currentCycleWindow.collectAsStateWithLifecycle()
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
@@ -121,7 +122,6 @@ fun HomeScreen(
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
     val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
     val recurringSuggestions by viewModel.recurringSuggestions.collectAsStateWithLifecycle()
-    val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
     val unsorted by viewModel.unsorted.collectAsStateWithLifecycle()
     var showSafeToSpendSheet by rememberSaveable { mutableStateOf(false) }
     val activity = LocalActivity.current
@@ -378,6 +378,9 @@ fun HomeScreen(
             )
         }
     ) { paddingValues ->
+        // Only for new users (no transactions yet): the long-press hint under Sync.
+        val showSyncHint = uiState.recentItems.isEmpty() && !uiState.isLoading
+        val syncHintHeight = if (showSyncHint) homeSyncHintHeight() else 0.dp
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             // Home sits on the plain background, like every other tab.
             LazyColumn(
@@ -389,16 +392,19 @@ fun HomeScreen(
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
                 contentPadding = PaddingValues(
                     top = Spacing.md + paddingValues.calculateTopPadding(),
-                    // Clears the nav bar plus the Add + Sync FAB stack above it.
-                    bottom = Dimensions.Component.bottomBarHeight +
-                        Dimensions.Component.fabScrollClearance
+                    // Clears the nav bar plus the actions floating above it.
+                    bottom = homeListBottomPadding(
+                        systemBarBottom = paddingValues.calculateBottomPadding(),
+                        floatingNav = navDock != null,
+                        syncHintHeight = syncHintHeight
+                    )
                 ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 // 1. The hero: what's left in the overall budget, or this month's spending.
                 item(key = "hero") {
                     StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
-                        if (!uiState.isBalanceReady) {
+                        if (!uiState.isHeroReady(safeToSpend)) {
                             BalanceCardSkeleton(
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                             )
@@ -815,8 +821,9 @@ fun HomeScreen(
             } else {
                 // FABs - Direct access (no speed dial)
                 HomeFabStack(
+                    systemBarBottom = paddingValues.calculateBottomPadding(),
                     isScanning = uiState.isScanning,
-                    showSyncHint = uiState.recentItems.isEmpty() && !uiState.isLoading,
+                    showSyncHint = showSyncHint,
                     onNavigateToAddScreen = onNavigateToAddScreen,
                     onSync = { viewModel.scanSmsMessages() },
                     onRequestFullResync = { showFullResyncDialog = true },

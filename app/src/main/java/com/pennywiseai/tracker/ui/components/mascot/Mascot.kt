@@ -181,6 +181,23 @@ fun Mascot(
 }
 
 /**
+ * The owl at rest in [mood], as [Mascot] draws it above [Dimensions.Icon.large] with
+ * animations off, filling this scope's square: for where Compose can't run, such as a
+ * widget's bitmap. Its eyes, rings and beak are cut out, so draw it on a layer of its own
+ * (a fresh bitmap is one). No contact shadow: that's for a mascot standing on a screen.
+ * [rtl] turns its look and lean toward the other side, as [Mascot] does.
+ */
+internal fun DrawScope.drawStaticOwl(mood: MascotMood, tint: Color, rtl: Boolean) {
+    val direction = if (rtl) -1f else 1f
+    val pose = moodPose(mood, 0L, MOOD_MOTION_MS, 0f, MascotMotion.Still)
+        .let { it.copy(gazeX = it.gazeX * direction, roll = it.roll * direction) }
+    // The owl reads only its body colour; the other roles are for objects.
+    val colors = MascotColors(tint, tint, tint, tint, tint, tint)
+    val decor = Decor(null, 1f, tint, colors, Path(), Paint())
+    drawShape(MascotShape.Owl, MascotShape.Owl.geometry(), pose, size.minDimension / BOX, decor)
+}
+
+/**
  * Tap to poke; drag to have the eyes follow the finger. A drag only watches the pointer
  * and consumes nothing, so a list under the mascot scrolls as it would without it; a tap
  * is the mascot's own, so nothing behind it takes it too.

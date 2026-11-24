@@ -1,19 +1,33 @@
 package com.pennywiseai.tracker.presentation.settings
 
+import android.content.Context
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.aiaccess.AiSessionState
+import com.pennywiseai.tracker.data.preferences.DEFAULT_USER_NAME
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import com.pennywiseai.tracker.domain.repository.RuleRepository
+import com.pennywiseai.tracker.utils.ProfilePhotos
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import java.io.IOException
 import javax.inject.Inject
 
 /**
@@ -23,7 +37,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SettingsHubViewModel @Inject constructor(
-    userPreferencesRepository: UserPreferencesRepository,
+    @ApplicationContext private val context: Context,
+    private val userPreferencesRepository: UserPreferencesRepository,
     accountBalanceRepository: AccountBalanceRepository,
     ruleRepository: RuleRepository,
     categoryRepository: CategoryRepository,
@@ -54,8 +69,40 @@ class SettingsHubViewModel @Inject constructor(
             activeRuleCount = activeRules,
             categoryCount = categories,
             isSharing = sharing,
+            isLoaded = true,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsHubState())
+
+    // Imports and saves take turns, so a save's sweep can't delete a photo a newer
+    // editor has just imported.
+    private val photoLock = Mutex()
+
+    suspend fun importPhoto(source: Uri): String? = photoLock.withLock { ProfilePhotos.import(context, source) }
+
+    /**
+     * Calls [onSaved] once the profile is written. A failed write (a full disk) shows a
+     * toast and keeps the editor open with its draft instead of crashing the app.
+     */
+    fun saveProfile(name: String, imageUri: String?, backgroundColor: Int, onSaved: () -> Unit) {
+        viewModelScope.launch {
+            photoLock.withLock {
+                try {
+                    userPreferencesRepository.updateProfile(name.trim().ifEmpty { DEFAULT_USER_NAME }, imageUri, backgroundColor)
+                } catch (e: IOException) {
+                    Log.w(TAG, "Couldn't save the profile", e)
+                    Toast.makeText(context, R.string.settings_profile_save_failed, Toast.LENGTH_SHORT).show()
+                    return@withLock
+                }
+                onSaved()
+                // ponytail: photos picked then abandoned are swept on the next save, not on cancel.
+                withContext(Dispatchers.IO) { ProfilePhotos.sweep(context.filesDir, imageUri) }
+            }
+        }
+    }
+
+    private companion object {
+        const val TAG = "SettingsHubViewModel"
+    }
 }
 
 /** Null counts are still loading; the hub leaves their line out until they arrive. */
@@ -71,4 +118,6 @@ data class SettingsHubState(
     val categoryCount: Int? = null,
     /** A webhook or AI access is on, so some data does leave the phone. Null until known. */
     val isSharing: Boolean? = null,
+    /** False until the stored profile has been read; editing waits for it. */
+    val isLoaded: Boolean = false,
 )

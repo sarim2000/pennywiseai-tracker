@@ -319,6 +319,11 @@
                 android:resource="@xml/tracking_checkup_widget_info" />
         </receiver>
 
+        <!-- Stores the goal of a goal widget pinned from a goal's screen; the launcher calls it back. -->
+        <receiver
+            android:name=".widget.GoalWidgetPinnedReceiver"
+            android:exported="false" />
+
         <!-- Add Transaction Quick Widget -->
         <receiver
             android:name=".widget.AddTransactionWidgetReceiver"

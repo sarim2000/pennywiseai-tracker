@@ -416,4 +416,21 @@ class CurrencyFormatterTest {
             AmountPrivacy.hidden = false
         }
     }
+
+    @Test
+    fun `decimalSeparator is the separator formatCurrency prints`() {
+        // The odometer splits formatCurrency's text on this character; a mismatch
+        // reads the fraction as grouping and rolls the wrong way.
+        for (style in NumberFormatStyle.entries) {
+            CurrencyFormatter.numberFormatStyle = style
+            for (code in CurrencyFormatter.getSupportedCurrencies()) {
+                val text = CurrencyFormatter.formatCurrency(BigDecimal("1234.567"), code, maskIfHidden = false)
+                // 1234 plus the fraction digits shown; the separator sits just before them.
+                val fractionDigits = text.count { it.isDigit() } - 4
+                if (fractionDigits == 0) continue
+                val separator = text[text.indexOfLast { it.isDigit() } - fractionDigits]
+                assertEquals("$code ($style): $text", separator, CurrencyFormatter.decimalSeparator(code))
+            }
+        }
+    }
 }

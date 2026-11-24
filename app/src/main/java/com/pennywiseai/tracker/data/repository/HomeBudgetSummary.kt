@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.home
+package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
@@ -6,16 +6,6 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.forTotals
-import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
-import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
-import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
-import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
-import com.pennywiseai.tracker.data.repository.BudgetWindow
-import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
-import com.pennywiseai.tracker.data.repository.budgetPercentUsed
-import com.pennywiseai.tracker.data.repository.budgetSpend
-import com.pennywiseai.tracker.domain.spending.SpendForecast
-import com.pennywiseai.tracker.ui.components.cards.HomeHeroBudget
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -33,7 +23,7 @@ internal suspend fun homeBudgetSummary(
     raw: BudgetGroupSpendingRaw,
     displayCurrency: String,
     baseCurrency: String,
-    convert: ConvertAmount
+    convert: suspend (amount: BigDecimal, from: String, to: String) -> BigDecimal?
 ): BudgetOverallSummary {
     // Per-budget current window for the "X days remaining" math
     // on the home card. The repo's `raw.daysRemaining` is hard-
@@ -209,44 +199,9 @@ internal suspend fun homeBudgetSummary(
 /**
  * The budget Home's hero leads with: a spending limit on all expenses whose window runs
  * today. A monthly one wins, since the hero speaks of the month; otherwise the longest
- * window. Null when there's none, and the hero shows this month's spending instead. The
- * summary is in one currency, so its figures never mix currencies.
+ * window. Null when there's none. The Budget widget shows the same budget (#1420).
  */
-internal fun BudgetOverallSummary.heroBudget(today: LocalDate): HomeHeroBudget? {
-    val group = groups.filter {
-        it.isTrackingAllExpenses && it.group.budget.groupType == BudgetGroupType.LIMIT && it.hasLimit &&
-            it.windowDays > 0 && !today.isBefore(it.windowStart) && !today.isAfter(it.windowEnd)
-    }.maxWithOrNull(compareBy({ it.periodType == BudgetPeriodType.MONTHLY }, { it.windowDays })) ?: return null
-    return HomeHeroBudget(
-        budgetId = group.group.budget.id,
-        name = group.group.budget.name.takeUnless {
-            group.periodType == BudgetPeriodType.MONTHLY && group.windowStart.dayOfMonth == 1 &&
-                group.windowEnd == group.windowStart.plusMonths(1).minusDays(1)
-        },
-        windowStart = group.windowStart,
-        spent = group.totalActual,
-        limit = group.totalBudget,
-        currency = currency,
-        daysLeft = ChronoUnit.DAYS.between(today, group.windowEnd).toInt() + 1,
-        pace = paceAgainstLimit(group.totalActual, group.totalBudget, group.windowStart, group.windowEnd, today),
-    )
-}
-
-/**
- * How far under (positive) or over (negative) [limit] a window should end at the pace so
- * far: [spent] / days elapsed × days in the window. Null until [SpendForecast.MIN_DAYS]
- * days have passed (too early to call) and on the last day (nothing left to project).
- */
-internal fun paceAgainstLimit(
-    spent: BigDecimal,
-    limit: BigDecimal,
-    start: LocalDate,
-    end: LocalDate,
-    today: LocalDate,
-): BigDecimal? {
-    val elapsed = ChronoUnit.DAYS.between(start, today) + 1
-    val total = ChronoUnit.DAYS.between(start, end) + 1
-    if (elapsed < SpendForecast.MIN_DAYS || elapsed >= total) return null
-    val projected = spent.multiply(BigDecimal(total)).divide(BigDecimal(elapsed), 0, RoundingMode.HALF_UP)
-    return limit - projected
-}
+internal fun BudgetOverallSummary.heroBudgetGroup(today: LocalDate): BudgetGroupSpending? = groups.filter {
+    it.isTrackingAllExpenses && it.group.budget.groupType == BudgetGroupType.LIMIT && it.hasLimit &&
+        it.windowDays > 0 && !today.isBefore(it.windowStart) && !today.isAfter(it.windowEnd)
+}.maxWithOrNull(compareBy({ it.periodType == BudgetPeriodType.MONTHLY }, { it.windowDays }))

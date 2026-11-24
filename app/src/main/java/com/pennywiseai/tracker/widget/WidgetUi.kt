@@ -2,8 +2,11 @@ package com.pennywiseai.tracker.widget
 
 import android.app.LocaleManager
 import android.content.Context
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.os.Build
 import android.text.TextUtils
+import android.util.TypedValue
 import android.view.View
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
@@ -46,6 +49,7 @@ import com.pennywiseai.tracker.core.SmsScanRunning
 import com.pennywiseai.tracker.data.preferences.PrivacyPreferences
 import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -291,18 +295,25 @@ object WidgetDefaults {
 fun textGrowth(): Float = maxOf(1f, LocalContext.current.resources.configuration.fontScale)
 
 /**
- * The largest size up to [max] at which [text] fits [width] on one line. Glance
- * can neither measure nor auto-size text, and a one-line figure that overflows is
- * cut off, so a long amount ("Rp 12.345.678") steps down instead.
+ * The in-app `TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, max)` for a
+ * widget figure: the largest size up to [max], in 1sp steps, at which [text]
+ * fits [width] on one line. Glance can't auto-size, and a one-line figure that
+ * overflows is cut off, so a long amount ("Rp 12.345.678") shrinks instead. The
+ * text is measured as the launcher draws it: bold, at the user's font scale
+ * (non-linear from Android 14, as TypedValue applies it).
  */
-// ponytail: a per-character estimate (bold figures run ~0.62em), not a measurement.
 @Composable
 fun fitFontSize(text: String, width: Dp, max: TextUnit): TextUnit {
-    val scale = LocalContext.current.resources.configuration.fontScale
-    return minOf(max.value, width.value / (text.length.coerceAtLeast(1) * FIGURE_EM * scale)).sp
+    val metrics = LocalContext.current.resources.displayMetrics
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD }
+    var size = max.value
+    while (size > PennyWiseText.autoSizeFloor.value) {
+        paint.textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, size, metrics)
+        if (paint.measureText(text) / metrics.density <= width.value) break
+        size -= 1f
+    }
+    return size.coerceAtLeast(PennyWiseText.autoSizeFloor.value).sp
 }
-
-private const val FIGURE_EM = 0.62f
 
 /** Section title: the widget's name, as in its header. */
 @Composable

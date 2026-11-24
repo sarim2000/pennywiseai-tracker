@@ -1000,6 +1000,19 @@ class TransactionsViewModel @Inject constructor(
     }
 
     /**
+     * A transaction's "More from"/"More in" list, opened from a row in [profileId]: with one
+     * profile selected it lists that row's profile instead, so the row and its history aren't
+     * filtered out; with every profile selected it stays on all. Pinned like [pinProfile].
+     */
+    fun keepRowProfile(profileId: Long) {
+        if (profilePinned) return
+        profilePinned = true
+        viewModelScope.launch {
+            if (userPreferencesRepository.selectedProfileId.first() != null) _selectedProfileId.value = profileId
+        }
+    }
+
+    /**
      * While the list filters on [category] alone, leaves out [names]: a budget line's list,
      * [names] being the budget's other category lines. Only those that are sub-categories of
      * [category] change anything, as a sub-category with its own line doesn't count toward its

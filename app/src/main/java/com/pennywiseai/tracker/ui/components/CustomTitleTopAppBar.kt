@@ -1,19 +1,15 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -33,20 +29,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,7 +46,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.animations.pwFadeIn
 import com.pennywiseai.tracker.ui.animations.pwFadeOut
@@ -585,49 +576,15 @@ private fun HomeBarTitle(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(start = Spacing.xs)
     ) {
-        Box(
-            modifier = Modifier
-                .size(Dimensions.Icon.large)
-                .clip(CircleShape)
-                .background(
-                    if (profileBackgroundColor != 0) Color(profileBackgroundColor)
-                    else MaterialTheme.colorScheme.primaryContainer
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
-            if (avatarResId != null) {
-                Image(
-                    painter = painterResource(id = avatarResId),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else if (profileImageUri != null) {
-                AsyncImage(
-                    model = profileImageUri,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                val initials = remember(userName) {
-                    val parts = userName.trim().split("\\s+".toRegex())
-                    if (parts.size >= 2) {
-                        "${parts.first().first()}${parts.last().first()}".uppercase()
-                    } else {
-                        userName.trim().take(2).uppercase()
-                    }
-                }
-                Text(
-                    text = initials,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
+        // The shared avatar, so a photo that won't load shows initials here too.
+        ProfileAvatar(
+            name = userName,
+            imageUri = profileImageUri,
+            backgroundColor = profileBackgroundColor,
+            size = Dimensions.Icon.large,
+            shape = CircleShape,
+            initialsStyle = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+        )
         Spacer(modifier = Modifier.width(Spacing.smd))
         Text(
             text = userName.ifBlank { "PennyWise" },

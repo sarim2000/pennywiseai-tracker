@@ -69,7 +69,9 @@ fun Application.configureRouting() {
             // Barq wallet (Saudi Arabia, #1135).
             BarqParser(),
             // Belarusbank (Belarus) — the web tester advertises its ASB.BY sample.
-            BelarusbankParser()
+            BelarusbankParser(),
+            // Mashreq Egypt (Egypt) — the web tester advertises its "Mashreq NEO" sample.
+            MashreqEgyptParser()
         )
     )
 

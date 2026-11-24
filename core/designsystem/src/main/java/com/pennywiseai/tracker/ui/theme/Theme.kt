@@ -245,6 +245,9 @@ fun PennyWiseTheme(
     appFont: AppFont = AppFont.DEFAULT,
     blurEffects: Boolean = true,
     redSpending: Boolean = true,
+    // Light or dark bar icons. Apart from darkTheme only while what's drawn under a bar lags it.
+    darkStatusBars: Boolean = darkTheme,
+    darkNavigationBars: Boolean = darkTheme,
     content: @Composable () -> Unit
 ) {
     val colorScheme = pennyWiseColorScheme(themeStyle, darkTheme, dynamicColor, accentColor, isAmoledMode)
@@ -259,8 +262,8 @@ fun PennyWiseTheme(
 
             // Control whether status bar icons should be dark or light
             val windowInsetsController = WindowCompat.getInsetsController(window, view)
-            windowInsetsController.isAppearanceLightStatusBars = !darkTheme
-            windowInsetsController.isAppearanceLightNavigationBars = !darkTheme
+            windowInsetsController.isAppearanceLightStatusBars = !darkStatusBars
+            windowInsetsController.isAppearanceLightNavigationBars = !darkNavigationBars
         }
     }
 

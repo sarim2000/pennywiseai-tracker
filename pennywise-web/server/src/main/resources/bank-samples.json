@@ -814,6 +814,17 @@
       "reference": "15-JAN-2025 3:45 PM",
       "balance": "3250.75"
     },
+    "Mashreq Egypt": {
+      "sender": "Mashreq NEO",
+      "message": "Your Card ending with 1234 has been used at MY FAWRY for EGP 1,250.75",
+      "currency": "EGP",
+      "amount": "1250.75",
+      "type": "EXPENSE",
+      "merchant": "MY FAWRY",
+      "accountLast4": "1234",
+      "reference": null,
+      "balance": null
+    },
     "Melli Bank": {
       "sender": "MELLIBANK",
       "message": "مبلغ 1,000,000 ریال انتقال یافت. مانده: 500,000 ریال",

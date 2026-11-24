@@ -2,6 +2,7 @@ package com.example.ui
 
 import com.example.ui.SharedComponents.commonHead
 import com.example.ui.SharedComponents.commonStyles
+import com.example.ui.SharedComponents.siteFooter
 import com.example.ui.SharedComponents.siteHeader
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -25,14 +26,19 @@ object TermsViews {
                     "The terms for using the PennyWise app and buying PennyWise Pro.",
                     "/terms",
                 )
-                style { unsafe { +commonStyles } }
+                style {
+                    unsafe {
+                        +commonStyles
+                        +termsStyles
+                    }
+                }
             }
             body {
                 siteHeader()
-                div(classes = "container prose") {
+                div(classes = "container prose terms") {
                     h1 { +"Terms of Service" }
-                    p { +"Last updated: 6 November 2026" }
-                    p {
+                    p(classes = "terms-updated") { +"Last updated: 6 November 2026" }
+                    p(classes = "lede") {
                         +"These terms cover the PennyWise expense tracker app, this website and PennyWise Pro. "
                         +"By using any of them, you agree to these terms. If you don't agree, please don't use them."
                     }
@@ -59,7 +65,7 @@ object TermsViews {
                     }
 
                     h2 { +"PennyWise Pro" }
-                    ul {
+                    ul(classes = "terms-list") {
                         li {
                             +"Purchases on this website are processed by Dodo Payments, the merchant of record, which also handles invoices and taxes. "
                             +"Purchases on Google Play are processed by Google under its own terms."
@@ -109,7 +115,24 @@ object TermsViews {
                         +"."
                     }
                 }
+                siteFooter()
             }
         }
     }
+
+    private val termsStyles = """
+        .terms h1 { margin-bottom: 14px; }
+        .terms-updated { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; margin: 0 0 20px !important; border-radius: var(--r-full); background: var(--secondary-container); color: var(--on-secondary-container) !important; font-size: 14px; font-weight: 600; }
+        .terms .lede { margin: 0 0 8px; }
+        .terms p, .terms li { line-height: 1.7; }
+        .terms h2 { scroll-margin-top: 88px; }
+        /* The Pro terms read as a segmented list, like the app's grouped settings. */
+        .terms-list { list-style: none; padding: 0 !important; margin: 16px 0 !important; display: flex; flex-direction: column; gap: 4px; }
+        .terms-list li { margin: 0; padding: 16px 20px; background: var(--surface-low); color: var(--on-variant); border-radius: var(--r-xs); }
+        .terms-list li:first-child { border-top-left-radius: var(--r-lg); border-top-right-radius: var(--r-lg); }
+        .terms-list li:last-child { border-bottom-left-radius: var(--r-lg); border-bottom-right-radius: var(--r-lg); }
+        @media (max-width: 720px) {
+            .terms-list li { padding: 14px 16px; }
+        }
+    """
 }

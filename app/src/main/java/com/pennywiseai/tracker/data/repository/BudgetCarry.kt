@@ -84,6 +84,47 @@ fun BudgetWithCategories.lineParents(parentOf: Map<String, String>): Map<String,
     parentOf - categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
 
 /**
+ * The line a [category]'s spend and refunds count toward on this budget's pace chart, as
+ * [budgetSpend] adds them up, or null for none: a category line ([lineParents]), or for a
+ * budget with no categories, each top-level category.
+ */
+fun BudgetWithCategories.paceLineOf(parentOf: Map<String, String>): (String) -> String? {
+    if (categories.isEmpty()) return { parentOf[it] ?: it }
+    val lines = categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
+    val parents = lineParents(parentOf)
+    return { category -> category.takeIf { it in lines } ?: parents[category]?.takeIf { it in lines } }
+}
+
+/**
+ * A pace chart's running spend, [days] long: each line's running net floored at zero, as the
+ * total floors each line's refunds ([aggregateBudgetCategorySpending]), so a refund can't take
+ * the chart below zero or below where the total ends (#1381).
+ */
+internal class PaceLines(private val days: Int) {
+    private val daily = mutableMapOf<String, DoubleArray>()
+
+    fun add(line: String, day: Int, amount: Double) {
+        daily.getOrPut(line) { DoubleArray(days) }[day] += amount
+    }
+
+    fun cumulative(upTo: Int): List<Double> {
+        val lines = daily.values.toList()
+        val running = DoubleArray(lines.size)
+        return (0 until upTo).map { day ->
+            lines.indices.sumOf { l ->
+                running[l] += lines[l][day]
+                running[l].coerceAtLeast(0.0)
+            }
+        }
+    }
+
+    companion object {
+        /** A type bucket's line: no category can be named this. */
+        fun typeLine(type: String) = "\u0000$type"
+    }
+}
+
+/**
  * What a budget spent, in [convert]'s currency. [incomplete]: some of it had no
  * rate, so [amount] leaves it out. [boost]: extra budget (ADD_TO_LIMIT income)
  * that raised its category limits.

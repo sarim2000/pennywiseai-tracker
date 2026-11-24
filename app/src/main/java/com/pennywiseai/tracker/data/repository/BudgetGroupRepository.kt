@@ -15,7 +15,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.countedCategory
-import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.ledger.forTotals
@@ -110,9 +109,6 @@ class BudgetGroupRepository @Inject constructor(
 
     /** Sub-category name → parent name; a parent budget row also counts its children (#374). */
     suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()
-
-    private suspend fun expandWithChildren(names: Set<String>): Set<String> =
-        categoryDao.getAllCategoriesList().expandWithChildren(names)
 
     /**
      * Resolves the actual [start, end] window for the budget cycle that begins
@@ -1102,13 +1098,13 @@ class BudgetGroupRepository @Inject constructor(
         val (daysElapsed, daysRemaining) = displayWindow.dayCounts(today, isCurrentMonth)
 
         fun buildGroupPace(
-            categoryNames: Set<String>?, // null = all categories
             matchTypes: Set<String>, // transaction-type buckets in this group
             groupBudget: BigDecimal
         ): Pair<List<Double>, List<Double>> {
             if (daysElapsed < 1) return emptyList<Double>() to emptyList()
             val effectiveDays = daysElapsed
-            val dailyAmounts = DoubleArray(displayWindow.days)
+            val lineOf = group.paceLineOf(parentOf)
+            val lines = PaceLines(displayWindow.days)
             displayTxs.forEach { rawWithSplits ->
                 val txWithSplits = rawWithSplits.forTotals() ?: return@forEach
                 val tx = txWithSplits.transaction
@@ -1118,37 +1114,24 @@ class BudgetGroupRepository @Inject constructor(
                 val dayIndex = (ChronoUnit.DAYS.between(displayWindow.start, tx.dateTime.toLocalDate()).toInt())
                     .coerceIn(0, displayWindow.days - 1)
                 if (tx.transactionType.name in matchTypes) {
-                    dailyAmounts[dayIndex] += tx.amount.toDouble()
+                    lines.add(PaceLines.typeLine(tx.transactionType.name), dayIndex, tx.amount.toDouble())
                 } else if (tx.transactionType !in BUDGET_TYPE_BUCKETS) {
-                    if (categoryNames == null) {
-                        dailyAmounts[dayIndex] += tx.amount.toDouble()
-                    } else {
-                        txWithSplits.getAmountByCategory().forEach { (cat, amount) ->
-                            val catName = countedCategory(cat)
-                            if (catName in categoryNames) {
-                                dailyAmounts[dayIndex] += amount.toDouble()
-                            }
-                        }
+                    txWithSplits.getAmountByCategory().forEach { (cat, amount) ->
+                        lineOf(countedCategory(cat))?.let { lines.add(it, dayIndex, amount.toDouble()) }
                     }
                 }
             }
-            // Subtract Refund (DEDUCT_SPENT) income on the day it occurred.
+            // Subtract Refund (DEDUCT_SPENT) income on the day it occurred, from its line.
             displayTxs.forEach { txWithSplits ->
                 val tx = txWithSplits.transaction
                 if (tx.transactionType != TransactionType.INCOME) return@forEach
                 if (tx.budgetImpactType != BudgetImpactType.DEDUCT_SPENT) return@forEach
-                val category = tx.budgetCategory ?: return@forEach
-                if (categoryNames != null && category !in categoryNames) return@forEach
+                val line = tx.budgetCategory?.let(lineOf) ?: return@forEach
                 val dayIndex = (ChronoUnit.DAYS.between(displayWindow.start, tx.dateTime.toLocalDate()).toInt())
                     .coerceIn(0, displayWindow.days - 1)
-                dailyAmounts[dayIndex] -= tx.amount.toDouble()
+                lines.add(line, dayIndex, -tx.amount.toDouble())
             }
-            val cumulative = mutableListOf<Double>()
-            var runningNet = 0.0
-            for (i in 0 until effectiveDays) {
-                runningNet += dailyAmounts[i]
-                cumulative.add(runningNet.coerceAtLeast(0.0))
-            }
+            val cumulative = lines.cumulative(effectiveDays)
             val pace = if (groupBudget > BigDecimal.ZERO) {
                 val dailyPace = groupBudget.toDouble() / displayWindow.days
                 (1..effectiveDays).map { it * dailyPace }
@@ -1166,7 +1149,7 @@ class BudgetGroupRepository @Inject constructor(
             val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                 remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO
-            val (cumSpending, budgetPace) = buildGroupPace(null, emptySet(), totalBudget)
+            val (cumSpending, budgetPace) = buildGroupPace(emptySet(), totalBudget)
             BudgetGroupSpending(
                 group = group,
                 categorySpending = emptyList(),
@@ -1229,9 +1212,8 @@ class BudgetGroupRepository @Inject constructor(
             val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                 remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO
-            val catNames = expandWithChildren(group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet())
             val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
-            val (cumSpending, budgetPace) = buildGroupPace(catNames, matchTypes, totalBudget)
+            val (cumSpending, budgetPace) = buildGroupPace(matchTypes, totalBudget)
             BudgetGroupSpending(
                 group = group,
                 categorySpending = catSpending,

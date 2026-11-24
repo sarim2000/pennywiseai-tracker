@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -67,7 +69,16 @@ class BudgetSubCategoryLinesTest {
     // ₹450 on Food & Dining, ₹100 on Snacks, a sub-category of it.
     private val txs = listOf(tx(1, "450", "Food & Dining"), tx(2, "100", "Snacks"))
 
-    private fun repository(group: BudgetWithCategories) = BudgetGroupRepository(
+    // A refund filed against [category]; the row's own category is Income.
+    private fun refund(id: Long, amount: String, category: String) = tx(id, amount, "Income").let {
+        it.copy(
+            transaction = it.transaction.copy(
+                transactionType = TransactionType.INCOME, budgetCategory = category, budgetImpactType = BudgetImpactType.DEDUCT_SPENT
+            )
+        )
+    }
+
+    private fun repository(group: BudgetWithCategories, txs: List<TransactionWithSplits> = this.txs) = BudgetGroupRepository(
         mockk<BudgetDao> { every { getActiveBudgetsWithCategories() } returns flowOf(listOf(group)) },
         mockk<TransactionSplitDao> {
             every { getTransactionsWithSplitsAllCurrencies(any(), any()) } returns flowOf(txs)
@@ -184,5 +195,26 @@ class BudgetSubCategoryLinesTest {
         ).withSpentHints().categories.associate { it.categoryName to it.currentSpending.plain() }
         assertEquals(mapOf("Food & Dining" to "550"), hints("Food & Dining"))
         assertEquals(mapOf("Food & Dining" to "450", "Snacks" to "100"), hints("Food & Dining", "Snacks"))
+    }
+
+    @Test
+    fun `the pace line floors each line's refunds as the total does, in both modes`() {
+        // ₹200 back on Snacks, its own line, comes off Snacks' ₹100 only: Food & Dining keeps its ₹450.
+        val both = repository(budget(rollover = false, "Food & Dining", "Snacks"), txs + refund(3, "200", "Snacks"))
+        // ₹700 back on a budget's only line, or on all spending, takes it to zero, not below.
+        val overRefunded = txs + refund(3, "700", "Food & Dining")
+        val cases = listOf(
+            "450" to both,
+            "0" to repository(budget(rollover = false, "Food & Dining"), overRefunded),
+            "0" to repository(budget(rollover = false), overRefunded)
+        )
+        for ((spent, repo) in cases) {
+            for (unified in listOf(false, true)) {
+                val card = budgets(repo, unified)
+                assertEquals(spent, card.totalActual.plain())
+                assertEquals(spent.toDouble(), card.dailyCumulativeSpending.last(), 0.01)
+                assertTrue(card.dailyCumulativeSpending.all { it >= 0.0 })
+            }
+        }
     }
 }

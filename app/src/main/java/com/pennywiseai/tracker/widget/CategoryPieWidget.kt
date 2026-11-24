@@ -218,7 +218,7 @@ class CategoryPieWidget : GlanceAppWidget() {
     }
 
     /**
-     * The rows the pie counts: this cycle's spending in the pie's currency.
+     * The rows the pie counts: this cycle's spending so far, in the pie's currency.
      * One target for the whole widget; legend rows are too short to tap apart.
      */
     private fun openSpending(context: Context, data: CategoryPieWidgetData): Action = actionStartActivity(
@@ -228,6 +228,7 @@ class CategoryPieWidget : GlanceAppWidget() {
             putExtra(MainActivity.EXTRA_OPEN_SPENDING_CURRENCY, data.currency)
             putExtra(MainActivity.EXTRA_OPEN_SPENDING_TYPE, data.spendingType)
             putExtra(MainActivity.EXTRA_OPEN_SPENDING_CURRENCY_ONLY, data.currencyOnly)
+            putExtra(MainActivity.EXTRA_OPEN_SPENDING_START, data.cycleStart)
         }
     )
 

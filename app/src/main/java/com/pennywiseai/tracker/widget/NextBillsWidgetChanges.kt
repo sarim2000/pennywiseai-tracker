@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.widget
 
 import android.content.Context
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import com.pennywiseai.tracker.domain.spending.UpcomingPaymentsLoader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -23,9 +24,16 @@ class NextBillsWidgetChanges @Inject constructor(
     // must not happen on the main thread while the Application is injected.
     private val upcomingPaymentsLoader: dagger.Lazy<UpcomingPaymentsLoader>,
 ) {
-    /** Runs until cancelled. The day is fixed here: this only spots a change, and the worker reads today. */
+    /**
+     * Runs until cancelled. Returns at once when no Next bills widget is placed, so users
+     * without one don't pay for the bill walk; one placed mid-session is kept fresh by
+     * `onUpdate`, [WidgetRefresher] and the 30-minute period until the next app start.
+     */
     suspend fun watch() {
         withContext(Dispatchers.Default) {
+            if (GlanceAppWidgetManager(context).getGlanceIds(NextBillsWidget::class.java).isEmpty()) return@withContext
+            // Fixed for the process: this only spots a change, the worker reads today, and
+            // the 30-minute period covers a date change.
             val today = LocalDate.now()
             upcomingPaymentsLoader.get()
                 .observe(today, today.plusDays(NextBillsWidgetUpdateWorker.LOOKAHEAD_DAYS), includeOverdue = true)

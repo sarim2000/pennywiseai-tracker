@@ -78,7 +78,8 @@ class SpendingSummaryWidget : GlanceAppWidget() {
         val size = LocalSize.current
         val wide = size.width >= WIDE.width
         // A tall, long single row (One UI lays a 4x1 out ~501x118dp): the figures and the + grow into it.
-        val hero = size.width >= HERO.width && size.height >= HERO.height
+        val growth = textGrowth()
+        val hero = size.width >= HERO.width && size.height >= HERO.height * growth
         WidgetRow(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -89,7 +90,7 @@ class SpendingSummaryWidget : GlanceAppWidget() {
         ) {
             item {
                 if (budget != null) {
-                    BudgetFigure(budget, size.height, hero, GlanceModifier.defaultWeight())
+                    BudgetFigure(budget, size.height / growth, hero, GlanceModifier.defaultWeight())
                 } else {
                     Figure(
                         context.getString(R.string.widget_summary_today),

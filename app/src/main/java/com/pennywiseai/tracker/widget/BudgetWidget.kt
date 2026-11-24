@@ -112,9 +112,10 @@ class BudgetWidget : GlanceAppWidget() {
                 Hero(
                     data,
                     owl = size.width >= COMPACT_WIDE.width,
-                    tall = size.height >= TALL.height,
+                    // The label, figure and limit line are sp: a larger font needs a taller widget for the big figure.
+                    tall = size.height >= TALL.height * textGrowth(),
                     large = size.width >= LARGE.width,
-                    huge = size.width >= HUGE.width && size.height >= HUGE.height
+                    huge = size.width >= HUGE.width && size.height >= HUGE.height * textGrowth()
                 )
             } else {
                 // At 180dp the owl would squeeze the figure: it only joins once there's room beside it.

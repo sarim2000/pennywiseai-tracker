@@ -42,6 +42,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -127,6 +128,7 @@ fun SettingsScreen(
         onNavigate(it)
     }
     val searchQuery = rememberTextFieldState()
+    val searchFocus = remember { FocusRequester() }
     val closeSearch = {
         searching = false
         searchQuery.clearText()
@@ -152,6 +154,7 @@ fun SettingsScreen(
                             searchQuery,
                             focus = focusSearch,
                             onFocusChange = { focusSearch = it },
+                            focusRequester = searchFocus,
                         )
                     } else {
                         AnimatedVisibility(visible = showBarTitle, enter = pwFadeIn(), exit = pwFadeOut()) {
@@ -175,7 +178,11 @@ fun SettingsScreen(
                             Icon(Icons.Default.Search, contentDescription = stringResource(R.string.settings_search))
                         }
                     } else if (searchQuery.text.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery.clearText() }, colors = barIconColors, shapes = IconButtonDefaults.shapes(), modifier = barIconInset) {
+                        IconButton(onClick = {
+                            searchQuery.clearText()
+                            // After Back from a result or a config change the field isn't focused.
+                            searchFocus.requestFocus()
+                        }, colors = barIconColors, shapes = IconButtonDefaults.shapes(), modifier = barIconInset) {
                             Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.txn_list_clear_search))
                         }
                     }

@@ -365,16 +365,17 @@ private fun typoDistance(word: String, token: String): Int {
  * The hub's search field, in place of the bar's title. [focus] requests focus when the
  * field is created (just opened, or recreated by rotation while it was focused), so
  * coming back from a result doesn't pop the keyboard over the list. [onFocusChange]
- * reports later focus, including a tap on the field after that.
+ * reports later focus, including a tap on the field after that. [focusRequester] is the
+ * caller's, so Clear can focus the field again.
  */
 @Composable
 internal fun SettingsSearchField(
     state: TextFieldState,
     focus: Boolean,
     onFocusChange: (Boolean) -> Unit,
+    focusRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
-    val focusRequester = remember { FocusRequester() }
     // Attaching reports unfocused before the open or rotation request lands.
     // Ignore that, or it clears the saved focus and the next rotation leaves the keyboard down.
     var gainedFocus by remember { mutableStateOf(false) }

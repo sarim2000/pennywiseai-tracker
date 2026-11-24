@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tracking check-up widget: whether PennyWise is still reading bank SMS. -->
+<resources>
+    <string name="widget_name_tracking">Tracking check-up</string>
+    <string name="widget_tracking_description">Whether PennyWise is still reading your bank SMS, and what to fix if not.</string>
+
+    <string name="widget_tracking_on">Tracking on</string>
+    <string name="widget_tracking_scanning">Scanning SMS…</string>
+    <string name="widget_tracking_sms_off">SMS access off</string>
+    <string name="widget_tracking_background_restricted">Background restricted</string>
+    <string name="widget_tracking_may_be_missing">Messages may be missing</string>
+
+    <string name="widget_tracking_tap_to_fix">Tap to fix</string>
+    <!-- %1$s is a relative time such as "2 hours ago", or widget_tracking_just_now. -->
+    <string name="widget_tracking_last_read">Last SMS read %1$s</string>
+    <string name="widget_tracking_just_now">just now</string>
+    <string name="widget_tracking_nothing_read">No SMS read yet</string>
+    <!-- Widget picker preview only. -->
+    <string name="widget_tracking_preview_last_read">Last SMS read 2 hours ago</string>
+</resources>

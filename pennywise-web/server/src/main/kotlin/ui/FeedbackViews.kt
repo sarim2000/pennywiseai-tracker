@@ -1,6 +1,10 @@
 package com.example.ui
 
 import com.example.feedback.*
+import com.example.ui.SharedComponents.commonHead
+import com.example.ui.SharedComponents.commonStyles
+import com.example.ui.SharedComponents.siteFooter
+import com.example.ui.SharedComponents.siteHeader
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.html.*
@@ -10,24 +14,27 @@ object FeedbackViews {
     suspend fun ApplicationCall.respondFeedbackPage() {
         respondHtml(HttpStatusCode.OK) {
             head {
-                SharedComponents.apply { commonHead("PennyWise AI - Feedback", htmx = true) }
+                commonHead("PennyWise AI - Feedback", htmx = true)
                 style {
                     unsafe {
-                        +SharedComponents.commonStyles
+                        +commonStyles
+                        +chipStyles
                         +feedbackStyles
                     }
                 }
             }
             body {
-                SharedComponents.apply { siteHeader("feedback") }
+                siteHeader("feedback")
 
                 div(classes = "container") {
-                    h1 { +"Submit Feedback" }
-                    p(classes = "muted") { +"Report bugs or suggest new features to help improve PennyWise." }
+                    div(classes = "page-head") {
+                        h1 { +"Submit Feedback" }
+                        p(classes = "lede") { +"Report bugs or suggest new features to help improve PennyWise." }
+                    }
 
                     div(classes = "feedback-layout") {
                         div(classes = "form-section") {
-                            form {
+                            form(classes = "form-card") {
                                 attributes["hx-post"] = "/htmx/feedback"
                                 attributes["hx-target"] = "#form-result"
                                 attributes["hx-swap"] = "innerHTML"
@@ -77,7 +84,7 @@ object FeedbackViews {
                                     required = true
                                 }
 
-                                button(type = ButtonType.submit) {
+                                button(type = ButtonType.submit, classes = "submit-btn") {
                                     +"Submit Feedback"
                                     span(classes = "spinner") { id = "submit-indicator" }
                                 }
@@ -128,6 +135,8 @@ object FeedbackViews {
                         """
                     }
                 }
+
+                siteFooter()
             }
         }
     }
@@ -155,7 +164,7 @@ object FeedbackViews {
                     +if (item.source == FeedbackSource.ANDROID_APP) "Android" else "Web"
                 }
                 if (item.status != FeedbackStatus.PENDING) {
-                    span(classes = "badge badge-${item.status.name.lowercase()}") {
+                    span(classes = "badge badge-status badge-${item.status.name.lowercase()}") {
                         +item.status.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
                     }
                 }
@@ -175,8 +184,10 @@ object FeedbackViews {
         button(classes = "vote-btn ${if (hasVoted) "voted" else ""}") {
             attributes["hx-post"] = "/htmx/vote/$itemId"
             attributes["hx-swap"] = "outerHTML"
+            attributes["aria-pressed"] = hasVoted.toString()
+            attributes["aria-label"] = "Upvote, $voteCount ${if (voteCount == 1) "vote" else "votes"}"
             unsafe {
-                +"""<svg width="16" height="16" viewBox="0 0 24 24" fill="${if (hasVoted) "currentColor" else "none"}" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>"""
+                +"""<svg width="16" height="16" viewBox="0 0 24 24" fill="${if (hasVoted) "currentColor" else "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>"""
             }
             span { +voteCount.toString() }
         }
@@ -184,6 +195,7 @@ object FeedbackViews {
 
     fun FlowContent.renderSubmitResult(success: Boolean, message: String) {
         div(classes = if (success) "alert alert-success" else "alert alert-error") {
+            attributes["role"] = if (success) "status" else "alert"
             +message
             if (success) {
                 script {
@@ -207,45 +219,97 @@ object FeedbackViews {
         }
     }
 
+    /**
+     * Chips and the vote toggle, shared by /feedback and /roadmap (the roadmap renders
+     * the same vote button). Type/source are outlined assist chips; workflow status is a
+     * filled, tinted pill so the two kinds never read as the same thing.
+     */
+    internal val chipStyles = """
+        .badge { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--r-full); font-size: 12px; font-weight: 600; line-height: 1; white-space: nowrap; border: 1px solid var(--outline-variant); color: var(--on-variant); background: transparent; }
+        .badge-bug { color: var(--error); border-color: color-mix(in srgb, var(--error) 45%, transparent); }
+        .badge-feature { color: var(--primary); border-color: color-mix(in srgb, var(--primary) 45%, transparent); }
+        .badge-status { border-color: transparent; }
+        .badge-status::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+        .badge-planned { background: var(--secondary-container); color: var(--on-secondary-container); }
+        .badge-in_progress { background: var(--primary-container); color: var(--on-primary-container); }
+        .badge-completed { background: var(--success-container); color: var(--on-success-container); }
+        .badge-rejected { background: var(--surface-highest); color: var(--on-variant); }
+
+        /* Vote: an M3 toggle pill. Off = outlined, on = primary-container. */
+        button.vote-btn { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 16px; background: transparent; color: var(--on-variant); border: 1px solid var(--outline-variant); border-radius: var(--r-full); font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; transition: background .15s, color .15s, border-radius .2s; }
+        button.vote-btn:hover { background: var(--surface-high); color: var(--on-bg); filter: none; }
+        button.vote-btn:active { border-radius: var(--r-sm); }
+        button.vote-btn.voted { background: var(--primary-container); color: var(--on-primary-container); border-color: transparent; }
+        button.vote-btn.voted:hover { background: var(--primary-container); filter: brightness(.97); }
+        button.vote-btn svg { width: 16px; height: 16px; flex: none; }
+        button.vote-btn.htmx-request { opacity: .6; }
+    """
+
     private val feedbackStyles = """
-        .feedback-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 24px; }
-        .form-section { }
-        .list-section { }
-        .toggle-group { margin-bottom: 16px; }
-        .toggle-group > label { margin-bottom: 8px; }
-        .toggle-buttons { display: flex; gap: 0; }
-        .toggle-buttons input { display: none; }
-        .toggle-buttons label { padding: 8px 16px; background: #1a1a1a; border: 1px solid #333; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; }
-        .toggle-buttons label:first-of-type { border-radius: 6px 0 0 6px; }
-        .toggle-buttons label:last-of-type { border-radius: 0 6px 6px 0; border-left: none; }
-        .toggle-buttons input:checked + label { background: #fff; color: #000; border-color: #fff; }
-        .filter-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-        .filter-tab { background: transparent; border: 1px solid #333; color: #9ca3af; padding: 6px 14px; font-size: 13px; }
-        .filter-tab:hover { color: #fff; border-color: #555; background: transparent; }
-        .filter-tab.active { background: #fff; color: #000; border-color: #fff; }
-        .feedback-card { background: #0a0a0a; border: 1px solid #222; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
-        .feedback-header { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-        .badge { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-        .badge-bug { background: #7f1d1d; color: #fca5a5; }
-        .badge-feature { background: #1e3a8a; color: #93c5fd; }
-        .badge-source { background: #1a1a1a; color: #9ca3af; }
-        .badge-planned { background: #854d0e; color: #fcd34d; }
-        .badge-in_progress { background: #1e40af; color: #93c5fd; }
-        .badge-completed { background: #166534; color: #86efac; }
-        .feedback-title { margin: 0 0 6px 0; font-size: 15px; font-weight: 600; }
-        .feedback-desc { margin: 0 0 12px 0; color: #9ca3af; font-size: 13px; line-height: 1.5; }
-        .feedback-footer { display: flex; justify-content: space-between; align-items: center; }
-        .feedback-date { color: #6b7280; font-size: 12px; }
-        .vote-btn { display: flex; align-items: center; gap: 6px; background: #1a1a1a; border: 1px solid #333; color: #9ca3af; padding: 6px 12px; font-size: 13px; border-radius: 6px; }
-        .vote-btn:hover { border-color: #555; color: #fff; background: #1a1a1a; }
-        .vote-btn.voted { background: #1e3a8a; border-color: #1e3a8a; color: #93c5fd; }
-        .empty-state { text-align: center; padding: 32px; color: #6b7280; }
-        .alert { padding: 12px 16px; border-radius: 8px; margin-top: 16px; font-size: 14px; }
-        .alert-success { background: #065f46; border: 1px solid #10b981; color: #10b981; }
-        .alert-error { background: #7f1d1d; border: 1px solid #ef4444; color: #fca5a5; }
-        @media (max-width: 768px) {
-            .feedback-layout { grid-template-columns: 1fr; }
+        .page-head { max-width: 720px; margin: 8px 0 32px; }
+        .page-head h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.06; margin: 0 0 14px; }
+        .page-head .lede { margin: 0; }
+        .feedback-layout { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 32px; align-items: start; }
+
+        /* --- Submit form: a tonal card with filled fields --- */
+        .form-card { background: var(--surface-container); border-radius: var(--r-2xl); padding: 24px 24px 28px; }
+        .form-card label { margin: 20px 0 8px; color: var(--on-bg); }
+        .form-card .toggle-group:first-child > label { margin-top: 0; }
+        .form-card input[type=text], .form-card textarea { background: var(--surface-lowest); border: 1px solid var(--outline-variant); }
+        .form-card input[type=text]:hover, .form-card textarea:hover { border-color: var(--outline); }
+        .form-card input[type=text]:focus, .form-card textarea:focus { background: var(--surface-lowest); border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+        .form-card textarea { font-family: var(--body); font-size: 15px; min-height: 148px; line-height: 1.5; }
+
+        /* Connected button group: the selected segment morphs to a full pill. Radios stay
+           focusable (visually hidden, not display:none) so the keyboard can reach them. */
+        .toggle-buttons { display: flex; gap: 2px; }
+        .toggle-buttons input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+        .toggle-buttons label { flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 44px; margin: 0; padding: 0 14px; background: var(--surface-lowest); color: var(--on-variant); font-size: 14px; font-weight: 600; text-align: center; cursor: pointer; border-radius: var(--r-xs); transition: background .15s, color .15s, border-radius .2s; }
+        .toggle-buttons label:first-of-type { border-radius: var(--r-full) var(--r-xs) var(--r-xs) var(--r-full); }
+        .toggle-buttons label:last-of-type { border-radius: var(--r-xs) var(--r-full) var(--r-full) var(--r-xs); }
+        .toggle-buttons label:hover { background: var(--surface-high); color: var(--on-bg); }
+        .toggle-buttons input:checked + label { background: var(--primary); color: var(--on-primary); border-radius: var(--r-full); }
+        .toggle-buttons input:checked + label::before { content: "✓"; font-weight: 700; }
+        .toggle-buttons input:focus-visible + label { outline: 3px solid var(--primary); outline-offset: 2px; }
+
+        button.submit-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; margin-top: 24px; height: 56px; padding: 0 30px; font-size: 16px; }
+        .submit-btn .spinner { margin: 0; border-color: color-mix(in srgb, var(--on-primary) 35%, transparent); border-top-color: var(--on-primary); }
+        /* hx-indicator puts .htmx-request on the spinner itself, not on an ancestor. */
+        .spinner.htmx-request { display: inline-block; }
+
+        .alert { margin-top: 16px; padding: 14px 18px; border-radius: var(--r-lg); font-size: 15px; font-weight: 500; }
+        .alert-success { background: var(--success-container); color: var(--on-success-container); }
+        .alert-error { background: var(--error-container); color: var(--on-error-container); }
+
+        /* --- List: filter chips + a segmented list of cards --- */
+        .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+        button.filter-tab { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 16px; background: transparent; color: var(--on-variant); border: 1px solid var(--outline-variant); border-radius: var(--r-full); font-size: 14px; font-weight: 600; transition: background .15s, color .15s; }
+        button.filter-tab:hover { background: var(--surface-high); color: var(--on-bg); filter: none; }
+        button.filter-tab.active { background: var(--secondary-container); color: var(--on-secondary-container); border-color: transparent; }
+        button.filter-tab.active::before { content: "✓"; font-weight: 700; }
+
+        #feedback-list { display: flex; flex-direction: column; gap: 4px; }
+        #feedback-list > .muted { margin: 0; padding: 18px 20px; }
+        .feedback-card { background: var(--surface-container); border-radius: var(--r-xs); padding: 18px 20px; transition: border-radius .2s; }
+        .feedback-card:first-child { border-top-left-radius: var(--r-lg); border-top-right-radius: var(--r-lg); }
+        .feedback-card:last-child { border-bottom-left-radius: var(--r-lg); border-bottom-right-radius: var(--r-lg); }
+        .feedback-header { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+        .feedback-title { margin: 0 0 6px; font-size: 18px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+        .feedback-desc { margin: 0 0 14px; color: var(--on-variant); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+        .feedback-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .feedback-date { color: var(--on-variant); font-size: 13px; font-variant-numeric: tabular-nums; }
+        .empty-state { text-align: center; padding: 40px 24px; color: var(--on-variant); background: var(--surface-container); border-radius: var(--r-lg); }
+        .empty-state p { margin: 0; }
+
+        @media (max-width: 860px) {
+            .feedback-layout { grid-template-columns: 1fr; gap: 28px; }
             .list-section { order: -1; }
+        }
+        @media (max-width: 720px) {
+            .page-head { margin-bottom: 24px; }
+            .form-card { padding: 20px 16px 24px; border-radius: var(--r-xl); }
+            button.submit-btn { width: 100%; }
+            .feedback-card { padding: 16px; }
         }
     """
 }

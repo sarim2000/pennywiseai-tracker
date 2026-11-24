@@ -42,6 +42,14 @@ object PennyWiseWidgetTheme {
         else -> GlanceTheme.colors.onSurface
     }
 
+    /** The tracking check-up's icon: green while tracking works, amber when something needs a fix. */
+    @Composable
+    fun trackingColor(health: TrackingHealth): ColorProvider = when {
+        health == TrackingHealth.ON -> ColorProvider(day = budget_safe_light, night = budget_safe_dark)
+        health.needsFix -> ColorProvider(day = budget_warning_light, night = budget_warning_dark)
+        else -> GlanceTheme.colors.primary
+    }
+
     /** A goal's status line colour (#914), matching the in-app pill roles. */
     @Composable
     fun goalToneColor(tone: GoalTone): ColorProvider = when (tone) {

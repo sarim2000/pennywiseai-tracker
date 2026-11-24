@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
+import com.pennywiseai.tracker.ui.animations.emphasisStyle
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.components.DockedActionButton
 import com.pennywiseai.tracker.ui.components.NavDockAction
@@ -149,9 +150,12 @@ fun PennyWiseBottomNavigation(
                 ) {
                     navigationItems.forEach { item ->
                         val selected = item.route == selectedRoute
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val pressed by interactionSource.collectIsPressedAsState()
                         NavigationBarItem(
                             selected = selected,
                             onClick = { selectTab(item) },
+                            interactionSource = interactionSource,
                             icon = {
                                 // Without a pill or a label there is nothing
                                 // else marking the selected item, so the glyph
@@ -184,7 +188,8 @@ fun PennyWiseBottomNavigation(
                                         text = stringResource(item.titleRes),
                                         color = if (selected) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        style = MaterialTheme.typography.labelMedium
+                                        // Grade, not weight: the tab labels never shift.
+                                        style = emphasisStyle(MaterialTheme.typography.labelMedium, selected, pressed)
                                     )
                                 }
                             },

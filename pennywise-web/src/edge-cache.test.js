@@ -44,6 +44,7 @@ test("only a plain 200 is stored", () => {
 function harness(originStatus = 200) {
   const store = new Map();
   const calls = [];
+  const urls = [];
   const pending = [];
   const deps = {
     version: "v1",
@@ -51,7 +52,11 @@ function harness(originStatus = 200) {
       match: async (k) => store.get(k)?.clone(),
       put: async (k, res) => { store.set(k, new Response(await res.text(), res)); },
     },
-    origin: async (req) => { calls.push(`${req.method} ${new URL(req.url).pathname}`); return new Response(`page ${calls.length}`, { status: originStatus }); },
+    origin: async (req) => {
+      const u = new URL(req.url);
+      calls.push(`${req.method} ${u.pathname}`);
+      urls.push(u.pathname + u.search);
+      return new Response(`page ${calls.length}`, { status: originStatus }); },
     waitUntil: (p) => pending.push(p),
   };
   const run = async (path, method = "GET", now = 0) => {
@@ -59,7 +64,13 @@ function harness(originStatus = 200) {
     await Promise.all(pending.splice(0));
     return res;
   };
-  return { run, calls, store };
+  // Several requests in flight at once, background work settled afterwards.
+  const burst = async (path, n, now) => {
+    const res = await Promise.all(Array.from({ length: n }, () => serve(new Request(BASE + path), { ...deps, now })));
+    await Promise.all(pending.splice(0));
+    return res;
+  };
+  return { run, burst, calls, urls, store };
 }
 
 test("miss, hit, stale refresh", async () => {
@@ -106,4 +117,21 @@ test("bypassed and non-200 responses are passed through and never stored", async
   await missing.run("/banks/nope");
   assert.equal(missing.calls.length, 2);
   assert.equal(missing.store.size, 0);
+});
+
+test("a burst of stale hits refreshes once", async () => {
+  const { run, burst, calls } = harness();
+  await run("/terms");
+  const res = await burst("/terms", 5, FRESH_MS + 1);
+  assert.deepEqual(res.map((r) => r.headers.get("x-edge-cache")), Array(5).fill("STALE"));
+  assert.equal(calls.length, 2, "one miss + one refresh");
+});
+
+test("the container gets the key URL, so an odd query can't seed the wrong copy", async () => {
+  // URLSearchParams reads app=1 here; Ktor/Netty would read the leading `=app=0` as app=0.
+  const { run, urls } = harness();
+  await run("/guide/pro?=app=0&app=1");
+  assert.deepEqual(urls, ["/guide/pro?app=1&v=v1"]);
+  await run("/guide/pro?utm_source=x");
+  assert.equal(urls[1], "/guide/pro?v=v1");
 });

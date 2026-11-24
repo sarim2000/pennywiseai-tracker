@@ -34,6 +34,9 @@ export function storable(response) {
     !/no-store|private/i.test(response.headers.get("cache-control") ?? "");
 }
 
+// Keys being refreshed in this isolate, so a burst of stale hits wakes the container once.
+const refreshing = new Set();
+
 export async function serve(request, { cache, origin, version, waitUntil, now = Date.now() }) {
   const key = cacheKey(request, version);
   if (!key) return origin(request);
@@ -41,14 +44,19 @@ export async function serve(request, { cache, origin, version, waitUntil, now = 
   const hit = await cache.match(key);
   if (hit) {
     const stale = now - Number(hit.headers.get("x-stored-at")) > FRESH_MS;
-    // The key's only params are ones the page reads (plus v, which it ignores), so it
-    // doubles as the refresh URL.
-    if (stale) waitUntil(origin(new Request(key)).then((res) => storable(res) && store(cache, key, res, now)));
+    if (stale && !refreshing.has(key)) {
+      refreshing.add(key);
+      const refresh = origin(new Request(key)).then((res) => storable(res) && store(cache, key, res, now));
+      waitUntil(refresh.finally(() => refreshing.delete(key)));
+    }
     return toBrowser(hit, request, stale ? "STALE" : "HIT");
   }
 
-  // HEAD is answered from the GET copy, so fetch GET on a miss too.
-  const res = await origin(request.method === "GET" ? request : new Request(request, { method: "GET" }));
+  // The container always gets the key URL itself (a plain GET, no client headers), here and
+  // in the refresh above, so a stored copy is exactly what its key names: a query the server
+  // reads differently from URLSearchParams (`?=app=0&app=1`) can't seed the wrong copy, and
+  // HEAD gets the GET page. The server ignores the extra `v` param.
+  const res = await origin(new Request(key));
   if (!storable(res)) return res;
   waitUntil(store(cache, key, res.clone(), now));
   return toBrowser(res, request, "MISS");

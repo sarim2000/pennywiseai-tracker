@@ -578,6 +578,7 @@ fun PennyWiseNavHost(
                             currencyOnly = args.currencyOnly,
                             profilePinned = args.allProfiles,
                             rowProfileId = args.rowProfileId,
+                            excludedCategories = args.withoutCategories,
                             onNavigateBack = { backStack.pop(args) },
                             onTransactionClick = { transactionId ->
                                 backStack.navigate(TransactionDetail(transactionId))

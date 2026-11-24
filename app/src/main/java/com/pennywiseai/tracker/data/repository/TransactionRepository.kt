@@ -9,6 +9,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.currentNameFor
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
+import com.pennywiseai.tracker.data.model.MerchantSuggestion
+import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
@@ -119,6 +121,17 @@ open class TransactionRepository @Inject constructor(
 
     fun getAllMerchants(): Flow<List<String>> =
         transactionDao.getAllMerchants()
+
+    /**
+     * Up to [MerchantSuggestions.LIMIT] past merchants for a merchant field showing [typed],
+     * from [profileId] (null for all profiles); none for a blank field.
+     */
+    suspend fun suggestMerchants(typed: String, profileId: Long?): List<MerchantSuggestion> {
+        if (typed.isBlank()) return emptyList()
+        // One spare: the name already typed is dropped from what's shown.
+        val found = transactionDao.suggestMerchants(MerchantSuggestions.likeTerm(typed), profileId, MerchantSuggestions.LIMIT + 1)
+        return MerchantSuggestions.shown(found, typed)
+    }
 
     suspend fun getTotalAmountByTypeAndPeriod(
         type: TransactionType,

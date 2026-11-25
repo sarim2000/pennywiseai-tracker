@@ -219,6 +219,7 @@ internal fun settingsSearchIndex(sdkInt: Int = Build.VERSION.SDK_INT): List<Sett
         R.string.settings_data_section, R.string.settings_data_summary, Icons.Default.Backup, SettingsSection.DATA,
         Row(R.string.settings_export_data_title, R.string.settings_export_data_subtitle),
         Row(R.string.settings_export_include_receipts_title, R.string.settings_export_include_receipts_subtitle),
+        Row(R.string.settings_export_csv_title, R.string.settings_export_csv_subtitle),
         Row(R.string.settings_import_data_title, R.string.settings_import_data_subtitle),
         Row(
             R.string.settings_folder_backup_title,

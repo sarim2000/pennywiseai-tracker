@@ -570,6 +570,8 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    suspend fun loadAllTransactionsForCsv() = transactionRepository.getAllTransactions().first()
+
     fun exportBackup() {
         viewModelScope.launch {
             try {

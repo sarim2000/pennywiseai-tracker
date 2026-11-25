@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -81,6 +82,7 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.widget.WidgetPinning
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import ir.ehsannarmani.compose_charts.LineChart
@@ -164,6 +166,7 @@ fun BudgetGroupsScreen(
                     title = stringResource(if (planTab != null) R.string.nav_plan else R.string.budgets_title),
                     overline = if (planTab != null) planOverline() else null,
                     hasBackButton = planTab == null,
+                    actionContent = { if (uiState.hasGroups) PinBudgetWidgetMenu() },
                     navigationContent = {
                         IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
@@ -264,6 +267,26 @@ fun BudgetGroupsScreen(
         }
         // Scaffold content stacks like a Box: this draws over the list.
         Celebration(play = celebrate, onFinished = viewModel::onCelebrated)
+    }
+}
+
+/** "Add to home screen" for the Budget Overview widget, where the launcher can pin one. */
+@Composable
+private fun PinBudgetWidgetMenu() {
+    val context = LocalContext.current
+    if (!remember { WidgetPinning.isSupported(context) }) return
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }, shapes = IconButtonDefaults.shapes()) {
+            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.budgets_more_options))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, shape = MaterialTheme.shapes.large) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.widget_add_to_home_screen)) },
+                leadingIcon = { Icon(Icons.Default.Widgets, contentDescription = null) },
+                onClick = { open = false; WidgetPinning.pinBudgetWidget(context) },
+            )
+        }
     }
 }
 
@@ -931,6 +954,8 @@ private fun SpendingPaceChart(
  * The rows behind a budget's category line: [category] over the days its spend was counted, in
  * every profile, as a budget isn't kept per profile. With [currencyOnly] only rows written in
  * [currency], as a budget counts outside unified mode; without it every currency, converted.
+ * [without]: the budget's other lines, left out of [category]'s sub-categories, as a
+ * sub-category with its own line doesn't count toward its parent's (#1425).
  */
 data class BudgetCategoryRows(
     val category: String,
@@ -938,6 +963,7 @@ data class BudgetCategoryRows(
     val end: LocalDate,
     val currency: String,
     val currencyOnly: Boolean,
+    val without: List<String> = emptyList(),
 )
 
 /**
@@ -950,4 +976,5 @@ internal fun BudgetGroupSpending.categoryRows(category: String, currency: String
     end = minOf(windowEnd, displayedCapDate).coerceAtLeast(windowStart),
     currency = currency,
     currencyOnly = !unified,
+    without = group.categories.filter { it.matchType == null && it.categoryName != category }.map { it.categoryName },
 )

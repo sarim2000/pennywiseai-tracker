@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -17,7 +18,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
-import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -94,7 +94,7 @@ class BudgetInvestmentsTest {
     )
 
     // XYZ has never had a rate.
-    private fun budgets(repo: BudgetGroupRepository, unified: Boolean): BudgetGroupSpending = runBlocking {
+    private fun budgets(repo: BudgetGroupRepository, unified: Boolean, month: YearMonth = this.month): BudgetGroupSpending = runBlocking {
         val conversion = mockk<CurrencyConversionService> {
             coEvery { convertAmountOrNull(any(), any(), any(), any()) } answers { firstArg<BigDecimal>().takeIf { secondArg<String>() != "XYZ" } }
             every { getAllRatesFlow() } returns flowOf(emptyList())
@@ -205,6 +205,51 @@ class BudgetInvestmentsTest {
         )
         val history = repo.getBudgetHistoryForMonth(group.budget, last.year, last.monthValue, "INR")
         assertEquals(0, BigDecimal("100").compareTo(history.single().spent))
+    }
+
+    // A ₹500 purchase under Others and a ₹200 refund filed against Others (#1381). The refund
+    // row's own category is Income, so only what it's filed against can match it.
+    private fun refunded(date: LocalDate = today) = listOf(
+        tx(1, "500", TransactionType.EXPENSE, date = date),
+        tx(2, "200", TransactionType.INCOME, date = date).let {
+            it.copy(
+                transaction = it.transaction.copy(
+                    category = "Income", budgetCategory = "Others", budgetImpactType = BudgetImpactType.DEDUCT_SPENT
+                )
+            )
+        }
+    )
+
+    @Test
+    fun `a refund comes off a budget's spend everywhere, in both currency modes`() {
+        for (group in listOf(budget(), budget("Others"))) {
+            assertSpent("300", spentEverywhere(group, refunded()))
+            val repo = repository(group, refunded())
+            for (unified in listOf(false, true)) {
+                // Plan's pace line ends where its total does.
+                assertEquals(300.0, budgets(repo, unified).dailyCumulativeSpending.last(), 0.01)
+            }
+        }
+    }
+
+    @Test
+    fun `budget history and past weeks take a refund off, in both currency modes`() = runBlocking {
+        val last = month.minusMonths(1)
+        val txs = refunded(last.atDay(1))
+        val asIs: suspend (String, BigDecimal) -> BigDecimal? = { _, amount -> amount }
+        for (group in listOf(budget(), budget("Others"))) {
+            for (convert in listOf(null, asIs)) {
+                val history = repository(group, txs).getBudgetHistoryForMonth(group.budget, last.year, last.monthValue, "INR", convert)
+                assertEquals(0, BigDecimal("300").compareTo(history.single().spent))
+            }
+            // Weekly, last month: its first week is a past week on the card, not the one on show.
+            val weekly = group.copy(budget = group.budget.copy(periodType = BudgetPeriodType.WEEKLY, weekStartDay = 1, monthStartDay = null))
+            val repo = repository(weekly, txs)
+            for (unified in listOf(false, true)) {
+                val firstWeek = budgets(repo, unified, last).previousWindows.single { last.atDay(1) in it.window.start..it.window.end }
+                assertEquals(0, BigDecimal("300").compareTo(firstWeek.spent))
+            }
+        }
     }
 
     @Test

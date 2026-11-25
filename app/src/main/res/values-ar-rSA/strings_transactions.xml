@@ -77,6 +77,8 @@
     <string name="txn_detail_more_actions">المزيد من الإجراءات</string>
     <string name="txn_detail_menu_add_to_group">إضافة إلى مجموعة</string>
     <string name="txn_detail_menu_duplicate">إنشاء نسخة</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">الإبلاغ عن مشكلة</string>
     <string name="txn_detail_delete_title">حذف المعاملة</string>
     <string name="txn_detail_delete_message">هل تريد حذف هذه المعاملة؟ لا يمكن التراجع عن هذا الإجراء.</string>

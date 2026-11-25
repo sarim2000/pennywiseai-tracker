@@ -71,6 +71,8 @@
     <string name="txn_detail_more_actions">Іншыя дзеянні</string>
     <string name="txn_detail_menu_add_to_group">Дадаць у групу</string>
     <string name="txn_detail_menu_duplicate">Дубляваць</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">Паведаміць пра праблему</string>
     <string name="txn_detail_delete_title">Выдаліць транзакцыю</string>
     <string name="txn_detail_delete_message">Сапраўды выдаліць гэтую транзакцыю? Гэта дзеянне нельга адрабіць.</string>

@@ -69,6 +69,8 @@
     <string name="txn_detail_more_actions">Mais ações</string>
     <string name="txn_detail_menu_add_to_group">Adicionar ao grupo</string>
     <string name="txn_detail_menu_duplicate">Duplicar</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">Reportar problema</string>
     <string name="txn_detail_delete_title">Excluir Transação</string>
     <string name="txn_detail_delete_message">Tem certeza que deseja apagar esta transação? Esta ação não pode ser desfeita.</string>

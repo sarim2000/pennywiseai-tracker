@@ -223,7 +223,8 @@ export const NOT_CONNECTED =
 
 const FILTER_KEYS = ["tag", "exclude_categories", "exclude_tags"];
 // The app reads a filter as a non-blank JSON string or a list of them; anything else is no filter there either.
-const isName = (v: unknown): boolean => typeof v === "string" && v.trim() !== "";
+// Has a visible character: the same set the app's isName uses (whitespace, control characters, BOM).
+const isName = (v: unknown): boolean => typeof v === "string" && /[^\s\u0000-\u001f\u007f-\u009f\u180e\ufeff]/.test(v);
 const nonEmpty = (v: unknown): boolean => (Array.isArray(v) ? v.some(isName) : isName(v));
 
 /**

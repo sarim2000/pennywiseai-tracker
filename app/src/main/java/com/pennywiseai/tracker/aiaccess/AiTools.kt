@@ -227,7 +227,10 @@ class AiTools @Inject constructor(
      */
     private fun JsonObject.strings(key: String): List<String> =
         ((this[key] as? JsonArray) ?: listOfNotNull(this[key]))
-            .mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content?.takeIf { s -> s.isNotBlank() } }
+            .mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content?.takeIf(::isName) }
+
+    /** Has a visible character. Spelled out, not isNotBlank, so it is the same set as the relay's isName. */
+    private fun isName(s: String) = s.any { !it.isWhitespace() && !it.isISOControl() && it != '\uFEFF' && it != '\u180E' }
 
     private fun error(message: String) = text(message, isError = true)
 

@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.reimbursements
+package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

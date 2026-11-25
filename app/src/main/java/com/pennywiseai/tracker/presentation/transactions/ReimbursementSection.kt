@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.reimbursements
+package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
@@ -53,6 +54,12 @@ import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+
+/** Whether [txn] can be marked reimbursable: money out that isn't one already. */
+fun canMarkReimbursable(txn: TransactionEntity): Boolean =
+    txn.reimbursementStatus == null &&
+        !txn.isDeleted &&
+        (txn.transactionType == TransactionType.EXPENSE || txn.transactionType == TransactionType.CREDIT)
 
 /**
  * "Reimbursement" on the transaction screen (#1389). On a reimbursable expense: waiting

@@ -113,6 +113,9 @@
     <string name="settings_transaction_groups_subtitle">Organise transactions under a topic</string>
     <string name="settings_export_data_title">Export Data</string>
     <string name="settings_export_data_subtitle">Backup all data to a file</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
+    <string name="settings_export_csv_title">Export Transactions (CSV)</string>
+    <string name="settings_export_csv_subtitle">A spreadsheet file of every transaction</string>
     <string name="settings_folder_backup_title">Automatic Folder Backup</string>
     <string name="settings_folder_backup_subtitle_enabled">Daily backup at 2:00 AM to your chosen folder</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Save a backup to a folder every day at 2:00 AM</string>

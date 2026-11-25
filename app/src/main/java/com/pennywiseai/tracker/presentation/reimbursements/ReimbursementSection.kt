@@ -15,7 +15,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Payments
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -206,13 +205,8 @@ fun PaidBackBySheet(
                 verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
             ) {
                 item(key = "unlinked") {
+                    // No leading icon, so its text lines up with the payment rows under it.
                     GroupedRow(position = ListItemPosition.from(0, count), onClick = { pick(null) }) {
-                        Icon(
-                            Icons.Outlined.Payments,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.medium),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                         RowLabels(
                             title = stringResource(R.string.reimburse_sheet_unlinked),
                             subtitle = stringResource(R.string.reimburse_sheet_unlinked_hint),

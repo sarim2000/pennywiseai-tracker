@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.reimbursements
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -122,32 +123,37 @@ fun ReimbursementsScreen(
             if (uiState.pending.isNotEmpty()) {
                 item(key = "waiting") {
                     PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            stringResource(R.string.reimburse_waiting_label),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        // A line per currency, each shrinking to fit rather than wrapping
-                        // mid-number. Hidden amounts show one mask, not one per currency.
-                        val totals = if (AmountPrivacy.hidden) {
-                            listOf(AmountPrivacy.MASK)
-                        } else {
-                            uiState.pendingTotals.values.sortedByDescending { it.amount.abs() }.map { it.format() }
-                        }
-                        totals.forEach { total ->
+                        // Label, figures and count as three beats; the figures stay one block.
+                        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             Text(
-                                total,
-                                style = PennyWiseText.amountMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, PennyWiseText.amountMedium.fontSize),
+                                stringResource(R.string.reimburse_waiting_label),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            // A line per currency, each shrinking to fit rather than wrapping
+                            // mid-number. Hidden amounts show one mask, not one per currency.
+                            val totals = if (AmountPrivacy.hidden) {
+                                listOf(AmountPrivacy.MASK)
+                            } else {
+                                uiState.pendingTotals.values.sortedByDescending { it.amount.abs() }.map { it.format() }
+                            }
+                            Column {
+                                totals.forEach { total ->
+                                    Text(
+                                        total,
+                                        style = PennyWiseText.amountMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1,
+                                        autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, PennyWiseText.amountMedium.fontSize),
+                                    )
+                                }
+                            }
+                            Text(
+                                pluralStringResource(R.plurals.reimburse_pending_count, uiState.pending.size, uiState.pending.size),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Text(
-                            pluralStringResource(R.plurals.reimburse_pending_count, uiState.pending.size, uiState.pending.size),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                 }
                 rows("pending", R.string.reimburse_section_pending, uiState.pending, onOpenTransaction)

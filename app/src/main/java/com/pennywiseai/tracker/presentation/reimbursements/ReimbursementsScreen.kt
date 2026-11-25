@@ -174,7 +174,8 @@ private fun LazyListScope.rows(
     onOpenTransaction: (Long) -> Unit,
 ) {
     item(key = "$key-header") { SectionHeaderV2(title = stringResource(title), modifier = Modifier.animateItem()) }
-    itemsIndexed(transactions, key = { _, it -> "$key-${it.id}" }) { i, txn ->
+    // Keyed by id alone (a row is in one section at a time), so a row slides from Pending to Reimbursed.
+    itemsIndexed(transactions, key = { _, it -> it.id }) { i, txn ->
         TransactionItem(
             transaction = txn,
             listItemPosition = ListItemPosition.from(i, transactions.size),

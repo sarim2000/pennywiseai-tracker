@@ -220,7 +220,9 @@ class BackupImporter @Inject constructor(
                     // Rebuilt from the shares that restore (#346), below.
                     lentSharesTotal = null,
                     groupId = tx.groupId?.takeIf { it in backupGroupIds },
-                    profileId = resolveProfileId(tx.profileId)
+                    profileId = resolveProfileId(tx.profileId),
+                    // Relinked once every row is in (#1389), below.
+                    reimbursedById = null
                 )
 
                 // Import all data
@@ -237,6 +239,10 @@ class BackupImporter @Inject constructor(
                     if (transaction.id != 0L && newId > 0L) restoredTransactionIds[transaction.id] = newId
                     importedTransactions++
                 }
+                reimbursementLinks(backup.database.transactions, restoredTransactionIds) { it in restoredTransactionIds }
+                    .insertEachCounting({ skippedRows++ }) { (id, paymentId) ->
+                        database.transactionDao().setReimbursedById(id, paymentId)
+                    }
 
                 backup.database.cards.insertEachCounting({ skippedRows++ }) { card ->
                     database.cardDao().insertCard(card)
@@ -481,6 +487,8 @@ class BackupImporter @Inject constructor(
                 // Import transactions (skip duplicates by hash)
                 // Build mapping from old transaction IDs to new IDs for split/application imports
                 val oldToNewTransactionIdMap = mutableMapOf<Long, Long>()
+                // Backup ids of the rows this merge inserted (not hash duplicates).
+                val insertedTransactionIds = HashSet<Long>()
 
                 backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
                     if (!existingTransactionHashes.contains(transaction.transactionHash)) {
@@ -491,12 +499,15 @@ class BackupImporter @Inject constructor(
                             // Rebuilt from the shares that restore (#346).
                             lentSharesTotal = null,
                             groupId = transaction.groupId?.let { oldToNewGroupIdMap[it] },
-                            profileId = resolveProfileId(transaction.profileId)
+                            profileId = resolveProfileId(transaction.profileId),
+                            // Relinked once every row is mapped (#1389), below.
+                            reimbursedById = null
                         )
                         val newId = database.transactionDao().insertTransaction(newTransaction)
                         // Track old ID -> new ID mapping directly from insert result
                         if (oldId != 0L) {
                             oldToNewTransactionIdMap[oldId] = newId
+                            insertedTransactionIds += oldId
                         }
                         importedTransactions++
                     } else {
@@ -508,6 +519,12 @@ class BackupImporter @Inject constructor(
                         skippedDuplicates++
                     }
                 }
+                // A matched local row keeps its own reimbursement; a new one links to
+                // its payment, which may be a new row or a local duplicate.
+                reimbursementLinks(backup.database.transactions, oldToNewTransactionIdMap) { it in insertedTransactionIds }
+                    .insertEachCounting({ skippedRows++ }) { (id, paymentId) ->
+                        database.transactionDao().setReimbursedById(id, paymentId)
+                    }
 
                 // Import other entities with duplicate checking
                 importCardsWithMerge(backup.database.cards) { skippedRows++ }
@@ -1066,4 +1083,23 @@ class BackupImporter @Inject constructor(
             }
         }
     }
+}
+
+/**
+ * The reimbursement links (#1389) to write once a restore's transactions are in, as
+ * (local row id, local payment id). Rows are inserted without the link, because the
+ * payment it names may come later in the file and its id changes in a MERGE. [idMap]
+ * maps backup ids to local ids; [restored] says which backup rows this import inserted.
+ * A link whose payment didn't come through is dropped: the row stays reimbursed, unlinked.
+ */
+internal fun reimbursementLinks(
+    transactions: List<TransactionEntity>,
+    idMap: Map<Long, Long>,
+    restored: (Long) -> Boolean,
+): List<Pair<Long, Long>> = transactions.mapNotNull { tx ->
+    val paymentId = tx.reimbursedById ?: return@mapNotNull null
+    if (!restored(tx.id)) return@mapNotNull null
+    val id = idMap[tx.id] ?: return@mapNotNull null
+    val payment = idMap[paymentId] ?: return@mapNotNull null
+    (id to payment).takeIf { id != payment }
 }

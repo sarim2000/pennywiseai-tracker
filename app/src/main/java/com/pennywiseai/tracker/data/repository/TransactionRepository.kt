@@ -387,6 +387,7 @@ open class TransactionRepository @Inject constructor(
             !transactionDao.moveSharesToKeeper(duplicateId, keeperId)
         ) return false
         goalRepository.moveContributions(duplicateId, keeperId)
+        transactionDao.moveReimbursementToKeeper(duplicateId, keeperId)
         deleteTransactionById(duplicateId)
         return true
     }

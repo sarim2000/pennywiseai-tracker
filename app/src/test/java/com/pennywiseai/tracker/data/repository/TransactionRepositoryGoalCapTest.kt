@@ -52,6 +52,7 @@ class TransactionRepositoryGoalCapTest {
         assertTrue(repo.deleteDuplicate(duplicateId = 8, keeperId = 9))
         coVerifyOrder {
             goals.moveContributions(8, 9)
+            dao.moveReimbursementToKeeper(8, 9)
             dao.softDeleteTransaction(8)
         }
     }

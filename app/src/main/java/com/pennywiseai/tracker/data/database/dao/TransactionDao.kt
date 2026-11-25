@@ -344,6 +344,33 @@ interface TransactionDao {
     @Query("UPDATE transactions SET reimbursement_status = :status, reimbursed_by_id = :reimbursedById, updated_at = :updatedAt WHERE id = :transactionId")
     suspend fun setReimbursement(transactionId: Long, status: String?, reimbursedById: Long?, updatedAt: LocalDateTime): Int
 
+    /**
+     * Before a duplicate is removed (#1389): the keeper takes the duplicate's reimbursement when it
+     * has none, and expenses the duplicate paid back point at the keeper instead.
+     */
+    @androidx.room3.Transaction
+    suspend fun moveReimbursementToKeeper(fromId: Long, toId: Long) {
+        if (fromId == toId) return
+        copyReimbursementIfUnset(fromId, toId)
+        repointReimbursedBy(fromId, toId)
+    }
+
+    @Query(
+        """
+        UPDATE transactions SET
+            reimbursement_status = (SELECT reimbursement_status FROM transactions WHERE id = :fromId),
+            reimbursed_by_id = (SELECT reimbursed_by_id FROM transactions WHERE id = :fromId)
+        WHERE id = :toId AND reimbursement_status IS NULL
+            AND transaction_type IN ('EXPENSE', 'CREDIT')
+            AND (SELECT reimbursement_status FROM transactions WHERE id = :fromId) IS NOT NULL
+            AND (SELECT reimbursed_by_id FROM transactions WHERE id = :fromId) IS NOT :toId
+        """
+    )
+    suspend fun copyReimbursementIfUnset(fromId: Long, toId: Long)
+
+    @Query("UPDATE transactions SET reimbursed_by_id = :toId WHERE reimbursed_by_id = :fromId AND id != :toId")
+    suspend fun repointReimbursedBy(fromId: Long, toId: Long)
+
     /** Points a restored row at its restored payment; see BackupImporter. */
     @Query("UPDATE transactions SET reimbursed_by_id = :reimbursedById WHERE id = :transactionId")
     suspend fun setReimbursedById(transactionId: Long, reimbursedById: Long?)

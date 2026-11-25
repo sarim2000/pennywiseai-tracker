@@ -10,15 +10,24 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
+import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
+import com.pennywiseai.tracker.domain.model.rule.supportedOperators
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -264,18 +273,70 @@ object AiToolLogic {
     fun ruleFrom(args: JsonObject): TransactionRule {
         val shared = buildJsonObject {
             putJsonArray("rules") {
-                add(buildJsonObject { listOf("name", "description", "priority", "conditions", "actions").forEach { k -> args[k]?.let { put(k, it) } } })
+                add(buildJsonObject { RULE_FIELDS.forEach { k -> args[k]?.let { put(k, it) } } })
             }
         }
         val rule = try {
-            RuleSharingCodec.decode(shared.toString()).rules.single()
+            RuleSharingCodec.decode(shared.toString(), ::aiAllows).rules.single()
         } catch (e: IllegalArgumentException) {
             throw IllegalArgumentException(
                 "That rule isn't valid. It needs a name, at least one condition and one action, and each condition's operator and value must suit its field.", e
             )
         }
         require(rule.actions.none { it.actionType == ActionType.BLOCK }) { "AI apps can't create rules that block transactions." }
+        // list_rules hides SMS text; writing the placeholder back would replace the real text.
+        require(rule.conditions.none { it.value == HIDDEN_SMS_TEXT }) { "A condition on the SMS text can't be written from here: its text is hidden from AI apps." }
         return rule
+    }
+
+    private val RULE_FIELDS = listOf("name", "description", "priority", "conditions", "actions")
+
+    /**
+     * Beyond the rule editor's pickers, all of which the engine already evaluates: negated and list
+     * operators on text fields, NOT_IN on the day fields, and inclusive date bounds (so "between two
+     * dates" is two conditions joined by AND).
+     */
+    private fun aiAllows(field: TransactionField, op: ConditionOperator): Boolean = op in supportedOperators(field) || when (field) {
+        TransactionField.TRANSACTION_DATE -> op == ConditionOperator.GREATER_THAN_OR_EQUAL || op == ConditionOperator.LESS_THAN_OR_EQUAL
+        TransactionField.TRANSACTION_DAY_OF_WEEK, TransactionField.TRANSACTION_DAY_OF_MONTH -> op == ConditionOperator.NOT_IN
+        else -> ConditionOperator.CONTAINS in supportedOperators(field) &&
+            op in setOf(ConditionOperator.NOT_EQUALS, ConditionOperator.NOT_CONTAINS, ConditionOperator.IN, ConditionOperator.NOT_IN)
+    }
+
+    /** [existing] with only the fields [args] supplies replaced, checked like [ruleFrom]. Id, on/off, template flag and created time stay. */
+    fun ruleUpdated(existing: TransactionRule, args: JsonObject): TransactionRule {
+        val json = Json { encodeDefaults = true }
+        val edited = ruleFrom(buildJsonObject {
+            put("name", existing.name)
+            existing.description?.let { put("description", it) }
+            put("priority", existing.priority)
+            put("conditions", json.encodeToJsonElement(existing.conditions))
+            put("actions", json.encodeToJsonElement(existing.actions))
+            RULE_FIELDS.forEach { k -> args[k]?.let { put(k, it) } }
+        })
+        return existing.copy(
+            name = edited.name, description = edited.description, priority = edited.priority,
+            conditions = edited.conditions, actions = edited.actions, updatedAt = System.currentTimeMillis(),
+        )
+    }
+
+    /** list_rules: the user's own rules in create_rule's shape, plus the `id` update_rule and delete_rule take. */
+    fun listRules(rules: List<TransactionRule>): String {
+        val own = RuleSharingCodec.exportable(shareableRules(rules))
+        val set = Json.parseToJsonElement(RuleSharingCodec.encode(own)).jsonObject
+        val withIds = set["rules"]!!.jsonArray.mapIndexed { i, r -> JsonObject(r.jsonObject + ("id" to JsonPrimitive(own[i].id))) }
+        return JsonObject(set + ("rules" to JsonArray(withIds))).toString()
+    }
+
+    /** `none`, `uncategorized` or `all`. An older client's `true` still means uncategorized. */
+    fun applyToPast(args: JsonObject, default: String): String {
+        val v = args["apply_to_past"] as? JsonPrimitive ?: return default
+        return when {
+            v.booleanOrNull == true -> "uncategorized"
+            v.booleanOrNull == false -> "none"
+            v.isString && v.content in listOf("none", "uncategorized", "all") -> v.content
+            else -> throw IllegalArgumentException("apply_to_past must be none, uncategorized or all.")
+        }
     }
 
     private fun money(m: Money) = money(m.amount, m.currency)

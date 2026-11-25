@@ -6,6 +6,7 @@ const readOnly = { readOnlyHint: true, destructiveHint: false, idempotentHint: t
 // the user turned on "Let AI apps make changes".
 const write = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const create = { ...write, idempotentHint: false };
+const destroy = { ...write, destructiveHint: true };
 const merchant = { type: "string", description: "Merchant exactly as shown in search_transactions results (the merchant field, not the alias)" };
 // Names match ignoring case; a name that matches nothing leaves nothing out.
 const tag = {
@@ -18,6 +19,43 @@ const field = {
 	type: "string",
 	enum: ["AMOUNT", "TYPE", "CATEGORY", "MERCHANT", "NARRATION", "SMS_TEXT", "BANK_NAME", "TRANSACTION_HOUR", "TRANSACTION_TIME", "TRANSACTION_DAY_OF_WEEK", "TRANSACTION_DAY_OF_MONTH", "TRANSACTION_DATE", "ACCOUNT", "TAGS"],
 };
+const ruleId = { type: "string", description: "The rule's id, from list_rules" };
+const applyToPast = {
+	type: "string",
+	enum: ["none", "uncategorized", "all"],
+	default: "none",
+	description: "Also run the rule now on past transactions: none, only those still in Others (uncategorized), or all. The result says how many changed.",
+};
+const dryRun = { type: "boolean", default: false, description: "Change nothing: report how many past transactions apply_to_past would change, so the user can confirm first" };
+const conditions = {
+	type: "array",
+	minItems: 1,
+	items: {
+		type: "object",
+		properties: {
+			field,
+			operator: { type: "string", enum: ["EQUALS", "NOT_EQUALS", "CONTAINS", "NOT_CONTAINS", "STARTS_WITH", "LESS_THAN", "GREATER_THAN", "LESS_THAN_OR_EQUAL", "GREATER_THAN_OR_EQUAL", "IN", "NOT_IN"] },
+			value: { type: "string", description: "Comma-separated for IN and NOT_IN" },
+			logicalOperator: { type: "string", enum: ["AND", "OR"], default: "AND", description: "How this condition joins the ones before it" },
+		},
+		required: ["field", "operator", "value"],
+	},
+};
+const actions = {
+	type: "array",
+	minItems: 1,
+	items: {
+		type: "object",
+		properties: {
+			field,
+			actionType: { type: "string", enum: ["SET", "APPEND", "PREPEND", "CLEAR", "ADD_TAG", "REMOVE_TAG"] },
+			value: { type: "string", description: "Empty for CLEAR" },
+		},
+		required: ["field", "actionType", "value"],
+	},
+};
+const RULE_OPERATORS =
+	" Operators by field: AMOUNT LESS_THAN/GREATER_THAN/EQUALS (number); TYPE EQUALS/NOT_EQUALS (EXPENSE, INCOME, CREDIT, TRANSFER, INVESTMENT); MERCHANT, NARRATION, SMS_TEXT, CATEGORY, BANK_NAME CONTAINS/NOT_CONTAINS/EQUALS/NOT_EQUALS/STARTS_WITH/IN/NOT_IN (IN and NOT_IN take a comma-separated list, e.g. MERCHANT IN \"Swiggy, Zomato\"; NOT_CONTAINS e.g. MERCHANT NOT_CONTAINS \"Refund\"); TRANSACTION_HOUR EQUALS/LESS_THAN/GREATER_THAN (0-23); TRANSACTION_DAY_OF_MONTH EQUALS/IN/NOT_IN/LESS_THAN/GREATER_THAN (1-31); TRANSACTION_DAY_OF_WEEK EQUALS/IN/NOT_IN/NOT_EQUALS (1=Monday..7=Sunday); TRANSACTION_DATE EQUALS/LESS_THAN/GREATER_THAN/LESS_THAN_OR_EQUAL/GREATER_THAN_OR_EQUAL (YYYY-MM-DD); ACCOUNT EQUALS/NOT_EQUALS (\"Bank||last4\"). There is no BETWEEN: between two dates is two TRANSACTION_DATE conditions, the second with logicalOperator AND, e.g. GREATER_THAN_OR_EQUAL 2026-04-01 then LESS_THAN_OR_EQUAL 2026-04-30. Actions: CATEGORY SET (a category name) or CLEAR; TYPE SET (a type name); MERCHANT or NARRATION SET/APPEND/PREPEND/CLEAR; TAGS ADD_TAG/REMOVE_TAG. SMS_TEXT is matched on the phone; you never see SMS text.";
 const WRITE_NOTE = " Changes data: only works while the user has turned on Let AI apps make changes in PennyWise.";
 
 export const TOOLS = [
@@ -97,7 +135,7 @@ export const TOOLS = [
 	{
 		name: "list_rules",
 		title: "List rules",
-		description: "The user's own smart rules (built-in templates excluded), in the same shape create_rule takes. Rules run on each new transaction as it arrives.",
+		description: "The user's own smart rules (built-in templates excluded), in the same shape create_rule takes, each with an id for update_rule and delete_rule. Rules run on each new transaction as it arrives.",
 		inputSchema: { type: "object", properties: {} },
 		annotations: readOnly,
 	},
@@ -169,7 +207,8 @@ export const TOOLS = [
 		name: "create_rule",
 		title: "Create rule",
 		description:
-			"Add a smart rule that runs on each new transaction: when its conditions match, its actions apply. Conditions join with their logicalOperator (AND by default). Operators by field: AMOUNT LESS_THAN/GREATER_THAN/EQUALS (number); TYPE EQUALS/NOT_EQUALS (EXPENSE, INCOME, CREDIT, TRANSFER, INVESTMENT); MERCHANT, NARRATION, SMS_TEXT, CATEGORY, BANK_NAME CONTAINS/EQUALS/STARTS_WITH; TRANSACTION_HOUR EQUALS/LESS_THAN/GREATER_THAN (0-23); TRANSACTION_DAY_OF_MONTH EQUALS/IN/LESS_THAN/GREATER_THAN (1-31); TRANSACTION_DAY_OF_WEEK EQUALS/IN/NOT_EQUALS (1=Monday..7=Sunday); TRANSACTION_DATE EQUALS/LESS_THAN/GREATER_THAN (YYYY-MM-DD); ACCOUNT EQUALS/NOT_EQUALS (\"Bank||last4\"). Actions: CATEGORY SET (a category name) or CLEAR; TYPE SET (a type name); MERCHANT or NARRATION SET/APPEND/PREPEND/CLEAR; TAGS ADD_TAG/REMOVE_TAG. SMS_TEXT is matched on the phone; you never see SMS text." +
+			"Add a smart rule that runs on each new transaction: when its conditions match, its actions apply. Conditions join with their logicalOperator (AND by default)." +
+			RULE_OPERATORS +
 			WRITE_NOTE,
 		inputSchema: {
 			type: "object",
@@ -177,38 +216,46 @@ export const TOOLS = [
 				name: { type: "string" },
 				description: { type: "string" },
 				priority: { type: "integer", default: 100, description: "Lower runs first" },
-				conditions: {
-					type: "array",
-					minItems: 1,
-					items: {
-						type: "object",
-						properties: {
-							field,
-							operator: { type: "string", enum: ["EQUALS", "NOT_EQUALS", "CONTAINS", "STARTS_WITH", "LESS_THAN", "GREATER_THAN", "LESS_THAN_OR_EQUAL", "GREATER_THAN_OR_EQUAL", "IN"] },
-							value: { type: "string", description: "Comma-separated for IN" },
-							logicalOperator: { type: "string", enum: ["AND", "OR"], default: "AND" },
-						},
-						required: ["field", "operator", "value"],
-					},
-				},
-				actions: {
-					type: "array",
-					minItems: 1,
-					items: {
-						type: "object",
-						properties: {
-							field,
-							actionType: { type: "string", enum: ["SET", "APPEND", "PREPEND", "CLEAR", "ADD_TAG", "REMOVE_TAG"] },
-							value: { type: "string", description: "Empty for CLEAR" },
-						},
-						required: ["field", "actionType", "value"],
-					},
-				},
-				apply_to_past: { type: "boolean", default: false, description: "Also run it now on past transactions still in Others" },
+				conditions,
+				actions,
+				apply_to_past: applyToPast,
+				dry_run: dryRun,
 			},
 			required: ["name", "conditions", "actions"],
 		},
 		annotations: create,
+	},
+	{
+		name: "update_rule",
+		title: "Update rule",
+		description:
+			"Change one of the user's own rules, found by its id from list_rules. Only the fields you send change; conditions or actions, if sent, replace that whole list. SMS text conditions are hidden in list_rules, so to keep one, leave conditions out." +
+			RULE_OPERATORS +
+			WRITE_NOTE,
+		inputSchema: {
+			type: "object",
+			properties: {
+				id: ruleId,
+				name: { type: "string" },
+				description: { type: "string", description: "Empty to remove" },
+				priority: { type: "integer", description: "Lower runs first" },
+				conditions,
+				actions,
+				apply_to_past: applyToPast,
+				dry_run: dryRun,
+			},
+			required: ["id"],
+		},
+		annotations: write,
+	},
+	{
+		name: "delete_rule",
+		title: "Delete rule",
+		description:
+			"Delete one of the user's own rules, found by its id from list_rules. It stops running on new transactions; what it already changed on past transactions stays. Built-in rules can't be deleted." +
+			WRITE_NOTE,
+		inputSchema: { type: "object", properties: { id: ruleId }, required: ["id"] },
+		annotations: destroy,
 	},
 ] as const;
 

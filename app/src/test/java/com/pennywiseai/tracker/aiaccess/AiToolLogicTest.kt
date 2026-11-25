@@ -4,6 +4,13 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
+import com.pennywiseai.tracker.domain.model.rule.RuleAction
+import com.pennywiseai.tracker.domain.model.rule.RuleCondition
+import com.pennywiseai.tracker.domain.model.rule.TransactionField
+import com.pennywiseai.tracker.domain.model.rule.TransactionRule
+import com.pennywiseai.tracker.domain.service.RuleEngine
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -12,6 +19,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -333,5 +341,98 @@ class AiToolLogicTest {
         )
         val shared = AiToolLogic.shareableRules(listOf(rule)).single().conditions.map { it.value }
         assertEquals(listOf(AiToolLogic.HIDDEN_SMS_TEXT, "cafe"), shared)
+    }
+
+    private fun ruleWith(conditions: String) = Json.parseToJsonElement(
+        """{"name":"R","conditions":$conditions,"actions":[{"field":"CATEGORY","actionType":"SET","value":"Housing"}]}"""
+    ).jsonObject
+
+    private fun matches(rule: TransactionRule, merchant: String, day: Int) =
+        RuleEngine().evaluateRules(txn(merchant, "10", day = day), null, listOf(rule)).second.isNotEmpty()
+
+    @Test
+    fun `create_rule accepts and evaluates IN, NOT_IN, NOT_EQUALS and NOT_CONTAINS`() {
+        fun rule(op: String, value: String) =
+            AiToolLogic.ruleFrom(ruleWith("""[{"field":"MERCHANT","operator":"$op","value":"$value"}]"""))
+        assertTrue(matches(rule("IN", "Swiggy, Zomato"), "zomato", 5))
+        assertFalse(matches(rule("IN", "Swiggy, Zomato"), "Uber", 5))
+        assertTrue(matches(rule("NOT_IN", "Swiggy, Zomato"), "Uber", 5))
+        assertFalse(matches(rule("NOT_IN", "Swiggy, Zomato"), "Swiggy", 5))
+        assertTrue(matches(rule("NOT_EQUALS", "Uber"), "Swiggy", 5))
+        assertFalse(matches(rule("NOT_EQUALS", "Uber"), "uber", 5))
+        assertTrue(matches(rule("NOT_CONTAINS", "refund"), "Swiggy", 5))
+        assertFalse(matches(rule("NOT_CONTAINS", "refund"), "Swiggy Refund", 5))
+    }
+
+    @Test
+    fun `create_rule takes a between-two-dates rule as two AND conditions`() {
+        val rule = AiToolLogic.ruleFrom(
+            ruleWith(
+                """[{"field":"TRANSACTION_DATE","operator":"GREATER_THAN_OR_EQUAL","value":"2026-10-03"},
+                   {"field":"TRANSACTION_DATE","operator":"LESS_THAN_OR_EQUAL","value":"2026-10-05","logicalOperator":"AND"}]"""
+            )
+        )
+        assertFalse(matches(rule, "Swiggy", 2))
+        assertTrue(matches(rule, "Swiggy", 3))
+        assertTrue(matches(rule, "Swiggy", 5))
+        assertFalse(matches(rule, "Swiggy", 6))
+        // The picker's own date operators still work, and a bad date still fails.
+        AiToolLogic.ruleFrom(ruleWith("""[{"field":"TRANSACTION_DATE","operator":"GREATER_THAN","value":"2026-10-03"}]"""))
+        assertThrows(IllegalArgumentException::class.java) {
+            AiToolLogic.ruleFrom(ruleWith("""[{"field":"TRANSACTION_DATE","operator":"GREATER_THAN","value":"3 Oct"}]"""))
+        }
+    }
+
+    @Test
+    fun `operators that mean nothing for a field are still refused`() {
+        assertThrows(IllegalArgumentException::class.java) {
+            AiToolLogic.ruleFrom(ruleWith("""[{"field":"AMOUNT","operator":"NOT_IN","value":"1,2"}]"""))
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            AiToolLogic.ruleFrom(ruleWith("""[{"field":"TRANSACTION_DATE","operator":"IN","value":"2026-10-03"}]"""))
+        }
+    }
+
+    @Test
+    fun `apply_to_past reads none, uncategorized and all, and true as uncategorized`() {
+        fun mode(json: String, default: String = "none") = AiToolLogic.applyToPast(Json.parseToJsonElement(json).jsonObject, default)
+        assertEquals("none", mode("{}"))
+        assertEquals("uncategorized", mode("{}", "uncategorized"))
+        assertEquals("none", mode("""{"apply_to_past":"none"}""", "all"))
+        assertEquals("uncategorized", mode("""{"apply_to_past":"uncategorized"}"""))
+        assertEquals("all", mode("""{"apply_to_past":"all"}"""))
+        assertEquals("uncategorized", mode("""{"apply_to_past":true}"""))
+        assertEquals("none", mode("""{"apply_to_past":false}""", "all"))
+        assertThrows(IllegalArgumentException::class.java) { mode("""{"apply_to_past":"most"}""") }
+    }
+
+    @Test
+    fun `ruleUpdated keeps what is not supplied, including the real SMS text`() {
+        val existing = TransactionRule(
+            name = "Old", description = "d", priority = 3, isActive = false,
+            conditions = listOf(RuleCondition(TransactionField.SMS_TEXT, ConditionOperator.CONTAINS, "real sms words")),
+            actions = listOf(RuleAction(TransactionField.CATEGORY, ActionType.SET, "Housing")),
+        )
+        val renamed = AiToolLogic.ruleUpdated(existing, Json.parseToJsonElement("""{"id":"x","name":"New","description":""}""").jsonObject)
+        assertEquals("New", renamed.name)
+        assertEquals(null, renamed.description)
+        assertEquals(existing.id, renamed.id)
+        assertEquals(3, renamed.priority)
+        assertFalse(renamed.isActive)
+        assertEquals(existing.conditions, renamed.conditions)
+        assertEquals(existing.actions, renamed.actions)
+    }
+
+    @Test
+    fun `list_rules adds each rule's id and leaves built-in rules out`() {
+        val own = TransactionRule(
+            id = "abc", name = "Mine",
+            conditions = listOf(RuleCondition(TransactionField.SMS_TEXT, ConditionOperator.CONTAINS, "secret")),
+            actions = emptyList(),
+        )
+        val out = Json.parseToJsonElement(AiToolLogic.listRules(listOf(own.copy(id = "sys", isSystemTemplate = true), own))).jsonObject
+        val rule = out["rules"]!!.jsonArray.single().jsonObject
+        assertEquals("abc", rule["id"]!!.jsonPrimitive.content)
+        assertFalse(out.toString().contains("secret"))
     }
 }

@@ -1,10 +1,12 @@
 package com.pennywiseai.tracker.data.rules
 
+import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
 import com.pennywiseai.tracker.domain.model.rule.RuleAction
-import com.pennywiseai.tracker.domain.model.rule.isExecutable
 import com.pennywiseai.tracker.domain.model.rule.RuleCondition
-import com.pennywiseai.tracker.domain.model.rule.supportedOperators
+import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
+import com.pennywiseai.tracker.domain.model.rule.isExecutable
+import com.pennywiseai.tracker.domain.model.rule.supportedOperators
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -104,6 +106,25 @@ object RuleSharingCodec {
     )
 
     /**
+     * Whether a rule is usable in full.
+     *
+     * [TransactionRule.validate] only checks that the name, conditions and
+     * actions are present — it never asks the conditions and actions whether
+     * *they* are well-formed. That's fine for the create screen, which builds
+     * them from pickers, but an imported file is arbitrary text: a condition
+     * like AMOUNT / LESS_THAN / "abc", or a nonsensical pairing like MERCHANT /
+     * GREATER_THAN, would sail through the shape check and be persisted as a
+     * rule that can never match. So each part is validated too, and each
+     * condition's operator is checked against [supportedOperators] — the same
+     * list the rule editor builds its picker from — and each action against
+     * [isExecutable], so a rule the engine would silently no-op never lands.
+     */
+    private fun TransactionRule.isFullyValid(allows: (TransactionField, ConditionOperator) -> Boolean): Boolean =
+        validate() &&
+            conditions.all { it.validate() && allows(it.field, it.operator) } &&
+            actions.all { it.validate() && it.isExecutable() }
+
+    /**
      * Parses [text] into the rules it holds, all or nothing.
      *
      * An unusable entry fails the whole file rather than being skipped:
@@ -120,26 +141,11 @@ object RuleSharingCodec {
      *   unusable entry, holds no rule at all, or was written by a newer format
      *   version.
      */
-    /**
-     * Whether a rule is usable in full.
-     *
-     * [TransactionRule.validate] only checks that the name, conditions and
-     * actions are present — it never asks the conditions and actions whether
-     * *they* are well-formed. That's fine for the create screen, which builds
-     * them from pickers, but an imported file is arbitrary text: a condition
-     * like AMOUNT / LESS_THAN / "abc", or a nonsensical pairing like MERCHANT /
-     * GREATER_THAN, would sail through the shape check and be persisted as a
-     * rule that can never match. So each part is validated too, and each
-     * condition's operator is checked against [supportedOperators] — the same
-     * list the rule editor builds its picker from — and each action against
-     * [isExecutable], so a rule the engine would silently no-op never lands.
-     */
-    private fun TransactionRule.isFullyValid(): Boolean =
-        validate() &&
-            conditions.all { it.validate() && it.operator in supportedOperators(it.field) } &&
-            actions.all { it.validate() && it.isExecutable() }
-
-    fun decode(text: String): DecodedRuleSet {
+    fun decode(
+        text: String,
+        // The operator pairings a condition may carry; a caller that accepts more widens it.
+        allows: (TransactionField, ConditionOperator) -> Boolean = { f, o -> o in supportedOperators(f) }
+    ): DecodedRuleSet {
         require(text.length <= MAX_FILE_BYTES) {
             "That file is too large to be a rules file."
         }
@@ -163,7 +169,7 @@ object RuleSharingCodec {
                 isSystemTemplate = false
             )
         }
-        val invalid = mapped.count { !it.isFullyValid() }
+        val invalid = mapped.count { !it.isFullyValid(allows) }
         require(invalid == 0) {
             if (invalid == 1) "1 rule in this file is incomplete, so nothing was imported."
             else "$invalid rules in this file are incomplete, so nothing was imported."

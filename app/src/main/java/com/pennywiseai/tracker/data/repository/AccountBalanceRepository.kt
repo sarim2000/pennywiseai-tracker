@@ -337,15 +337,17 @@ open class AccountBalanceRepository @Inject constructor(
      * account opens with the balance its SMS give. A card with no transactions
      * gets a MANUAL zero-balance row (a rescan keeps MANUAL rows) and its first
      * SMS brings the real figure. Returns true when it created or changed an
-     * account.
+     * account. The check, the read and the writes share one transaction, so a
+     * transaction edited meanwhile either lands before the replay reads it or
+     * finds the new account to adjust.
      */
-    suspend fun ensureCreditCardAccount(bankName: String, cardLast4: String): Boolean {
+    suspend fun ensureCreditCardAccount(bankName: String, cardLast4: String): Boolean = database.withTransaction {
         val existing = accountBalanceDao.getLatestBalance(bankName, cardLast4)
         if (existing != null) {
             if (existing.isCreditCard && existing.accountType == AccountType.CREDIT.toDatabaseString()) {
-                return false
+                return@withTransaction false
             }
-            return setAccountType(bankName, cardLast4, AccountType.CREDIT) > 0
+            return@withTransaction setAccountType(bankName, cardLast4, AccountType.CREDIT) > 0
         }
         val accountCurrency = CurrencyFormatter.getBankBaseCurrency(bankName)
         val transactions = transactionDao.getTransactionsForAccountStrict(bankName, cardLast4)
@@ -363,9 +365,7 @@ open class AccountBalanceRepository @Inject constructor(
                     sourceType = SOURCE_MANUAL
                 )
             )
-            return true
-        }
-        database.withTransaction {
+        } else {
             var running: BigDecimal? = null
             for (txn in transactions) {
                 val balance = BalanceCalculator.balanceAfter(
@@ -393,7 +393,7 @@ open class AccountBalanceRepository @Inject constructor(
                 )
             }
         }
-        return true
+        true
     }
 
     /**

@@ -109,6 +109,7 @@ class AiTools @Inject constructor(
                 )
                 "create_rule" -> createRule(args)
                 "update_rule" -> updateRule(args)
+                "preview_rule" -> previewRule(args)
                 "delete_rule" -> deleteRule(args.string("id") ?: return error("Give the id of the rule, from list_rules."))
                 else -> return error("PennyWise doesn't know the tool $name.")
             }
@@ -185,45 +186,79 @@ class AiTools @Inject constructor(
     }
 
     private suspend fun createRule(args: JsonObject): JsonObject {
+        refuseDryRun(args)
         val rule = try {
             AiToolLogic.ruleFrom(args)
         } catch (e: IllegalArgumentException) {
             throw Refused(e.message ?: "That rule isn't valid.")
         }
-        // Calls run side by side: one at a time, or two of the same rule both pass the name check.
         val mode = applyMode(args, "none")
-        val dryRun = args["dry_run"]?.jsonPrimitive?.booleanOrNull == true
+        // Calls run side by side: one at a time, or two of the same rule both pass the name check.
         ruleLock.withLock {
-            val existing = rules.getAllRules().first()
-            if (existing.any { it.name.equals(rule.name, ignoreCase = true) }) throw Refused("A rule named \"${rule.name}\" already exists.")
-            if (!dryRun) rules.insertRule(rule)
+            checkNewName(rule)
+            rules.insertRule(rule)
         }
         return buildJsonObject {
-            put(if (dryRun) "would_create" else "created", rule.name)
-            putPastResult(rule, mode, dryRun)
+            put("created", rule.name)
+            putPastResult(rule, mode)
         }
     }
 
     /** Changes only the fields given; the rule stays where it is in the list and keeps its on/off state. */
     private suspend fun updateRule(args: JsonObject): JsonObject {
+        refuseDryRun(args)
         val id = args.string("id") ?: throw Refused("Give the id of the rule, from list_rules.")
         val mode = applyMode(args, "none")
-        val dryRun = args["dry_run"]?.jsonPrimitive?.booleanOrNull == true
-        val updated = ruleLock.withLock {
-            val existing = rules.getRuleById(id) ?: throw Refused("No rule with id \"$id\". Use list_rules for the current ids.")
-            val updated = try {
-                AiToolLogic.ruleUpdated(existing, args)
+        val updated = ruleLock.withLock { updatedRule(id, args).also { rules.updateRule(it) } }
+        return buildJsonObject {
+            put("updated", updated.name)
+            putPastResult(updated, mode)
+        }
+    }
+
+    /** What update_rule would save for [id] and [args]; throws the refusal update_rule would give. */
+    private suspend fun updatedRule(id: String, args: JsonObject): TransactionRule {
+        val existing = rules.getRuleById(id) ?: throw Refused("No rule with id \"$id\". Use list_rules for the current ids.")
+        val updated = try {
+            AiToolLogic.ruleUpdated(existing, args)
+        } catch (e: IllegalArgumentException) {
+            throw Refused(e.message ?: "That rule isn't valid.")
+        }
+        if (rules.getAllRules().first().any { it.id != id && it.name.equals(updated.name, ignoreCase = true) }) throw Refused("A rule named \"${updated.name}\" already exists.")
+        return updated
+    }
+
+    private suspend fun checkNewName(rule: TransactionRule) {
+        if (rules.getAllRules().first().any { it.name.equals(rule.name, ignoreCase = true) }) throw Refused("A rule named \"${rule.name}\" already exists.")
+    }
+
+    /** Counts what the rule would change on past transactions, validated like create_rule (no id) or update_rule (with id). Writes nothing. */
+    private suspend fun previewRule(args: JsonObject): JsonObject {
+        val mode = applyMode(args, "uncategorized")
+        if (mode == "none") throw Refused("Give apply_to_past as uncategorized or all; with none there is nothing to preview.")
+        val id = args.string("id")
+        val rule = if (id != null) updatedRule(id, args) else {
+            val new = try {
+                AiToolLogic.ruleFrom(args)
             } catch (e: IllegalArgumentException) {
                 throw Refused(e.message ?: "That rule isn't valid.")
             }
-            if (rules.getAllRules().first().any { it.id != id && it.name.equals(updated.name, ignoreCase = true) }) throw Refused("A rule named \"${updated.name}\" already exists.")
-            if (!dryRun) rules.updateRule(updated)
-            updated
+            checkNewName(new)
+            new
         }
+        val preview = applyRulesToPast.previewRuleApplication(rule, maxSamples = Int.MAX_VALUE)
+        val others = BuiltinCategoryNames.current("Others")
+        val count = if (mode == "all") preview.totalWouldUpdate else preview.samples.count { !it.isBlock && (it.original.category.isNullOrBlank() || it.original.category == others) }
         return buildJsonObject {
-            put(if (dryRun) "would_update" else "updated", updated.name)
-            putPastResult(updated, mode, dryRun)
+            put("rule", rule.name)
+            put("past_transactions_would_update", count)
+            put("apply_to_past", mode)
         }
+    }
+
+    /** A caller that asked for a dry run must never get a saved rule, so the argument is refused, not ignored. */
+    private fun refuseDryRun(args: JsonObject) {
+        if ("dry_run" in args) throw Refused("dry_run isn't supported. Use preview_rule to count what a rule would change. Nothing was changed.")
     }
 
     /** Built-in rules can be switched off in the app but not deleted, so they can't be here. Past transactions keep what the rule did. */
@@ -240,18 +275,9 @@ class AiTools @Inject constructor(
         throw Refused(e.message!!)
     }
 
-    /**
-     * Runs [rule] over past transactions as [mode] says and reports how many changed; with [dryRun]
-     * only counts them (the preview reads, never writes).
-     */
-    private suspend fun JsonObjectBuilder.putPastResult(rule: TransactionRule, mode: String, dryRun: Boolean) {
+    /** Runs [rule] over past transactions as [mode] says and reports how many changed. */
+    private suspend fun JsonObjectBuilder.putPastResult(rule: TransactionRule, mode: String) {
         if (mode == "none") return
-        if (dryRun) {
-            val preview = applyRulesToPast.previewRuleApplication(rule, maxSamples = Int.MAX_VALUE)
-            val others = BuiltinCategoryNames.current("Others")
-            put("past_transactions_would_update", if (mode == "all") preview.totalWouldUpdate else preview.samples.count { !it.isBlock && (it.original.category.isNullOrBlank() || it.original.category == others) })
-            return
-        }
         val r = if (mode == "all") applyRulesToPast.applyRuleToAllTransactions(rule) else applyRulesToPast.applyRuleToUncategorizedTransactions(rule)
         put("past_transactions_updated", r.totalUpdated)
         // Per-row failures don't stop the run; say which rows stayed as they were.

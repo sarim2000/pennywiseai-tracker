@@ -24,9 +24,8 @@ const applyToPast = {
 	type: "string",
 	enum: ["none", "uncategorized", "all"],
 	default: "none",
-	description: "Also run the rule now on past transactions: none, only those still in Others (uncategorized), or all. The result says how many changed.",
+	description: "Also run the rule now on past transactions: none, only those still in Others (uncategorized), or all. The result says how many changed. preview_rule gives the count first.",
 };
-const dryRun = { type: "boolean", default: false, description: "Change nothing: report how many past transactions apply_to_past would change, so the user can confirm first" };
 const conditions = {
 	type: "array",
 	minItems: 1,
@@ -207,7 +206,7 @@ export const TOOLS = [
 		name: "create_rule",
 		title: "Create rule",
 		description:
-			"Add a smart rule that runs on each new transaction: when its conditions match, its actions apply. Conditions join with their logicalOperator (AND by default)." +
+			"Add a smart rule that runs on each new transaction: when its conditions match, its actions apply. Conditions join with their logicalOperator (AND by default). Use preview_rule first to give the user the count of past transactions it would change." +
 			RULE_OPERATORS +
 			WRITE_NOTE,
 		inputSchema: {
@@ -219,7 +218,6 @@ export const TOOLS = [
 				conditions,
 				actions,
 				apply_to_past: applyToPast,
-				dry_run: dryRun,
 			},
 			required: ["name", "conditions", "actions"],
 		},
@@ -229,7 +227,7 @@ export const TOOLS = [
 		name: "update_rule",
 		title: "Update rule",
 		description:
-			"Change one of the user's own rules, found by its id from list_rules. Only the fields you send change; conditions or actions, if sent, replace that whole list. SMS text conditions are hidden in list_rules, so to keep one, leave conditions out." +
+			"Change one of the user's own rules, found by its id from list_rules. Only the fields you send change; conditions or actions, if sent, replace that whole list. preview_rule gives the count of past transactions it would change first, so the user can confirm. SMS text conditions are hidden in list_rules, so to keep one, leave conditions out." +
 			RULE_OPERATORS +
 			WRITE_NOTE,
 		inputSchema: {
@@ -242,7 +240,6 @@ export const TOOLS = [
 				conditions,
 				actions,
 				apply_to_past: applyToPast,
-				dry_run: dryRun,
 			},
 			required: ["id"],
 		},
@@ -256,6 +253,26 @@ export const TOOLS = [
 			WRITE_NOTE,
 		inputSchema: { type: "object", properties: { id: ruleId }, required: ["id"] },
 		annotations: destroy,
+	},
+	{
+		name: "preview_rule",
+		title: "Preview rule",
+		description:
+			"Count how many past transactions a rule would change, without saving or changing anything. Give the same rule fields as create_rule, or an id from list_rules plus the fields to change, as update_rule would. apply_to_past is uncategorized (only those still in Others, the default) or all. Show the user the count, then call create_rule or update_rule." +
+			RULE_OPERATORS,
+		inputSchema: {
+			type: "object",
+			properties: {
+				id: { type: "string", description: "An existing rule's id from list_rules: preview it with the fields below applied. Leave out to preview a new rule." },
+				name: { type: "string" },
+				description: { type: "string" },
+				priority: { type: "integer", default: 100, description: "Lower runs first" },
+				conditions,
+				actions,
+				apply_to_past: { type: "string", enum: ["uncategorized", "all"], default: "uncategorized" },
+			},
+		},
+		annotations: readOnly,
 	},
 ] as const;
 

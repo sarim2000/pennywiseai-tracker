@@ -180,17 +180,60 @@ class AiToolsRulesTest {
         assertEquals(2, call("update_rule", """{"id":"r1","apply_to_past":"all"}""").second!!.count("past_transactions_updated"))
     }
 
-    @Test
-    fun `dry run counts and changes nothing`() {
-        val created = call("create_rule", create(""","apply_to_past":"all","dry_run":true""")).second!!
-        assertEquals(2, created.count("past_transactions_would_update"))
-        assertEquals("Cafe", created["would_create"]!!.jsonPrimitive.content)
-        assertEquals(1, call("create_rule", create(""","apply_to_past":"uncategorized","dry_run":true""")).second!!.count("past_transactions_would_update"))
-        assertEquals(2, call("update_rule", """{"id":"r1","apply_to_past":"all","dry_run":true}""").second!!.count("past_transactions_would_update"))
+    private fun verifyNothingWritten() {
         coVerify(exactly = 0) { rules.insertRule(any()) }
         coVerify(exactly = 0) { rules.updateRule(any()) }
+        coVerify(exactly = 0) { rules.deleteRule(any()) }
         coVerify(exactly = 0) { transactions.updateTransaction(any()) }
         coVerify(exactly = 0) { rules.saveRuleApplications(any()) }
+    }
+
+    @Test
+    fun `preview_rule counts for uncategorized and all and changes nothing`() {
+        val all = call("preview_rule", create(""","apply_to_past":"all"""")).second!!
+        assertEquals(2, all.count("past_transactions_would_update"))
+        assertEquals("all", all["apply_to_past"]!!.jsonPrimitive.content)
+        assertEquals("Cafe", all["rule"]!!.jsonPrimitive.content)
+        // Uncategorized is the default.
+        val dflt = call("preview_rule", create("")).second!!
+        assertEquals(1, dflt.count("past_transactions_would_update"))
+        assertEquals("uncategorized", dflt["apply_to_past"]!!.jsonPrimitive.content)
+        verifyNothingWritten()
+    }
+
+    @Test
+    fun `preview_rule with an id previews the rule as update_rule would build it`() {
+        val renamed = call("preview_rule", """{"id":"r1","name":"Renamed","apply_to_past":"all"}""").second!!
+        assertEquals("Renamed", renamed["rule"]!!.jsonPrimitive.content)
+        assertEquals(2, renamed.count("past_transactions_would_update"))
+        val uber = call(
+            "preview_rule",
+            """{"id":"r1","apply_to_past":"all","conditions":[{"field":"MERCHANT","operator":"CONTAINS","value":"Uber"}]}"""
+        ).second!!
+        assertEquals(1, uber.count("past_transactions_would_update"))
+        verifyNothingWritten()
+    }
+
+    @Test
+    fun `preview_rule refuses an unknown id, none, a duplicate name and an invalid rule`() {
+        assertTrue(call("preview_rule", """{"id":"gone"}""").first)
+        assertTrue(call("preview_rule", create(""","apply_to_past":"none"""")).first)
+        assertTrue(call("preview_rule", create("").replace("Cafe", "food")).first)
+        assertTrue(call("preview_rule", """{"name":"x"}""").first)
+        verifyNothingWritten()
+    }
+
+    @Test
+    fun `preview_rule works while changes from AI apps are off`() {
+        writeAllowed.value = false
+        assertEquals(1, call("preview_rule", create("")).second!!.count("past_transactions_would_update"))
+    }
+
+    @Test
+    fun `create and update refuse dry_run instead of saving`() {
+        assertTrue(call("create_rule", create(""","dry_run":true""")).first)
+        assertTrue(call("update_rule", """{"id":"r1","name":"x","dry_run":true}""").first)
+        verifyNothingWritten()
     }
 
     @Test

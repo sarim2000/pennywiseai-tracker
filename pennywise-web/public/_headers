@@ -1,0 +1,4 @@
+# Applies to the files deploy.sh stages into public/static. Names are not versioned,
+# so browsers keep them a day and then revalidate with the ETag Cloudflare sends.
+/static/*
+  Cache-Control: public, max-age=86400

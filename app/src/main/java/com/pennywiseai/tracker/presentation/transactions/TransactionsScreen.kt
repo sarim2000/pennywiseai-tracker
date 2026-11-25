@@ -90,6 +90,10 @@ fun TransactionsScreen(
     // Only initialProfileId's rows (null for all), leaving the selected profile as it is
     profilePinned: Boolean = false,
     initialProfileId: Long? = null,
+    // The profile of the row a "More from"/"More in" link came from (see keepRowProfile)
+    rowProfileId: Long? = null,
+    // A budget's other lines, left out of initialCategory's list where they're its sub-categories (#1425)
+    excludedCategories: List<String> = emptyList(),
     // Account key / tag carried by an analytics group drill-down (#422)
     initialAccount: String? = null,
     initialTag: String? = null,
@@ -284,6 +288,8 @@ fun TransactionsScreen(
         )
         if (currencyOnly) initialCurrency?.let(viewModel::pinCurrency)
         if (profilePinned) viewModel.pinProfile(initialProfileId)
+        rowProfileId?.let(viewModel::keepRowProfile)
+        initialCategory?.let { viewModel.leaveOutOf(it, excludedCategories) }
     }
 
     // Track if we've already processed these specific nav params
@@ -303,6 +309,8 @@ fun TransactionsScreen(
                 initialTag,
                 initialTransactionType
             )
+            // Setting the category above dropped it.
+            initialCategory?.let { viewModel.leaveOutOf(it, excludedCategories) }
             processedNavParams = true
         }
     }

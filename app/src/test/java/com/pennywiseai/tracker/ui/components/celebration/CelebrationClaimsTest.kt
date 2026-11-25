@@ -22,6 +22,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.io.IOException
+import java.time.LocalDate
 import java.time.YearMonth
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -128,9 +129,9 @@ class CelebrationClaimsTest {
 
     @Test
     fun `dismissing one currency-month leaves the other, and an old month is dropped`() = runBlocking {
-        val octJod = CelebrationKeys.budgetMonth(YearMonth.of(2026, 10), "JOD")
-        val octUsd = CelebrationKeys.budgetMonth(YearMonth.of(2026, 10), "USD")
-        val sep = CelebrationKeys.budgetMonth(YearMonth.of(2026, 9), "JOD")
+        val octJod = CelebrationKeys.budgetMonth(YearMonth.of(2026, 10), "JOD", LocalDate.of(2026, 10, 1))
+        val octUsd = CelebrationKeys.budgetMonth(YearMonth.of(2026, 10), "USD", LocalDate.of(2026, 9, 25))
+        val sep = CelebrationKeys.budgetMonth(YearMonth.of(2026, 9), "JOD", LocalDate.of(2026, 9, 1))
         val october = YearMonth.of(2026, 10)
         repository.dismissBudgetMonthCard(octJod, october)
         repository.dismissBudgetMonthCard(octUsd, october)

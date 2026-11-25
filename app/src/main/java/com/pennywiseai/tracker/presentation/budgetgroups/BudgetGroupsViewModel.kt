@@ -113,6 +113,7 @@ class BudgetGroupsViewModel @Inject constructor(
     /** Called on resume and at midnight; a new day recounts, the same day does nothing. */
     fun refreshDate() {
         val now = LocalDate.now()
+        _selectedYearMonth.value = followToday(_selectedYearMonth.value, today.value, now)
         today.value = now
         viewModelScope.launch {
             val cycle = underBudgetCycle(now, userPreferencesRepository.budgetCycleStartDay.first())

@@ -657,7 +657,8 @@ class LlmRepository @Inject constructor(
 
     /** The mascot's gauge: the most used limit, each against its own (never a sum across them). */
     private fun budgetShare(budgets: List<BudgetStatus>): Float =
-        budgets.mapNotNull { b -> b.limit?.let { b.spent.toFloat() / it.toFloat() } }.maxOrNull()?.coerceIn(0f, 1f) ?: 0f
+        // A limit rollover carried down to 0 is all used up (and 0/0 would be NaN).
+        budgets.mapNotNull { b -> b.limit?.let { if (it.signum() > 0) b.spent.toFloat() / it.toFloat() else 1f } }.maxOrNull()?.coerceIn(0f, 1f) ?: 0f
 
     /** Under a budgets or bills answer: the screen that shows them, to act on what it says. */
     private fun planLink(plan: PlanLink.Plan) = PlanLink(

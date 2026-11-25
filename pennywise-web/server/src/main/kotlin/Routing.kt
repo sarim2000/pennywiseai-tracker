@@ -11,6 +11,7 @@ import kotlinx.html.*
 import io.ktor.server.plugins.cors.routing.*
 import com.pennywiseai.parser.core.bank.BankParserRegistry
 import com.pennywiseai.parser.core.bank.*
+import com.example.ui.LandingViews.respondLandingPage
 import com.example.ui.ParseViews.respondParsePage
 import com.example.ui.ParseViews.renderParseResult
 import com.example.ui.BankViews
@@ -69,7 +70,9 @@ fun Application.configureRouting() {
             // Barq wallet (Saudi Arabia, #1135).
             BarqParser(),
             // Belarusbank (Belarus) — the web tester advertises its ASB.BY sample.
-            BelarusbankParser()
+            BelarusbankParser(),
+            // Mashreq Egypt (Egypt) — the web tester advertises its "Mashreq NEO" sample.
+            MashreqEgyptParser()
         )
     )
 
@@ -77,8 +80,7 @@ fun Application.configureRouting() {
         // Serve static resources
         staticResources("/static", "static")
 
-        // Serve HTMX page at root
-        get("/") { call.respondParsePage() }
+        get("/") { call.respondLandingPage() }
         get("/pro") { call.respondProPage() }
         get("/terms") { call.respondTermsPage() }
         get("/guide") { call.respondGuideHub() }

@@ -13,6 +13,9 @@ interface ConscienceNotificationActions {
     /** Opens the transaction the remark is about. */
     fun openTransaction(transactionId: Long): PendingIntent
 
-    /** "Not this one": retires the line so it isn't said again. */
-    fun retireLine(lineKey: String): PendingIntent
+    /** Opens the app: the tap on the Conscience screen's sample. */
+    fun openApp(): PendingIntent
+
+    /** "Liked it" ([liked]) or "Not this one" on remark [remarkId], whose line is [lineKey]. */
+    fun react(remarkId: Long, lineKey: String, liked: Boolean): PendingIntent
 }

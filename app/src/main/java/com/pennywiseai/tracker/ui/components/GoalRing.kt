@@ -27,10 +27,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.util.lerp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GoalProgress
+import com.pennywiseai.tracker.domain.goals.GOAL_MILESTONES
 import com.pennywiseai.tracker.domain.goals.percent
 import com.pennywiseai.tracker.domain.goals.ratioOf
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.bestInk
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
@@ -44,6 +46,9 @@ import java.math.BigDecimal
  * goal's currency. The larger wavy ring emphasizes the change by tinting
  * the fill as it settles. The small ring separates the newly added portion.
  * [onAddedSettled] fires once the effect finishes.
+ *
+ * [milestones] dots the ring at 25, 50 and 75%: in contrasting ink once the
+ * sweep on screen has passed one, on the track while it's still ahead.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -55,6 +60,7 @@ fun GoalRing(
     addedFrom: BigDecimal? = null,
     onAddedSettled: () -> Unit = {},
     announceProgress: Boolean = true,
+    milestones: Boolean = false,
     content: @Composable (percent: Int) -> Unit,
 ) {
     // Effects specs throughout: a progress arc never bounces past its value.
@@ -119,6 +125,32 @@ fun GoalRing(
                 val gap = if (start > 0f) e * Math.toDegrees(((width + Spacing.xs.toPx()) / (arcSize.width / 2)).toDouble()).toFloat() else 0f
                 val sweep = 360f * (end - start) - gap
                 if (sweep > 0f) arc(color, 360f * start + gap, sweep)
+            }
+        }
+        if (milestones) {
+            val reachedInk = color.bestInk()
+            val aheadInk = MaterialTheme.colorScheme.onSurfaceVariant
+            Canvas(Modifier.size(size)) {
+                // Clockwise from the top like the sweep (not mirrored in RTL either). An ahead dot
+                // sits on the track's centre line. The wavy fill's crests reach that line but its
+                // troughs dip about half a stroke inside it, and where they fall depends on the
+                // wave's phase, so a reached dot sits a quarter stroke in to stay on the fill.
+                val trackRadius = (this.size.minDimension - stroke.toPx()) / 2
+                val dot = Dimensions.Component.goalRingMilestoneDot.toPx() / 2
+                GOAL_MILESTONES.forEach { milestone ->
+                    val at = milestone / 100f
+                    val reached = animated >= at
+                    val radius = if (reached) trackRadius - stroke.toPx() / 4 else trackRadius
+                    val angle = Math.toRadians(360.0 * at - 90.0)
+                    drawCircle(
+                        color = if (reached) reachedInk else aheadInk,
+                        radius = dot,
+                        center = center + androidx.compose.ui.geometry.Offset(
+                            (radius * kotlin.math.cos(angle)).toFloat(),
+                            (radius * kotlin.math.sin(angle)).toFloat(),
+                        ),
+                    )
+                }
             }
         }
         content(percent)

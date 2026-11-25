@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
@@ -25,6 +27,7 @@ import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.label
 import com.pennywiseai.tracker.presentation.common.shortLabel
+import com.pennywiseai.tracker.ui.animations.emphasisStyle
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
@@ -285,11 +288,15 @@ internal fun ActivityQuickFilters(
  */
 @Composable
 private fun QuickChip(selected: Boolean, text: String, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
     FilterChip(
         selected = selected,
         onClick = onClick,
+        interactionSource = interactionSource,
         shapes = FilterChipDefaults.shapes(shape = MaterialTheme.shapes.medium),
-        label = { Text(text = text, maxLines = 1) },
+        // Grade, not weight: the label thickens without changing its width.
+        label = { Text(text = text, style = emphasisStyle(LocalTextStyle.current, selected, pressed), maxLines = 1) },
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
             selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer

@@ -410,8 +410,10 @@ class TransactionsViewModel @Inject constructor(
 
             // Source of the money = the EXPENSE row's account.
             // Destination = the INCOME row's account.
-            // A split bill (#346) is money others owe you, not a transfer. Read fresh.
-            if (listOf(aId, bId).any { transactionRepository.getTransactionById(it)?.lentSharesTotal != null }) {
+            // A split bill (#346) is money others owe you, not a transfer. Read fresh: the list
+            // may not show a change written just now, and the Undo snapshot comes from these too.
+            val fresh = listOf(a, b).associate { it.id to (transactionRepository.getTransactionById(it.id) ?: it) }
+            if (fresh.values.any { it.lentSharesTotal != null }) {
                 _bulkSnack.value = BulkSnack(UiText.Res(R.string.split_error_transfer))
                 return@launch
             }
@@ -423,7 +425,7 @@ class TransactionsViewModel @Inject constructor(
             data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?,
                 val fromBankName: String?, val toBankName: String?, val transferPairId: String?,
                 val reimbursementStatus: ReimbursementStatus?, val reimbursedById: Long?)
-            val originals = listOf(a, b).associate {
+            val originals = fresh.values.associate {
                 it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName, it.transferPairId,
                     it.reimbursementStatus, it.reimbursedById)
             }
@@ -434,10 +436,10 @@ class TransactionsViewModel @Inject constructor(
                 message = UiText.Res(R.string.txn_list_bulk_marked_transfer),
                 undo = {
                     viewModelScope.launch {
-                        val current = _uiState.value.transactions
                         val nowUndo = java.time.LocalDateTime.now()
                         originals.forEach { (id, snapshot) ->
-                            current.firstOrNull { it.id == id }?.let { row ->
+                            // By id, not from the list: a type filter (Expense) hides the row once it's a transfer.
+                            transactionRepository.getTransactionById(id)?.let { row ->
                                 transactionRepository.updateTransaction(
                                     row.copy(
                                         transactionType = snapshot.type,

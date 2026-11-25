@@ -331,9 +331,13 @@ open class AccountBalanceRepository @Inject constructor(
      * account, keyed by the card's last 4. Without it the card shows nowhere
      * until an SMS for it is processed: the unlinked list holds debit cards
      * only, and the accounts list reads balance rows. An existing account under
-     * that number is switched to CREDIT; otherwise a MANUAL zero-balance row is
-     * added (a rescan keeps MANUAL rows) and the next SMS brings the real
-     * figure. Returns true when it created or changed an account.
+     * that number is switched to CREDIT. Otherwise the card's SMS transactions,
+     * which the scan kept off any account while it was an unlinked debit card,
+     * are replayed in time order the way the scan would write them, so the
+     * account opens with the balance its SMS give. A card with no transactions
+     * gets a MANUAL zero-balance row (a rescan keeps MANUAL rows) and its first
+     * SMS brings the real figure. Returns true when it created or changed an
+     * account.
      */
     suspend fun ensureCreditCardAccount(bankName: String, cardLast4: String): Boolean {
         val existing = accountBalanceDao.getLatestBalance(bankName, cardLast4)
@@ -343,18 +347,52 @@ open class AccountBalanceRepository @Inject constructor(
             }
             return setAccountType(bankName, cardLast4, AccountType.CREDIT) > 0
         }
-        accountBalanceDao.insertBalance(
-            AccountBalanceEntity(
-                bankName = bankName,
-                accountLast4 = cardLast4,
-                balance = BigDecimal.ZERO,
-                timestamp = LocalDateTime.now(),
-                isCreditCard = true,
-                accountType = AccountType.CREDIT.toDatabaseString(),
-                currency = CurrencyFormatter.getBankBaseCurrency(bankName),
-                sourceType = SOURCE_MANUAL
+        val accountCurrency = CurrencyFormatter.getBankBaseCurrency(bankName)
+        val transactions = transactionDao.getTransactionsForAccountStrict(bankName, cardLast4)
+            .sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
+        if (transactions.isEmpty()) {
+            accountBalanceDao.insertBalance(
+                AccountBalanceEntity(
+                    bankName = bankName,
+                    accountLast4 = cardLast4,
+                    balance = BigDecimal.ZERO,
+                    timestamp = LocalDateTime.now(),
+                    isCreditCard = true,
+                    accountType = AccountType.CREDIT.toDatabaseString(),
+                    currency = accountCurrency,
+                    sourceType = SOURCE_MANUAL
+                )
             )
-        )
+            return true
+        }
+        database.withTransaction {
+            var running: BigDecimal? = null
+            for (txn in transactions) {
+                val balance = BalanceCalculator.balanceAfter(
+                    explicitBalance = txn.balanceAfter,
+                    isCreditCard = true,
+                    transactionType = txn.transactionType,
+                    transactionAmount = txn.amount,
+                    transactionCurrency = txn.currency,
+                    accountCurrency = accountCurrency,
+                    currentBalance = running
+                )
+                running = balance
+                accountBalanceDao.insertBalance(
+                    AccountBalanceEntity(
+                        bankName = bankName,
+                        accountLast4 = cardLast4,
+                        balance = balance,
+                        timestamp = txn.dateTime,
+                        transactionId = txn.id,
+                        isCreditCard = true,
+                        accountType = AccountType.CREDIT.toDatabaseString(),
+                        currency = accountCurrency,
+                        sourceType = "TRANSACTION"
+                    )
+                )
+            }
+        }
         return true
     }
 

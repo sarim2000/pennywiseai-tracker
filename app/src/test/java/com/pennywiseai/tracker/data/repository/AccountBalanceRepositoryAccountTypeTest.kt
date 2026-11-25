@@ -1,12 +1,20 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
-import com.pennywiseai.tracker.data.database.dao.*
+import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
+import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
+import io.mockk.coEvery
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -24,40 +32,12 @@ class AccountBalanceRepositoryAccountTypeTest {
     private lateinit var repository: AccountBalanceRepository
 
     private val balanceRows = mutableListOf<AccountBalanceEntity>()
-
-    private class TestDb : PennyWiseDatabase() {
-        override fun transactionDao(): TransactionDao = error("unused")
-        override fun subscriptionDao(): SubscriptionDao = error("unused")
-        override fun chatDao(): ChatDao = error("unused")
-        override fun merchantMappingDao(): MerchantMappingDao = error("unused")
-        override fun merchantAliasDao(): MerchantAliasDao = error("unused")
-        override fun categoryDao(): CategoryDao = error("unused")
-        override fun accountBalanceDao(): AccountBalanceDao = error("unused")
-        override fun unrecognizedSmsDao(): UnrecognizedSmsDao = error("unused")
-        override fun cardDao(): CardDao = error("unused")
-        override fun ruleDao(): RuleDao = error("unused")
-        override fun ruleApplicationDao(): RuleApplicationDao = error("unused")
-        override fun exchangeRateDao(): ExchangeRateDao = error("unused")
-        override fun budgetDao(): BudgetDao = error("unused")
-        override fun budgetSnapshotDao(): BudgetSnapshotDao = error("unused")
-        override fun transactionSplitDao(): TransactionSplitDao = error("unused")
-        override fun bankNotificationDao(): BankNotificationDao = error("unused")
-        override fun loanDao(): LoanDao = error("unused")
-        override fun transactionGroupDao(): TransactionGroupDao = error("unused")
-        override fun profileDao(): ProfileDao = error("unused")
-        override fun tagDao(): TagDao = error("unused")
-        override fun recurringTransactionDao(): RecurringTransactionDao = error("unused")
-        override fun webhookProfileDao(): WebhookProfileDao = error("unused")
-        override fun webhookLogDao(): WebhookLogDao = error("unused")
-        override fun webhookCursorDao(): WebhookCursorDao = error("unused")
-        override fun goalDao(): com.pennywiseai.tracker.data.database.dao.GoalDao = error("unused")
-        override fun webhookDeliveredTransactionDao(): WebhookDeliveredTransactionDao = error("unused")
-        override suspend fun clearAllTables() = Unit
-    }
+    private val cardTransactions = mutableListOf<TransactionEntity>()
 
     @Before
     fun setUp() {
         balanceRows.clear()
+        cardTransactions.clear()
 
         accountBalanceDao = Proxy.newProxyInstance(
             AccountBalanceDao::class.java.classLoader,
@@ -105,15 +85,30 @@ class AccountBalanceRepositoryAccountTypeTest {
         transactionDao = Proxy.newProxyInstance(
             TransactionDao::class.java.classLoader,
             arrayOf(TransactionDao::class.java)
-        ) { _, _, _ -> null } as TransactionDao
+        ) { _, method, args ->
+            when (method.name) {
+                "getTransactionsForAccountStrict" ->
+                    cardTransactions.filter { it.bankName == args[0] && it.accountNumber == args[1] }
+                else -> null
+            }
+        } as TransactionDao
+
+        mockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
+        val database = mockk<PennyWiseDatabase>()
+        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
+            secondArg<suspend () -> Any?>().invoke()
+        }
 
         repository = AccountBalanceRepository(
             accountBalanceDao = accountBalanceDao,
             transactionDao = transactionDao,
-            database = TestDb(),
+            database = database,
             userPreferencesRepository = io.mockk.mockk(relaxed = true)
         )
     }
+
+    @After
+    fun tearDown() = unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
 
     @Test
     fun `insertBalanceFromTransaction preserves existing non-default accountType CURRENT`() = runBlocking {
@@ -361,6 +356,56 @@ class AccountBalanceRepositoryAccountTypeTest {
         assertEquals(AccountType.CREDIT, account.getAccountType())
         assertEquals(0, BigDecimal("5000.00").compareTo(account.balance))
         assertEquals(1, balanceRows.size)
+    }
+
+    private fun cardTxn(
+        id: Long,
+        daysAgo: Long,
+        type: TransactionType,
+        amount: String,
+        statedBalance: String? = null
+    ) = TransactionEntity(
+        id = id,
+        amount = BigDecimal(amount),
+        merchantName = "Test Merchant",
+        category = "Others",
+        transactionType = type,
+        dateTime = LocalDateTime.now().minusDays(daysAgo),
+        bankName = "Test Bank",
+        accountNumber = "4321",
+        balanceAfter = statedBalance?.let(::BigDecimal),
+        transactionHash = "hash-$id",
+        currency = "INR"
+    )
+
+    @Test
+    fun `a card marked CREDIT with earlier SMS opens with the balance they give`() = runBlocking {
+        // Saved out of order: the replay must follow time, not insertion.
+        cardTransactions += cardTxn(2, daysAgo = 2, TransactionType.EXPENSE, "500.00")
+        cardTransactions += cardTxn(1, daysAgo = 3, TransactionType.EXPENSE, "1000.00")
+        cardTransactions += cardTxn(3, daysAgo = 1, TransactionType.INCOME, "300.00")
+
+        assertTrue(repository.ensureCreditCardAccount("Test Bank", "4321"))
+
+        val account = repository.getLatestBalance("Test Bank", "4321")!!
+        assertTrue(account.isCreditCard)
+        assertEquals(AccountType.CREDIT, account.getAccountType())
+        assertEquals(0, BigDecimal("1200.00").compareTo(account.balance))
+        assertEquals(3L, account.transactionId)
+        assertEquals(listOf(1L, 2L, 3L), balanceRows.map { it.transactionId })
+        assertTrue(balanceRows.none { it.sourceType == AccountBalanceRepository.SOURCE_MANUAL })
+    }
+
+    @Test
+    fun `a balance stated in an earlier SMS wins over the running total`() = runBlocking {
+        cardTransactions += cardTxn(1, daysAgo = 3, TransactionType.EXPENSE, "1000.00")
+        cardTransactions += cardTxn(2, daysAgo = 2, TransactionType.EXPENSE, "500.00", statedBalance = "4000.00")
+        cardTransactions += cardTxn(3, daysAgo = 1, TransactionType.EXPENSE, "250.00")
+
+        repository.ensureCreditCardAccount("Test Bank", "4321")
+
+        val account = repository.getLatestBalance("Test Bank", "4321")!!
+        assertEquals(0, BigDecimal("4250.00").compareTo(account.balance))
     }
 
     @Test

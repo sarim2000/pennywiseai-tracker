@@ -34,7 +34,6 @@ import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
-import com.pennywiseai.tracker.utils.DateRangeUtils
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
@@ -69,7 +68,7 @@ data class MonthUnderBudget(val start: LocalDate, val end: LocalDate, val curren
     val month: YearMonth get() = YearMonth.from(end)
 
     /** Names the moment for both the one-time celebration and the card's dismissal. */
-    val key: String get() = CelebrationKeys.budgetMonth(month, currency)
+    val key: String get() = CelebrationKeys.budgetMonth(month, currency, start)
 }
 
 /**
@@ -163,7 +162,8 @@ fun MonthUnderBudgetCard(win: MonthUnderBudget, onDismiss: () -> Unit, modifier:
                 val label = if (isCalendarMonth(win.start, win.end)) {
                     win.start.format(AppDates.pattern("MMMM"))
                 } else {
-                    DateRangeUtils.formatDateRange(win.start, win.end)
+                    val day = AppDates.dayMonthFormatter()
+                    stringResource(R.string.budgets_date_range, win.start.format(day), win.end.format(day))
                 }
                 Text(
                     text = stringResource(R.string.budget_month_kept_title, label),

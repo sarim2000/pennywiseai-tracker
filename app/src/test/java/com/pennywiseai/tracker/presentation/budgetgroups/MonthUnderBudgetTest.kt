@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetWindow
 import com.pennywiseai.tracker.data.repository.CarryGap
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.math.BigDecimal
@@ -56,7 +57,7 @@ class MonthUnderBudgetTest {
     fun `every limit kept names last month and the page's currency`() {
         val win = monthUnderBudget(october, summary(group("480"), group("0", limit = "100")), dismissed = emptySet())
         assertEquals(MonthUnderBudget(october.start, october.end, "JOD"), win)
-        assertEquals("budget_month:2026-10:JOD", win?.key)
+        assertEquals("budget_month:2026-10:JOD:2026-10-01", win?.key)
     }
 
     @Test
@@ -112,10 +113,10 @@ class MonthUnderBudgetTest {
         assertEquals(october, underBudgetCycle(LocalDate.parse("2026-11-07"), startDay = 1))
         assertNull(underBudgetCycle(LocalDate.parse("2026-11-08"), startDay = 1))
         val kept = summary(group("100"))
-        assertNull(monthUnderBudget(october, kept, dismissed = setOf("budget_month:2026-10:JOD")))
+        assertNull(monthUnderBudget(october, kept, dismissed = setOf("budget_month:2026-10:JOD:2026-10-01")))
         // Last month's dismissal doesn't hide this one, and neither does another currency.
-        assertEquals(october.end, monthUnderBudget(october, kept, dismissed = setOf("budget_month:2026-09:JOD"))?.end)
-        assertEquals(october.end, monthUnderBudget(october, kept, dismissed = setOf("budget_month:2026-10:USD"))?.end)
+        assertEquals(october.end, monthUnderBudget(october, kept, dismissed = setOf("budget_month:2026-09:JOD:2026-09-01"))?.end)
+        assertEquals(october.end, monthUnderBudget(october, kept, dismissed = setOf("budget_month:2026-10:USD:2026-10-01"))?.end)
     }
 
     @Test
@@ -128,7 +129,7 @@ class MonthUnderBudgetTest {
         val onCycle = group("100").copy(windowStart = cycle.start, windowEnd = cycle.end)
         val win = monthUnderBudget(cycle, summary(onCycle), emptySet())
         assertEquals(MonthUnderBudget(cycle.start, cycle.end, "JOD"), win)
-        assertEquals("budget_month:2026-10:JOD", win?.key)
+        assertEquals("budget_month:2026-10:JOD:2026-09-25", win?.key)
     }
 
     @Test
@@ -169,14 +170,24 @@ class MonthUnderBudgetTest {
 
     @Test
     fun `dismissed keys keep only the month whose card can still show`() {
-        val october = setOf("budget_month:2026-10:JOD", "budget_month:2026-10:USD")
-        val stored = october + "budget_month:2026-09:JOD"
+        val october = setOf("budget_month:2026-10:JOD:2026-10-01", "budget_month:2026-10:USD:2026-10-01")
+        val stored = october + "budget_month:2026-09:JOD:2026-09-01"
         assertEquals(october, eligibleBudgetMonthDismissals(stored, YearMonth.of(2026, 10)))
         assertEquals(emptySet<String>(), eligibleBudgetMonthDismissals(stored, keepMonth = null))
         assertEquals(
             setOf("budget_month:2026-11:JOD"),
             eligibleBudgetMonthDismissals(stored + "budget_month:2026-11:JOD", YearMonth.of(2026, 11)),
         )
+    }
+
+    @Test
+    fun `a calendar month and a custom cycle ending in it keep their own keys`() {
+        val custom = MonthUnderBudget(LocalDate.parse("2026-09-25"), LocalDate.parse("2026-10-24"), "JOD")
+        val calendar = MonthUnderBudget(october.start, october.end, "JOD")
+        assertEquals(custom.month, calendar.month)
+        assertNotEquals(custom.key, calendar.key)
+        // The prune still keeps both: they start with the same month prefix.
+        assertEquals(setOf(custom.key, calendar.key), eligibleBudgetMonthDismissals(setOf(custom.key, calendar.key), custom.month))
     }
 
     @Test

@@ -440,7 +440,7 @@ class TransactionsViewModel @Inject constructor(
                         originals.forEach { (id, snapshot) ->
                             // By id, not from the list: a type filter (Expense) hides the row once it's a transfer.
                             transactionRepository.getTransactionById(id)?.let { row ->
-                                transactionRepository.updateTransaction(
+                                transactionRepository.restoreTransaction(
                                     row.copy(
                                         transactionType = snapshot.type,
                                         fromAccount = snapshot.fromAccount,
@@ -449,12 +449,10 @@ class TransactionsViewModel @Inject constructor(
                                         toBankName = snapshot.toBankName,
                                         transferPairId = snapshot.transferPairId,
                                         updatedAt = nowUndo
-                                    )
+                                    ),
+                                    snapshot.reimbursementStatus,
+                                    snapshot.reimbursedById,
                                 )
-                                // Only setReimbursement writes these columns, so it's a second write.
-                                snapshot.reimbursementStatus?.let {
-                                    transactionRepository.setReimbursement(id, it, snapshot.reimbursedById)
-                                }
                             }
                         }
                         refreshWidgets()

@@ -301,8 +301,7 @@ class TransactionsViewModelListTest {
         coEvery { repo.markAsTransferPair(any(), any()) } answers {
             stored = stored.mapValues { (_, t) -> t.copy(transactionType = TransactionType.TRANSFER, reimbursementStatus = null) }
         }
-        coEvery { repo.updateTransaction(any()) } answers { }
-        coEvery { repo.setReimbursement(any(), any(), any()) } returns 1
+        coEvery { repo.restoreTransaction(any(), any(), any()) } answers { }
         mockkObject(WidgetRefresher)
         every { WidgetRefresher.refreshTransactionWidgets(any()) } returns Unit
         assertListed(listOf(1, 2))
@@ -312,10 +311,8 @@ class TransactionsViewModelListTest {
         viewModel.bulkSnack.value!!.undo!!.invoke()
         advanceUntilIdle()
 
-        coVerify { repo.updateTransaction(match { it.id == 1L && it.transactionType == TransactionType.EXPENSE }) }
-        coVerify { repo.updateTransaction(match { it.id == 2L && it.transactionType == TransactionType.INCOME }) }
-        coVerify { repo.setReimbursement(1, ReimbursementStatus.PENDING, null) }
-        coVerify(exactly = 0) { repo.setReimbursement(2, any(), any()) }
+        coVerify { repo.restoreTransaction(match { it.id == 1L && it.transactionType == TransactionType.EXPENSE }, ReimbursementStatus.PENDING, null) }
+        coVerify { repo.restoreTransaction(match { it.id == 2L && it.transactionType == TransactionType.INCOME }, null, null) }
         unmockkObject(WidgetRefresher)
     }
 }

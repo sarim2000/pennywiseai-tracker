@@ -170,6 +170,16 @@ open class TransactionRepository @Inject constructor(
     }
 
     /**
+     * Undo of a transfer pair: writes [transaction] back with the reimbursement (#1389) that
+     * becoming a transfer cleared, in one database transaction so neither lands alone.
+     */
+    suspend fun restoreTransaction(transaction: TransactionEntity, reimbursement: ReimbursementStatus?, reimbursedById: Long?) =
+        goalRepository.writeAndCap(transaction.id) {
+            writeKeepingSplit(transaction)
+            if (reimbursement != null) setReimbursement(transaction.id, reimbursement, reimbursedById)
+        }
+
+    /**
      * Marks a debit and its credit as one transfer (#385): both rows turn TRANSFER with the
      * same from/to and a shared [TransactionEntity.transferPairId], so each stays one leg.
      * Balances stay untouched: the money moved when the two SMS arrived.

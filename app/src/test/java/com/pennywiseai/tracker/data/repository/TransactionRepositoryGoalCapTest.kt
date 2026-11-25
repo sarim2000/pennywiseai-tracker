@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import io.mockk.coEvery
@@ -45,6 +46,16 @@ class TransactionRepositoryGoalCapTest {
         assertTrue(repo.correctParsedAmount(txn("5000"), txn("50")))
         coVerify { goals.writeAndCap<Any?>(9, any()) }
         coVerify { dao.repairParsedAmount(9, BigDecimal("50"), "INR", any(), BigDecimal("5000"), "INR") }
+    }
+
+    @Test
+    fun transferUndoRestoresTheRowAndItsReimbursementInOneWrite() = runBlocking {
+        repo.restoreTransaction(txn("250"), ReimbursementStatus.PENDING, null)
+        coVerify { goals.writeAndCap<Any?>(9, any()) }
+        coVerifyOrder {
+            dao.updateTransaction(any())
+            dao.setReimbursement(9, "PENDING", null, any())
+        }
     }
 
     @Test

@@ -178,4 +178,16 @@ class MonthUnderBudgetTest {
             eligibleBudgetMonthDismissals(stored + "budget_month:2026-11:JOD", YearMonth.of(2026, 11)),
         )
     }
+
+    @Test
+    fun `a page left on the current month follows the date into the next one`() {
+        val dec = YearMonth.of(2026, 12)
+        // Kept alive from 28 Dec to 3 Jan: the page moves to January, where the card shows.
+        assertEquals(YearMonth.of(2027, 1), followToday(dec, LocalDate.parse("2026-12-28"), LocalDate.parse("2027-01-03")))
+        // Moved back to an older month: it stays there.
+        assertEquals(YearMonth.of(2026, 11), followToday(YearMonth.of(2026, 11), LocalDate.parse("2026-12-28"), LocalDate.parse("2027-01-03")))
+        // Same month, or not set yet: nothing changes.
+        assertEquals(dec, followToday(dec, LocalDate.parse("2026-12-28"), LocalDate.parse("2026-12-29")))
+        assertNull(followToday(null, LocalDate.parse("2026-12-28"), LocalDate.parse("2027-01-03")))
+    }
 }

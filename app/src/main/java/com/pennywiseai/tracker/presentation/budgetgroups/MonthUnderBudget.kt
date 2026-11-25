@@ -53,6 +53,16 @@ fun underBudgetCycle(today: LocalDate, startDay: Int): BudgetWindow? {
     return BudgetWindow(start, end, ChronoUnit.DAYS.between(start, end).toInt() + 1)
 }
 
+/**
+ * The Budgets page month after the date moves from [before] to [now]. A page left on the
+ * current month moves on with it (the app kept alive from 28 Dec to 3 Jan lands on January,
+ * where the under-budget card shows); a page the user moved to an older month stays put.
+ */
+internal fun followToday(selected: YearMonth?, before: LocalDate, now: LocalDate): YearMonth? {
+    val current = YearMonth.from(now)
+    return if (selected == YearMonth.from(before) && current.isAfter(selected)) current else selected
+}
+
 /** The cycle [start]..[end] ended with every monthly spending limit kept, in [currency]. */
 data class MonthUnderBudget(val start: LocalDate, val end: LocalDate, val currency: String) {
     /** The month the cycle ends in: one per cycle, as the Review prompt keys it. */

@@ -1466,7 +1466,13 @@ class HomeViewModel @Inject constructor(
                 combine(
                     userPreferencesRepository.weeklyGuessHandledWeek.distinctUntilChanged(),
                     userPreferencesRepository.weeklyGuessOff.distinctUntilChanged(),
-                    _uiState.map { it.isScanning }.distinctUntilChanged(),
+                    // A scan started elsewhere (onboarding, the challenges' catch-up) counts too:
+                    // isScanning only follows it once Home starts its own.
+                    combine(
+                        _uiState.map { it.isScanning },
+                        WorkManager.getInstance(context).getWorkInfosByTagFlow(OptimizedSmsReaderWorker.WORK_NAME)
+                            .map { infos -> infos.any { !it.state.isFinished } },
+                    ) { own, any -> own || any }.distinctUntilChanged(),
                     ::Triple,
                 ),
                 categoryRepository.getAllCategories(),
@@ -1483,7 +1489,7 @@ class HomeViewModel @Inject constructor(
                         return@collectLatest
                     }
                     delay(GUESS_SETTLE_MS)
-                    _weeklyGuess.value = withContext(Dispatchers.Default) {
+                    val question = withContext(Dispatchers.Default) {
                         val detail = periodReviewLoader.lastWeeks(GUESS_HISTORY_WEEKS + 1, day)
                         weeklyGuessQuestion(
                             weeks = detail.cycles,
@@ -1497,6 +1503,16 @@ class HomeViewModel @Inject constructor(
                             question.copy(
                                 cardSpendLeftOut = leavesOutCardSpend(question, detail.cardRows, creditAsExpense, categories.parentNameOf()),
                             )
+                        }
+                    }
+                    _weeklyGuess.value = question
+                    // An open sheet with no guess yet asks the fresh question (a late row moved
+                    // the figure); one already graded keeps the figure it was graded on.
+                    _guessSheet.update { sheet ->
+                        when {
+                            sheet == null || sheet.guess != null -> sheet
+                            question == null -> null
+                            else -> sheet.copy(question = question)
                         }
                     }
                 }

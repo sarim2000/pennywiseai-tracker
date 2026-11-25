@@ -23,6 +23,7 @@ import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.backup.ImportStrategy
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -39,6 +40,7 @@ import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -570,7 +572,15 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    suspend fun loadAllTransactionsForCsv() = transactionRepository.getAllTransactions().first()
+    /** Every transaction, for the CSV export row; null (with a message shown) if the read fails. */
+    suspend fun loadAllTransactionsForCsv(): List<TransactionEntity>? = try {
+        transactionRepository.getAllTransactions().first()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        _importExportMessage.value = UiText.Res(R.string.settings_export_error, listOf("${e.message}"))
+        null
+    }
 
     fun exportBackup() {
         viewModelScope.launch {

@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.transactions
+package com.pennywiseai.tracker.presentation.common
 
 import android.content.Intent
 import androidx.compose.foundation.layout.*

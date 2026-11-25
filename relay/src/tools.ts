@@ -24,7 +24,7 @@ const applyToPast = {
 	type: "string",
 	enum: ["none", "uncategorized", "all"],
 	default: "none",
-	description: "Also run the rule now on past transactions: none, only those still in Others (uncategorized), or all. The result says how many changed. preview_rule gives the count first.",
+	description: "Also run the rule now on past transactions: none, only those still in Others (uncategorized), or all. The result says how many changed. preview_rule gives the count first. Only for rules that set or clear category, merchant or note, or add or remove tags, are switched on, and have no condition on SMS_TEXT or NARRATION; any other rule can be saved with none and applied in the app.",
 };
 const conditions = {
 	type: "array",
@@ -303,4 +303,21 @@ export function requireFilterEcho(name: string, args: unknown, result: ToolResul
 		if ("filters" in JSON.parse(result.content[0].text)) return result;
 	} catch {}
 	return textResult("This filter needs a newer version of the PennyWise app. Update the app, or retry without tag, exclude_categories and exclude_tags.", true);
+}
+
+/** An older app ignores dry_run and would really save the rule, so it never gets the argument. */
+export function refuseDryRun(name: string, args: unknown): ToolResult | null {
+	if ((name !== "create_rule" && name !== "update_rule") || typeof args !== "object" || args === null || !("dry_run" in args)) return null;
+	return textResult("dry_run isn't supported. Use preview_rule to count what a rule would change. Nothing was changed.", true);
+}
+
+/** An older app saves the rule but ignores a string apply_to_past; its answer has no count, so say so. */
+export function requireAppliedToPast(name: string, args: unknown, result: ToolResult): ToolResult {
+	const mode = (args as Record<string, unknown> | null)?.apply_to_past;
+	if (name !== "create_rule" || result.isError || (mode !== "uncategorized" && mode !== "all")) return result;
+	const text = result.content[0]?.text ?? "";
+	try {
+		if ("past_transactions_updated" in JSON.parse(text)) return result;
+	} catch {}
+	return textResult(`${text}\n\nThe rule was created but not applied to past transactions: that needs a newer version of the PennyWise app.`);
 }

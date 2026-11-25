@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
@@ -287,6 +288,32 @@ object AiToolLogic {
     }
 
     private val RULE_FIELDS = listOf("name", "description", "priority", "conditions", "actions")
+
+    /**
+     * Why [rule] may not be counted or run over past transactions from an AI call, or null when it may.
+     * A count on a condition the AI never sees (SMS text, a transaction's note) would let it read that
+     * text one guess at a time, so conditions [args] supplies must avoid those fields. A past run done
+     * twice must not do more than once (the relay's timeout makes the client ask again) and must not
+     * move money, so only SET/CLEAR on category, merchant and note, and tag changes, are allowed.
+     */
+    fun pastApplyRefusal(rule: TransactionRule, args: JsonObject): String? {
+        val supplied = if ("conditions" in args) rule.conditions.map { it.field } else emptyList()
+        if (TransactionField.SMS_TEXT in supplied) return "A rule that matches on SMS text can't be previewed or applied to past transactions from here: SMS text is hidden from AI apps."
+        if (TransactionField.NARRATION in supplied) return "A rule that matches on a transaction's note can't be previewed or applied to past transactions from here: notes are hidden from AI apps."
+        if (!rule.isActive) return "\"${rule.name}\" is switched off, so it changes nothing. Turn it on in PennyWise → Rules first."
+        val unsafe = rule.actions.filterNot { a ->
+            when (a.actionType) {
+                ActionType.SET, ActionType.CLEAR -> a.field in REPEAT_SAFE_FIELDS
+                ActionType.ADD_TAG, ActionType.REMOVE_TAG -> true
+                else -> false
+            }
+        }
+        if (unsafe.isEmpty()) return null
+        val why = if (unsafe.any { it.actionType == ActionType.APPEND || it.actionType == ActionType.PREPEND }) "appends text" else "changes type, account or amount"
+        return "This rule can be saved, but can't be applied to past transactions from here because it $why. Apply it from PennyWise → Rules."
+    }
+
+    private val REPEAT_SAFE_FIELDS = setOf(TransactionField.CATEGORY, TransactionField.MERCHANT, TransactionField.NARRATION)
 
     /** [existing] with only the fields [args] supplies replaced, checked like [ruleFrom]. Id, on/off, template flag and created time stay. */
     fun ruleUpdated(existing: TransactionRule, args: JsonObject): TransactionRule {

@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCase
@@ -193,14 +194,16 @@ class AiTools @Inject constructor(
             throw Refused(e.message ?: "That rule isn't valid.")
         }
         val mode = applyMode(args, "none")
-        // Calls run side by side: one at a time, or two of the same rule both pass the name check.
-        ruleLock.withLock {
+        if (mode != "none") AiToolLogic.pastApplyRefusal(rule, args)?.let { throw Refused(it) }
+        // One at a time, and the past run stays inside the lock: two creates of the same rule both pass
+        // the name check otherwise, and a delete or update must not land while rows are being rewritten.
+        return ruleLock.withLock {
             checkNewName(rule)
             rules.insertRule(rule)
-        }
-        return buildJsonObject {
-            put("created", rule.name)
-            putPastResult(rule, mode)
+            buildJsonObject {
+                put("created", rule.name)
+                putPastResult(rule, mode)
+            }
         }
     }
 
@@ -209,19 +212,27 @@ class AiTools @Inject constructor(
         refuseDryRun(args)
         val id = args.string("id") ?: throw Refused("Give the id of the rule, from list_rules.")
         val mode = applyMode(args, "none")
-        val updated = ruleLock.withLock { updatedRule(id, args).also { rules.updateRule(it) } }
-        return buildJsonObject {
-            put("updated", updated.name)
-            putPastResult(updated, mode)
+        return ruleLock.withLock {
+            val updated = updatedRule(id, args)
+            if (mode != "none") AiToolLogic.pastApplyRefusal(updated, args)?.let { throw Refused(it) }
+            rules.updateRule(updated)
+            buildJsonObject {
+                put("updated", updated.name)
+                putPastResult(updated, mode)
+            }
         }
     }
 
     /** What update_rule would save for [id] and [args]; throws the refusal update_rule would give. */
     private suspend fun updatedRule(id: String, args: JsonObject): TransactionRule {
         val existing = rules.getRuleById(id) ?: throw Refused("No rule with id \"$id\". Use list_rules for the current ids.")
+        if (existing.isSystemTemplate) throw Refused("\"${existing.name}\" is a built-in rule, which can't be changed from here. It can be switched off or edited in PennyWise → Rules.")
+        if (existing.actions.any { it.actionType == ActionType.BLOCK }) throw Refused("\"${existing.name}\" blocks transactions, so it can only be changed in PennyWise → Rules.")
         val updated = try {
             AiToolLogic.ruleUpdated(existing, args)
         } catch (e: IllegalArgumentException) {
+            // Nothing the caller sent is wrong when it sent neither list: the stored rule is the problem.
+            if ("conditions" !in args && "actions" !in args) throw Refused("This rule uses a condition that can't be written from here. Edit it in PennyWise → Rules.")
             throw Refused(e.message ?: "That rule isn't valid.")
         }
         if (rules.getAllRules().first().any { it.id != id && it.name.equals(updated.name, ignoreCase = true) }) throw Refused("A rule named \"${updated.name}\" already exists.")
@@ -246,6 +257,7 @@ class AiTools @Inject constructor(
             checkNewName(new)
             new
         }
+        AiToolLogic.pastApplyRefusal(rule, args)?.let { throw Refused(it) }
         val preview = applyRulesToPast.previewRuleApplication(rule, maxSamples = Int.MAX_VALUE)
         val others = BuiltinCategoryNames.current("Others")
         val count = if (mode == "all") preview.totalWouldUpdate else preview.samples.count { !it.isBlock && (it.original.category.isNullOrBlank() || it.original.category == others) }
@@ -265,6 +277,7 @@ class AiTools @Inject constructor(
     private suspend fun deleteRule(id: String): JsonObject = ruleLock.withLock {
         val rule = rules.getRuleById(id) ?: throw Refused("No rule with id \"$id\". It may already be deleted; use list_rules for the current ids.")
         if (rule.isSystemTemplate) throw Refused("\"${rule.name}\" is a built-in rule, which can't be deleted. It can be switched off in PennyWise → Rules.")
+        if (rule.actions.any { it.actionType == ActionType.BLOCK }) throw Refused("\"${rule.name}\" blocks transactions, so it can only be deleted in PennyWise → Rules.")
         rules.deleteRule(id)
         buildJsonObject { put("deleted", rule.name) }
     }

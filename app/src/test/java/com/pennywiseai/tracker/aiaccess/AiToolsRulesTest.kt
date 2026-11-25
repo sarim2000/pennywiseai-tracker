@@ -22,11 +22,15 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -56,6 +60,10 @@ class AiToolsRulesTest {
         actions = listOf(RuleAction(TransactionField.CATEGORY, ActionType.SET, "Food")),
     )
     private val builtIn = stored.copy(id = "sys", name = "Built in", isSystemTemplate = true)
+    private val off = stored.copy(id = "off", name = "Off", isActive = false)
+    private val blocking = stored.copy(id = "blk", name = "Blocker", actions = listOf(RuleAction(TransactionField.CATEGORY, ActionType.BLOCK, "")))
+    // A pairing the rule editor never offers, as an older build or an import could have stored it.
+    private val legacy = stored.copy(id = "old", name = "Old", conditions = listOf(RuleCondition(TransactionField.MERCHANT, ConditionOperator.GREATER_THAN, "x")))
 
     private fun txn(id: Long, merchant: String, category: String) = TransactionEntity(
         id = id, amount = BigDecimal("10"), merchantName = merchant, category = category,
@@ -85,6 +93,9 @@ class AiToolsRulesTest {
         coEvery { rules.getRuleById("r1") } returns stored
         coEvery { rules.getRuleById("sys") } returns builtIn
         coEvery { rules.getRuleById("gone") } returns null
+        coEvery { rules.getRuleById("off") } returns off
+        coEvery { rules.getRuleById("blk") } returns blocking
+        coEvery { rules.getRuleById("old") } returns legacy
         coEvery { transactions.getAllTransactionsList() } returns listOf(swiggyOthers, swiggyDining, uberOthers)
         coEvery { transactions.getUncategorizedTransactions() } returns listOf(swiggyOthers, uberOthers)
         every { tags.observeTransactionTagNames() } returns flowOf(emptyMap())
@@ -93,11 +104,19 @@ class AiToolsRulesTest {
     @After
     fun tearDown() = unmockkStatic(ROOM_COMPAT)
 
-    private fun call(name: String, json: String): Pair<Boolean, JsonObject?> = runBlocking {
+    private fun call(name: String, json: String): Pair<Boolean, JsonObject?> = runBlocking { callS(name, json) }
+
+    /** An error answer comes back as {"error": message}. */
+    private suspend fun callS(name: String, json: String): Pair<Boolean, JsonObject?> {
         val r = tools.call(name, Json.parseToJsonElement(json).jsonObject)
         val text = r["content"]!!.jsonArray[0].jsonObject["text"]!!.jsonPrimitive.content
         val isError = r["isError"]!!.jsonPrimitive.content.toBoolean()
-        isError to if (isError) null else Json.parseToJsonElement(text).jsonObject
+        return isError to if (isError) JsonObject(mapOf("error" to JsonPrimitive(text))) else Json.parseToJsonElement(text).jsonObject
+    }
+
+    private fun error(name: String, json: String) = call(name, json).let { (isError, out) ->
+        assertTrue(isError)
+        out!!["error"]!!.jsonPrimitive.content
     }
 
     private fun create(extra: String) = """{"name":"Cafe","conditions":[{"field":"MERCHANT","operator":"CONTAINS","value":"Swiggy"}],
@@ -245,4 +264,99 @@ class AiToolsRulesTest {
     }
 
     private fun JsonObject.getOrNull(key: String) = this[key]
+
+    private fun withActions(action: String, extra: String = "") =
+        """{"name":"Cafe","conditions":[{"field":"MERCHANT","operator":"CONTAINS","value":"Swiggy"}],"actions":[$action]$extra}"""
+
+    private val sms = """{"name":"Cafe","conditions":[{"field":"SMS_TEXT","operator":"CONTAINS","value":"A"}],
+        "actions":[{"field":"CATEGORY","actionType":"SET","value":"Food"}]"""
+
+    @Test
+    fun `a condition on SMS text or a note gives no past count, but the rule can be saved with none`() {
+        assertTrue(error("preview_rule", sms + "}").contains("SMS text is hidden"))
+        assertTrue(error("create_rule", sms + ""","apply_to_past":"all"}""").contains("SMS text is hidden"))
+        assertTrue(error("create_rule", sms + ""","apply_to_past":true}""").contains("SMS text is hidden"))
+        assertTrue(error("update_rule", """{"id":"r1","apply_to_past":"all","conditions":[{"field":"NARRATION","operator":"CONTAINS","value":"A"}]}""").contains("note"))
+        coVerify(exactly = 0) { rules.insertRule(any()) }
+        coVerify(exactly = 0) { rules.updateRule(any()) }
+        assertFalse(call("create_rule", sms + ""","apply_to_past":"none"}""").first)
+        coVerify(exactly = 1) { rules.insertRule(any()) }
+        coVerify(exactly = 0) { transactions.updateTransaction(any()) }
+    }
+
+    @Test
+    fun `a stored SMS text condition the call did not supply does not stop a preview`() {
+        val smsRule = stored.copy(id = "sms", name = "Sms", conditions = listOf(RuleCondition(TransactionField.SMS_TEXT, ConditionOperator.CONTAINS, "A")))
+        coEvery { rules.getRuleById("sms") } returns smsRule
+        assertFalse(call("preview_rule", """{"id":"sms","name":"Renamed"}""").first)
+    }
+
+    @Test
+    fun `only repeat-safe actions are applied or previewed, others can still be saved with none`() {
+        val append = """{"field":"MERCHANT","actionType":"APPEND","value":" [ai]"}"""
+        val setType = """{"field":"TYPE","actionType":"SET","value":"INCOME"}"""
+        val setBank = """{"field":"BANK_NAME","actionType":"SET","value":"Other"}"""
+        assertTrue(error("create_rule", withActions(append, ""","apply_to_past":"all"""")).contains("appends text"))
+        assertTrue(error("create_rule", withActions(setType, ""","apply_to_past":"uncategorized"""")).contains("changes type, account or amount"))
+        assertTrue(error("preview_rule", withActions(setBank)).contains("changes type, account or amount"))
+        assertTrue(error("preview_rule", withActions(append, ""","apply_to_past":"all"""")).contains("appends text"))
+        assertTrue(error("update_rule", """{"id":"r1","apply_to_past":"all","actions":[$append]}""").contains("Apply it from PennyWise"))
+        coVerify(exactly = 0) { rules.insertRule(any()) }
+        coVerify(exactly = 0) { rules.updateRule(any()) }
+        assertFalse(call("create_rule", withActions(append, ""","apply_to_past":"none"""")).first)
+        assertFalse(call("update_rule", """{"id":"r1","actions":[$setType]}""").first)
+        coVerify(exactly = 0) { transactions.updateTransaction(any()) }
+        // Setting a category, adding a tag and clearing a note all repeat safely.
+        val safe = """{"field":"CATEGORY","actionType":"SET","value":"Food"},{"field":"TAGS","actionType":"ADD_TAG","value":"trip"},{"field":"NARRATION","actionType":"CLEAR","value":""}"""
+        assertFalse(call("preview_rule", withActions(safe)).first)
+    }
+
+    @Test
+    fun `a switched-off rule is not applied or previewed, but can be saved with none and stays off`() {
+        assertTrue(error("update_rule", """{"id":"off","apply_to_past":"all"}""").contains("switched off"))
+        assertTrue(error("preview_rule", """{"id":"off"}""").contains("Turn it on in PennyWise"))
+        coVerify(exactly = 0) { rules.updateRule(any()) }
+        assertFalse(call("update_rule", """{"id":"off","name":"Still off"}""").first)
+        coVerify { rules.updateRule(match { it.id == "off" && !it.isActive }) }
+    }
+
+    @Test
+    fun `a built-in rule can't be updated or previewed, and a blocking rule can't be deleted`() {
+        assertTrue(error("update_rule", """{"id":"sys","name":"x"}""").contains("built-in"))
+        assertTrue(error("preview_rule", """{"id":"sys"}""").contains("built-in"))
+        assertTrue(error("delete_rule", """{"id":"blk"}""").contains("blocks transactions"))
+        assertTrue(error("update_rule", """{"id":"blk","name":"x"}""").contains("blocks transactions"))
+        coVerify(exactly = 0) { rules.updateRule(any()) }
+        coVerify(exactly = 0) { rules.deleteRule(any()) }
+    }
+
+    @Test
+    fun `a stored rule the validator rejects is reported as such, not blamed on the caller`() {
+        assertEquals(
+            "This rule uses a condition that can't be written from here. Edit it in PennyWise → Rules.",
+            error("update_rule", """{"id":"old","name":"x"}"""),
+        )
+        // Supplying the conditions replaces the stored ones, so that rule can be repaired from here.
+        assertFalse(call("update_rule", """{"id":"old","conditions":[{"field":"MERCHANT","operator":"CONTAINS","value":"x"}]}""").first)
+    }
+
+    @Test
+    fun `the past run holds the rule lock, so a delete waits for it`() = runBlocking {
+        val gate = CompletableDeferred<Unit>()
+        coEvery { transactions.getUncategorizedTransactions() } coAnswers {
+            gate.await()
+            listOf(swiggyOthers)
+        }
+        val update = async { callS("update_rule", """{"id":"r1","apply_to_past":"uncategorized"}""") }
+        repeat(5) { yield() }
+        val delete = async { callS("delete_rule", """{"id":"r1"}""") }
+        repeat(5) { yield() }
+        assertTrue(update.isActive)
+        assertFalse(delete.isCompleted)
+        coVerify(exactly = 0) { rules.deleteRule(any()) }
+        gate.complete(Unit)
+        assertFalse(update.await().first)
+        assertFalse(delete.await().first)
+        coVerify(exactly = 1) { rules.deleteRule("r1") }
+    }
 }

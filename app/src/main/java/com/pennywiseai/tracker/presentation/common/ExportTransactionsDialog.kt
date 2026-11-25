@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +41,7 @@ fun ExportTransactionsDialog(
     viewModel: ExportViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     var exportState by remember { mutableStateOf<ExportState>(ExportState.Ready) }
     val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
@@ -365,10 +367,10 @@ fun ExportTransactionsDialog(
                                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                         type = "text/csv"
                                         putExtra(Intent.EXTRA_STREAM, (exportState as ExportState.Success).uri)
-                                        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.txn_export_share_subject))
+                                        putExtra(Intent.EXTRA_SUBJECT, resources.getString(R.string.txn_export_share_subject))
                                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                     }
-                                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.txn_export_share_chooser_title)))
+                                    context.startActivity(Intent.createChooser(shareIntent, resources.getString(R.string.txn_export_share_chooser_title)))
                                 },
                                 modifier = Modifier.weight(1f),
                                 shapes = ButtonDefaults.shapes()

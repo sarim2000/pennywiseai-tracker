@@ -53,9 +53,18 @@ object AiToolLogic {
         offset: Int = 0,
         sort: String? = null,
         aliases: Map<String, String> = emptyMap(),
+        tagsById: Map<Long, List<String>> = emptyMap(),
+        tag: String? = null,
+        excludeCategories: List<String> = emptyList(),
+        excludeTags: List<String> = emptyList(),
     ): JsonObject {
         val q = query?.trim()?.lowercase().orEmpty()
-        val base = all.filter { (type == null || it.transactionType.name == type) && (q.isEmpty() || it.merchantName.lowercase().contains(q)) }
+        // The query also matches the alias, so a merchant group from spending_summary finds its rows.
+        val base = all.filter {
+            (type == null || it.transactionType.name == type) &&
+                (q.isEmpty() || it.merchantName.lowercase().contains(q) || aliases[it.merchantName]?.lowercase()?.contains(q) == true) &&
+                kept(it, it.category, tagsById, tag, excludeCategories, excludeTags)
+        }
         val filtered = base.filter {
             (category == null || it.category.equals(category, ignoreCase = true)) && (account == null || accountOf(it) == account)
         }
@@ -97,10 +106,26 @@ object AiToolLogic {
      * Amounts follow the app's totals: only your part of loan-linked and split rows counts
      * ([forTotals]), and refunds (INCOME + DEDUCT_SPENT) come off spending instead of counting
      * as income, per currency and floored at zero, like Analytics.
+     * Merchant groups use the merchant's alias when it has one, so aliased merchants total together.
      */
-    fun spendingSummary(all: List<TransactionEntity>, groupBy: String, type: String, account: String? = null, limit: Int? = null): JsonObject {
+    fun spendingSummary(
+        all: List<TransactionEntity>,
+        groupBy: String,
+        type: String,
+        account: String? = null,
+        limit: Int? = null,
+        aliases: Map<String, String> = emptyMap(),
+        tagsById: Map<Long, List<String>> = emptyMap(),
+        tag: String? = null,
+        excludeCategories: List<String> = emptyList(),
+        excludeTags: List<String> = emptyList(),
+    ): JsonObject {
         val income = type == "INCOME"
-        val inAccount = all.filter { account == null || accountOf(it) == account }.forTotals()
+        // A refund's category is the budget category it gives back to, as in Analytics.
+        val category: (TransactionEntity) -> String = { t -> if (t.isRefund()) (t.budgetCategory ?: "").ifEmpty { "Others" } else t.category }
+        val inAccount = all.filter {
+            (account == null || accountOf(it) == account) && kept(it, category(it), tagsById, tag, excludeCategories, excludeTags)
+        }.forTotals()
         val counted = if (income) {
             inAccount.filter { it.transactionType == TransactionType.INCOME && !it.isRefund() }
         } else {
@@ -108,10 +133,8 @@ object AiToolLogic {
         }
         val refunds = if (income) emptyList() else inAccount.filter { it.transactionType == TransactionType.INCOME && it.isRefund() }
         val month: (TransactionEntity) -> String = { t -> t.dateTime.toLocalDate().toString().take(7) }
-        // A refund's category is the budget category it gives back to, as in Analytics.
-        val category: (TransactionEntity) -> String = { t -> if (t.isRefund()) (t.budgetCategory ?: "").ifEmpty { "Others" } else t.category }
         val key: (TransactionEntity) -> Pair<String, String?> = when (groupBy) {
-            "merchant" -> { t -> t.merchantName to null }
+            "merchant" -> { t -> (aliases[t.merchantName] ?: t.merchantName) to null }
             "month" -> { t -> month(t) to null }
             "day" -> { t -> t.dateTime.toLocalDate().toString() to null }
             "account" -> { t -> (accountOf(t) ?: "Unknown account") to null }
@@ -139,6 +162,25 @@ object AiToolLogic {
     }
 
     private fun TransactionEntity.isRefund() = budgetImpactType == BudgetImpactType.DEDUCT_SPENT
+
+    /**
+     * Whether [t] (in [category]) carries [tag] when one is given, and is in none of
+     * [excludeCategories] and carries none of [excludeTags]. Names match ignoring case, as in
+     * the app's tag filter; a name that matches nothing leaves nothing out.
+     */
+    private fun kept(
+        t: TransactionEntity,
+        category: String,
+        tagsById: Map<Long, List<String>>,
+        tag: String?,
+        excludeCategories: List<String>,
+        excludeTags: List<String>,
+    ): Boolean {
+        val tags = tagsById[t.id].orEmpty()
+        return (tag == null || tags.any { it.equals(tag, ignoreCase = true) }) &&
+            excludeCategories.none { it.equals(category, ignoreCase = true) } &&
+            excludeTags.none { x -> tags.any { it.equals(x, ignoreCase = true) } }
+    }
 
     private fun accountOf(t: TransactionEntity) = maskedAccount(t.bankName, t.accountNumber)
 

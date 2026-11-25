@@ -1,35 +1,36 @@
 package com.pennywiseai.tracker.aiaccess
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
-import kotlinx.serialization.json.JsonArray
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.add
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import javax.inject.Inject
@@ -48,6 +49,7 @@ class AiTools @Inject constructor(
     private val categories: CategoryRepository,
     private val mappings: MerchantMappingRepository,
     private val aliases: MerchantAliasRepository,
+    private val tags: TagRepository,
     private val rules: RuleRepository,
     private val applyRulesToPast: ApplyRulesToPastTransactionsUseCase,
     private val database: PennyWiseDatabase,
@@ -74,6 +76,10 @@ class AiTools @Inject constructor(
                     offset = args["offset"]?.jsonPrimitive?.intOrNull ?: 0,
                     sort = args.string("sort"),
                     aliases = aliases.getAllAliasesAsMap(),
+                    tagsById = tags.observeTransactionTagNames().first(),
+                    tag = args.string("tag"),
+                    excludeCategories = args.strings("exclude_categories"),
+                    excludeTags = args.strings("exclude_tags"),
                 )
                 "spending_summary" -> AiToolLogic.spendingSummary(
                     all = inRange(args) ?: return error("Give from and to as YYYY-MM-DD."),
@@ -81,6 +87,11 @@ class AiTools @Inject constructor(
                     type = args.string("type") ?: "EXPENSE",
                     account = args.string("account"),
                     limit = args["limit"]?.jsonPrimitive?.intOrNull,
+                    aliases = aliases.getAllAliasesAsMap(),
+                    tagsById = tags.observeTransactionTagNames().first(),
+                    tag = args.string("tag"),
+                    excludeCategories = args.strings("exclude_categories"),
+                    excludeTags = args.strings("exclude_tags"),
                 )
                 "list_accounts" -> AiToolLogic.accounts(balances.getAllLatestBalances().first())
                 "list_subscriptions" -> AiToolLogic.subscriptions(subscriptions.getActiveSubscriptions().first())
@@ -202,6 +213,12 @@ class AiTools @Inject constructor(
         string(key)?.let { try { LocalDate.parse(it) } catch (_: DateTimeParseException) { null } }
 
     private fun JsonObject.string(key: String) = (this[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+
+    /** A list of names; a lone string counts as a list of one. */
+    private fun JsonObject.strings(key: String): List<String> = when (val v = this[key]) {
+        is JsonArray -> v.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.takeIf { s -> s.isNotBlank() } }
+        else -> listOfNotNull(string(key))
+    }
 
     private fun error(message: String) = text(message, isError = true)
 

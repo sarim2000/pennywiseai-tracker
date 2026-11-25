@@ -351,45 +351,41 @@ class AiToolLogicTest {
         RuleEngine().evaluateRules(txn(merchant, "10", day = day), null, listOf(rule)).second.isNotEmpty()
 
     @Test
-    fun `create_rule accepts and evaluates IN, NOT_IN, NOT_EQUALS and NOT_CONTAINS`() {
-        fun rule(op: String, value: String) =
-            AiToolLogic.ruleFrom(ruleWith("""[{"field":"MERCHANT","operator":"$op","value":"$value"}]"""))
-        assertTrue(matches(rule("IN", "Swiggy, Zomato"), "zomato", 5))
-        assertFalse(matches(rule("IN", "Swiggy, Zomato"), "Uber", 5))
-        assertTrue(matches(rule("NOT_IN", "Swiggy, Zomato"), "Uber", 5))
-        assertFalse(matches(rule("NOT_IN", "Swiggy, Zomato"), "Swiggy", 5))
-        assertTrue(matches(rule("NOT_EQUALS", "Uber"), "Swiggy", 5))
-        assertFalse(matches(rule("NOT_EQUALS", "Uber"), "uber", 5))
-        assertTrue(matches(rule("NOT_CONTAINS", "refund"), "Swiggy", 5))
-        assertFalse(matches(rule("NOT_CONTAINS", "refund"), "Swiggy Refund", 5))
-    }
+    fun `create_rule takes a supported negation, IN on a day field and a between-two-dates rule`() {
+        fun rule(conditions: String) = AiToolLogic.ruleFrom(ruleWith(conditions))
+        val notTransfer = rule("""[{"field":"TYPE","operator":"NOT_EQUALS","value":"TRANSFER"}]""")
+        assertTrue(matches(notTransfer, "Swiggy", 5))
+        assertFalse(matches(rule("""[{"field":"TYPE","operator":"NOT_EQUALS","value":"EXPENSE"}]"""), "Swiggy", 5))
 
-    @Test
-    fun `create_rule takes a between-two-dates rule as two AND conditions`() {
-        val rule = AiToolLogic.ruleFrom(
-            ruleWith(
-                """[{"field":"TRANSACTION_DATE","operator":"GREATER_THAN_OR_EQUAL","value":"2026-10-03"},
-                   {"field":"TRANSACTION_DATE","operator":"LESS_THAN_OR_EQUAL","value":"2026-10-05","logicalOperator":"AND"}]"""
-            )
+        // 2026-10-05 is a Monday.
+        val weekend = rule("""[{"field":"TRANSACTION_DAY_OF_WEEK","operator":"IN","value":"1, 7"}]""")
+        assertTrue(matches(weekend, "Swiggy", 5))
+        assertFalse(matches(weekend, "Swiggy", 6))
+
+        // Both date bounds are exclusive, so 3 to 5 October is after the 2nd and before the 6th.
+        val between = rule(
+            """[{"field":"TRANSACTION_DATE","operator":"GREATER_THAN","value":"2026-10-02"},
+               {"field":"TRANSACTION_DATE","operator":"LESS_THAN","value":"2026-10-06","logicalOperator":"AND"}]"""
         )
-        assertFalse(matches(rule, "Swiggy", 2))
-        assertTrue(matches(rule, "Swiggy", 3))
-        assertTrue(matches(rule, "Swiggy", 5))
-        assertFalse(matches(rule, "Swiggy", 6))
-        // The picker's own date operators still work, and a bad date still fails.
-        AiToolLogic.ruleFrom(ruleWith("""[{"field":"TRANSACTION_DATE","operator":"GREATER_THAN","value":"2026-10-03"}]"""))
+        assertFalse(matches(between, "Swiggy", 2))
+        assertTrue(matches(between, "Swiggy", 3))
+        assertTrue(matches(between, "Swiggy", 5))
+        assertFalse(matches(between, "Swiggy", 6))
         assertThrows(IllegalArgumentException::class.java) {
-            AiToolLogic.ruleFrom(ruleWith("""[{"field":"TRANSACTION_DATE","operator":"GREATER_THAN","value":"3 Oct"}]"""))
+            rule("""[{"field":"TRANSACTION_DATE","operator":"GREATER_THAN","value":"3 Oct"}]""")
         }
     }
 
     @Test
-    fun `operators that mean nothing for a field are still refused`() {
-        assertThrows(IllegalArgumentException::class.java) {
-            AiToolLogic.ruleFrom(ruleWith("""[{"field":"AMOUNT","operator":"NOT_IN","value":"1,2"}]"""))
-        }
-        assertThrows(IllegalArgumentException::class.java) {
-            AiToolLogic.ruleFrom(ruleWith("""[{"field":"TRANSACTION_DATE","operator":"IN","value":"2026-10-03"}]"""))
+    fun `create_rule refuses operators the rule editor does not offer for a field`() {
+        listOf(
+            """[{"field":"MERCHANT","operator":"NOT_CONTAINS","value":"refund"}]""",
+            """[{"field":"MERCHANT","operator":"IN","value":"a,b"}]""",
+            """[{"field":"TRANSACTION_DATE","operator":"GREATER_THAN_OR_EQUAL","value":"2026-10-03"}]""",
+            """[{"field":"AMOUNT","operator":"NOT_IN","value":"1,2"}]""",
+        ).forEach { c ->
+            val e = assertThrows(IllegalArgumentException::class.java) { AiToolLogic.ruleFrom(ruleWith(c)) }
+            assertTrue(e.message!!.startsWith("That rule isn't valid."))
         }
     }
 

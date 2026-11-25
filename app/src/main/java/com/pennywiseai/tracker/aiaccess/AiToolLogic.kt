@@ -10,10 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.ActionType
-import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
-import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
-import com.pennywiseai.tracker.domain.model.rule.supportedOperators
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.serialization.json.Json
@@ -277,7 +274,7 @@ object AiToolLogic {
             }
         }
         val rule = try {
-            RuleSharingCodec.decode(shared.toString(), ::aiAllows).rules.single()
+            RuleSharingCodec.decode(shared.toString()).rules.single()
         } catch (e: IllegalArgumentException) {
             throw IllegalArgumentException(
                 "That rule isn't valid. It needs a name, at least one condition and one action, and each condition's operator and value must suit its field.", e
@@ -290,18 +287,6 @@ object AiToolLogic {
     }
 
     private val RULE_FIELDS = listOf("name", "description", "priority", "conditions", "actions")
-
-    /**
-     * Beyond the rule editor's pickers, all of which the engine already evaluates: negated and list
-     * operators on text fields, NOT_IN on the day fields, and inclusive date bounds (so "between two
-     * dates" is two conditions joined by AND).
-     */
-    private fun aiAllows(field: TransactionField, op: ConditionOperator): Boolean = op in supportedOperators(field) || when (field) {
-        TransactionField.TRANSACTION_DATE -> op == ConditionOperator.GREATER_THAN_OR_EQUAL || op == ConditionOperator.LESS_THAN_OR_EQUAL
-        TransactionField.TRANSACTION_DAY_OF_WEEK, TransactionField.TRANSACTION_DAY_OF_MONTH -> op == ConditionOperator.NOT_IN
-        else -> ConditionOperator.CONTAINS in supportedOperators(field) &&
-            op in setOf(ConditionOperator.NOT_EQUALS, ConditionOperator.NOT_CONTAINS, ConditionOperator.IN, ConditionOperator.NOT_IN)
-    }
 
     /** [existing] with only the fields [args] supplies replaced, checked like [ruleFrom]. Id, on/off, template flag and created time stay. */
     fun ruleUpdated(existing: TransactionRule, args: JsonObject): TransactionRule {

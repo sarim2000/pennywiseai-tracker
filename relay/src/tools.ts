@@ -34,8 +34,8 @@ const conditions = {
 		type: "object",
 		properties: {
 			field,
-			operator: { type: "string", enum: ["EQUALS", "NOT_EQUALS", "CONTAINS", "NOT_CONTAINS", "STARTS_WITH", "LESS_THAN", "GREATER_THAN", "LESS_THAN_OR_EQUAL", "GREATER_THAN_OR_EQUAL", "IN", "NOT_IN"] },
-			value: { type: "string", description: "Comma-separated for IN and NOT_IN" },
+			operator: { type: "string", enum: ["EQUALS", "NOT_EQUALS", "CONTAINS", "STARTS_WITH", "LESS_THAN", "GREATER_THAN", "LESS_THAN_OR_EQUAL", "GREATER_THAN_OR_EQUAL", "IN"] },
+			value: { type: "string", description: "Comma-separated for IN" },
 			logicalOperator: { type: "string", enum: ["AND", "OR"], default: "AND", description: "How this condition joins the ones before it" },
 		},
 		required: ["field", "operator", "value"],
@@ -55,7 +55,7 @@ const actions = {
 	},
 };
 const RULE_OPERATORS =
-	" Operators by field: AMOUNT LESS_THAN/GREATER_THAN/EQUALS (number); TYPE EQUALS/NOT_EQUALS (EXPENSE, INCOME, CREDIT, TRANSFER, INVESTMENT); MERCHANT, NARRATION, SMS_TEXT, CATEGORY, BANK_NAME CONTAINS/NOT_CONTAINS/EQUALS/NOT_EQUALS/STARTS_WITH/IN/NOT_IN (IN and NOT_IN take a comma-separated list, e.g. MERCHANT IN \"Swiggy, Zomato\"; NOT_CONTAINS e.g. MERCHANT NOT_CONTAINS \"Refund\"); TRANSACTION_HOUR EQUALS/LESS_THAN/GREATER_THAN (0-23); TRANSACTION_DAY_OF_MONTH EQUALS/IN/NOT_IN/LESS_THAN/GREATER_THAN (1-31); TRANSACTION_DAY_OF_WEEK EQUALS/IN/NOT_IN/NOT_EQUALS (1=Monday..7=Sunday); TRANSACTION_DATE EQUALS/LESS_THAN/GREATER_THAN/LESS_THAN_OR_EQUAL/GREATER_THAN_OR_EQUAL (YYYY-MM-DD); ACCOUNT EQUALS/NOT_EQUALS (\"Bank||last4\"). There is no BETWEEN: between two dates is two TRANSACTION_DATE conditions, the second with logicalOperator AND, e.g. GREATER_THAN_OR_EQUAL 2026-04-01 then LESS_THAN_OR_EQUAL 2026-04-30. Actions: CATEGORY SET (a category name) or CLEAR; TYPE SET (a type name); MERCHANT or NARRATION SET/APPEND/PREPEND/CLEAR; TAGS ADD_TAG/REMOVE_TAG. SMS_TEXT is matched on the phone; you never see SMS text.";
+	" Operators allowed by field (others are refused): AMOUNT LESS_THAN/GREATER_THAN/EQUALS (number); TYPE EQUALS/NOT_EQUALS (EXPENSE, INCOME, CREDIT, TRANSFER, INVESTMENT), e.g. TYPE NOT_EQUALS TRANSFER; MERCHANT, NARRATION, SMS_TEXT, CATEGORY, BANK_NAME CONTAINS/EQUALS/STARTS_WITH; TRANSACTION_HOUR EQUALS/LESS_THAN/GREATER_THAN (0-23); TRANSACTION_TIME EQUALS/LESS_THAN/GREATER_THAN/LESS_THAN_OR_EQUAL/GREATER_THAN_OR_EQUAL (HH:mm); TRANSACTION_DAY_OF_MONTH EQUALS/IN/LESS_THAN/GREATER_THAN (1-31); TRANSACTION_DAY_OF_WEEK EQUALS/IN/NOT_EQUALS (1=Monday..7=Sunday), e.g. TRANSACTION_DAY_OF_WEEK IN \"6,7\"; TRANSACTION_DATE EQUALS/LESS_THAN/GREATER_THAN (YYYY-MM-DD, both bounds exclusive); ACCOUNT EQUALS/NOT_EQUALS (\"Bank||last4\"), e.g. ACCOUNT NOT_EQUALS \"HDFC||1234\". There is no BETWEEN: between two dates is two TRANSACTION_DATE conditions, the second with logicalOperator AND, e.g. GREATER_THAN 2026-03-31 then LESS_THAN 2026-05-01 for all of April. Actions: CATEGORY SET (a category name) or CLEAR; TYPE SET (a type name); MERCHANT or NARRATION SET/APPEND/PREPEND/CLEAR; TAGS ADD_TAG/REMOVE_TAG. SMS_TEXT is matched on the phone; you never see SMS text.";
 const WRITE_NOTE = " Changes data: only works while the user has turned on Let AI apps make changes in PennyWise.";
 
 export const TOOLS = [

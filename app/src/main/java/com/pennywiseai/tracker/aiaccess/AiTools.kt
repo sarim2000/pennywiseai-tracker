@@ -248,6 +248,11 @@ class AiTools @Inject constructor(
         val mode = applyMode(args, "uncategorized")
         if (mode == "none") throw Refused("Give apply_to_past as uncategorized or all; with none there is nothing to preview.")
         val id = args.string("id")
+        // Inside the lock, so the count is not taken half way through another call's past run.
+        return ruleLock.withLock { previewLocked(id, args, mode) }
+    }
+
+    private suspend fun previewLocked(id: String?, args: JsonObject, mode: String): JsonObject {
         val rule = if (id != null) updatedRule(id, args) else {
             val new = try {
                 AiToolLogic.ruleFrom(args)
@@ -258,7 +263,9 @@ class AiTools @Inject constructor(
             new
         }
         AiToolLogic.pastApplyRefusal(rule)?.let { throw Refused(it) }
-        val preview = applyRulesToPast.previewRuleApplication(rule, maxSamples = Int.MAX_VALUE)
+        // ponytail: "uncategorized" keeps every matching row in memory to count the ones in Others; give
+        // the use case a count-only mode if large ledgers on low-memory phones make this a problem.
+        val preview = applyRulesToPast.previewRuleApplication(rule, maxSamples = if (mode == "all") 0 else Int.MAX_VALUE)
         val others = BuiltinCategoryNames.current("Others")
         val count = if (mode == "all") preview.totalWouldUpdate else preview.samples.count { !it.isBlock && (it.original.category.isNullOrBlank() || it.original.category == others) }
         return buildJsonObject {

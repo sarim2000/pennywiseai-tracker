@@ -295,7 +295,9 @@ object AiToolLogic {
      * text one guess at a time. Stored conditions count too: a rule saved with one and then previewed
      * by id is the same oracle in two steps. A past run done
      * twice must not do more than once (the relay's timeout makes the client ask again) and must not
-     * move money, so only SET/CLEAR on category, merchant and note, and tag changes, are allowed.
+     * move money, so only setting a category and tag changes are allowed. Not merchant names or notes:
+     * the old text survives only in the rule's history, which goes when the rule is deleted, and a
+     * count on a note action would read notes the same way a note condition does.
      */
     fun pastApplyRefusal(rule: TransactionRule): String? {
         val supplied = rule.conditions.map { it.field }
@@ -304,17 +306,15 @@ object AiToolLogic {
         if (!rule.isActive) return "\"${rule.name}\" is switched off, so it changes nothing. Turn it on in PennyWise → Rules first."
         val unsafe = rule.actions.filterNot { a ->
             when (a.actionType) {
-                ActionType.SET, ActionType.CLEAR -> a.field in REPEAT_SAFE_FIELDS
+                ActionType.SET -> a.field == TransactionField.CATEGORY
                 ActionType.ADD_TAG, ActionType.REMOVE_TAG -> true
                 else -> false
             }
         }
         if (unsafe.isEmpty()) return null
-        val why = if (unsafe.any { it.actionType == ActionType.APPEND || it.actionType == ActionType.PREPEND }) "appends text" else "changes type, account or amount"
+        val why = if (unsafe.any { it.actionType == ActionType.APPEND || it.actionType == ActionType.PREPEND }) "appends text" else "changes more than categories or tags"
         return "This rule can be saved, but can't be applied to past transactions from here because it $why. Apply it from PennyWise → Rules."
     }
-
-    private val REPEAT_SAFE_FIELDS = setOf(TransactionField.CATEGORY, TransactionField.MERCHANT, TransactionField.NARRATION)
 
     /** [existing] with only the fields [args] supplies replaced, checked like [ruleFrom]. Id, on/off, template flag and created time stay. */
     fun ruleUpdated(existing: TransactionRule, args: JsonObject): TransactionRule {

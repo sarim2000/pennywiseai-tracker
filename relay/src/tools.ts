@@ -24,7 +24,7 @@ const applyToPast = {
 	type: "string",
 	enum: ["none", "uncategorized", "all"],
 	default: "none",
-	description: "Also run the rule now on past transactions: none, only those still in Others (uncategorized), or all. The result says how many changed. preview_rule gives the count first. Only for rules that set or clear category, merchant or note, or add or remove tags, are switched on, and have no condition on SMS_TEXT or NARRATION; any other rule can be saved with none and applied in the app.",
+	description: "Also run the rule now on past transactions: none, only those still in Others (uncategorized), or all. The result says how many changed. preview_rule gives the count first. Only for rules that just set a category or add or remove tags, are switched on, and have no condition on SMS_TEXT or NARRATION; any other rule can be saved with none and applied in the app.",
 };
 const conditions = {
 	type: "array",

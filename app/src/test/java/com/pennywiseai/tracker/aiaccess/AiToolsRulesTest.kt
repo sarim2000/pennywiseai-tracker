@@ -298,8 +298,8 @@ class AiToolsRulesTest {
         val setType = """{"field":"TYPE","actionType":"SET","value":"INCOME"}"""
         val setBank = """{"field":"BANK_NAME","actionType":"SET","value":"Other"}"""
         assertTrue(error("create_rule", withActions(append, ""","apply_to_past":"all"""")).contains("appends text"))
-        assertTrue(error("create_rule", withActions(setType, ""","apply_to_past":"uncategorized"""")).contains("changes type, account or amount"))
-        assertTrue(error("preview_rule", withActions(setBank)).contains("changes type, account or amount"))
+        assertTrue(error("create_rule", withActions(setType, ""","apply_to_past":"uncategorized"""")).contains("changes more than categories or tags"))
+        assertTrue(error("preview_rule", withActions(setBank)).contains("changes more than categories or tags"))
         assertTrue(error("preview_rule", withActions(append, ""","apply_to_past":"all"""")).contains("appends text"))
         assertTrue(error("update_rule", """{"id":"r1","apply_to_past":"all","actions":[$append]}""").contains("Apply it from PennyWise"))
         coVerify(exactly = 0) { rules.insertRule(any()) }
@@ -307,8 +307,13 @@ class AiToolsRulesTest {
         assertFalse(call("create_rule", withActions(append, ""","apply_to_past":"none"""")).first)
         assertFalse(call("update_rule", """{"id":"r1","actions":[$setType]}""").first)
         coVerify(exactly = 0) { transactions.updateTransaction(any()) }
-        // Setting a category, adding a tag and clearing a note all repeat safely.
-        val safe = """{"field":"CATEGORY","actionType":"SET","value":"Food"},{"field":"TAGS","actionType":"ADD_TAG","value":"trip"},{"field":"NARRATION","actionType":"CLEAR","value":""}"""
+        // Notes and merchant names stay out: the old text is lost with the rule, and a count would read notes.
+        for (field in listOf("NARRATION", "MERCHANT")) {
+            assertTrue(error("preview_rule", withActions("""{"field":"$field","actionType":"SET","value":"x"}""")).contains("changes more than categories or tags"))
+            assertTrue(error("preview_rule", withActions("""{"field":"$field","actionType":"CLEAR","value":""}""")).contains("changes more than categories or tags"))
+        }
+        // Setting a category and adding a tag repeat safely.
+        val safe = """{"field":"CATEGORY","actionType":"SET","value":"Food"},{"field":"TAGS","actionType":"ADD_TAG","value":"trip"}"""
         assertFalse(call("preview_rule", withActions(safe)).first)
     }
 

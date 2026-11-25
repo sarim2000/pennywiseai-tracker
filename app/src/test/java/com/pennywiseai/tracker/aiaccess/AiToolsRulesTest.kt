@@ -285,10 +285,11 @@ class AiToolsRulesTest {
     }
 
     @Test
-    fun `a stored SMS text condition the call did not supply does not stop a preview`() {
+    fun `a stored SMS text condition stops a preview too, or save-then-preview would leak it`() {
         val smsRule = stored.copy(id = "sms", name = "Sms", conditions = listOf(RuleCondition(TransactionField.SMS_TEXT, ConditionOperator.CONTAINS, "A")))
         coEvery { rules.getRuleById("sms") } returns smsRule
-        assertFalse(call("preview_rule", """{"id":"sms","name":"Renamed"}""").first)
+        assertTrue(error("preview_rule", """{"id":"sms","name":"Renamed"}""").contains("SMS text is hidden"))
+        assertTrue(error("update_rule", """{"id":"sms","name":"Renamed","apply_to_past":"all"}""").contains("SMS text is hidden"))
     }
 
     @Test

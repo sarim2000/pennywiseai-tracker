@@ -194,7 +194,7 @@ class AiTools @Inject constructor(
             throw Refused(e.message ?: "That rule isn't valid.")
         }
         val mode = applyMode(args, "none")
-        if (mode != "none") AiToolLogic.pastApplyRefusal(rule, args)?.let { throw Refused(it) }
+        if (mode != "none") AiToolLogic.pastApplyRefusal(rule)?.let { throw Refused(it) }
         // One at a time, and the past run stays inside the lock: two creates of the same rule both pass
         // the name check otherwise, and a delete or update must not land while rows are being rewritten.
         return ruleLock.withLock {
@@ -214,7 +214,7 @@ class AiTools @Inject constructor(
         val mode = applyMode(args, "none")
         return ruleLock.withLock {
             val updated = updatedRule(id, args)
-            if (mode != "none") AiToolLogic.pastApplyRefusal(updated, args)?.let { throw Refused(it) }
+            if (mode != "none") AiToolLogic.pastApplyRefusal(updated)?.let { throw Refused(it) }
             rules.updateRule(updated)
             buildJsonObject {
                 put("updated", updated.name)
@@ -257,7 +257,7 @@ class AiTools @Inject constructor(
             checkNewName(new)
             new
         }
-        AiToolLogic.pastApplyRefusal(rule, args)?.let { throw Refused(it) }
+        AiToolLogic.pastApplyRefusal(rule)?.let { throw Refused(it) }
         val preview = applyRulesToPast.previewRuleApplication(rule, maxSamples = Int.MAX_VALUE)
         val others = BuiltinCategoryNames.current("Others")
         val count = if (mode == "all") preview.totalWouldUpdate else preview.samples.count { !it.isBlock && (it.original.category.isNullOrBlank() || it.original.category == others) }

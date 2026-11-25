@@ -292,12 +292,13 @@ object AiToolLogic {
     /**
      * Why [rule] may not be counted or run over past transactions from an AI call, or null when it may.
      * A count on a condition the AI never sees (SMS text, a transaction's note) would let it read that
-     * text one guess at a time, so conditions [args] supplies must avoid those fields. A past run done
+     * text one guess at a time. Stored conditions count too: a rule saved with one and then previewed
+     * by id is the same oracle in two steps. A past run done
      * twice must not do more than once (the relay's timeout makes the client ask again) and must not
      * move money, so only SET/CLEAR on category, merchant and note, and tag changes, are allowed.
      */
-    fun pastApplyRefusal(rule: TransactionRule, args: JsonObject): String? {
-        val supplied = if ("conditions" in args) rule.conditions.map { it.field } else emptyList()
+    fun pastApplyRefusal(rule: TransactionRule): String? {
+        val supplied = rule.conditions.map { it.field }
         if (TransactionField.SMS_TEXT in supplied) return "A rule that matches on SMS text can't be previewed or applied to past transactions from here: SMS text is hidden from AI apps."
         if (TransactionField.NARRATION in supplied) return "A rule that matches on a transaction's note can't be previewed or applied to past transactions from here: notes are hidden from AI apps."
         if (!rule.isActive) return "\"${rule.name}\" is switched off, so it changes nothing. Turn it on in PennyWise → Rules first."

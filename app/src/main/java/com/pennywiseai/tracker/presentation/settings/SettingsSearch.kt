@@ -68,6 +68,7 @@ import com.pennywiseai.tracker.navigation.LearnedCategories
 import com.pennywiseai.tracker.navigation.Loans
 import com.pennywiseai.tracker.navigation.ManageAccounts
 import com.pennywiseai.tracker.navigation.RecurringTransactions
+import com.pennywiseai.tracker.navigation.Reimbursements
 import com.pennywiseai.tracker.navigation.Rules
 import com.pennywiseai.tracker.navigation.SettingsPage
 import com.pennywiseai.tracker.navigation.SettingsSection
@@ -153,6 +154,7 @@ internal fun settingsSearchIndex(sdkInt: Int = Build.VERSION.SDK_INT): List<Sett
         Row(R.string.settings_budget_cycle_title),
         Row(R.string.settings_recurring_title, R.string.settings_recurring_subtitle, RecurringTransactions),
         Row(R.string.settings_loans_title, R.string.settings_loans_subtitle, Loans),
+        Row(R.string.reimburse_screen_title, R.string.settings_reimbursements_subtitle, Reimbursements),
         Row(R.string.settings_transaction_groups_title, R.string.settings_transaction_groups_subtitle, TransactionGroups),
     )
     section(

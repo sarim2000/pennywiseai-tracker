@@ -5,6 +5,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.pennywiseai.tracker.core.SmsScanRunning
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -18,7 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class SmsScanManager @Inject constructor(
     @ApplicationContext private val context: Context
-) {
+) : SmsScanRunning {
     private val workManager = WorkManager.getInstance(context)
 
     /**
@@ -50,7 +51,7 @@ class SmsScanManager @Inject constructor(
     }
 
     /** Whether a scan is queued or running, whoever started it. */
-    fun isScanRunning(): Flow<Boolean> =
+    override fun isScanRunning(): Flow<Boolean> =
         workManager.getWorkInfosForUniqueWorkFlow(OptimizedSmsReaderWorker.WORK_NAME)
             .map { infos -> infos.any { !it.state.isFinished } }
 

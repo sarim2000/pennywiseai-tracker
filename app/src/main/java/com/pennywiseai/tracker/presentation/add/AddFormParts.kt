@@ -1,11 +1,18 @@
 package com.pennywiseai.tracker.presentation.add
 
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.ButtonDefaults
@@ -16,11 +23,14 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,8 +43,10 @@ import androidx.compose.ui.semantics.expand
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.model.MerchantSuggestion
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -145,5 +157,36 @@ internal fun AddDatePickerDialog(initial: LocalDate, onPick: (Long) -> Unit, onD
         }
     ) {
         DatePicker(state = state)
+    }
+}
+
+/**
+ * Past merchants for what's typed in a merchant field (#1392): one scrolling row under
+ * it, best match first, each under its alias when it has one. Nothing when there are none.
+ */
+@Composable
+internal fun MerchantSuggestionRow(suggestions: List<MerchantSuggestion>, onPick: (MerchantSuggestion) -> Unit) {
+    if (suggestions.isEmpty()) return
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+    ) {
+        suggestions.forEach { suggestion ->
+            key(suggestion.merchantName) {
+                SuggestionChip(
+                    onClick = { onPick(suggestion) },
+                    label = { Text(suggestion.alias ?: suggestion.merchantName, maxLines = 1) },
+                    icon = {
+                        Icon(
+                            Icons.Rounded.History,
+                            contentDescription = null,
+                            modifier = Modifier.size(SuggestionChipDefaults.IconSize)
+                        )
+                    }
+                )
+            }
+        }
     }
 }

@@ -12,8 +12,11 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.model.MerchantSuggestion
+import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
@@ -31,7 +34,10 @@ import com.pennywiseai.tracker.ui.components.pickerDefault
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -57,6 +63,7 @@ class AddViewModel @Inject constructor(
     private val receiptManager: ReceiptManager,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val learnedSendersStore: LearnedSendersStore,
+    private val profilePreferences: UserPreferencesRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -109,59 +116,29 @@ class AddViewModel @Inject constructor(
     // change supersedes a slower earlier one instead of landing stale. (#678)
     private var merchantSuggestionJob: Job? = null
 
+    // What was last typed into the merchant field; cleared once a suggestion is picked.
+    private val merchantQuery = MutableStateFlow("")
+
+    /** Past merchants for what's typed (#1392), from the profile in view; a tap fills the field. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val merchantSuggestions: StateFlow<List<MerchantSuggestion>> = merchantQuery
+        .mapLatest { typed ->
+            if (typed.isBlank()) return@mapLatest emptyList()
+            delay(MerchantSuggestions.DEBOUNCE_MS)
+            try {
+                transactionRepository.suggestMerchants(typed, profilePreferences.selectedProfileId.first())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Only a hint: the form works without it.
+                Log.w("AddViewModel", "Merchant suggestions failed", e)
+                emptyList()
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // One save per open form; a failed or refused insert keeps the draft (see [SaveGate]).
     private val saveGate = SaveGate()
-
-    init {
-        // Load base currency and set as default for both transaction and subscription
-        viewModelScope.launch {
-            val baseCurrency = userPreferencesRepository.baseCurrency.first()
-            _transactionUiState.update { it.copy(currency = baseCurrency) }
-            _subscriptionUiState.update { it.copy(currency = baseCurrency) }
-
-            // If launched via "Duplicate", prefill the transaction form from the
-            // source. Done after the default currency so the source's currency wins.
-            sourceTransactionId?.let { prefillFromTransaction(it) }
-            sharedText?.let { text ->
-                val guess = SharedTextAmount.extract(text)
-                _transactionUiState.update {
-                    // Only prefill an amount in the form's own currency: "$12" shared
-                    // by an INR user is left for them to enter, rather than becoming
-                    // 12 INR or a USD figure saved against an INR account.
-                    val usable = guess?.takeIf { g -> g.currency == null || g.currency == it.currency }
-                    it.copy(
-                        amount = usable?.amount?.toPlainString() ?: it.amount,
-                        notes = text
-                    )
-                }
-            }
-            draftType?.let { updateTransactionType(it) }
-            _transactionUiState.update {
-                it.copy(
-                    amount = draftAmount ?: it.amount,
-                    merchant = draftMerchant ?: it.merchant,
-                    category = draftCategory ?: it.category,
-                    currency = draftCurrency ?: it.currency,
-                    date = draftDateTime ?: it.date
-                )
-            }
-            // The same draft starts the Subscription form, so switching forms keeps what was
-            // typed, income included (the direction first: it resets the category).
-            if (draftType == TransactionType.INCOME) {
-                updateSubscriptionDirection(com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME)
-            }
-            _subscriptionUiState.update {
-                it.copy(
-                    amount = draftAmount ?: it.amount,
-                    serviceName = draftMerchant ?: it.serviceName,
-                    category = draftCategory ?: it.category,
-                    currency = draftCurrency ?: it.currency
-                )
-            }
-            selectAccount(draftBankName, draftAccountLast4)
-            _transactionUiState.update { it.copy(draftLoaded = true) }
-        }
-    }
 
     /**
      * Loads the given transaction and copies its editable values into the
@@ -204,8 +181,7 @@ class AddViewModel @Inject constructor(
     private fun selectAccount(bankName: String?, last4: String?) {
         if (bankName == null && last4 == null) return
         viewModelScope.launch {
-            // From the repository, not [accounts]: init can run this before that
-            // property (declared further down) exists.
+            // From the repository, not [accounts]: nothing collects that yet.
             val all = accountBalanceRepository.getAllLatestBalances().first { it.isNotEmpty() }
             // Only accounts in the entry's currency, so no amount lands in another currency.
             val currency = _transactionUiState.value.currency
@@ -287,6 +263,60 @@ class AddViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    // Below the flows it reads (e.g. [categories]): viewModelScope runs on Main.immediate
+    // and the base currency can arrive without suspending, so this body can run inside
+    // the constructor, before any property declared after it is set.
+    init {
+        // Load base currency and set as default for both transaction and subscription
+        viewModelScope.launch {
+            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            _transactionUiState.update { it.copy(currency = baseCurrency) }
+            _subscriptionUiState.update { it.copy(currency = baseCurrency) }
+
+            // If launched via "Duplicate", prefill the transaction form from the
+            // source. Done after the default currency so the source's currency wins.
+            sourceTransactionId?.let { prefillFromTransaction(it) }
+            sharedText?.let { text ->
+                val guess = SharedTextAmount.extract(text)
+                _transactionUiState.update {
+                    // Only prefill an amount in the form's own currency: "$12" shared
+                    // by an INR user is left for them to enter, rather than becoming
+                    // 12 INR or a USD figure saved against an INR account.
+                    val usable = guess?.takeIf { g -> g.currency == null || g.currency == it.currency }
+                    it.copy(
+                        amount = usable?.amount?.toPlainString() ?: it.amount,
+                        notes = text
+                    )
+                }
+            }
+            draftType?.let { updateTransactionType(it) }
+            _transactionUiState.update {
+                it.copy(
+                    amount = draftAmount ?: it.amount,
+                    merchant = draftMerchant ?: it.merchant,
+                    category = draftCategory ?: it.category,
+                    currency = draftCurrency ?: it.currency,
+                    date = draftDateTime ?: it.date
+                )
+            }
+            // The same draft starts the Subscription form, so switching forms keeps what was
+            // typed, income included (the direction first: it resets the category).
+            if (draftType == TransactionType.INCOME) {
+                updateSubscriptionDirection(com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME)
+            }
+            _subscriptionUiState.update {
+                it.copy(
+                    amount = draftAmount ?: it.amount,
+                    serviceName = draftMerchant ?: it.serviceName,
+                    category = draftCategory ?: it.category,
+                    currency = draftCurrency ?: it.currency
+                )
+            }
+            selectAccount(draftBankName, draftAccountLast4)
+            _transactionUiState.update { it.copy(draftLoaded = true) }
+        }
+    }
+
     // Transaction Tab Functions
     fun updateSelectedAccount(account: AccountBalanceEntity?) {
         _transactionUiState.update { currentState ->
@@ -346,6 +376,7 @@ class AddViewModel @Inject constructor(
     }
 
     fun updateTransactionMerchant(merchant: String) {
+        merchantQuery.value = merchant
         _transactionUiState.update { currentState ->
             currentState.copy(
                 merchant = merchant,
@@ -376,6 +407,12 @@ class AddViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /** A past merchant picked under the field: fills it (and its learned category) and hides the row. */
+    fun pickMerchantSuggestion(suggestion: MerchantSuggestion) {
+        updateTransactionMerchant(suggestion.merchantName)
+        merchantQuery.value = ""
     }
 
     fun updateTransactionCategory(category: String) {

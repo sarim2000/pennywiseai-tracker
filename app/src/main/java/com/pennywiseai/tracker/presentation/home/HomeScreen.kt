@@ -104,8 +104,9 @@ fun HomeScreen(
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // Time to full display: the balance and recent list show data, not skeletons.
-    ReportDrawnWhen { !uiState.isLoading && uiState.isBalanceReady }
+    val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
+    // Time to full display: the hero and recent list show data, not skeletons.
+    ReportDrawnWhen { !uiState.isLoading && uiState.isHeroReady(safeToSpend) }
     val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
     val currentCycleWindow by viewModel.currentCycleWindow.collectAsStateWithLifecycle()
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
@@ -121,7 +122,6 @@ fun HomeScreen(
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
     val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
     val recurringSuggestions by viewModel.recurringSuggestions.collectAsStateWithLifecycle()
-    val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
     val unsorted by viewModel.unsorted.collectAsStateWithLifecycle()
     var showSafeToSpendSheet by rememberSaveable { mutableStateOf(false) }
     val activity = LocalActivity.current
@@ -416,7 +416,7 @@ fun HomeScreen(
                 // 1. The hero: what's left in the overall budget, or this month's spending.
                 item(key = "hero") {
                     StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
-                        if (!uiState.isBalanceReady) {
+                        if (!uiState.isHeroReady(safeToSpend)) {
                             BalanceCardSkeleton(
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                             )

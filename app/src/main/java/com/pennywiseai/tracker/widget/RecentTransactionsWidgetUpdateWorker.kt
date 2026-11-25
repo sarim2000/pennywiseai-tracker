@@ -17,6 +17,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
+import com.pennywiseai.tracker.data.ledger.countedAmount
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -222,7 +223,8 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                         currency = itemCurrency,
                         transactionType = tx.transactionType,
                         transactionId = tx.id,
-                        needsCategory = tx.category == unsorted,
+                        // Not for a row that counts for nothing (excluded, or a loan in full), as on Home.
+                        needsCategory = tx.category == unsorted && tx.countedAmount().signum() > 0,
                         badge = badge,
                         colorArgb = CategoryMapping.colorFor(tx.category, category?.color).toArgb().toLong() and 0xFFFFFFFFL
                     )

@@ -337,4 +337,37 @@ class AccountBalanceRepositoryAccountTypeTest {
         assertFalse(latest.isCreditCard)
         assertTrue(latest.isLoan)
     }
+
+    @Test
+    fun `a card marked CREDIT with no account gets a manual credit card account`() = runBlocking {
+        assertTrue(repository.ensureCreditCardAccount("Test Bank", "4321"))
+
+        val account = repository.getLatestBalance("Test Bank", "4321")!!
+        assertTrue(account.isCreditCard)
+        assertEquals(AccountType.CREDIT, account.getAccountType())
+        assertEquals(0, BigDecimal.ZERO.compareTo(account.balance))
+        assertEquals(AccountBalanceRepository.SOURCE_MANUAL, account.sourceType)
+        assertEquals(1, balanceRows.size)
+    }
+
+    @Test
+    fun `a card marked CREDIT keeps its existing account and only switches the type`() = runBlocking {
+        repository.insertBalance(smsAccountRow("5000.00", hoursAgo = 1))
+
+        assertTrue(repository.ensureCreditCardAccount("Test Bank", "7777"))
+
+        val account = repository.getLatestBalance("Test Bank", "7777")!!
+        assertTrue(account.isCreditCard)
+        assertEquals(AccountType.CREDIT, account.getAccountType())
+        assertEquals(0, BigDecimal("5000.00").compareTo(account.balance))
+        assertEquals(1, balanceRows.size)
+    }
+
+    @Test
+    fun `an existing credit card account is left alone`() = runBlocking {
+        repository.ensureCreditCardAccount("Test Bank", "4321")
+
+        assertFalse(repository.ensureCreditCardAccount("Test Bank", "4321"))
+        assertEquals(1, balanceRows.size)
+    }
 }

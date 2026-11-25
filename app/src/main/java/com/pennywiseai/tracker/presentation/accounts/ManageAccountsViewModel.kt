@@ -485,10 +485,14 @@ class ManageAccountsViewModel @Inject constructor(
                         nickname = nickname?.trim()?.takeIf { it.isNotEmpty() }
                     )
                 )
+                // A credit card is its own account. The card list drops it once it
+                // isn't DEBIT, so give it that account now rather than at its next SMS.
+                if (cardType == CardType.CREDIT) {
+                    accountBalanceRepository.ensureCreditCardAccount(bankName.trim(), existing.cardLast4)
+                }
                 _uiState.update { it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_card_updated)) }
                 delay(2000)
                 _uiState.update { it.copy(successMessage = null) }
-                loadCards()
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to update card", e)
                 _uiState.update {

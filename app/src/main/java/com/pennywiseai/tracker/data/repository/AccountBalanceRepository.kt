@@ -327,6 +327,38 @@ open class AccountBalanceRepository @Inject constructor(
         )
 
     /**
+     * Makes sure a card the user just marked CREDIT has its own credit card
+     * account, keyed by the card's last 4. Without it the card shows nowhere
+     * until an SMS for it is processed: the unlinked list holds debit cards
+     * only, and the accounts list reads balance rows. An existing account under
+     * that number is switched to CREDIT; otherwise a MANUAL zero-balance row is
+     * added (a rescan keeps MANUAL rows) and the next SMS brings the real
+     * figure. Returns true when it created or changed an account.
+     */
+    suspend fun ensureCreditCardAccount(bankName: String, cardLast4: String): Boolean {
+        val existing = accountBalanceDao.getLatestBalance(bankName, cardLast4)
+        if (existing != null) {
+            if (existing.isCreditCard && existing.accountType == AccountType.CREDIT.toDatabaseString()) {
+                return false
+            }
+            return setAccountType(bankName, cardLast4, AccountType.CREDIT) > 0
+        }
+        accountBalanceDao.insertBalance(
+            AccountBalanceEntity(
+                bankName = bankName,
+                accountLast4 = cardLast4,
+                balance = BigDecimal.ZERO,
+                timestamp = LocalDateTime.now(),
+                isCreditCard = true,
+                accountType = AccountType.CREDIT.toDatabaseString(),
+                currency = CurrencyFormatter.getBankBaseCurrency(bankName),
+                sourceType = SOURCE_MANUAL
+            )
+        )
+        return true
+    }
+
+    /**
      * Puts [snapshot]'s type and card flag back on the account's rows that lost
      * them, e.g. rows a force resync rebuilt from balance-only SMS (#792). Only
      * untyped rows are touched, so a type the user set after the snapshot (an

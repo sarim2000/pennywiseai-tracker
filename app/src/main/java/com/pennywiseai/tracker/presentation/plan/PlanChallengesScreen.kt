@@ -355,6 +355,8 @@ private fun MascotLine(progress: ChallengeProgress, scanning: Boolean) {
     val today = progress.today
     val missedToday = today?.status == DayStatus.MISSED
     val line = when {
+        // Kept open so a corrected expense can still clear its day, but no cheering.
+        !progress.winnable -> stringResource(R.string.challenge_out_of_reach)
         progress.paused -> stringResource(R.string.challenge_paused)
         // Days a gap in tracking may have missed wait for the inbox to be read.
         progress.needsInboxRead -> stringResource(if (scanning) R.string.challenge_reading_inbox else R.string.challenge_inbox_unread)
@@ -373,7 +375,7 @@ private fun MascotLine(progress: ChallengeProgress, scanning: Boolean) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Mascot(size = Dimensions.Icon.large, mood = if (missedToday || progress.paused) MascotMood.Calm else MascotMood.Happy)
+        Mascot(size = Dimensions.Icon.large, mood = if (missedToday || progress.paused || !progress.winnable) MascotMood.Calm else MascotMood.Happy)
         Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }

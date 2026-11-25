@@ -154,7 +154,10 @@ data class ChallengeProgress(
     val cleanDays: Int get() = days.count { it.status == DayStatus.CLEAN }
     val won: Boolean get() = cleanDays >= run.target
 
-    /** Every day has settled: the window and the grace after it are over, and the inbox was read past it. */
+    /**
+     * Every day has settled: the window and its grace day are over, and no day is pending.
+     * A missed day settles at once, without an inbox read: reading more can only add misses.
+     */
     val over: Boolean get() = !paused && on.minusDays(GRACE_DAYS).isAfter(run.end) && days.none { it.status == DayStatus.PENDING }
 
     /** A day waits only for the inbox to be read past it: an inbox scan settles it. */
@@ -162,7 +165,7 @@ data class ChallengeProgress(
 
     /**
      * Won early, or every day settled. A loss waits for that even when it's certain, so an
-     * expense corrected later (made a transfer) can still clear its day.
+     * expense corrected before then (made a transfer) can still clear its day.
      */
     val finished: Boolean get() = won || over
 
@@ -219,6 +222,11 @@ fun ChallengeRun.progress(
  * Rebuild deletes the window's rows before it reads the inbox again and only moves the
  * cursor at the end, so while it runs, and after it's cancelled, fails or is killed, the
  * cursor still points past days whose rows are gone.
+ *
+ * ponytail: the cursor is taken to cover every day before it. Moving the scan start date
+ * past a run's start mid-run lets a catch-up scan skip those days and still move it, so
+ * they can settle clean. It needs a settings change mid-run; store the scan's covered range
+ * and check each day against it if that ever matters.
  */
 fun inboxReadBefore(lastScanAt: Long?, owesFullWindow: Boolean, zone: ZoneId = ZoneId.systemDefault()): LocalDate =
     lastScanAt?.takeUnless { owesFullWindow }?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() } ?: LocalDate.MIN

@@ -46,6 +46,7 @@
     <!-- %1$s: the merchant of today's counted expense -->
     <string name="challenge_today_missed">%1$s counted today. Tomorrow is a fresh day.</string>
     <string name="challenge_last_day_settling">That was the last day. It counts tomorrow, once any late bank messages are in.</string>
+    <string name="challenge_out_of_reach">Out of reach this time. Give up to start another, or let the week finish.</string>
     <string name="challenge_paused">Paused: no day counts while PennyWise can\'t read your bank messages.</string>
     <string name="challenge_reading_inbox">Reading your bank messages from the days so far. They count once that\'s done.</string>
     <string name="challenge_inbox_unread">Some days count once PennyWise has read their bank messages. Sync on Home to read them now.</string>

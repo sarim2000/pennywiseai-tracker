@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.presentation.home
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +21,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -62,8 +62,8 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.DateRangeUtils
 import java.math.BigDecimal
 import kotlin.math.roundToInt
 
@@ -84,7 +84,8 @@ internal fun WeeklyGuessCard(
     modifier: Modifier = Modifier,
 ) {
     Card(
-        modifier = modifier.fillMaxWidth().clickable(onClick = onOpen),
+        onClick = onOpen,
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
@@ -95,10 +96,10 @@ internal fun WeeklyGuessCard(
             modifier = Modifier.padding(start = Spacing.md, top = Spacing.md, end = Spacing.md, bottom = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Mascot(size = Dimensions.Icon.hero)
+            Mascot(size = Dimensions.Icon.hero, tint = MaterialTheme.colorScheme.onTertiaryContainer)
             Column(modifier = Modifier.weight(1f).padding(horizontal = Spacing.md)) {
                 Text(
-                    text = stringResource(R.string.weekly_guess_label).uppercase(),
+                    text = stringResource(R.string.weekly_guess_label),
                     style = MaterialTheme.typography.labelMedium,
                 )
                 Text(
@@ -118,10 +119,10 @@ internal fun WeeklyGuessCard(
             }
         }
         FlowRow(modifier = Modifier.padding(start = Spacing.md + Dimensions.Icon.hero + Spacing.xs, bottom = Spacing.xs)) {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.weekly_guess_not_now), color = MaterialTheme.colorScheme.onTertiaryContainer)
             }
-            TextButton(onClick = onStop) {
+            TextButton(onClick = onStop, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.weekly_guess_stop), color = MaterialTheme.colorScheme.onTertiaryContainer)
             }
         }
@@ -175,7 +176,9 @@ internal fun WeeklyGuessSheet(
                     modifier = Modifier.semantics { heading() },
                 )
                 Text(
-                    text = DateRangeUtils.formatDateRange(question.weekStart, question.weekEnd),
+                    text = AppDates.dayMonthFormatter().let {
+                        stringResource(R.string.budgets_date_range, question.weekStart.format(it), question.weekEnd.format(it))
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -205,10 +208,12 @@ internal fun WeeklyGuessSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GuessPicker(question: WeeklyGuessQuestion, onLockIn: (BigDecimal) -> Unit) {
-    // A quarter of the way, as a starting point the user moves: never the answer's own spot.
+    // A quarter of the way, only as a place to start: the thumb can land inside the hit band
+    // on a light week, so nothing locks in until the user has dragged or picked.
     var picked by rememberSaveable(question.weekStart) {
         mutableStateOf(snap(question.max.divide(BigDecimal(4)), question.step).toPlainString())
     }
+    var touched by rememberSaveable(question.weekStart) { mutableStateOf(false) }
     val amount = BigDecimal(picked)
     val shown = CurrencyFormatter.formatCurrency(amount, question.currency)
     val label = stringResource(R.string.weekly_guess_your_guess)
@@ -244,6 +249,7 @@ private fun GuessPicker(question: WeeklyGuessQuestion, onLockIn: (BigDecimal) ->
                 onValueChange = {
                     val at = it.roundToInt().coerceIn(stops.indices)
                     picked = stops[at].stripTrailingZeros().toPlainString()
+                    touched = true
                 },
                 track = { SliderDefaults.Track(sliderState = it, drawTick = { _, _ -> }) },
                 modifier = Modifier.semantics {
@@ -267,8 +273,10 @@ private fun GuessPicker(question: WeeklyGuessQuestion, onLockIn: (BigDecimal) ->
                 question.chips.forEach { chip ->
                     FilterChip(
                         selected = amount.compareTo(chip) == 0,
-                        onClick = { picked = chip.toPlainString() },
+                        onClick = { picked = chip.toPlainString(); touched = true },
                         label = { Text(CurrencyFormatter.formatCurrency(chip, question.currency)) },
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
                     )
                 }
             }
@@ -276,6 +284,7 @@ private fun GuessPicker(question: WeeklyGuessQuestion, onLockIn: (BigDecimal) ->
     }
     Button(
         onClick = { onLockIn(amount) },
+        enabled = touched,
         modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
         shapes = ButtonDefaults.shapes(),
         contentPadding = ButtonDefaults.contentPaddingFor(ButtonDefaults.MediumContainerHeight),
@@ -350,7 +359,7 @@ private fun GuessReveal(
         textAlign = TextAlign.Center,
     )
     if (!close) {
-        TextButton(onClick = onSeeWeek) { Text(stringResource(R.string.weekly_guess_see_week)) }
+        TextButton(onClick = onSeeWeek, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.weekly_guess_see_week)) }
     }
     Button(onClick = onDone, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
         Text(stringResource(R.string.weekly_guess_done))

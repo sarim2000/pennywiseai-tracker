@@ -134,7 +134,9 @@ object CelebrationKeys {
     /** By uid, not row id: a restore can give another goal the same id. */
     fun goalReached(goalUid: String) = "goal_reached:$goalUid"
     fun achievement(key: String, tier: Int) = "achievement:$key:$tier"
-    fun budgetMonth(month: java.time.YearMonth, currency: String) = "budget_month:$month:$currency"
+    /** The cycle start keeps a calendar month and a custom cycle ending in the same month apart. */
+    fun budgetMonth(month: java.time.YearMonth, currency: String, cycleStart: java.time.LocalDate) =
+        "budget_month:$month:$currency:$cycleStart"
 
     /** A close weekly guess; [weekStart] is the week's first day ("2026-11-09"). */
     fun weeklyGuess(weekStart: java.time.LocalDate) = "guess:$weekStart"

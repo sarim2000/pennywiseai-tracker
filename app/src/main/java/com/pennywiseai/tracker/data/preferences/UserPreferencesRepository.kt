@@ -89,7 +89,7 @@ object CelebrationSeeds {
 
 /**
  * Dismissal keys still worth keeping: those for [keepMonth], the month the cycle whose card
- * can still show ends in, or none when no card can. Keys look like `budget_month:2026-10:JOD`.
+ * can still show ends in, or none when no card can. Keys look like `budget_month:2026-10:JOD:2026-10-01`.
  */
 internal fun eligibleBudgetMonthDismissals(keys: Set<String>, keepMonth: YearMonth?): Set<String> {
     if (keepMonth == null) return emptySet()

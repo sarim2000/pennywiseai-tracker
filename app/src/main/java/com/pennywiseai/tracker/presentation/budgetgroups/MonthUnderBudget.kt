@@ -34,7 +34,6 @@ import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
-import com.pennywiseai.tracker.utils.DateRangeUtils
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
@@ -53,13 +52,23 @@ fun underBudgetCycle(today: LocalDate, startDay: Int): BudgetWindow? {
     return BudgetWindow(start, end, ChronoUnit.DAYS.between(start, end).toInt() + 1)
 }
 
+/**
+ * The Budgets page month after the date moves from [before] to [now]. A page left on the
+ * current month moves on with it (the app kept alive from 28 Dec to 3 Jan lands on January,
+ * where the under-budget card shows); a page the user moved to an older month stays put.
+ */
+internal fun followToday(selected: YearMonth?, before: LocalDate, now: LocalDate): YearMonth? {
+    val current = YearMonth.from(now)
+    return if (selected == YearMonth.from(before) && current.isAfter(selected)) current else selected
+}
+
 /** The cycle [start]..[end] ended with every monthly spending limit kept, in [currency]. */
 data class MonthUnderBudget(val start: LocalDate, val end: LocalDate, val currency: String) {
     /** The month the cycle ends in: one per cycle, as the Review prompt keys it. */
     val month: YearMonth get() = YearMonth.from(end)
 
     /** Names the moment for both the one-time celebration and the card's dismissal. */
-    val key: String get() = CelebrationKeys.budgetMonth(month, currency)
+    val key: String get() = CelebrationKeys.budgetMonth(month, currency, start)
 }
 
 /**
@@ -153,7 +162,8 @@ fun MonthUnderBudgetCard(win: MonthUnderBudget, onDismiss: () -> Unit, modifier:
                 val label = if (isCalendarMonth(win.start, win.end)) {
                     win.start.format(AppDates.pattern("MMMM"))
                 } else {
-                    DateRangeUtils.formatDateRange(win.start, win.end)
+                    val day = AppDates.dayMonthFormatter()
+                    stringResource(R.string.budgets_date_range, win.start.format(day), win.end.format(day))
                 }
                 Text(
                     text = stringResource(R.string.budget_month_kept_title, label),

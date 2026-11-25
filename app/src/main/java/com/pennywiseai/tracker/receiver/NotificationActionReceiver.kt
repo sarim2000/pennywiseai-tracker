@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import com.pennywiseai.tracker.R
@@ -13,6 +14,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.manager.ConscienceNotifier
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
@@ -63,7 +65,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_ADD_TAUGHT = "com.pennywiseai.tracker.ACTION_ADD_TAUGHT"
         private const val EXTRA_UNRECOGNIZED_SMS_ID = "unrecognized_sms_id"
         const val ACTION_CONSCIENCE_RETIRE = "com.pennywiseai.tracker.ACTION_CONSCIENCE_RETIRE"
+        const val ACTION_CONSCIENCE_LIKE = "com.pennywiseai.tracker.ACTION_CONSCIENCE_LIKE"
         private const val EXTRA_CONSCIENCE_LINE_KEY = "conscience_line_key"
+        private const val EXTRA_CONSCIENCE_REMARK_ID = "conscience_remark_id"
         private const val EXTRA_BILLING_CYCLE = "billing_cycle"
         private const val EXTRA_PREVIOUS_CATEGORY = "previous_category"
         private const val EXTRA_MERCHANT = "merchant"
@@ -155,13 +159,19 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-        /** "Not this one" on a remark: only one is ever shown, so one request code is enough. */
-        fun conscienceRetireIntent(context: Context, lineKey: String): PendingIntent =
+        /**
+         * "Liked it" ([liked]) or "Not this one" on remark [remarkId]. The remark id is in
+         * the data URI too, so a sample and a real remark shown together keep their own
+         * extras: same action and request code would otherwise share one PendingIntent.
+         */
+        fun conscienceReactionIntent(context: Context, remarkId: Long, lineKey: String, liked: Boolean): PendingIntent =
             PendingIntent.getBroadcast(
                 context,
                 0,
                 Intent(context, NotificationActionReceiver::class.java).apply {
-                    action = ACTION_CONSCIENCE_RETIRE
+                    action = if (liked) ACTION_CONSCIENCE_LIKE else ACTION_CONSCIENCE_RETIRE
+                    data = Uri.parse("pennywise://conscience/$remarkId/${if (liked) "like" else "retire"}")
+                    putExtra(EXTRA_CONSCIENCE_REMARK_ID, remarkId)
                     putExtra(EXTRA_CONSCIENCE_LINE_KEY, lineKey)
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -192,7 +202,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val transactionId = intent.getLongExtra(EXTRA_TRANSACTION_ID, -1)
         val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, -1)
 
-        if (transactionId == -1L && intent.action != ACTION_CONSCIENCE_RETIRE) {
+        val isConscience = intent.action == ACTION_CONSCIENCE_LIKE || intent.action == ACTION_CONSCIENCE_RETIRE
+        if (transactionId == -1L && !isConscience) {
             Log.e(TAG, "No transaction ID provided")
             return
         }
@@ -265,11 +276,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             else dismissNotification(context, notificationId)
                         }.onFailure { Log.e(TAG, "Error setting excluded=$exclude", it) }
                     }
-                    ACTION_CONSCIENCE_RETIRE -> {
-                        runCatching {
-                            intent.getStringExtra(EXTRA_CONSCIENCE_LINE_KEY)?.let { entryPoint.notificationPreferences().retireConscienceLine(it) }
-                            ConscienceNotifier.showRetired(context)
-                        }.onFailure { Log.e(TAG, "Error retiring a conscience line", it) }
+                    ACTION_CONSCIENCE_LIKE, ACTION_CONSCIENCE_RETIRE -> {
+                        runCatching { reactToConscience(context, entryPoint.notificationPreferences(), intent) }
+                            .onFailure { Log.e(TAG, "Error applying a conscience reaction", it) }
                     }
                     else -> {
                         Log.w(TAG, "Unknown action: ${intent.action}")
@@ -279,6 +288,25 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 pendingResult.finish()
             }
         }
+    }
+
+    private suspend fun reactToConscience(context: Context, preferences: NotificationPreferences, intent: Intent) {
+        // A remark posted before reactions had ids carries only its line key.
+        val remarkId = intent.getLongExtra(EXTRA_CONSCIENCE_REMARK_ID, ConscienceNotifier.NO_REMARK_ID)
+        val lineKey = intent.getStringExtra(EXTRA_CONSCIENCE_LINE_KEY).orEmpty()
+        val liked = intent.action == ACTION_CONSCIENCE_LIKE
+        val message = when {
+            remarkId == ConscienceNotifier.SAMPLE_REMARK_ID -> R.string.conscience_confirm_sample
+            // Nothing changed (already rated, or the line already stands that way): the remark just goes away.
+            !preferences.reactToConscience(
+                remarkId,
+                lineKey,
+                if (liked) ConscienceReaction.LIKED else ConscienceReaction.RETIRED
+            ) -> null
+            liked -> R.string.conscience_confirm_like
+            else -> R.string.conscience_confirm_dislike
+        }
+        ConscienceNotifier.showConfirmation(context, remarkId, message)
     }
 
     private suspend fun deleteTransaction(

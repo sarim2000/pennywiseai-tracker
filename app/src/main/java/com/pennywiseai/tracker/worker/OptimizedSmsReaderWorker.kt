@@ -335,6 +335,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             Result.failure()
         } finally {
             Trace.endSection()
+            // The scan's outcome is recorded either way: show it on the check-up widget.
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTrackingCheckup(applicationContext)
         }
     }
 

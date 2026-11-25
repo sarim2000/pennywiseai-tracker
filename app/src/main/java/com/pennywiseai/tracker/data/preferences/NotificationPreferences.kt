@@ -2,6 +2,11 @@ package com.pennywiseai.tracker.data.preferences
 
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
+import com.pennywiseai.tracker.domain.conscience.ConscienceFeedback
+import com.pennywiseai.tracker.domain.conscience.ConscienceFrequency
+import com.pennywiseai.tracker.domain.conscience.ConscienceKind
+import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
+import com.pennywiseai.tracker.domain.conscience.ConscienceRemark
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import kotlinx.coroutines.flow.Flow
 import kotlin.random.Random
@@ -42,15 +47,35 @@ interface NotificationPreferences {
 
     suspend fun setConscienceEnabled(enabled: Boolean)
 
-    /** "Not this one": the line never comes back. */
-    suspend fun retireConscienceLine(lineKey: String)
+    val conscienceFrequency: Flow<ConscienceFrequency>
 
-    /** Spends a slot and picks the comment in one edit; null when the cadence says no or no line is left. */
+    suspend fun setConscienceFrequency(frequency: ConscienceFrequency)
+
+    /** Kinds of comment the user switched off on the Conscience screen. */
+    val conscienceMutedKinds: Flow<Set<ConscienceKind>>
+
+    suspend fun setConscienceKindEnabled(kind: ConscienceKind, enabled: Boolean)
+
+    val conscienceFeedback: Flow<ConscienceFeedback>
+
+    val conscienceRemarks: Flow<List<ConscienceRemark>>
+
+    /** "Liked it" or "Not this one" on a remark; true when the line's standing changed. */
+    suspend fun reactToConscience(remarkId: Long, lineKey: String, reaction: ConscienceReaction): Boolean
+
+    /** Undoes the likes and retirements of the lines written in [contentLocale]. */
+    suspend fun resetConscienceFeedback(contentLocale: String)
+
+    /**
+     * Spends a slot, picks the comment and stores its remark in one edit; null when the cadence
+     * says no or no line is left. A remark only saved overnight (not notified) spends no slot.
+     */
     suspend fun tryClaimConscience(
         candidates: List<ConscienceCandidate>,
         contentLocale: String,
         nowMillis: Long,
         todayEpochDay: Long,
         random: Random,
-    ): ConscienceChoice?
+        remarkFor: (ConscienceChoice) -> ConscienceRemark?,
+    ): ConscienceRemark?
 }

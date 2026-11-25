@@ -235,7 +235,8 @@ private fun ActiveChallengeCard(
                         .background(scheme.surfaceContainerLowest),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(run.icon(), contentDescription = null, tint = ink, modifier = Modifier.size(Dimensions.Icon.medium))
+                    // On the neutral cookie, not the tertiary fill: its own ink stays visible in every scheme.
+                    Icon(run.icon(), contentDescription = null, tint = scheme.onSurfaceVariant, modifier = Modifier.size(Dimensions.Icon.medium))
                 }
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -331,7 +332,7 @@ private fun DayDots(days: List<ChallengeDay>, picked: LocalDate?, onPick: (Chall
                     val glyph = when (day.status) {
                         DayStatus.CLEAN -> Icons.Default.Check to scheme.tertiaryContainer
                         DayStatus.MISSED -> Icons.Default.Close to scheme.onSurfaceVariant
-                        DayStatus.PENDING -> Icons.Default.Schedule to ink
+                        DayStatus.PENDING -> Icons.Default.Schedule to scheme.onSurfaceVariant
                         DayStatus.FUTURE -> null
                     }
                     glyph?.let { (icon, tint) ->
@@ -402,7 +403,11 @@ private fun ResultCard(
         containerColor = if (outcome.won) scheme.tertiaryContainer else scheme.surfaceContainerLow,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            Mascot(size = Dimensions.Icon.hero, mood = if (outcome.won) MascotMood.Happy else MascotMood.Calm)
+            Mascot(
+                size = Dimensions.Icon.hero,
+                mood = if (outcome.won) MascotMood.Happy else MascotMood.Calm,
+                tint = if (outcome.won) scheme.onTertiaryContainer else scheme.primary,
+            )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                 Text(headline, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Text(

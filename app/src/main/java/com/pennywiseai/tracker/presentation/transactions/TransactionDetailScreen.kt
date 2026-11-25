@@ -458,7 +458,11 @@ fun TransactionDetailScreen(
                     viewModel.quickUpdateCategory(name)
                 },
                 onDismiss = { showCategoryPicker = false },
-                mostUsed = mostUsed
+                mostUsed = mostUsed,
+                onWhatWasThis = {
+                    showCategoryPicker = false
+                    showWhatWasThis = true
+                }.takeIf { whatWasThisOptions(txn, loan != null).isNotEmpty() }
             )
         }
     }

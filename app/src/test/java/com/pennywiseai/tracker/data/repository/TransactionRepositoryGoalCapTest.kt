@@ -52,8 +52,7 @@ class TransactionRepositoryGoalCapTest {
         assertTrue(repo.deleteDuplicate(duplicateId = 8, keeperId = 9))
         coVerifyOrder {
             goals.moveContributions(8, 9)
-            dao.moveReimbursementToKeeper(8, 9)
-            dao.softDeleteTransaction(8)
+            dao.softDeleteDuplicate(8, 9)
         }
     }
 
@@ -64,7 +63,7 @@ class TransactionRepositoryGoalCapTest {
         assertTrue(repo.deleteDuplicate(duplicateId = 8, keeperId = 9))
         coVerifyOrder {
             dao.moveSharesToKeeper(8, 9)
-            dao.softDeleteTransaction(8)
+            dao.softDeleteDuplicate(8, 9)
         }
     }
 
@@ -74,7 +73,7 @@ class TransactionRepositoryGoalCapTest {
         coEvery { dao.getShareAmounts(8) } returns listOf(BigDecimal("300"))
         coEvery { dao.moveSharesToKeeper(8, 9) } returns false
         assertFalse(repo.deleteDuplicate(duplicateId = 8, keeperId = 9))
-        coVerify(exactly = 0) { dao.softDeleteTransaction(8) }
+        coVerify(exactly = 0) { dao.softDeleteDuplicate(any(), any()) }
         coVerify(exactly = 0) { goals.moveContributions(any(), any()) }
     }
 

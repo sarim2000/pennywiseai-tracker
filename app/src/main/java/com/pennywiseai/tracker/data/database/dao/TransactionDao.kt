@@ -345,14 +345,16 @@ interface TransactionDao {
     suspend fun setReimbursement(transactionId: Long, status: String?, reimbursedById: Long?, updatedAt: LocalDateTime): Int
 
     /**
-     * Before a duplicate is removed (#1389): the keeper takes the duplicate's reimbursement when it
-     * has none, and expenses the duplicate paid back point at the keeper instead.
+     * Soft-deletes a duplicate (#1389): the keeper takes its reimbursement when it has none, and
+     * expenses it paid back point at the keeper instead. One transaction, so a cancel can't leave
+     * both rows active with the same claim.
      */
     @androidx.room3.Transaction
-    suspend fun moveReimbursementToKeeper(fromId: Long, toId: Long) {
+    suspend fun softDeleteDuplicate(fromId: Long, toId: Long) {
         if (fromId == toId) return
         copyReimbursementIfUnset(fromId, toId)
         repointReimbursedBy(fromId, toId)
+        softDeleteTransaction(fromId)
     }
 
     @Query(

@@ -10,12 +10,13 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
-/** Duplicate cleanup keeps a reimbursement (#1389): the keeper takes it, links follow the keeper. */
+/** Removing a duplicate keeps its reimbursement (#1389): the keeper takes it, links follow the keeper. */
 @RunWith(AndroidJUnit4::class)
 class ReimbursementDuplicateTest {
     private val db = Room.inMemoryDatabaseBuilder(
@@ -41,16 +42,17 @@ class ReimbursementDuplicateTest {
     @Test fun keeperTakesTheDuplicatesMark() = runBlocking {
         insert(1, status = ReimbursementStatus.REIMBURSED, by = 5)
         insert(2)
-        dao.moveReimbursementToKeeper(1, 2)
+        dao.softDeleteDuplicate(1, 2)
         val keeper = dao.getTransactionById(2)!!
         assertEquals(ReimbursementStatus.REIMBURSED, keeper.reimbursementStatus)
         assertEquals(5L, keeper.reimbursedById)
+        assertTrue(dao.getTransactionById(1)!!.isDeleted)
     }
 
     @Test fun aKeeperWithItsOwnMarkKeepsIt() = runBlocking {
         insert(1, status = ReimbursementStatus.REIMBURSED, by = 5)
         insert(2, status = ReimbursementStatus.PENDING)
-        dao.moveReimbursementToKeeper(1, 2)
+        dao.softDeleteDuplicate(1, 2)
         val keeper = dao.getTransactionById(2)!!
         assertEquals(ReimbursementStatus.PENDING, keeper.reimbursementStatus)
         assertNull(keeper.reimbursedById)
@@ -60,7 +62,7 @@ class ReimbursementDuplicateTest {
         insert(1, TransactionType.INCOME)
         insert(2, TransactionType.INCOME)
         insert(3, status = ReimbursementStatus.REIMBURSED, by = 1)
-        dao.moveReimbursementToKeeper(1, 2)
+        dao.softDeleteDuplicate(1, 2)
         assertEquals(2L, dao.getTransactionById(3)!!.reimbursedById)
         assertNull(dao.getTransactionById(2)!!.reimbursementStatus)
     }

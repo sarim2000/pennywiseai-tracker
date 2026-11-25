@@ -40,7 +40,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
+import java.io.IOException
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
@@ -70,6 +72,27 @@ internal object SmsScanAllTimeMigration : androidx.datastore.core.DataMigration<
         val hasAllTimeSet = currentData.contains(booleanPreferencesKey("sms_scan_all_time"))
         return hasCompletedOnboarding && !hasAllTimeSet
     }
+}
+
+/**
+ * Celebration claims meaning "what was already earned is recorded, without confetti"
+ * ([UserPreferencesRepository.seedCelebrations]). A restore forgets them, so restored
+ * history is recorded the same way.
+ */
+object CelebrationSeeds {
+    const val ACHIEVEMENTS = "achievements_seeded"
+    const val GOALS = "goals_seeded"
+    val ALL = setOf(ACHIEVEMENTS, GOALS)
+}
+
+/**
+ * Dismissal keys still worth keeping: those for [keepMonth], the month the cycle whose card
+ * can still show ends in, or none when no card can. Keys look like `budget_month:2026-10:JOD:2026-10-01`.
+ */
+internal fun eligibleBudgetMonthDismissals(keys: Set<String>, keepMonth: YearMonth?): Set<String> {
+    if (keepMonth == null) return emptySet()
+    val prefix = "budget_month:$keepMonth:"
+    return keys.filterTo(linkedSetOf()) { it.startsWith(prefix) }
 }
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
@@ -170,6 +193,10 @@ open class UserPreferencesRepository internal constructor(
         val RECURRING_OFFER_LOG = stringSetPreferencesKey("recurring_offer_log")
         // Insight ids dismissed this cycle (Insight.id names the cycle). Device-local.
         val DISMISSED_INSIGHTS = stringSetPreferencesKey("dismissed_insights")
+        // Moments already celebrated with confetti ("goal_reached:12"), so each fires once. Device-local.
+        val CELEBRATED_MOMENTS = stringSetPreferencesKey("celebrated_moments")
+        // "Month ended under budget" cards the user closed ("budget_month:2026-10:INR"), one per currency. Device-local.
+        val BUDGET_MONTH_CARD_DISMISSED = stringSetPreferencesKey("budget_month_cards_dismissed")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -341,8 +368,9 @@ open class UserPreferencesRepository internal constructor(
             K.BACKGROUND_OEM_STEP_CONFIRMED_ON, K.WEEKLY_SUMMARY_LAST_WEEK, K.REVIEW_PROMPT_HANDLED_YEAR,
             K.CONSCIENCE_LOG, K.CONSCIENCE_REMARKS, K.ACTIVE_DOWNLOAD_ID, K.SHARE_PROMPT_HANDLED_MONTH, K.PRO_HOME_CARD_HANDLED,
             K.PAYDAY_SUGGESTION_HANDLED, K.RECURRING_HOME_CARD_SEEN, K.RECURRING_HOME_CARD_DISMISSED_AT,
-            K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES,
-            K.LAST_AUTH_TIMESTAMP, K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
+            K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.CELEBRATED_MOMENTS,
+            K.BUDGET_MONTH_CARD_DISMISSED,
+            K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES, K.LAST_AUTH_TIMESTAMP, K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
             K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING,
@@ -1526,6 +1554,88 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.SHAKE_TO_HIDE_HINT_SHOWN] = true
         }
         return first
+    }
+
+    /**
+     * Records [keys] as celebrated in one edit and returns the ones that weren't yet:
+     * the moments to celebrate now. Asking again returns nothing. A full disk returns
+     * nothing either, so nothing plays and a later visit can retry.
+     */
+    suspend fun claimCelebrations(keys: Collection<String>): Set<String> {
+        return try {
+            var fresh = emptySet<String>()
+            dataStore.edit { preferences ->
+                val celebrated = preferences[PreferencesKeys.CELEBRATED_MOMENTS] ?: emptySet()
+                fresh = keys.toSet() - celebrated
+                if (fresh.isNotEmpty()) preferences[PreferencesKeys.CELEBRATED_MOMENTS] = celebrated + fresh
+            }
+            fresh
+        } catch (_: IOException) {
+            emptySet()
+        }
+    }
+
+    /** True only the first time [key] is asked for. */
+    suspend fun celebrateOnce(key: String): Boolean = claimCelebrations(listOf(key)).isNotEmpty()
+
+    /**
+     * The first time [seed] is asked for, claims [history] with it, silently: what was already
+     * earned on an install, an upgrade or a restore is history, not news. Later calls do nothing
+     * and skip [history]'s query. A full disk claims nothing, so a later visit retries.
+     */
+    suspend fun seedCelebrations(seed: String, history: suspend () -> Collection<String>) {
+        try {
+            if (seed in dataStore.data.first()[PreferencesKeys.CELEBRATED_MOMENTS].orEmpty()) return
+            val keys = history()
+            dataStore.edit { prefs ->
+                prefs[PreferencesKeys.CELEBRATED_MOMENTS] = prefs[PreferencesKeys.CELEBRATED_MOMENTS].orEmpty() + keys + seed
+            }
+        } catch (_: IOException) {
+            // Nothing recorded; the next visit seeds again.
+        }
+    }
+
+    /**
+     * After a restore, which brings goals and history this device never saw: the next visit
+     * seeds again (see [seedCelebrations]), so a restored, long-reached goal doesn't cheer.
+     */
+    suspend fun forgetCelebrationSeeds() {
+        try {
+            dataStore.edit { prefs ->
+                val celebrated = prefs[PreferencesKeys.CELEBRATED_MOMENTS] ?: return@edit
+                prefs[PreferencesKeys.CELEBRATED_MOMENTS] = celebrated - CelebrationSeeds.ALL
+            }
+        } catch (_: IOException) {
+            // A full disk leaves the old seeds: restored history may cheer once.
+        }
+    }
+
+    /** "Month ended under budget" cards the user closed, one key per currency. */
+    val budgetMonthCardsDismissed: Flow<Set<String>> = dataStore.data
+        .map { it[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] ?: emptySet() }
+
+    /** Remembers [key] and drops every other month's: only [keepMonth]'s card can still show. */
+    suspend fun dismissBudgetMonthCard(key: String, keepMonth: YearMonth) {
+        editBudgetMonthDismissals(keepMonth) { it + key }
+    }
+
+    /** Drops dismissal keys for any month but [keepMonth]; all of them when it's null. */
+    suspend fun pruneBudgetMonthDismissals(keepMonth: YearMonth?) {
+        editBudgetMonthDismissals(keepMonth) { it }
+    }
+
+    private suspend fun editBudgetMonthDismissals(keepMonth: YearMonth?, update: (Set<String>) -> Set<String>) {
+        try {
+            dataStore.edit { prefs ->
+                val current = prefs[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] ?: emptySet()
+                val kept = eligibleBudgetMonthDismissals(update(current), keepMonth)
+                if (kept == current) return@edit
+                if (kept.isEmpty()) prefs.remove(PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED)
+                else prefs[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] = kept
+            }
+        } catch (_: IOException) {
+            // Full disk: leave the stored set alone so a later visit can try again.
+        }
     }
 
     // Replace UPI VPAs with matching contact names at display time.

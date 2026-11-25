@@ -68,6 +68,8 @@ class BackupImporter @Inject constructor(
                 findUnlinkedTransferPairs(dao.getUnlinkedTransfers()).forEach { (source, destination) ->
                     dao.linkTransferPair(UUID.randomUUID().toString(), listOf(source, destination))
                 }
+                // Restored goals and badges are history: the next visit records them without confetti.
+                userPreferencesRepository.forgetCelebrationSeeds()
             }
             // Last, since it recreates the screens. Settings re-syncs workers and widgets.
             if (result is ImportResult.Success) {

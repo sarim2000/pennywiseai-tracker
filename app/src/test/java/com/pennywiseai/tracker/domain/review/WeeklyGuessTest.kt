@@ -248,4 +248,16 @@ class WeeklyGuessTest {
             leavesOutCardSpend(q, listOf(charge("Food & Dining", splits = listOf("Shopping", "Travel"))), creditAsExpense = false, parentOf),
         )
     }
+
+    @Test
+    fun `ordinary steps still offer a stop inside the hit band`() {
+        // 1.5 with no history: max 3, step 1, and neither 1 nor 2 is within 15%.
+        val actual = BigDecimal("1.5")
+        val max = guessMax(actual, emptyList())
+        val step = guessStep(max)
+        val stops = sliderStops(max, step, actual)
+        assertTrue(stops.any { isCloseGuess(it, actual) })
+        // Every multiple stays, so the chips still land on a stop.
+        assertTrue(stops.containsAll((0..max.toInt()).map { BigDecimal(it) }))
+    }
 }

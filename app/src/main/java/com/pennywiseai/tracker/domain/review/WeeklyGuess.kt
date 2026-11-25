@@ -158,7 +158,10 @@ internal fun sliderStops(max: BigDecimal, step: BigDecimal, actual: BigDecimal):
     if (step.signum() <= 0 || max.signum() <= 0) return listOf(BigDecimal.ZERO)
     if (max <= step.multiply(BigDecimal(MAX_SLIDER_POSITIONS))) {
         val count = max.divide(step, 0, RoundingMode.DOWN).intValueExact()
-        return (0..count).map { step.multiply(BigDecimal(it)).plain() }
+        val multiples = (0..count).map { step.multiply(BigDecimal(it)).plain() }
+        // A week of 1.5 on steps of 1 has no multiple within 15%: add one stop that is, and
+        // keep every multiple, so the chips (snapped to the step) still land on a stop.
+        return if (multiples.any { isCloseGuess(it, actual) }) multiples else (multiples + reachableHit(actual)).distinct().sorted()
     }
     val gaps = MAX_SLIDER_POSITIONS - 1
     val coarse = (0..gaps).map { i ->
@@ -174,11 +177,16 @@ internal fun sliderStops(max: BigDecimal, step: BigDecimal, actual: BigDecimal):
 /** [stops] unchanged when one of them already hits; otherwise one interior stop moves into the band. */
 private fun withReachableHit(stops: List<BigDecimal>, actual: BigDecimal): List<BigDecimal> {
     if (stops.any { isCloseGuess(it, actual) }) return stops
-    val whole = actual.setScale(0, RoundingMode.HALF_UP).plain()
-    val hit = if (whole.signum() > 0 && isCloseGuess(whole, actual)) whole else actual.plain()
+    val hit = reachableHit(actual)
     if (stops.size < 3) return (stops + hit).distinct().sorted()
     val index = (1 until stops.lastIndex).minBy { (stops[it] - hit).abs() }
     return stops.mapIndexed { i, value -> if (i == index) hit else value }.distinct().sorted()
+}
+
+/** A stop inside the hit band: [actual] rounded to a whole unit when that's still close, else [actual] itself. */
+private fun reachableHit(actual: BigDecimal): BigDecimal {
+    val whole = actual.setScale(0, RoundingMode.HALF_UP).plain()
+    return if (whole.signum() > 0 && isCloseGuess(whole, actual)) whole else actual.plain()
 }
 
 /** [value] to the nearest [step]. */

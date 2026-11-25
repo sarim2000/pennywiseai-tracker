@@ -62,7 +62,7 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.TransactionAvatar
-import com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory
+import com.pennywiseai.tracker.ui.components.cards.needsCategory
 import com.pennywiseai.tracker.ui.components.cards.unsorted
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
@@ -117,7 +117,7 @@ internal fun TransactionReceipt(
     val currentAlias by viewModel.currentMerchantAlias.collectAsStateWithLifecycle()
     val merchantName = currentAlias ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName
     val ruleSuggestion by viewModel.ruleSuggestion.collectAsStateWithLifecycle()
-    val unsorted = isUnsortedCategory(transaction.category) && !(hasSplits && splits.isNotEmpty())
+    val unsorted = transaction.needsCategory() && !(hasSplits && splits.isNotEmpty())
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -368,7 +368,8 @@ private fun DetailHero(
                 category = transaction.category,
                 size = Dimensions.Icon.detailBadge,
                 glyphSize = Dimensions.Icon.detailBadgeGlyph,
-                shape = MaterialShapes.Cookie9Sided.toShape()
+                shape = MaterialShapes.Cookie9Sided.toShape(),
+                unsorted = transaction.needsCategory()
             )
         }
 
@@ -489,12 +490,12 @@ private fun primaryRows(
     val isSplit = hasSplits && splits.isNotEmpty()
     val categoryText = when {
         isSplit -> pluralStringResource(R.plurals.txn_detail_split_categories, splits.size, splits.size)
-        isUnsortedCategory(transaction.category) -> stringResource(R.string.home_section_unsorted)
+        transaction.needsCategory() -> stringResource(R.string.home_section_unsorted)
         else -> categoryLabel(transaction.category)
     }
     val categoryColor = when {
         isSplit -> MaterialTheme.colorScheme.primary
-        isUnsortedCategory(transaction.category) -> MaterialTheme.colorScheme.unsorted
+        transaction.needsCategory() -> MaterialTheme.colorScheme.unsorted
         else -> CategoryMapping.colorFor(transaction.category)
     }
     // Account, or both legs of a paired transfer. An account without a number

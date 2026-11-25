@@ -230,5 +230,9 @@ describe("requireFilterEcho", () => {
 		const result = answer({ grand_total: [] });
 		expect(requireFilterEcho("spending_summary", { from: "2026-09-01", to: "2026-09-30", exclude_tags: [] }, result)).toBe(result);
 		expect(requireFilterEcho("list_accounts", args, result)).toBe(result);
+		// Not names to the app either: numbers, nested lists, blanks.
+		for (const tag of [5, true, [["Trip"]], [1, null, ""], "  "]) {
+			expect(requireFilterEcho("spending_summary", { tag }, result)).toBe(result);
+		}
 	});
 });

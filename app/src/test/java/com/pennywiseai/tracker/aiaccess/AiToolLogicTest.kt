@@ -252,6 +252,8 @@ class AiToolLogicTest {
             txn("Swiggy", "100", day = 3),
         )
         assertEquals(listOf("Swiggy"), AiToolLogic.searchTransactions(all, null, null, null, 50, excludeCategories = listOf("Travel")).merchants())
+        // The row's own category leaves it out as well, so excluding and filtering by category agree.
+        assertFalse("Hotel refund" in AiToolLogic.searchTransactions(all, null, null, null, 50, excludeCategories = listOf("refund")).merchants())
     }
 
     @Test

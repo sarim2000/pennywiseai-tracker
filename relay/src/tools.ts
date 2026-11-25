@@ -222,7 +222,9 @@ export const NOT_CONNECTED =
 	"PennyWise isn't connected right now. On your phone, open PennyWise → Settings → Connect Claude / ChatGPT and start an AI session (or tap the PennyWise AI tile in Quick Settings), then ask again. If the session is on and the phone is online but this keeps happening, the connection may belong to an earlier install of PennyWise (for example after reinstalling): remove the PennyWise connector here and add it again.";
 
 const FILTER_KEYS = ["tag", "exclude_categories", "exclude_tags"];
-const nonEmpty = (v: unknown): boolean => (Array.isArray(v) ? v.some(nonEmpty) : typeof v === "string" && v.trim() !== "");
+// The app reads a filter as a non-blank JSON string or a list of them; anything else is no filter there either.
+const isName = (v: unknown): boolean => typeof v === "string" && v.trim() !== "";
+const nonEmpty = (v: unknown): boolean => (Array.isArray(v) ? v.some(isName) : isName(v));
 
 /**
  * An older PennyWise app ignores the filter arguments and answers unfiltered. A newer one echoes

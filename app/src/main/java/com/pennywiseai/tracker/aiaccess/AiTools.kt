@@ -221,11 +221,13 @@ class AiTools @Inject constructor(
 
     private fun JsonObject.string(key: String) = (this[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
 
-    /** A list of names; a lone string counts as a list of one. */
-    private fun JsonObject.strings(key: String): List<String> = when (val v = this[key]) {
-        is JsonArray -> v.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.takeIf { s -> s.isNotBlank() } }
-        else -> listOfNotNull(string(key))
-    }
+    /**
+     * A list of names; a lone string counts as a list of one. JSON strings only, the rule the
+     * relay's requireFilterEcho uses to decide whether a filter was asked for.
+     */
+    private fun JsonObject.strings(key: String): List<String> =
+        ((this[key] as? JsonArray) ?: listOfNotNull(this[key]))
+            .mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content?.takeIf { s -> s.isNotBlank() } }
 
     private fun error(message: String) = text(message, isError = true)
 

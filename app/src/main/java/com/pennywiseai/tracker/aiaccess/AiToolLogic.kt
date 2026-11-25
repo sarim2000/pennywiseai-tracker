@@ -67,7 +67,9 @@ object AiToolLogic {
         val base = all.filter {
             (type == null || it.transactionType.name == type) &&
                 (q.isEmpty() || it.merchantName.lowercase().contains(q) || aliases[it.merchantName]?.lowercase()?.contains(q) == true) &&
-                kept(it, categoryOf(it), tagsById, tag, excludedCategories, excludeTags)
+                kept(it, categoryOf(it), tagsById, tag, excludedCategories, excludeTags) &&
+                // A refund row also shows its own category ("Refunds"), so that name leaves it out too.
+                excludedCategories.none { x -> x.equals(it.category, ignoreCase = true) }
         }
         val filtered = base.filter {
             (category == null || it.category.equals(category, ignoreCase = true)) && (account == null || accountOf(it) == account)

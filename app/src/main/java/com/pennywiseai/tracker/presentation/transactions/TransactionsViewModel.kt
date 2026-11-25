@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -417,11 +418,14 @@ class TransactionsViewModel @Inject constructor(
 
             val (expense, income) = if (a.transactionType == TransactionType.EXPENSE) a to b else b to a
 
-            // Snapshot for Undo: type + the two account fields per row.
+            // Snapshot for Undo: type + the two account fields per row, and the reimbursement
+            // (#1389) that becoming a transfer clears.
             data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?,
-                val fromBankName: String?, val toBankName: String?, val transferPairId: String?)
+                val fromBankName: String?, val toBankName: String?, val transferPairId: String?,
+                val reimbursementStatus: ReimbursementStatus?, val reimbursedById: Long?)
             val originals = listOf(a, b).associate {
-                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName, it.transferPairId)
+                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName, it.transferPairId,
+                    it.reimbursementStatus, it.reimbursedById)
             }
 
             transactionRepository.markAsTransferPair(expense, income)
@@ -445,6 +449,10 @@ class TransactionsViewModel @Inject constructor(
                                         updatedAt = nowUndo
                                     )
                                 )
+                                // Only setReimbursement writes these columns, so it's a second write.
+                                snapshot.reimbursementStatus?.let {
+                                    transactionRepository.setReimbursement(id, it, snapshot.reimbursedById)
+                                }
                             }
                         }
                         refreshWidgets()

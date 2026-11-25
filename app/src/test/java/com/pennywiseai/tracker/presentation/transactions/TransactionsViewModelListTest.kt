@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.MerchantAliasEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -22,9 +23,13 @@ import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.TimePeriod
+import com.pennywiseai.tracker.widget.WidgetRefresher
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -85,6 +90,7 @@ class TransactionsViewModelListTest {
     )
 
     private lateinit var viewModel: TransactionsViewModel
+    private lateinit var repo: TransactionRepository
 
     // Main and the ViewModel's background work share this one thread and virtual clock, so
     // the test decides when work runs and the debounce and every wait use virtual time.
@@ -116,6 +122,7 @@ class TransactionsViewModelListTest {
             every { observeRecentCategoryUsage() } returns flowOf(emptyList())
             every { getCurrenciesForPeriod(any(), any()) } returns flowOf(rows.map { it.currency }.distinct())
         }
+        repo = transactions
         val categoryRepo = mockk<CategoryRepository> { every { getAllCategories() } returns flowOf(categories) }
         val tags = mockk<TagRepository> {
             every { observeTransactionTagNames() } returns tagsById
@@ -280,5 +287,28 @@ class TransactionsViewModelListTest {
         val converted = withTimeout(10_000) { viewModel.convertedAmounts.first { it.isNotEmpty() } }
         assertSameAmount("100", converted.getValue(2L))
         assertTrue(1L !in converted)
+    }
+
+    @Test
+    fun `undoing a transfer pair brings a pending reimbursement back`() = runTest(dispatcher) {
+        val expense = row(1).copy(reimbursementStatus = ReimbursementStatus.PENDING)
+        val income = row(2, type = TransactionType.INCOME)
+        start(rows = listOf(expense, income))
+        coEvery { repo.getTransactionById(any()) } answers { listOf(expense, income).first { it.id == firstArg() } }
+        coEvery { repo.markAsTransferPair(any(), any()) } answers { }
+        coEvery { repo.updateTransaction(any()) } answers { }
+        coEvery { repo.setReimbursement(any(), any(), any()) } returns 1
+        mockkObject(WidgetRefresher)
+        every { WidgetRefresher.refreshTransactionWidgets(any()) } returns Unit
+        assertListed(listOf(1, 2))
+
+        viewModel.markPairAsTransfer(1, 2)
+        advanceUntilIdle()
+        viewModel.bulkSnack.value!!.undo!!.invoke()
+        advanceUntilIdle()
+
+        coVerify { repo.setReimbursement(1, ReimbursementStatus.PENDING, null) }
+        coVerify(exactly = 0) { repo.setReimbursement(2, any(), any()) }
+        unmockkObject(WidgetRefresher)
     }
 }

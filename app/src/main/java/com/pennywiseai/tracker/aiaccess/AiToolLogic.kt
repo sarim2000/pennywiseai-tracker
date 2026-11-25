@@ -15,11 +15,13 @@ import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -54,16 +56,18 @@ object AiToolLogic {
         sort: String? = null,
         aliases: Map<String, String> = emptyMap(),
         tagsById: Map<Long, List<String>> = emptyMap(),
-        tag: String? = null,
+        tag: List<String> = emptyList(),
         excludeCategories: List<String> = emptyList(),
         excludeTags: List<String> = emptyList(),
+        subCategories: Map<String, List<String>> = emptyMap(),
     ): JsonObject {
         val q = query?.trim()?.lowercase().orEmpty()
+        val excludedCategories = withSubCategories(excludeCategories, subCategories)
         // The query also matches the alias, so a merchant group from spending_summary finds its rows.
         val base = all.filter {
             (type == null || it.transactionType.name == type) &&
                 (q.isEmpty() || it.merchantName.lowercase().contains(q) || aliases[it.merchantName]?.lowercase()?.contains(q) == true) &&
-                kept(it, it.category, tagsById, tag, excludeCategories, excludeTags)
+                kept(it, categoryOf(it), tagsById, tag, excludedCategories, excludeTags)
         }
         val filtered = base.filter {
             (category == null || it.category.equals(category, ignoreCase = true)) && (account == null || accountOf(it) == account)
@@ -97,6 +101,7 @@ object AiToolLogic {
                     })
                 }
             }
+            putFilters(tag, excludeCategories, excludeTags)
         }
     }
 
@@ -116,15 +121,16 @@ object AiToolLogic {
         limit: Int? = null,
         aliases: Map<String, String> = emptyMap(),
         tagsById: Map<Long, List<String>> = emptyMap(),
-        tag: String? = null,
+        tag: List<String> = emptyList(),
         excludeCategories: List<String> = emptyList(),
         excludeTags: List<String> = emptyList(),
+        subCategories: Map<String, List<String>> = emptyMap(),
     ): JsonObject {
         val income = type == "INCOME"
-        // A refund's category is the budget category it gives back to, as in Analytics.
-        val category: (TransactionEntity) -> String = { t -> if (t.isRefund()) (t.budgetCategory ?: "").ifEmpty { "Others" } else t.category }
+        val category: (TransactionEntity) -> String = { t -> categoryOf(t) }
+        val excludedCategories = withSubCategories(excludeCategories, subCategories)
         val inAccount = all.filter {
-            (account == null || accountOf(it) == account) && kept(it, category(it), tagsById, tag, excludeCategories, excludeTags)
+            (account == null || accountOf(it) == account) && kept(it, category(it), tagsById, tag, excludedCategories, excludeTags)
         }.forTotals()
         val counted = if (income) {
             inAccount.filter { it.transactionType == TransactionType.INCOME && !it.isRefund() }
@@ -158,13 +164,31 @@ object AiToolLogic {
                     })
                 }
             }
+            putFilters(tag, excludeCategories, excludeTags)
         }
     }
 
     private fun TransactionEntity.isRefund() = budgetImpactType == BudgetImpactType.DEDUCT_SPENT
 
+    /** A refund's category is the budget category it gives back to, as in Analytics. */
+    private fun categoryOf(t: TransactionEntity) = if (t.isRefund()) (t.budgetCategory ?: "").ifEmpty { "Others" } else t.category
+
+    /** [names] plus the sub-categories of each ([subCategories]: parent name to its children), as Analytics rolls them up. */
+    private fun withSubCategories(names: List<String>, subCategories: Map<String, List<String>>): List<String> =
+        names + names.flatMap { n -> subCategories.entries.filter { it.key.equals(n, ignoreCase = true) }.flatMap { it.value } }
+
+    /** What was applied, so a caller can tell the filters took effect; absent when none was asked for. */
+    private fun JsonObjectBuilder.putFilters(tag: List<String>, excludeCategories: List<String>, excludeTags: List<String>) {
+        if (tag.isEmpty() && excludeCategories.isEmpty() && excludeTags.isEmpty()) return
+        putJsonObject("filters") {
+            putJsonArray("tag") { tag.forEach { add(it) } }
+            putJsonArray("exclude_categories") { excludeCategories.forEach { add(it) } }
+            putJsonArray("exclude_tags") { excludeTags.forEach { add(it) } }
+        }
+    }
+
     /**
-     * Whether [t] (in [category]) carries [tag] when one is given, and is in none of
+     * Whether [t] (in [category]) carries any of [tag] when any is given, and is in none of
      * [excludeCategories] and carries none of [excludeTags]. Names match ignoring case, as in
      * the app's tag filter; a name that matches nothing leaves nothing out.
      */
@@ -172,12 +196,12 @@ object AiToolLogic {
         t: TransactionEntity,
         category: String,
         tagsById: Map<Long, List<String>>,
-        tag: String?,
+        tag: List<String>,
         excludeCategories: List<String>,
         excludeTags: List<String>,
     ): Boolean {
         val tags = tagsById[t.id].orEmpty()
-        return (tag == null || tags.any { it.equals(tag, ignoreCase = true) }) &&
+        return (tag.isEmpty() || tags.any { x -> tag.any { it.equals(x, ignoreCase = true) } }) &&
             excludeCategories.none { it.equals(category, ignoreCase = true) } &&
             excludeTags.none { x -> tags.any { it.equals(x, ignoreCase = true) } }
     }

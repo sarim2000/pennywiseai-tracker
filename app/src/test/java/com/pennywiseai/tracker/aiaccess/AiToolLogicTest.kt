@@ -202,7 +202,7 @@ class AiToolLogicTest {
         val tags = mapOf(2L to listOf("Work trip"), 3L to listOf("Home"))
         val without = AiToolLogic.spendingSummary(all, groupBy = "category", type = "EXPENSE", tagsById = tags, excludeTags = listOf("work TRIP", "nope"))
         assertEquals(mapOf("INR" to "120.00"), without.totals())
-        val only = AiToolLogic.spendingSummary(all, groupBy = "category", type = "EXPENSE", tagsById = tags, tag = "work trip")
+        val only = AiToolLogic.spendingSummary(all, groupBy = "category", type = "EXPENSE", tagsById = tags, tag = listOf("work trip"))
         assertEquals(mapOf("INR" to "300.00"), only.totals())
     }
 
@@ -214,9 +214,61 @@ class AiToolLogicTest {
             txn("Snack", "20", day = 3).copy(id = 3),
         )
         val tags = mapOf(2L to listOf("Work trip"), 3L to listOf("Home"))
-        assertEquals(listOf("Cab"), AiToolLogic.searchTransactions(all, null, null, null, 50, tagsById = tags, tag = "WORK TRIP").merchants())
+        assertEquals(listOf("Cab"), AiToolLogic.searchTransactions(all, null, null, null, 50, tagsById = tags, tag = listOf("WORK TRIP")).merchants())
         assertEquals(listOf("Snack", "Lunch"), AiToolLogic.searchTransactions(all, null, null, null, 50, excludeCategories = listOf("travel")).merchants())
         assertEquals(listOf("Cab", "Lunch"), AiToolLogic.searchTransactions(all, null, null, null, 50, tagsById = tags, excludeTags = listOf("home")).merchants())
+    }
+
+    @Test
+    fun `tag takes several names and a row matches any of them`() {
+        val all = listOf(txn("Lunch", "100", day = 1).copy(id = 1), txn("Cab", "300", day = 2).copy(id = 2), txn("Snack", "20", day = 3).copy(id = 3))
+        val tags = mapOf(1L to listOf("Trip"), 2L to listOf("Work"), 3L to listOf("Home"))
+        assertEquals(listOf("Cab", "Lunch"), AiToolLogic.searchTransactions(all, null, null, null, 50, tagsById = tags, tag = listOf("trip", "WORK")).merchants())
+        assertEquals(mapOf("INR" to "400.00"), AiToolLogic.spendingSummary(all, groupBy = "category", type = "EXPENSE", tagsById = tags, tag = listOf("trip", "work")).totals())
+    }
+
+    @Test
+    fun `excluding a parent category also leaves out its sub-categories`() {
+        val all = listOf(
+            txn("Swiggy", "100", day = 1),
+            txn("Cafe", "30", category = "Coffee", day = 2),
+            txn("Hotel", "500", category = "Travel", day = 3),
+        )
+        val subs = mapOf("Food & Dining" to listOf("Coffee"))
+        val summary = AiToolLogic.spendingSummary(all, groupBy = "category", type = "EXPENSE", excludeCategories = listOf("food & dining"), subCategories = subs)
+        assertEquals(listOf("Travel"), summary.groupNames())
+        val search = AiToolLogic.searchTransactions(all, null, null, null, 50, excludeCategories = listOf("Food & Dining"), subCategories = subs)
+        assertEquals(listOf("Hotel"), search.merchants())
+        // Without the map the sub-category row stays.
+        assertEquals(listOf("Hotel", "Cafe"), AiToolLogic.searchTransactions(all, null, null, null, 50, excludeCategories = listOf("Food & Dining")).merchants())
+    }
+
+    @Test
+    fun `search leaves out a refund that gives back to an excluded category`() {
+        val all = listOf(
+            txn("Hotel", "500", category = "Travel", day = 1),
+            txn("Hotel refund", "200", type = TransactionType.INCOME, category = "Refund", day = 2)
+                .copy(budgetImpactType = BudgetImpactType.DEDUCT_SPENT, budgetCategory = "Travel"),
+            txn("Swiggy", "100", day = 3),
+        )
+        assertEquals(listOf("Swiggy"), AiToolLogic.searchTransactions(all, null, null, null, 50, excludeCategories = listOf("Travel")).merchants())
+    }
+
+    @Test
+    fun `filters echo appears only when a filter was supplied`() {
+        val all = listOf(txn("Swiggy", "100"))
+        for (out in listOf(AiToolLogic.searchTransactions(all, null, null, null, 10), AiToolLogic.spendingSummary(all, "category", "EXPENSE"))) {
+            assertFalse(out.containsKey("filters"))
+        }
+        for (out in listOf(
+            AiToolLogic.searchTransactions(all, null, null, null, 10, tag = listOf("Trip"), excludeCategories = listOf("Shopping")),
+            AiToolLogic.spendingSummary(all, "category", "EXPENSE", tag = listOf("Trip"), excludeCategories = listOf("Shopping")),
+        )) {
+            val f = out["filters"]!!.jsonObject
+            assertEquals(listOf("Trip"), f["tag"]!!.jsonArray.map { it.jsonPrimitive.content })
+            assertEquals(listOf("Shopping"), f["exclude_categories"]!!.jsonArray.map { it.jsonPrimitive.content })
+            assertEquals(0, f["exclude_tags"]!!.jsonArray.size)
+        }
     }
 
     @Test

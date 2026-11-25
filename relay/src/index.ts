@@ -1,6 +1,6 @@
 import { AuthorizationError, CimdFetchError, OAuthProvider, type OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { authorizePage, messagePage } from "./pages";
-import { TOOLS, TOOL_NAMES } from "./tools";
+import { TOOLS, TOOL_NAMES, requireFilterEcho } from "./tools";
 
 export { Phone } from "./phone";
 
@@ -77,7 +77,7 @@ const mcpHandler = {
 				const name = String(params.name ?? "");
 				if (!TOOL_NAMES.has(name)) return rpcError(id, -32602, `Unknown tool: ${name}`);
 				const result = await env.PHONE.getByName(deviceId).callTool(name, params.arguments ?? {});
-				return rpcResult(id, result);
+				return rpcResult(id, requireFilterEcho(name, params.arguments, result));
 			}
 			default:
 				return rpcError(id, -32601, `Method not found: ${method}`);

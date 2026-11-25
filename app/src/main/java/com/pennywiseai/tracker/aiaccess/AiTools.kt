@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -76,10 +77,11 @@ class AiTools @Inject constructor(
                     offset = args["offset"]?.jsonPrimitive?.intOrNull ?: 0,
                     sort = args.string("sort"),
                     aliases = aliases.getAllAliasesAsMap(),
-                    tagsById = tags.observeTransactionTagNames().first(),
-                    tag = args.string("tag"),
+                    tagsById = if (args.strings("tag").isEmpty() && args.strings("exclude_tags").isEmpty()) emptyMap() else tags.observeTransactionTagNames().first(),
+                    tag = args.strings("tag"),
                     excludeCategories = args.strings("exclude_categories"),
                     excludeTags = args.strings("exclude_tags"),
+                    subCategories = subCategoriesByParent(),
                 )
                 "spending_summary" -> AiToolLogic.spendingSummary(
                     all = inRange(args) ?: return error("Give from and to as YYYY-MM-DD."),
@@ -88,10 +90,11 @@ class AiTools @Inject constructor(
                     account = args.string("account"),
                     limit = args["limit"]?.jsonPrimitive?.intOrNull,
                     aliases = aliases.getAllAliasesAsMap(),
-                    tagsById = tags.observeTransactionTagNames().first(),
-                    tag = args.string("tag"),
+                    tagsById = if (args.strings("tag").isEmpty() && args.strings("exclude_tags").isEmpty()) emptyMap() else tags.observeTransactionTagNames().first(),
+                    tag = args.strings("tag"),
                     excludeCategories = args.strings("exclude_categories"),
                     excludeTags = args.strings("exclude_tags"),
+                    subCategories = subCategoriesByParent(),
                 )
                 "list_accounts" -> AiToolLogic.accounts(balances.getAllLatestBalances().first())
                 "list_subscriptions" -> AiToolLogic.subscriptions(subscriptions.getActiveSubscriptions().first())
@@ -208,6 +211,10 @@ class AiTools @Inject constructor(
         val to = args.date("to") ?: return null
         return if (to.isBefore(from)) null else transactions.getTransactionsBetweenDates(from, to).first()
     }
+
+    /** parent category name to its sub-categories' names, the roll-up Analytics uses. */
+    private suspend fun subCategoriesByParent(): Map<String, List<String>> =
+        categories.getAllCategories().first().parentNameOf().entries.groupBy({ it.value }, { it.key })
 
     private fun JsonObject.date(key: String): LocalDate? =
         string(key)?.let { try { LocalDate.parse(it) } catch (_: DateTimeParseException) { null } }

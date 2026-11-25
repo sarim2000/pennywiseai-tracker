@@ -8,7 +8,10 @@ const write = { readOnlyHint: false, destructiveHint: false, idempotentHint: tru
 const create = { ...write, idempotentHint: false };
 const merchant = { type: "string", description: "Merchant exactly as shown in search_transactions results (the merchant field, not the alias)" };
 // Names match ignoring case; a name that matches nothing leaves nothing out.
-const tag = { type: "string", description: "Only transactions with this tag" };
+const tag = {
+	anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+	description: "Only transactions with this tag: a single tag name, or a list of names to match any of them",
+};
 const excludeCategories = { type: "array", items: { type: "string" }, description: "Leave out transactions in these categories" };
 const excludeTags = { type: "array", items: { type: "string" }, description: "Leave out transactions with any of these tags" };
 const field = {
@@ -217,3 +220,20 @@ export const textResult = (text: string, isError = false): ToolResult => ({ cont
 
 export const NOT_CONNECTED =
 	"PennyWise isn't connected right now. On your phone, open PennyWise → Settings → Connect Claude / ChatGPT and start an AI session (or tap the PennyWise AI tile in Quick Settings), then ask again. If the session is on and the phone is online but this keeps happening, the connection may belong to an earlier install of PennyWise (for example after reinstalling): remove the PennyWise connector here and add it again.";
+
+const FILTER_KEYS = ["tag", "exclude_categories", "exclude_tags"];
+const nonEmpty = (v: unknown): boolean => (Array.isArray(v) ? v.some(nonEmpty) : typeof v === "string" && v.trim() !== "");
+
+/**
+ * An older PennyWise app ignores the filter arguments and answers unfiltered. A newer one echoes
+ * them back in a `filters` field, so a result for filtered arguments without it isn't passed on.
+ */
+export function requireFilterEcho(name: string, args: unknown, result: ToolResult): ToolResult {
+	if ((name !== "search_transactions" && name !== "spending_summary") || result.isError) return result;
+	const given = args as Record<string, unknown> | null;
+	if (!FILTER_KEYS.some((k) => nonEmpty(given?.[k]))) return result;
+	try {
+		if ("filters" in JSON.parse(result.content[0].text)) return result;
+	} catch {}
+	return textResult("This filter needs a newer version of the PennyWise app. Update the app, or retry without tag, exclude_categories and exclude_tags.", true);
+}

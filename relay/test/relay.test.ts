@@ -1,6 +1,7 @@
 import { runInDurableObject } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { requireFilterEcho } from "../src/tools";
 
 const BASE = "https://relay.test";
 const REDIRECT = "https://client.test/callback";
@@ -103,6 +104,14 @@ describe("AI relay", () => {
 
 		const init = (await (await mcp(token!, { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18" } })).json()) as any;
 		expect(init.result.protocolVersion).toBe("2025-06-18");
+		// The connector's picture: named in serverInfo and served from this host.
+		const icon = init.result.serverInfo.icons[0].src as string;
+		expect(new URL(icon).pathname).toBe("/icon.png");
+		for (const path of ["/icon.png", "/favicon.ico"]) {
+			const res = await call(path);
+			expect(res.status).toBe(200);
+			expect(res.headers.get("Content-Type")).toMatch(/^image\//);
+		}
 		const list = (await (await mcp(token!, { jsonrpc: "2.0", id: 2, method: "tools/list" })).json()) as any;
 		expect(list.result.tools.map((t: { name: string }) => t.name)).toContain("spending_summary");
 
@@ -199,5 +208,31 @@ describe("dashboard", () => {
 		await signIn(await pair(auth), "Claude");
 		const { connections } = (await (await call("/device/connections", { headers: auth })).json()) as any;
 		expect(connections.map((c: any) => c.clientName).sort()).toEqual(["Claude", "PennyWise dashboard"]);
+	});
+});
+
+describe("requireFilterEcho", () => {
+	const answer = (body: object) => ({ content: [{ type: "text" as const, text: JSON.stringify(body) }] });
+	const args = { from: "2026-09-01", to: "2026-09-30", exclude_categories: ["Shopping"] };
+
+	it("refuses an unfiltered answer to a filtered request", () => {
+		const out = requireFilterEcho("spending_summary", args, answer({ grand_total: [] }));
+		expect(out.isError).toBe(true);
+		expect(out.content[0].text).toContain("needs a newer version of the PennyWise app");
+	});
+
+	it("passes an answer that echoes the filters", () => {
+		const result = answer({ grand_total: [], filters: { tag: [], exclude_categories: ["Shopping"], exclude_tags: [] } });
+		expect(requireFilterEcho("search_transactions", args, result)).toBe(result);
+	});
+
+	it("passes an answer when no filter was asked for", () => {
+		const result = answer({ grand_total: [] });
+		expect(requireFilterEcho("spending_summary", { from: "2026-09-01", to: "2026-09-30", exclude_tags: [] }, result)).toBe(result);
+		expect(requireFilterEcho("list_accounts", args, result)).toBe(result);
+		// Not names to the app either: numbers, nested lists, blanks.
+		for (const tag of [5, true, [["Trip"]], [1, null, ""], "  ", "\ufeff", "\u001f", "\u0085", "\u180e"]) {
+			expect(requireFilterEcho("spending_summary", { tag }, result)).toBe(result);
+		}
 	});
 });

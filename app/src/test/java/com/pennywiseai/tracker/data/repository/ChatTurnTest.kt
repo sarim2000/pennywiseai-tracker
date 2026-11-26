@@ -1395,6 +1395,13 @@ class ChatTurnTest {
         assertEquals(1f, repository.lastReply.value?.share)
         assertTrue(saved.last().id.startsWith(LlmRepository.QUICK_ID))
 
+        // A limit rollover carried down to 0, nothing spent yet: used up on the gauge, not 0/0 (#1372).
+        coEvery { planning.budgets(any()) } returns listOf(
+            BudgetStatus("Food", "SAR", BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30)),
+        )
+        assertTrue(send("budget left?").lines()[1].startsWith("LEFT Food|"))
+        assertEquals(1f, repository.lastReply.value?.share)
+
         // A limit with no exchange rate into the shown currency: named, never dropped or made zero.
         every { context.getString(R.string.chat_reply_budget_no_rate, any(), any(), any(), any()) } answers {
             "NO_RATE " + (args[1] as Array<*>).joinToString("|")

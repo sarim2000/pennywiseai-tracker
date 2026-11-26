@@ -34,6 +34,7 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
@@ -46,6 +47,7 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
@@ -62,6 +64,21 @@ import kotlin.math.roundToInt
 
 /** Glance state key: the goal a 2×2 widget shows, set by [GoalWidgetConfigActivity]. */
 internal val GOAL_WIDGET_GOAL_ID = longPreferencesKey("goal_id")
+
+/**
+ * Points the 2×2 widget [appWidgetId] at [goalId] (null: the first goal, until one
+ * is chosen) and redraws it.
+ */
+internal suspend fun setGoalWidgetGoal(context: Context, appWidgetId: Int, goalId: Long?) {
+    val glanceId = GlanceAppWidgetManager(context).getGlanceIdBy(appWidgetId)
+    updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { prefs ->
+        prefs.toMutablePreferences().apply {
+            if (goalId != null) this[GOAL_WIDGET_GOAL_ID] = goalId else remove(GOAL_WIDGET_GOAL_ID)
+        }
+    }
+    GoalWidget().update(context, glanceId)
+    GoalWidgetUpdateWorker.enqueueOneShot(context)
+}
 
 private suspend fun loadGoals(context: Context): List<GoalWidgetItem> = try {
     withTimeoutOrNull(5000L) { GoalWidgetDataStore.getData(context).first() }.orEmpty()

@@ -59,6 +59,7 @@ import com.pennywiseai.tracker.presentation.home.HomeScreen
 import com.pennywiseai.tracker.presentation.plan.PlanGoalsScreen
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
+import com.pennywiseai.tracker.presentation.settings.ConscienceScreen
 import com.pennywiseai.tracker.presentation.settings.FAQScreen
 import com.pennywiseai.tracker.presentation.settings.MascotPlaygroundScreen
 import com.pennywiseai.tracker.presentation.settings.SettingsScreen
@@ -136,6 +137,7 @@ internal fun transactionsFor(rows: BudgetCategoryRows) = TransactionsWithFilter(
     endDate = rows.end.toEpochDay(),
     currencyOnly = rows.currencyOnly,
     allProfiles = true,
+    withoutCategories = rows.without,
 )
 
 /** The full Add form, carrying what the quick sheet held so nothing is typed twice. */
@@ -264,7 +266,7 @@ fun MainScreen(
 
     // What a Settings row opens lives either in this tab's graph or above the tabs.
     fun openFromSettings(tab: BottomNavItem, key: NavKey) = when (key) {
-        Rules, Loans, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess, BackgroundAccess, SmsCheckup, LearnedCategories,
+        Rules, Loans, Reimbursements, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess, BackgroundAccess, SmsCheckup, LearnedCategories,
         is BudgetGroups -> openRoot(key)
         else -> open(tab, key)
     }
@@ -659,6 +661,10 @@ fun MainScreen(
                 onNavigateBack = { backFrom(tab, key) },
                 onNavigate = { openFromSettings(tab, it) }
             )
+        }
+
+        entry<Conscience> { key ->
+            ConscienceScreen(onNavigateBack = { backFrom(tab, key) })
         }
 
         entry<MascotPlayground> { key ->

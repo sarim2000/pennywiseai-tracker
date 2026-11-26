@@ -10,6 +10,9 @@
     <string name="widget_budget_empty_title">No budget yet</string>
     <string name="widget_budget_empty_hint">Set a monthly limit to see what\'s left.</string>
     <string name="widget_budget_create">Create budget</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
+    <string name="widget_budget_mood_on_track">On track</string>
+    <string name="widget_budget_mood_fast">Spending fast</string>
     <string name="widget_budget_preview_meta">of 3,600 · 120/day</string>
 
     <string name="widget_cash_label">Cash</string>

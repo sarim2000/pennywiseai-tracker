@@ -49,9 +49,12 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -82,6 +85,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.ui.animations.emphasisStyle
@@ -595,27 +601,39 @@ private fun ChatReactionChip(
     val motion = MaterialTheme.motionScheme
     val animate = rememberAnimationsEnabled()
     val travel = with(LocalDensity.current) { Spacing.sm.roundToPx() }
+    // Leaving the app clears the reaction, but the frame clock stops with the app, so the
+    // chip's exit would only play on return: the old amount fading out over the bar. Each
+    // stop starts the chip afresh instead, so it comes back as it is now, without a fade.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var stops by remember { mutableIntStateOf(0) }
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) stops++ }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
 
     Layout(
         content = {
-            AnimatedVisibility(
-                visible = visible && chip != null,
-                enter = if (animate) {
-                    // The chip carries an amount, so its short drift settles on effects: no overshoot.
-                    fadeIn(motion.fastEffectsSpec()) + slideInVertically(motion.fastEffectsSpec()) { travel }
-                } else EnterTransition.None,
-                exit = if (animate) {
-                    fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastEffectsSpec()) { travel }
-                } else ExitTransition.None
-            ) {
-                when (shownChip) {
-                    is ReactionAmount -> AmountPill(shownChip)
-                    is ReactionLabel -> ChipPill(stringResource(shownChip.text), MaterialTheme.colorScheme.onSurface)
-                    is ReactionCount -> ChipPill(
-                        pluralStringResource(shownChip.text, shownChip.count, shownChip.count),
-                        MaterialTheme.colorScheme.onSurface
-                    )
-                    null -> Unit
+            key(stops) {
+                AnimatedVisibility(
+                    visible = visible && chip != null,
+                    enter = if (animate) {
+                        // The chip carries an amount, so its short drift settles on effects: no overshoot.
+                        fadeIn(motion.fastEffectsSpec()) + slideInVertically(motion.fastEffectsSpec()) { travel }
+                    } else EnterTransition.None,
+                    exit = if (animate) {
+                        fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastEffectsSpec()) { travel }
+                    } else ExitTransition.None
+                ) {
+                    when (shownChip) {
+                        is ReactionAmount -> AmountPill(shownChip)
+                        is ReactionLabel -> ChipPill(stringResource(shownChip.text), MaterialTheme.colorScheme.onSurface)
+                        is ReactionCount -> ChipPill(
+                            pluralStringResource(shownChip.text, shownChip.count, shownChip.count),
+                            MaterialTheme.colorScheme.onSurface
+                        )
+                        null -> Unit
+                    }
                 }
             }
         },

@@ -9,6 +9,7 @@
     <string name="widget_budget_empty_title">Ainda sem orçamento</string>
     <string name="widget_budget_empty_hint">Defina um limite mensal para ver quanto resta.</string>
     <string name="widget_budget_create">Criar orçamento</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
     <string name="widget_budget_preview_meta">de 3600 · 120/dia</string>
     <string name="widget_cash_label">Dinheiro</string>
     <string name="widget_cash_spend">Despesa em dinheiro</string>

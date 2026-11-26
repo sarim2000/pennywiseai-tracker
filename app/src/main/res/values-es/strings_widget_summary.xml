@@ -9,6 +9,7 @@
     <string name="widget_budget_empty_title">Aún no hay presupuesto</string>
     <string name="widget_budget_empty_hint">Fija un límite mensual para ver cuánto te queda.</string>
     <string name="widget_budget_create">Crear presupuesto</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
     <string name="widget_budget_preview_meta">de 3,600 · 120/día</string>
     <string name="widget_cash_label">Efectivo</string>
     <string name="widget_cash_spend">Gasto en efectivo</string>

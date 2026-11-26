@@ -55,6 +55,7 @@
     <string name="goal_detail_history_empty">Nada adicionado ainda. Use Adicionar dinheiro quando separar algum valor.</string>
     <string name="goal_add_money">Adicionar dinheiro</string>
     <string name="goal_take_out">Retirar</string>
+    <!-- Snackbar when Add money takes a goal past 25 / 50 / 75% of its target -->
     <string name="goal_more">Mais opções</string>
     <string name="goal_menu_edit">Editar</string>
     <string name="goal_menu_repeat">Repetir no próximo ano</string>

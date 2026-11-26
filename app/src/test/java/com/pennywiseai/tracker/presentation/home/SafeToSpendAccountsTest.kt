@@ -8,9 +8,19 @@ import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.utils.Money
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -76,12 +86,14 @@ class SafeToSpendAccountsTest {
         windowStart = start, windowEnd = end, windowDays = (end.toEpochDay() - start.toEpochDay() + 1).toInt(),
     )
 
-    private fun cap(vararg groups: BudgetGroupSpending) = BudgetOverallSummary(
+    private fun summary(vararg groups: BudgetGroupSpending) = BudgetOverallSummary(
         groups = groups.toList(), totalIncome = BigDecimal.ZERO, totalLimitBudget = BigDecimal.ZERO,
         totalLimitSpent = BigDecimal.ZERO, totalTargetGoal = BigDecimal.ZERO, totalTargetActual = BigDecimal.ZERO,
         totalExpectedBudget = BigDecimal.ZERO, totalExpectedActual = BigDecimal.ZERO, netSavings = BigDecimal.ZERO,
         savingsRate = 0f, dailyAllowance = BigDecimal.ZERO, daysRemaining = 9, currency = "INR",
-    ).safeToSpendCap(today)
+    )
+
+    private fun cap(vararg groups: BudgetGroupSpending) = summary(*groups).safeToSpendCap(today)
 
     @Test fun `cap is the tightest all-expense spending limit running today`() {
         val food = BudgetCategoryEntity(budgetId = 0, categoryName = "Food", budgetAmount = BigDecimal.ONE)
@@ -92,4 +104,48 @@ class SafeToSpendAccountsTest {
         )
         assertNull(cap(ended))
     }
+
+    private val periodEnd = LocalDate.of(2026, 10, 31)
+
+    /** Safe to spend as Home works it out: the balances, capped by what the loaded budgets leave. */
+    private fun safeToSpend(budgets: BudgetOverallSummary) = SafeToSpend.calculate(
+        listOf(Money(BigDecimal("96869.54"), "INR")), emptyList(), today, periodEnd, budgets.safeToSpendCap(today),
+    ).single()
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test fun `Safe to spend waits for the budgets instead of going out uncapped`() = runTest {
+        val state = MutableStateFlow(HomeUiState())
+        val seen = mutableListOf<SafeToSpend>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            state.loadedBudgets().map(::safeToSpend).toList(seen)
+        }
+        // A cold start's order: balances and the month land before the budgets.
+        state.value = state.value.copy(isBalanceReady = true, isMonthReady = true)
+        assertEquals(emptyList<SafeToSpend>(), seen)
+
+        state.value = state.value.copy(budgetSummary = summary(budget("984")))
+        assertEquals(1, seen.size)
+        assertTrue(seen.single().isCapped)
+        assertAmount("984", seen.single().amount)
+    }
+
+    @Test fun `hero waits for the month, the budgets and Safe to spend`() {
+        val account = account("Bank", "96869.54")
+        val budgets = summary(budget("984"))
+        val loaded = SafeToSpendUi(safeToSpend(budgets), emptyList(), periodEnd, listOf(account), emptySet(), emptyList())
+        // Balances first: before the fix this alone showed "Spent this month ₹0".
+        val balances = HomeUiState(isBalanceReady = true, accountBalances = listOf(account))
+        assertFalse(balances.isHeroReady(null))
+        assertFalse(balances.copy(isMonthReady = true).isHeroReady(null))
+        val withBudgets = balances.copy(isMonthReady = true, budgetSummary = budgets)
+        assertFalse(withBudgets.isHeroReady(null))
+        assertTrue(withBudgets.isHeroReady(loaded))
+        assertFalse(withBudgets.copy(isMonthReady = false).isHeroReady(loaded))
+        assertFalse(withBudgets.copy(budgetSummary = null).isHeroReady(loaded))
+        assertFalse(withBudgets.copy(isBalanceReady = false).isHeroReady(loaded))
+    }
+
+    @Test fun `new user's hero shows without accounts or a budget`() =
+        // No accounts: no Safe to spend to wait for. A summary with no groups: no budget.
+        assertTrue(HomeUiState(isBalanceReady = true, isMonthReady = true, budgetSummary = summary()).isHeroReady(null))
 }

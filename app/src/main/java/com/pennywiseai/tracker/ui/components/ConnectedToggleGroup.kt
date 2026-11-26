@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -18,6 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -27,6 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import com.pennywiseai.tracker.ui.animations.emphasisStyle
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /**
@@ -43,6 +48,10 @@ import com.pennywiseai.tracker.ui.theme.Spacing
  * With [supportingText] each button becomes a taller two-line tile (label over
  * a smaller line). [fontFamily] draws an option's text in its own font, e.g. a
  * font picker.
+ *
+ * The checked label gains grade rather than weight (see [emphasisStyle]), so
+ * no label resizes as the selection moves. An option's own [fontFamily]
+ * replaces the style's family, so a font preview draws as-is.
  */
 @Composable
 fun <T> ConnectedChoiceRow(
@@ -68,9 +77,13 @@ fun <T> ConnectedChoiceRow(
                 options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
                 else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
             }
+            val checked = option == selected
+            val interactionSource = remember { MutableInteractionSource() }
+            val pressed by interactionSource.collectIsPressedAsState()
             ToggleButton(
-                checked = option == selected,
+                checked = checked,
                 onCheckedChange = { onSelect(option) },
+                interactionSource = interactionSource,
                 modifier = (if (fillMaxWidth) Modifier.weight(1f) else Modifier)
                     .then(if (supportingText != null) Modifier.fillMaxHeight() else Modifier)
                     .semantics { role = Role.RadioButton },
@@ -91,7 +104,7 @@ fun <T> ConnectedChoiceRow(
                     Text(
                         text = label(option),
                         // null keeps the button's own label style (labelLarge).
-                        style = textStyle ?: LocalTextStyle.current,
+                        style = emphasisStyle(textStyle ?: LocalTextStyle.current, checked, pressed),
                         fontFamily = fontFamily(option),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -100,7 +113,7 @@ fun <T> ConnectedChoiceRow(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = label(option),
-                            style = textStyle ?: MaterialTheme.typography.titleMedium,
+                            style = emphasisStyle(textStyle ?: MaterialTheme.typography.titleMedium, checked, pressed),
                             fontFamily = fontFamily(option),
                             maxLines = 1,
                             // Shrinks a long name (e.g. "Google Sans Flex") to fit a narrow tile.

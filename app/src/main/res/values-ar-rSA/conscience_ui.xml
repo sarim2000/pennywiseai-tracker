@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Out of Crowdin on purpose: see values/conscience_ui.xml. Jordanian, like the lines. -->
+<resources>
+    <string name="conscience_nav_subtitle_on">مفعّل · تعليقات مشاكسة على مصاريفك</string>
+    <string name="conscience_nav_subtitle_off">متوقف · تعليقات مشاكسة على مصاريفك</string>
+
+    <string name="conscience_hero_title">مصاريفك صار إلها معلّق</string>
+    <string name="conscience_hero_body">تعليقات مشاكسة بعد الأكل والترفيه والتسوق. وتصفيق كمان لما يكون مستاهل.</string>
+    <string name="conscience_switch_title">خلّيه يحكي</string>
+
+    <string name="conscience_status_off">نايم. شغّل المفتاح لتصحّيه 😴</string>
+    <string name="conscience_status_blocked">الإشعارات مطفية، يعني قاعد يحكي مع الحيط 🧱</string>
+    <string name="conscience_status_listening">مستنّي مشترياتك الجاية من أكل أو ترفيه أو تسوق 👂</string>
+    <string name="conscience_status_learning">لسا بيتعرّف على عاداتك. التعليقات الأقوى بتنفتح كل ما كبر سجلك 🧠</string>
+    <string name="conscience_open_notification_settings">تشغيل الإشعارات</string>
+
+    <string name="conscience_examples_title">أمثلة سمعناها منه</string>
+    <string name="conscience_example_badge">مثال</string>
+    <string name="conscience_another_example">كمان واحد</string>
+    <string name="conscience_try_it">ابعتلي واحد</string>
+    <string name="conscience_try_sent">انبعت! ما إله صوت، فطلّ على الإشعارات.</string>
+
+    <string name="conscience_kinds_title">على شو بيعلّق</string>
+    <string name="conscience_kind_positive">الإنجازات</string>
+    <string name="conscience_kind_positive_desc">أسبوع أقل بكتير من العادة، فبيصفّق بدل ما يناكف</string>
+    <string name="conscience_kind_comeback">الرجعات</string>
+    <string name="conscience_kind_comeback_desc">فئة بترجع بعد غياب أطول من العادة</string>
+    <string name="conscience_kind_repeat">التكرار</string>
+    <string name="conscience_kind_repeat_desc">نفس الفئة مرة ورا مرة خلال ساعات</string>
+    <string name="conscience_kind_weekly">طقوس أسبوعية</string>
+    <string name="conscience_kind_weekly_desc">نفس الفئة بنفس اليوم، أسبوع ورا أسبوع</string>
+    <string name="conscience_kind_late_night">آخر الليل</string>
+    <string name="conscience_kind_late_night_desc">مشتريات بعد الساعة 11 بالليل. وما بيصحّيك أبداً</string>
+    <string name="conscience_kind_record_day">أيام قياسية</string>
+    <string name="conscience_kind_record_day_desc">أكبر يوم بفئة معيّنة من شهرين</string>
+    <string name="conscience_kind_spike">القفزات</string>
+    <string name="conscience_kind_spike_desc">أسبوع أعلى بكتير من العادة بفئة معيّنة</string>
+    <string name="conscience_kind_hello">تحيات سريعة</string>
+    <string name="conscience_kind_hello_desc">تلويحة كل فترة، لتعرف إنه لسا صاحي</string>
+
+    <string name="conscience_frequency_title">كم مرة</string>
+    <string name="conscience_frequency_normal">عادي</string>
+    <string name="conscience_frequency_less">أقل</string>
+    <string name="conscience_frequency_normal_note">مرة باليوم كحد أقصى، و3 مرات بالأسبوع.</string>
+    <string name="conscience_frequency_less_note">مرة بالأسبوع كحد أقصى.</string>
+
+    <string name="conscience_recent_title">آخر التعليقات</string>
+    <string name="conscience_recent_empty">لسا ما في تعليقات. مستنّي مشترياتك الجاية من أكل أو ترفيه أو تسوق.</string>
+    <string name="conscience_recent_saved_quietly">انحفظ بهدوء</string>
+    <string name="conscience_recent_show_all">عرض الكل</string>
+    <string name="conscience_recent_show_less">عرض أقل</string>
+    <string name="conscience_feedback_summary">😂 عجبوك: %1$s · 🙅 تقاعدوا: %2$s</string>
+    <string name="conscience_reset_feedback">مسح التفاعلات</string>
+    <string name="conscience_reaction_liked">هاد عجبك 😂</string>
+    <string name="conscience_reaction_retired">تقاعد للأبد 🙅</string>
+
+    <string name="conscience_privacy">نكت مكتوبة بإيد، بتنطبق على عاداتك على هالتلفون. لا مبالغ ولا أسماء محلات، أبداً. بس أكل وترفيه وتسوق.</string>
+
+    <string name="conscience_action_like">😂 عجبني</string>
+    <string name="conscience_confirm_like">تمام 😂 رح نكثّر من هيك، بنفس الحدود.</string>
+    <string name="conscience_confirm_sample">هاد مثال بس، ما تغيّر إشي 😉</string>
+</resources>

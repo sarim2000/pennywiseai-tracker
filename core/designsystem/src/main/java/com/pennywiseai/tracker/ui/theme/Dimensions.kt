@@ -236,6 +236,9 @@ object Dimensions {
         val goalRing = 56.dp
         val goalRingStroke = 6.dp
 
+        /** A 25 / 50 / 75% milestone dot on the goal ring: a third of its stroke across. */
+        val goalRingMilestoneDot = 2.dp
+
         /** A goal ring in a list row (the Add to goal picker), and its stroke. */
         val goalRingSmall = 40.dp
         val goalRingSmallStroke = 4.dp

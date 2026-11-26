@@ -22,6 +22,21 @@ class BankRoutesTest {
     }
 
     @Test
+    fun `landing page links to the parser, every store and every country`() = routingOnly {
+        val body = client.get("/").bodyAsText()
+        listOf("/tools/parse", "/banks", "/guide", "/pro", com.example.ui.SharedComponents.PLAY_STORE_URL,
+            com.example.ui.SharedComponents.APP_STORE_URL, com.example.ui.SharedComponents.FDROID_URL,
+            com.example.ui.SharedComponents.RELEASES_URL).forEach {
+            assertTrue(body.contains(it), "landing page should link to $it")
+        }
+        assertTrue(body.contains("location.replace('/tools/parse'"), "the app's /#message= report links must still reach the parser")
+        assertTrue(body.contains("${SupportedBanks.catalogue.totalBanks} banks"), "landing should quote the live bank count")
+        SupportedBanks.countries.forEach {
+            assertTrue(body.contains("/banks/country/${SupportedBanks.countrySlug(it.country)}"), "landing is missing ${it.country}")
+        }
+    }
+
+    @Test
     fun `banks index lists every country and the live totals`() = routingOnly {
         val body = client.get("/banks").bodyAsText()
         val cat = SupportedBanks.catalogue
@@ -68,9 +83,8 @@ class BankRoutesTest {
     @Test
     fun `sitemap advertises every page and nothing that 404s`() = routingOnly {
         val sitemap = client.get("/sitemap.xml").bodyAsText()
-        // "/" + "/pro" + "/terms" + "/banks", one page per country and per bank, then the guide pages.
-        // "/tools/parse" is an alias of "/" and is deliberately absent so the two don't compete.
-        val expected = 4 + SupportedBanks.countries.size + SupportedBanks.banks.size + com.example.ui.GuideViews.paths.size
+        // "/" (landing) + "/tools/parse" + "/pro" + "/terms" + "/banks", one page per country and per bank, then the guide pages.
+        val expected = 5 + SupportedBanks.countries.size + SupportedBanks.banks.size + com.example.ui.GuideViews.paths.size
         assertEquals(expected, Regex("<loc>").findAll(sitemap).count(), "sitemap URL count")
 
         val paths = Regex("<loc>https://pennywise\\.zynth\\.dev(.*?)</loc>")

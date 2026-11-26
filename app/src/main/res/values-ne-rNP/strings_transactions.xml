@@ -68,6 +68,8 @@
     <string name="txn_detail_more_actions">थप कार्यहरू</string>
     <string name="txn_detail_menu_add_to_group">समूहमा थप्नुहोस्</string>
     <string name="txn_detail_menu_duplicate">नक्कल बनाउनुहोस्</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">समस्या रिपोर्ट गर्नुहोस्</string>
     <string name="txn_detail_delete_title">व्यापार मेटाउने</string>
     <string name="txn_detail_delete_message">के तपाईं साँच्चै यो व्यापार मेटाउन चाहानुहुन्छ? यो कार्य पूर्ववत गर्न सकिँदैन।</string>

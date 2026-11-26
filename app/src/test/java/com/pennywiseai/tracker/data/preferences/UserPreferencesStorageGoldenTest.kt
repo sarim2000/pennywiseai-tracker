@@ -11,6 +11,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.pennywiseai.tracker.core.DateFormatStyle
 import com.pennywiseai.tracker.core.NumberFormatStyle
+import com.pennywiseai.tracker.domain.conscience.ConscienceFrequency
+import com.pennywiseai.tracker.domain.conscience.ConscienceKind
+import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -521,8 +524,14 @@ class UserPreferencesStorageGoldenTest {
         assertEquals(true, stored()[bool("budget_alerts_enabled")])
         repository.setConscienceEnabled(true)
         assertEquals(true, stored()[bool("conscience_enabled")])
-        repository.retireConscienceLine("line-1")
+        repository.reactToConscience(1L, "line-1", ConscienceReaction.RETIRED)
         assertEquals(setOf("line-1"), stored()[stringSet("conscience_retired_lines")])
+        repository.reactToConscience(2L, "line-2", ConscienceReaction.LIKED)
+        assertEquals(setOf("line-2"), stored()[stringSet("conscience_liked_lines")])
+        repository.setConscienceKindEnabled(ConscienceKind.HELLO, false)
+        assertEquals(setOf("HELLO"), stored()[stringSet("conscience_muted_kinds")])
+        repository.setConscienceFrequency(ConscienceFrequency.LESS)
+        assertEquals("LESS", stored()[string("conscience_frequency")])
 
         repository.setShakeToHideAmounts(true)
         assertEquals(true, stored()[bool("shake_to_hide_amounts")])

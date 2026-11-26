@@ -31,23 +31,6 @@ fun TransactionEntity.countedAmount(): BigDecimal {
 }
 
 /**
- * Whether the row still needs a category: blank, the legacy "Uncategorized" sentinel,
- * or Others, where SMS rows land when nothing matched. Others is the set Home's
- * "Needs a category" count walks, so the row says the same thing as that count.
- *
- * ponytail: matches Others by its built-in name; a user who renamed Others keeps the
- * count on Home but not this styling. Pass the current name in if that ever matters.
- */
-fun isUnsortedCategory(category: String): Boolean =
-    category.isBlank() || category.equals("Uncategorized", ignoreCase = true) || category.equals("Others", ignoreCase = true)
-
-/**
- * [isUnsortedCategory] for a whole row. One that counts for nothing (kept out of totals,
- * or lent or borrowed in full) isn't asked about, as on Home's "Needs a category" card.
- */
-fun TransactionEntity.needsCategory(): Boolean = isUnsortedCategory(category) && countedAmount().signum() > 0
-
-/**
  * This transaction as a total should see it: [TransactionEntity.amount] cut to
  * [countedAmount], or null when nothing of it counts. Only for computing
  * totals — never display the result, its amount isn't what the user paid.

@@ -1,9 +1,11 @@
 package com.pennywiseai.tracker.domain.usecase
 
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.rule.ActionType
@@ -167,5 +169,24 @@ class ApplyRulesPagingSafetyTest {
         assertEquals(1, result.totalProcessed)
         coVerify(exactly = 1) { engine.evaluateRules(any(), any(), any()) }
         coVerify { engine.evaluateRules(plain, any(), any()) }
+    }
+
+    @Test
+    fun uncategorizedModeFollowsARenamedOthers() = runBlocking {
+        BuiltinCategoryNames.update(
+            listOf(CategoryEntity(name = "Misc", color = "#000000", isSystem = true, systemName = "Others"))
+        )
+        try {
+            val renamed = txn(1, category = "Misc")
+            serve(listOf(renamed, txn(2, category = "Food")))
+            every { engine.evaluateRules(any(), any(), any()) } answers { firstArg<TransactionEntity>() to emptyList() }
+
+            val result = useCase.applyRuleToUncategorizedTransactions(rule)
+
+            assertEquals(1, result.totalProcessed)
+            coVerify { engine.evaluateRules(renamed, any(), any()) }
+        } finally {
+            BuiltinCategoryNames.update(emptyList())
+        }
     }
 }

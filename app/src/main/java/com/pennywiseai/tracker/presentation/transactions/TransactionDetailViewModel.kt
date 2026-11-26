@@ -314,7 +314,7 @@ class TransactionDetailViewModel @Inject constructor(
                 _ruleSuggestion.value = null
                 val merchant = txn.merchantName
                 if (!LearnCategoryUseCase.isPlaceholderMerchant(merchant) &&
-                    !com.pennywiseai.tracker.data.ledger.isUnsortedCategory(category) &&
+                    !com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory(category) &&
                     category != merchantMappingRepository.getCategoryForMerchant(merchant)
                 ) {
                     _ruleSuggestion.value = RuleOffer(txn.id, merchant, category)

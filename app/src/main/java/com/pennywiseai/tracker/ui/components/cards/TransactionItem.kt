@@ -39,8 +39,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
 import com.pennywiseai.tracker.data.ledger.countedAmount
-import com.pennywiseai.tracker.data.ledger.isUnsortedCategory
-import com.pennywiseai.tracker.data.ledger.needsCategory
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.components.EmojiGlyph
@@ -276,6 +274,24 @@ private fun transferTitleOverride(transaction: TransactionEntity, resources: Res
         else -> null
     }
 }
+
+/**
+ * Whether the row still needs a category: blank, the legacy "Uncategorized" sentinel
+ * ([isValidCategoryOverride]), or Others, where SMS rows land when nothing matched.
+ * Others is the set Home's "Needs a category" count walks, so the row says the same
+ * thing as that count.
+ *
+ * ponytail: matches Others by its built-in name; a user who renamed Others keeps the
+ * count on Home but not this styling. Pass the current name in if that ever matters.
+ */
+fun isUnsortedCategory(category: String): Boolean =
+    !category.isValidCategoryOverride() || category.equals("Others", ignoreCase = true)
+
+/**
+ * [isUnsortedCategory] for a whole row. One that counts for nothing (kept out of totals,
+ * or lent or borrowed in full) isn't asked about, as on Home's "Needs a category" card.
+ */
+fun TransactionEntity.needsCategory(): Boolean = isUnsortedCategory(category) && countedAmount().signum() > 0
 
 /**
  * What marks a row that needs a category: its "?" badge, label and chip. Tertiary is a

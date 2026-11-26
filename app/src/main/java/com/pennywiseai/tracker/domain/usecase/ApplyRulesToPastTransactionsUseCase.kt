@@ -3,8 +3,9 @@ package com.pennywiseai.tracker.domain.usecase
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.data.ledger.countedAmount
 import com.pennywiseai.tracker.data.ledger.keepTransferLeg
-import com.pennywiseai.tracker.data.ledger.needsCategory
+import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -114,7 +115,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
 
                 // Skip deleted rows, and rows that aren't waiting for a category when asked (same test as the list's "?")
                 if (transaction.isDeleted) continue
-                if (onlyNeedingCategory && !transaction.needsCategory()) continue
+                if (onlyNeedingCategory && !transaction.awaitsCategoryForRules()) continue
                 totalProcessed++
 
                 try {
@@ -282,3 +283,7 @@ internal fun List<RuleApplication>.landedOn(kept: TransactionEntity, raw: Transa
         if (mods.isEmpty()) null else app.copy(fieldsModified = mods)
     }
 }
+
+/** Blank, or Others under its current name, as before; plus #1475: a row that counts for nothing isn't asked about. */
+fun TransactionEntity.awaitsCategoryForRules(): Boolean =
+    (category.isBlank() || category == BuiltinCategoryNames.current("Others")) && countedAmount().signum() > 0

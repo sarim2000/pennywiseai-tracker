@@ -245,6 +245,16 @@ class AiToolsRulesTest {
     }
 
     @Test
+    fun `preview_rule uncategorized skips a split parent and a loan-linked row`() {
+        servePages(
+            swiggyOthers,
+            txn(4, "Swiggy", "Others").copy(lentSharesTotal = BigDecimal("10")),
+            txn(5, "Swiggy", "Others").copy(loanId = 9L),
+        )
+        assertEquals(1, call("preview_rule", create("")).second!!.count("past_transactions_would_update"))
+    }
+
+    @Test
     fun `preview_rule with an id previews the rule as update_rule would build it`() {
         val renamed = call("preview_rule", """{"id":"r1","name":"Renamed","apply_to_past":"all"}""").second!!
         assertEquals("Renamed", renamed["rule"]!!.jsonPrimitive.content)

@@ -47,7 +47,6 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
-import com.pennywiseai.tracker.data.ledger.needsCategory
 import com.pennywiseai.tracker.domain.loan.LoanMath
 import com.pennywiseai.tracker.presentation.common.ReceiptPreview
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
@@ -63,6 +62,7 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.TransactionAvatar
+import com.pennywiseai.tracker.ui.components.cards.needsCategory
 import com.pennywiseai.tracker.ui.components.cards.unsorted
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood

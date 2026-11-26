@@ -164,6 +164,10 @@ class ChallengesViewModel @Inject constructor(
     private fun commit(outcome: ChallengeOutcome) {
         viewModelScope.launch {
             var recorded = false
+            // A Rebuild stores its marker before it deletes rows, but the two reach this screen
+            // through different flows: rows it already deleted must not settle a win. A loss
+            // can't come from deleted rows (fewer rows only clear days), so it isn't held.
+            if (outcome.won && preferences.lastScanRecord.first()?.owesFullWindow == true) return@launch
             val saved = preferences.updateChallenges { state ->
                 state.finish(outcome.run, outcome.cleanDays, outcome.won).also { recorded = it.active == null && state.active != null }
             }

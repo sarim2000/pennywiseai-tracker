@@ -1,7 +1,7 @@
 import { runInDurableObject } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { requireFilterEcho } from "../src/tools";
+import { refuseDryRun, requireAppliedToPast, requireFilterEcho } from "../src/tools";
 
 const BASE = "https://relay.test";
 const REDIRECT = "https://client.test/callback";
@@ -208,6 +208,41 @@ describe("dashboard", () => {
 		await signIn(await pair(auth), "Claude");
 		const { connections } = (await (await call("/device/connections", { headers: auth })).json()) as any;
 		expect(connections.map((c: any) => c.clientName).sort()).toEqual(["Claude", "PennyWise dashboard"]);
+	});
+});
+
+describe("older apps behind the relay", () => {
+	const answer = (body: object) => ({ content: [{ type: "text" as const, text: JSON.stringify(body) }] });
+
+	it("refuses dry_run on create_rule and update_rule, and nothing else", () => {
+		for (const name of ["create_rule", "update_rule"]) {
+			const out = refuseDryRun(name, { dry_run: false });
+			expect(out?.isError).toBe(true);
+			expect(out?.content[0].text).toContain("preview_rule");
+		}
+		expect(refuseDryRun("create_rule", { name: "x" })).toBeNull();
+		expect(refuseDryRun("preview_rule", { dry_run: true })).toBeNull();
+		expect(refuseDryRun("create_rule", undefined)).toBeNull();
+	});
+
+	it("says so when an older app created the rule but applied nothing", () => {
+		const out = requireAppliedToPast("create_rule", { apply_to_past: "all" }, answer({ created: "Cafe" }));
+		expect(out.isError).toBeFalsy();
+		expect(out.content[0].text).toContain('"created":"Cafe"');
+		expect(out.content[0].text).toContain("needs a newer version of the PennyWise app");
+	});
+
+	it("passes results that are counted, errors, or not asked to apply", () => {
+		const counted = answer({ created: "Cafe", past_transactions_updated: 0 });
+		expect(requireAppliedToPast("create_rule", { apply_to_past: "all" }, counted)).toBe(counted);
+		const created = answer({ created: "Cafe" });
+		expect(requireAppliedToPast("create_rule", { apply_to_past: "none" }, created)).toBe(created);
+		expect(requireAppliedToPast("create_rule", {}, created)).toBe(created);
+		const failed = { ...created, isError: true };
+		expect(requireAppliedToPast("create_rule", { apply_to_past: "all" }, failed)).toBe(failed);
+		expect(requireAppliedToPast("update_rule", { apply_to_past: "all" }, created)).toBe(created);
+		const pastFailed = answer({ created: "Cafe", past_error: "failed" });
+		expect(requireAppliedToPast("create_rule", { apply_to_past: "all" }, pastFailed)).toBe(pastFailed);
 	});
 });
 

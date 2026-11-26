@@ -234,7 +234,8 @@ class AiTools @Inject constructor(
             if (list.size > MAX_TAGS) throw Refused("at most $MAX_TAGS tags on a transaction")
             list.map { t ->
                 val name = (t as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()?.takeIf(::isName) ?: throw Refused("tags must be a list of non-empty names")
-                if (name.any { it.isISOControl() || Character.getType(it) == Character.FORMAT.toInt() }) throw Refused("a tag name can't contain control or invisible formatting characters")
+                // The joiners U+200C/U+200D are format characters too, but emoji sequences and Persian words need them.
+                if (name.any { it.isISOControl() || (Character.getType(it) == Character.FORMAT.toInt() && it != '‌' && it != '‍') }) throw Refused("a tag name can't contain control or invisible formatting characters")
                 if (name.length > MAX_TAG_LENGTH) throw Refused("a tag name can be at most $MAX_TAG_LENGTH characters")
                 name
             }

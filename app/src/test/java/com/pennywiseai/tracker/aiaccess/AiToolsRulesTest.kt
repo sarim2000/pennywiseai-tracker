@@ -87,8 +87,9 @@ class AiToolsRulesTest {
 
     private fun servePages(vararg rows: TransactionEntity) {
         coEvery { transactions.countLiveTransactions() } returns rows.size
-        coEvery { transactions.getTransactionsPageAfter(any(), any()) } answers {
-            rows.filter { it.id > firstArg<Long>() }.take(secondArg<Int>())
+        coEvery { transactions.maxLiveTransactionId() } returns rows.maxOf { it.id }
+        coEvery { transactions.getTransactionsPageAfter(any(), any(), any()) } answers {
+            rows.filter { it.id > firstArg<Long>() && it.id <= secondArg<Long>() }.take(thirdArg<Int>())
         }
     }
 

@@ -91,8 +91,8 @@ interface TagDao {
         SELECT cr.transaction_id AS transactionId, t.name AS name
         FROM transaction_tag_cross_ref cr
         INNER JOIN tags t ON cr.tag_id = t.id
-        WHERE cr.transaction_id BETWEEN :fromId AND :toId
+        WHERE cr.transaction_id IN (:ids)
         """
     )
-    suspend fun getTagPairsBetween(fromId: Long, toId: Long): List<TransactionTagName>
+    suspend fun getTagPairsFor(ids: List<Long>): List<TransactionTagName>
 }

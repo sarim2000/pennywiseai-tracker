@@ -82,7 +82,8 @@ class ApplyRulesBalanceTest {
             )
         )
         coEvery { transactions.countLiveTransactions() } returns 1
-        coEvery { transactions.getTransactionsPageAfter(any(), any()) } answers {
+        coEvery { transactions.maxLiveTransactionId() } returns 1L
+        coEvery { transactions.getTransactionsPageAfter(any(), any(), any()) } answers {
             if (firstArg<Long>() < 1) listOf(original) else emptyList()
         }
         every { engine.shouldBlockTransaction(any(), any(), any()) } returns null

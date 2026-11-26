@@ -54,7 +54,8 @@ class ApplyRulesSplitBillTest {
         mockkStatic(ROOM_COMPAT)
         coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers { secondArg<suspend () -> Any?>().invoke() }
         coEvery { transactions.countLiveTransactions() } returns 1
-        coEvery { transactions.getTransactionsPageAfter(any(), any()) } answers {
+        coEvery { transactions.maxLiveTransactionId() } returns 1L
+        coEvery { transactions.getTransactionsPageAfter(any(), any(), any()) } answers {
             if (firstArg<Long>() < 1) listOf(bill) else emptyList()
         }
         every { engine.shouldBlockTransaction(any(), any(), any()) } returns null

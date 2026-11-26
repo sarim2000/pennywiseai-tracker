@@ -96,6 +96,8 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
         onlyNeedingCategory: Boolean,
         onProgress: (processed: Int, total: Int) -> Unit
     ): BatchApplyResult {
+        // Rows that arrive during the run already had the rules applied on their way in.
+        val upTo = transactionRepository.maxLiveTransactionId() ?: return BatchApplyResult(0, 0)
         val total = transactionRepository.countLiveTransactions()
         var scanned = 0
         var totalProcessed = 0
@@ -105,7 +107,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
         var after = 0L
 
         pages@ while (true) {
-            val page = transactionRepository.getTransactionsPageAfter(after, PAGE_SIZE)
+            val page = transactionRepository.getTransactionsPageAfter(after, upTo, PAGE_SIZE)
             if (page.isEmpty()) break
             after = page.last().id
 
@@ -172,6 +174,8 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
         rule: TransactionRule,
         maxSamples: Int = 20
     ): DryRunResult {
+        val upTo = transactionRepository.maxLiveTransactionId()
+            ?: return DryRunResult(0, 0, 0, 0, emptyList())
         val diffs = mutableListOf<TransactionDiff>()
         var totalScanned = 0
         var totalMatched = 0
@@ -179,13 +183,13 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
         var after = 0L
 
         while (true) {
-            val page = transactionRepository.getTransactionsPageAfter(after, PAGE_SIZE)
+            val page = transactionRepository.getTransactionsPageAfter(after, upTo, PAGE_SIZE)
             if (page.isEmpty()) break
             after = page.last().id
             // One read for the page's tags rather than one query per row: the preview has
             // to compare a tag rule against what is already there, or a transaction that
             // already carries the tag is reported as an update.
-            val tagsByTransaction = tagRepository.getTagNamesBetween(page.first().id, page.last().id)
+            val tagsByTransaction = tagRepository.getTagNamesFor(page.map { it.id })
 
             for (transaction in page) {
                 if (transaction.isDeleted) continue

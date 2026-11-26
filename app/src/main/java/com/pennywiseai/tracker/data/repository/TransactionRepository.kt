@@ -643,8 +643,10 @@ open class TransactionRepository @Inject constructor(
         return transactionDao.getTransactionsBetweenDatesList(startDate, endDate)
     }
 
-    suspend fun getTransactionsPageAfter(after: Long, limit: Int): List<TransactionEntity> =
-        transactionDao.getTransactionsPageAfter(after, limit)
+    suspend fun getTransactionsPageAfter(after: Long, upTo: Long, limit: Int): List<TransactionEntity> =
+        transactionDao.getTransactionsPageAfter(after, upTo, limit)
+
+    suspend fun maxLiveTransactionId(): Long? = transactionDao.maxLiveTransactionId()
 
     suspend fun countLiveTransactions(): Int = transactionDao.countLiveTransactions()
 

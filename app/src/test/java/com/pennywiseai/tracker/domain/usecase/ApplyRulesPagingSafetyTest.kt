@@ -58,8 +58,9 @@ class ApplyRulesPagingSafetyTest {
     private fun serve(rows: List<TransactionEntity>) {
         rows.forEach { store[it.id] = it }
         coEvery { transactions.countLiveTransactions() } answers { store.size }
-        coEvery { transactions.getTransactionsPageAfter(any(), any()) } answers {
-            store.values.filter { it.id > firstArg<Long>() }.take(secondArg<Int>())
+        coEvery { transactions.maxLiveTransactionId() } answers { store.keys.maxOrNull() }
+        coEvery { transactions.getTransactionsPageAfter(any(), any(), any()) } answers {
+            store.values.filter { it.id > firstArg<Long>() && it.id <= secondArg<Long>() }.take(thirdArg<Int>())
         }
         every { engine.shouldBlockTransaction(any(), any(), any()) } returns null
     }
@@ -94,6 +95,33 @@ class ApplyRulesPagingSafetyTest {
         assertEquals(1203, result.totalUpdated)
         assertEquals((1L..1203L).toList(), written)
         assertEquals(1203 to 1203, progress.last())
+    }
+
+    @Test
+    fun aRowInsertedMidRunIsNotVisited() = runBlocking {
+        serve((1L..1100L).map { txn(it) })
+        val seen = mutableListOf<Long>()
+        every { engine.evaluateRules(any(), any(), any()) } answers {
+            val t = firstArg<TransactionEntity>()
+            seen.add(t.id)
+            // A new SMS row lands with a higher id while the run is on its first page.
+            if (t.id == 1L) store[5000L] = txn(5000)
+            t to emptyList()
+        }
+
+        val result = useCase.applyRuleToAllTransactions(rule)
+
+        assertEquals(1100, result.totalProcessed)
+        assertTrue(5000L !in seen)
+        assertEquals((1L..1100L).toList(), seen)
+    }
+
+    @Test
+    fun anEmptyLedgerVisitsNothing() = runBlocking {
+        serve(emptyList())
+        val result = useCase.applyRuleToAllTransactions(rule)
+        assertEquals(0, result.totalProcessed)
+        coVerify(exactly = 0) { transactions.getTransactionsPageAfter(any(), any(), any()) }
     }
 
     @Test

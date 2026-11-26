@@ -45,10 +45,10 @@ object UpcomingPayments {
         val start = maxOf(today, from)
         val hidden = cards.filter { isExcluded(it.bankName, it.accountLast4) }
         fun counts(bank: String?, last4: String?) = !isExcluded(bank, last4) && !onCard(bank, last4, hidden)
-        fun onCreditCard(bank: String?, last4: String?) = onCard(bank, last4, cards)
-        val subs = subscriptions(subscriptions.filter { counts(it.bankName, it.accountLast4) }, start, end, ::onCreditCard)
+        fun card(bank: String?, last4: String?) = cardOf(bank, last4, cards)
+        val subs = subscriptions(subscriptions.filter { counts(it.bankName, it.accountLast4) }, start, end, ::card)
         // A template for the same payment as a subscription is shown once.
-        val templates = recurring(recurring.filter { counts(it.bankName, it.accountLast4) }, today, start, end, ::onCreditCard)
+        val templates = recurring(recurring.filter { counts(it.bankName, it.accountLast4) }, today, start, end, ::card)
             .filter { t -> subs.none { it.sameOccurrence(t) } }
         val bills = cardBills.mapNotNull { it.bill }.filter { !it.isRetired && !it.dueDate.isAfter(end) }
             .map {
@@ -67,7 +67,7 @@ object UpcomingPayments {
         subscriptions: List<SubscriptionEntity>,
         start: LocalDate,
         end: LocalDate,
-        onCreditCard: (String?, String?) -> Boolean,
+        card: (String?, String?) -> AccountBalanceEntity?,
     ): List<Bill> =
         subscriptions
             .filter { it.state == SubscriptionState.ACTIVE && it.direction == SubscriptionDirection.EXPENSE }
@@ -78,10 +78,8 @@ object UpcomingPayments {
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
                     .map {
-                        Bill(
-                            s.merchantName, Money(s.amount, s.currency), it, source = BillSource.Subscription,
-                            onCreditCard = onCreditCard(s.bankName, s.accountLast4),
-                        )
+                        Bill(s.merchantName, Money(s.amount, s.currency), it, source = BillSource.Subscription)
+                            .chargedTo(card(s.bankName, s.accountLast4))
                     }
                     .toList()
             }
@@ -96,7 +94,7 @@ object UpcomingPayments {
         today: LocalDate,
         start: LocalDate,
         end: LocalDate,
-        onCreditCard: (String?, String?) -> Boolean,
+        card: (String?, String?) -> AccountBalanceEntity?,
     ): List<Bill> =
         templates
             .filter { it.isActive && it.transactionType == TransactionType.EXPENSE }
@@ -111,10 +109,8 @@ object UpcomingPayments {
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
                     .map {
-                        Bill(
-                            t.merchantName, Money(t.amount, t.currency), it, source = BillSource.Recurring,
-                            onCreditCard = onCreditCard(t.bankName, t.accountLast4),
-                        )
+                        Bill(t.merchantName, Money(t.amount, t.currency), it, source = BillSource.Recurring)
+                            .chargedTo(card(t.bankName, t.accountLast4))
                     }
                     .toList()
             }
@@ -126,8 +122,22 @@ object UpcomingPayments {
             RecurringCharge.sameMerchant(name, other.name) &&
             RecurringCharge.sameAmount(amount.amount, other.amount.amount)
 
-    private fun onCard(bank: String?, last4: String?, cards: List<AccountBalanceEntity>): Boolean =
-        last4 != null && cards.any { it.isCreditCard && it.accountLast4 == last4 && (bank == null || it.bankName.equals(bank, ignoreCase = true)) }
+    private fun onCard(bank: String?, last4: String?, cards: List<AccountBalanceEntity>): Boolean = cardOf(bank, last4, cards) != null
+
+    private fun cardOf(bank: String?, last4: String?, cards: List<AccountBalanceEntity>): AccountBalanceEntity? =
+        if (last4 == null) {
+            null
+        } else {
+            cards.firstOrNull { it.isCreditCard && it.accountLast4 == last4 && (bank == null || it.bankName.equals(bank, ignoreCase = true)) }
+        }
+
+    /** Marks a charge to [card], with the day the card's bill carrying it is due when the card's due day is set. */
+    private fun Bill.chargedTo(card: AccountBalanceEntity?): Bill =
+        if (card == null) {
+            this
+        } else {
+            copy(onCreditCard = true, cardDueDate = card.cardDueDay?.let { CardBills.dueDateFor(dueDate, card.statementDay, it) })
+        }
 
     /** A guard against a corrupt schedule; a month holds 31 daily bills at most. */
     private const val MAX_OCCURRENCES = 400

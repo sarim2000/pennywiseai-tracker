@@ -146,6 +146,17 @@ class UpcomingPaymentsTest {
     }
 
     @Test
+    fun `a card charge carries the day its card bill is due`() {
+        val withDueDay = card.copy(statementDay = 30, cardDueDay = 10)
+        val bills = UpcomingPayments.of(
+            listOf(sub("Spotify", "2026-10-28", bank = "Test Bank", last4 = "4444")), emptyList(), emptyList(), listOf(withDueDay), today, end,
+        )
+
+        // Charged 28 Oct, the statement closes 30 Oct, due 10 Nov.
+        assertEquals(listOf(date("2026-11-10")), bills.map { it.cardDueDate })
+    }
+
+    @Test
     fun `a payment from a bank account isn't marked as on a card`() {
         val bills = upcoming(subscriptions = listOf(sub("Rent", "2026-11-01", bank = "Test Bank", last4 = "9999"), sub("Gym", "2026-11-01")))
 

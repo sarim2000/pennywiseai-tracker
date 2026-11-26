@@ -63,9 +63,9 @@ data class PaydayProjection(
          * The projection in [currency] alone: bills and incomes in any other currency are
          * left out, never converted or added. It runs to the first income due today..
          * [MAX_DAYS] ahead, else to the day after [cycleEnd]. A bill due on payday isn't
-         * counted: the income pays it. Nor is a payment charged to a credit card
-         * ([Bill.onCreditCard]): cash leaves only when the card's bill is paid, and that
-         * bill counts on its own due day.
+         * counted: the income pays it. A payment charged to a credit card
+         * ([Bill.onCreditCard]) takes cash when the card's bill carrying it is due
+         * ([Bill.cardDueDate]); with no due day set, on its charge day, the earliest it can.
          */
         fun of(
             currency: String,
@@ -82,7 +82,8 @@ data class PaydayProjection(
             val until = income?.date ?: cycleEnd.plusDays(1)
             // An overdue card bill moves to today first, so it's cut like any other when payday is today.
             val due = bills
-                .filter { it.amount.currency == currency && !it.onCreditCard && (it.isCardBill || !it.dueDate.isBefore(today)) }
+                .filter { it.amount.currency == currency && (it.isCardBill || !it.dueDate.isBefore(today)) }
+                .map { it.copy(dueDate = it.cardDueDate ?: it.dueDate) }
                 .map { if (it.dueDate.isBefore(today)) it.copy(dueDate = today) else it }
                 .filter { it.dueDate.isBefore(until) }
                 .sortedBy { it.dueDate }

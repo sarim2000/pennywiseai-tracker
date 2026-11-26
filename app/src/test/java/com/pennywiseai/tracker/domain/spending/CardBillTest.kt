@@ -67,6 +67,18 @@ class CardBillTest {
     }
 
     @Test
+    fun `a charge is due with the bill of the statement that closes on or after it`() {
+        // Charged 25 Nov, closes 30 Nov, due 10 Dec.
+        assertEquals(date("2026-12-10"), CardBills.dueDateFor(date("2026-11-25"), 30, 10))
+        // Charged on the statement day: in that statement.
+        assertEquals(date("2026-12-10"), CardBills.dueDateFor(date("2026-11-30"), 30, 10))
+        // Charged after it: the next statement, closing 31 Dec (clamped), due 10 Jan.
+        assertEquals(date("2027-01-10"), CardBills.dueDateFor(date("2026-12-01"), 31, 10))
+        // No statement day: the first due day after the charge.
+        assertEquals(date("2026-12-10"), CardBills.dueDateFor(date("2026-11-25"), null, 10))
+    }
+
+    @Test
     fun `month-end and leap-year due days clamp to the month`() {
         assertEquals(date("2028-02-29"), CardBills.dueDate(date("2028-01-31"), 31))
         assertEquals(date("2027-02-28"), CardBills.dueDate(date("2027-01-31"), 31))

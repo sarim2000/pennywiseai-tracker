@@ -115,13 +115,30 @@ class PaydayProjectionTest {
         assertNull(p.belowZeroFrom)
     }
 
+    private fun onCard(amount: String, cardDue: LocalDate?) =
+        Bill("Streaming", Money(d(amount), "INR"), today.plusDays(2), BillSource.Subscription, onCreditCard = true, cardDueDate = cardDue)
+
     @Test
     fun `a payment charged to a credit card waits for the card's bill`() {
-        val onCard = Bill("Streaming", Money(d("200"), "INR"), today.plusDays(2), BillSource.Subscription, onCreditCard = true)
-        val p = project("100", listOf(onCard, bill("50", 15)))
+        val p = project("100", listOf(onCard("200", cardDue = payday.plusDays(5)), bill("50", 15)))
         assertEquals(listOf(d("50")), p.bills.map { it.amount.amount })
         assertEquals(d("50"), p.lowest)
         assertNull(p.belowZeroFrom)
+    }
+
+    @Test
+    fun `a card charge whose bill is due before payday counts on that day`() {
+        val cardDue = today.withDayOfMonth(20)
+        val p = project("100", listOf(onCard("200", cardDue), bill("50", 15)))
+        assertEquals(listOf(15, 20), p.bills.map { it.dueDate.dayOfMonth })
+        assertEquals(d("-150"), p.lowest)
+        assertEquals(cardDue, p.belowZeroFrom)
+    }
+
+    @Test
+    fun `a card charge with no known due day counts on its charge day`() {
+        val p = project("100", listOf(onCard("200", cardDue = null)))
+        assertEquals(today.plusDays(2), p.belowZeroFrom)
     }
 
     @Test

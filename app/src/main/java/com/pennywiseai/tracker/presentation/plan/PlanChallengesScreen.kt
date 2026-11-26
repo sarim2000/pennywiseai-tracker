@@ -376,7 +376,11 @@ private fun MascotLine(progress: ChallengeProgress, scanning: Boolean) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Mascot(size = Dimensions.Icon.large, mood = if (missedToday || progress.paused || !progress.winnable) MascotMood.Calm else MascotMood.Happy)
+        Mascot(
+            size = Dimensions.Icon.large,
+            mood = if (missedToday || progress.paused || !progress.winnable) MascotMood.Calm else MascotMood.Happy,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }
@@ -452,7 +456,7 @@ private fun ChallengePresets(
             presets.forEachIndexed { i, (kind, category) ->
                 val run = ChallengeRun.start(kind, category, LocalDate.now())
                 val title = run.title()
-                val color = if (category == null) MaterialTheme.colorScheme.primary else CategoryMapping.colorFor(category)
+                val color = if (category == null) MaterialTheme.colorScheme.onSurfaceVariant else CategoryMapping.colorFor(category)
                 GroupedRow(position = ListItemPosition.from(i, presets.size)) {
                     PlanIconBadge(icon = run.icon(), color = color, index = i)
                     RowLabels(title = title, subtitle = run.description(), titleMaxLines = 2, subtitleMaxLines = 3)

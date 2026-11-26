@@ -205,7 +205,7 @@ strict (a profile failure should surface, not be silently swallowed).
 *Export Data (Encrypted)* (Settings → Data) wraps the same JSON in a
 passphrase envelope (`data/backup/BackupCrypto.kt`). The file keeps the
 `.pennywisebackup` extension; the JSON inside is unchanged, so everything
-above still applies once it's decrypted. The passphrase is never stored.
+above still applies once it's decrypted. That passphrase is never stored.
 
 | Bytes | Field |
 |-------|-------|
@@ -241,6 +241,12 @@ Then frames until the one marked last:
   that won't parse gives a fixed error: parser messages quote the plaintext.
 - A new KDF or cipher needs a new envelope version; readers reject versions
   they don't know.
+- **Automatic folder backups** (*Encrypt Automatic Backups*) use the same
+  envelope. Their passphrase is kept on the device, sealed with an Android
+  Keystore key (`data/backup/FolderBackupPassphrase.kt`), in app-private prefs
+  that no backup file or Android backup carries. If the key can no longer
+  unseal it, no backup is written — never a plain one — and Settings asks for
+  the passphrase again. Restore them like any encrypted backup.
 
 ## How to change the format safely
 

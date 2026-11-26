@@ -47,7 +47,8 @@ class CsvTransactionImporter @Inject constructor() {
         private const val COL_DESCRIPTION = "Description"
 
         private const val DEFAULT_BANK = "Imported"
-        private const val DEFAULT_CATEGORY = "Others"
+        /** A row's category when the file gives none. */
+        const val DEFAULT_CATEGORY = "Others"
     }
 
     /**

@@ -3,9 +3,13 @@ package com.pennywiseai.tracker.data.csv
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.statement.ImportRules
+import com.pennywiseai.tracker.data.statement.ImportRulesSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -19,7 +23,9 @@ import javax.inject.Singleton
  * Imports historical transactions from a CSV in PennyWise's own export format
  * (see [CsvTransactionImporter]). Opens the picked [Uri] via the ContentResolver,
  * parses it, dedups the parsed rows against what's already in the DB (by the
- * deterministic import hash) and inserts the rest.
+ * deterministic import hash) and inserts the rest. A row without a category
+ * of its own ("Others") gets the learned merchant category and the user's
+ * rules; block rules apply to every row.
  *
  * Free feature (onboarding/migration) — not gated behind Pro.
  */
@@ -28,14 +34,17 @@ class ImportCsvUseCase @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val importer: CsvTransactionImporter,
     private val transactionRepository: TransactionRepository,
-    private val userPreferencesRepository: CurrencyPreferences
+    private val userPreferencesRepository: CurrencyPreferences,
+    private val importRules: ImportRulesSource,
+    private val database: PennyWiseDatabase
 ) {
 
     sealed class Result {
         data class Success(
             val imported: Int,
             val skippedDuplicate: Int,
-            val failed: Int
+            val failed: Int,
+            val blockedByRules: Int = 0
         ) : Result()
 
         data class Error(val message: String) : Result()
@@ -75,18 +84,37 @@ class ImportCsvUseCase @Inject constructor(
                 toInsert.add(transaction)
             }
 
-            if (toInsert.isNotEmpty()) {
-                transactionRepository.insertTransactions(toInsert)
+            val (kept, blocked) = applyRules(toInsert, importRules.load())
+            if (kept.isNotEmpty()) {
+                database.withTransaction {
+                    val ids = transactionRepository.insertTransactions(kept.map { it.entity })
+                    ids.zip(kept).forEach { (id, row) -> importRules.record(id, row.applications) }
+                }
             }
 
             Result.Success(
-                imported = toInsert.size,
+                imported = kept.size,
                 skippedDuplicate = skippedDuplicate,
-                failed = parseResult.failedCount
+                failed = parseResult.failedCount,
+                blockedByRules = blocked
             )
         } catch (e: Exception) {
             Log.e("ImportCsvUseCase", "CSV import failed", e)
             Result.Error("Import failed: ${e.message}")
+        }
+    }
+
+    internal companion object {
+        /** The rows [rules] keep, and how many they blocked. The file's own category wins. */
+        fun applyRules(rows: List<TransactionEntity>, rules: ImportRules): Pair<List<ImportRules.Outcome.Kept>, Int> {
+            var blocked = 0
+            val kept = rows.mapNotNull { row ->
+                when (val outcome = rules.apply(row, categorize = row.category == CsvTransactionImporter.DEFAULT_CATEGORY)) {
+                    ImportRules.Outcome.Blocked -> null.also { blocked++ }
+                    is ImportRules.Outcome.Kept -> outcome
+                }
+            }
+            return kept to blocked
         }
     }
 }

@@ -230,6 +230,8 @@
     <string name="settings_importing_transactions">Importing transactions...</string>
     <string name="settings_import_csv_success">Imported %1$d transactions, skipped %2$d duplicates</string>
     <string name="settings_import_csv_success_with_failed_rows">Imported %1$d transactions, skipped %2$d duplicates, %3$d rows could not be parsed</string>
+    <string name="settings_import_csv_success_with_blocked">Imported %1$d transactions, skipped %2$d duplicates, %3$d blocked by your rules</string>
+    <string name="settings_import_csv_success_with_blocked_and_failed_rows">Imported %1$d transactions, skipped %2$d duplicates, %3$d blocked by your rules, %4$d rows could not be parsed</string>
     <string name="settings_folder_backup_disabled">Automatic folder backup disabled</string>
     <string name="settings_folder_access_failed">Could not access the selected folder: %1$s</string>
     <string name="settings_folder_select_first">Select a backup folder first</string>

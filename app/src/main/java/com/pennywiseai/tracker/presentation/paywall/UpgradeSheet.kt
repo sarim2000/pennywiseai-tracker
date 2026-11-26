@@ -41,6 +41,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -70,6 +72,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.core.entitlement.FeatureTrials
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlinx.coroutines.delay
@@ -83,12 +86,16 @@ import kotlinx.coroutines.launch
  * anyone who bought through Play while that was possible. It quotes no
  * price, launches no checkout, and points nowhere to buy one — which is what
  * keeps a consumption-only app on the right side of Play's Payments policy.
+ *
+ * A gate whose feature has a trial left passes [onStartTrial]: the sheet then
+ * also offers "Try free for 7 days", which starts it and closes the sheet.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpgradeSheet(
     onDismiss: () -> Unit,
     viewModel: UpgradeViewModel = hiltViewModel(),
+    onStartTrial: (() -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -122,6 +129,15 @@ fun UpgradeSheet(
             onCelebrationComplete = viewModel::markCelebrationComplete,
             onShowLicenseDialog = viewModel::onShowLicenseDialog,
             onRemoveLicense = viewModel::onRemoveLicense,
+            onStartTrial = onStartTrial?.let { start ->
+                {
+                    start()
+                    scope.launch {
+                        sheetState.hide()
+                        onDismiss()
+                    }
+                }
+            },
             onHelp = {
                 runCatching {
                     context.startActivity(
@@ -154,6 +170,7 @@ private fun UpgradeSheetContent(
     onCelebrationComplete: () -> Unit,
     onShowLicenseDialog: () -> Unit,
     onRemoveLicense: () -> Unit,
+    onStartTrial: (() -> Unit)?,
     onHelp: () -> Unit,
 ) {
     // Celebration takes the whole sheet — even members shouldn't see the
@@ -184,6 +201,7 @@ private fun UpgradeSheetContent(
                 state = state,
                 onRestore = onRestore,
                 onLicenseKey = onShowLicenseDialog,
+                onStartTrial = onStartTrial,
                 onHelp = onHelp,
             )
         }
@@ -245,6 +263,7 @@ private fun UpgradeBody(
     state: UpgradeUiState,
     onRestore: () -> Unit,
     onLicenseKey: () -> Unit,
+    onStartTrial: (() -> Unit)?,
     onHelp: () -> Unit,
 ) {
     IncludesBlock()
@@ -272,6 +291,23 @@ private fun UpgradeBody(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold,
         )
+    }
+    if (onStartTrial != null) {
+        Spacer(Modifier.height(Spacing.sm))
+        OutlinedButton(
+            onClick = onStartTrial,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content)
+                .height(Dimensions.Component.buttonHeight),
+            shape = RoundedCornerShape(Dimensions.CornerRadius.large),
+        ) {
+            Text(
+                text = pluralStringResource(R.plurals.feature_trial_start, FeatureTrials.TRIAL_DAYS, FeatureTrials.TRIAL_DAYS),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
     Spacer(Modifier.height(Spacing.md))
 

@@ -459,10 +459,10 @@ class AiTools @Inject constructor(
         ((this[key] as? JsonArray) ?: listOfNotNull(this[key]))
             .mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content?.takeIf(::isName) }
 
-    /** Has a visible character. Spelled out, not isNotBlank, so it is the same set as the relay's isName. */
     /** How the tag table tells names apart: its case-insensitive match folds ASCII letters only, so "CAFÉ" and "Café" are two tags. */
     private fun tagKey(s: String) = String(CharArray(s.length) { i -> s[i].let { if (it in 'A'..'Z') it + 32 else it } })
 
+    /** Has a visible character. Spelled out, not isNotBlank, so it is the same set as the relay's isName. */
     private fun isName(s: String) = s.any { !it.isWhitespace() && !it.isISOControl() && it != '\uFEFF' && it != '\u180E' }
 
     private fun error(message: String) = text(message, isError = true)

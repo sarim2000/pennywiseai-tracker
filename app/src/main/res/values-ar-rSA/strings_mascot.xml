@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- The chip beside the Chat tab while its mascot reacts: a few words on what the user just did. -->
     <string name="mascot_chip_goal_reached">تحقق الهدف</string>
     <string name="mascot_chip_paid_off">سُدّد بالكامل</string>
     <string name="mascot_chip_learned">تعلّمتها</string>

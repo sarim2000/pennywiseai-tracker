@@ -443,6 +443,7 @@
     <string name="category_picker_all">الكل</string>
     <string name="category_picker_create">إنشاء \"%1$s\"</string>
     <string name="category_picker_no_match">لا توجد فئات مطابقة</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">ليست مصروفًا</string>
     <string name="quick_category_not_income">ليست دخلًا</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

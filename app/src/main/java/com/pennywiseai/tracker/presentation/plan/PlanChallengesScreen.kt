@@ -406,7 +406,7 @@ private fun ResultCard(
             Mascot(
                 size = Dimensions.Icon.hero,
                 mood = if (outcome.won) MascotMood.Happy else MascotMood.Calm,
-                tint = if (outcome.won) scheme.onTertiaryContainer else scheme.primary,
+                tint = if (outcome.won) scheme.onTertiaryContainer else scheme.onSurfaceVariant,
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                 Text(headline, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)

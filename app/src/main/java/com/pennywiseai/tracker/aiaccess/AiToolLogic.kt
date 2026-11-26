@@ -10,15 +10,22 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
@@ -32,16 +39,27 @@ import java.math.RoundingMode
  */
 object AiToolLogic {
     /**
-     * Rules as AI apps may see them. A condition on the SMS text can quote a real message,
-     * and AI apps never get SMS text, so its value is hidden.
+     * Rules as AI apps may see them. A condition on the SMS text or a note can quote real text,
+     * and AI apps never get either, so its value is hidden. So is the text a rule writes into a note.
      */
     fun shareableRules(rules: List<TransactionRule>): List<TransactionRule> = rules.map { rule ->
         rule.copy(conditions = rule.conditions.map { c ->
-            if (c.field == com.pennywiseai.tracker.domain.model.rule.TransactionField.SMS_TEXT) c.copy(value = HIDDEN_SMS_TEXT) else c
+            when (c.field) {
+                TransactionField.SMS_TEXT -> c.copy(value = HIDDEN_SMS_TEXT)
+                TransactionField.NARRATION -> c.copy(value = HIDDEN_NOTE)
+                else -> c
+            }
+        }, actions = rule.actions.map { a ->
+            if (a.field == TransactionField.NARRATION && a.value.isNotEmpty()) a.copy(value = HIDDEN_NOTE) else a
         })
     }
 
     const val HIDDEN_SMS_TEXT = "(SMS text hidden)"
+    const val HIDDEN_NOTE = "(note hidden)"
+    const val NO_NOTE_ACTIONS = "Rules that write a transaction's note can't be created or changed from here: notes are hidden from AI apps. Create it in PennyWise → Rules."
+
+    private val HIDDEN_FIELDS = setOf(TransactionField.SMS_TEXT, TransactionField.NARRATION)
+    const val NO_HIDDEN_CONDITIONS = "Rules that match on SMS text or a transaction's note can't be created or changed from here: both are hidden from AI apps. Create it in PennyWise → Rules."
 
     const val MAX_ROWS = 200
 
@@ -261,10 +279,19 @@ object AiToolLogic {
      * A rule from `create_rule` arguments, checked exactly like an imported rules file. BLOCK
      * is refused: it silently drops future SMS, too much for an AI app to set up.
      */
-    fun ruleFrom(args: JsonObject): TransactionRule {
+    fun ruleFrom(args: JsonObject, actionsFromCaller: Boolean = true): TransactionRule {
+        val rule = decodeRule(args)
+        require(rule.conditions.none { it.field in HIDDEN_FIELDS }) { NO_HIDDEN_CONDITIONS }
+        // A note the caller writes, or aims a stored note action at by changing the conditions, is one
+        // it can then test other rules' note conditions against.
+        require(!actionsFromCaller || rule.actions.none { it.field == TransactionField.NARRATION }) { NO_NOTE_ACTIONS }
+        return rule
+    }
+
+    private fun decodeRule(args: JsonObject): TransactionRule {
         val shared = buildJsonObject {
             putJsonArray("rules") {
-                add(buildJsonObject { listOf("name", "description", "priority", "conditions", "actions").forEach { k -> args[k]?.let { put(k, it) } } })
+                add(buildJsonObject { RULE_FIELDS.forEach { k -> args[k]?.let { put(k, it) } } })
             }
         }
         val rule = try {
@@ -276,6 +303,78 @@ object AiToolLogic {
         }
         require(rule.actions.none { it.actionType == ActionType.BLOCK }) { "AI apps can't create rules that block transactions." }
         return rule
+    }
+
+    private val RULE_FIELDS = listOf("name", "description", "priority", "conditions", "actions")
+
+    /**
+     * Why [rule] may not be counted or run over past transactions from an AI call, or null when it may.
+     * A count on a condition the AI never sees (SMS text, a transaction's note) would let it read that
+     * text one guess at a time. Stored conditions count too: a rule saved with one and then previewed
+     * by id is the same oracle in two steps. A past run done
+     * twice must not do more than once (the relay's timeout makes the client ask again) and must not
+     * move money, so only setting a category and tag changes are allowed. Not merchant names or notes:
+     * the old text survives only in the rule's history, which goes when the rule is deleted, and a
+     * count on a note action would read notes the same way a note condition does.
+     */
+    fun pastApplyRefusal(rule: TransactionRule): String? {
+        val supplied = rule.conditions.map { it.field }
+        if (TransactionField.SMS_TEXT in supplied) return "A rule that matches on SMS text can't be previewed or applied to past transactions from here: SMS text is hidden from AI apps."
+        if (TransactionField.NARRATION in supplied) return "A rule that matches on a transaction's note can't be previewed or applied to past transactions from here: notes are hidden from AI apps."
+        if (!rule.isActive) return "\"${rule.name}\" is switched off, so it changes nothing. Turn it on in PennyWise → Rules first."
+        val unsafe = rule.actions.filterNot { a ->
+            when (a.actionType) {
+                ActionType.SET -> a.field == TransactionField.CATEGORY
+                ActionType.ADD_TAG, ActionType.REMOVE_TAG -> true
+                else -> false
+            }
+        }
+        if (unsafe.isEmpty()) return null
+        val why = if (unsafe.any { it.actionType == ActionType.APPEND || it.actionType == ActionType.PREPEND }) "appends text" else "changes more than categories or tags"
+        return "This rule can be saved, but can't be applied to past transactions from here because it $why. Apply it from PennyWise → Rules."
+    }
+
+    /** [existing] with only the fields [args] supplies replaced, checked like [ruleFrom]. Id, on/off, template flag and created time stay. */
+    fun ruleUpdated(existing: TransactionRule, args: JsonObject): TransactionRule {
+        val json = Json { encodeDefaults = true }
+        // A rule the user made on SMS text or a note keeps its real condition: only its label fields change here.
+        val keepsHidden = existing.conditions.any { it.field in HIDDEN_FIELDS }
+        if (keepsHidden) require("actions" !in args && "conditions" !in args) {
+            "\"${existing.name}\" matches on SMS text or a note, which are hidden from AI apps, so only its name, description and priority can be changed from here."
+        }
+        val build: (JsonObject) -> TransactionRule = if (keepsHidden) ::decodeRule else { a -> ruleFrom(a, actionsFromCaller = "actions" in args || "conditions" in args) }
+        val edited = build(buildJsonObject {
+            put("name", existing.name)
+            existing.description?.let { put("description", it) }
+            put("priority", existing.priority)
+            put("conditions", json.encodeToJsonElement(existing.conditions))
+            put("actions", json.encodeToJsonElement(existing.actions))
+            RULE_FIELDS.forEach { k -> args[k]?.let { put(k, it) } }
+        })
+        return existing.copy(
+            name = edited.name, description = edited.description, priority = edited.priority,
+            conditions = edited.conditions, actions = edited.actions, updatedAt = System.currentTimeMillis(),
+        )
+    }
+
+    /** list_rules: the user's own rules in create_rule's shape, plus the `id` update_rule and delete_rule take. */
+    fun listRules(rules: List<TransactionRule>): String {
+        val own = RuleSharingCodec.exportable(shareableRules(rules))
+        val set = Json.parseToJsonElement(RuleSharingCodec.encode(own)).jsonObject
+        val withIds = set["rules"]!!.jsonArray.mapIndexed { i, r -> JsonObject(r.jsonObject + ("id" to JsonPrimitive(own[i].id))) }
+        return JsonObject(set + ("rules" to JsonArray(withIds))).toString()
+    }
+
+    /** `none`, `uncategorized` or `all`. An older client's `true` still means uncategorized. */
+    fun applyToPast(args: JsonObject, default: String): String {
+        val raw = args["apply_to_past"] ?: return default
+        val v = raw as? JsonPrimitive ?: throw IllegalArgumentException("apply_to_past must be none, uncategorized or all.")
+        return when {
+            v.booleanOrNull == true -> "uncategorized"
+            v.booleanOrNull == false -> "none"
+            v.isString && v.content in listOf("none", "uncategorized", "all") -> v.content
+            else -> throw IllegalArgumentException("apply_to_past must be none, uncategorized or all.")
+        }
     }
 
     private fun money(m: Money) = money(m.amount, m.currency)

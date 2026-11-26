@@ -108,11 +108,24 @@ interface WidgetEntryPoint {
  * reveals it; [amounts] (a transaction row, a goal's line) follow the saved
  * choice that masks every other screen, as the app's own lists do. Either
  * way it's the home screen, where anyone near the phone can read them.
+ * While App Lock is on, both are masked (unless the user turned that off),
+ * so the widgets don't show what the lock keeps out.
  */
 data class WidgetMask(val totals: Boolean, val amounts: Boolean) {
     companion object {
         val ALL = WidgetMask(totals = true, amounts = true)
     }
+}
+
+/** [WidgetMask]'s rule, as a function so a test can pin it. */
+internal fun widgetMask(
+    homeHidden: Boolean,
+    hiddenEverywhere: Boolean,
+    appLockOn: Boolean,
+    hideWhileLocked: Boolean
+): WidgetMask {
+    val locked = appLockOn && hideWhileLocked
+    return WidgetMask(totals = homeHidden || locked, amounts = hiddenEverywhere || locked)
 }
 
 /** The [WidgetMask], read before composing so the first frame is already right, then followed live. */
@@ -121,10 +134,14 @@ class WidgetPrivacy(val hidden: Flow<WidgetMask>, val initial: WidgetMask) {
         suspend fun load(context: Context): WidgetPrivacy = try {
             val prefs = EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
                 .userPreferences()
-            val flow = combine(prefs.isBalanceHidden, prefs.isAmountHiddenEverywhere) { home, everywhere ->
-                WidgetMask(totals = home, amounts = everywhere)
-            }
-                .distinctUntilChanged()
+            val flow = combine(
+                prefs.isBalanceHidden,
+                prefs.isAmountHiddenEverywhere,
+                prefs.isAppLockEnabled,
+                prefs.hideWidgetAmountsWhileLocked
+            ) { home, everywhere, lockOn, hideWhileLocked ->
+                widgetMask(home, everywhere, lockOn, hideWhileLocked)
+            }.distinctUntilChanged()
             WidgetPrivacy(flow, flow.first())
         } catch (e: CancellationException) {
             throw e

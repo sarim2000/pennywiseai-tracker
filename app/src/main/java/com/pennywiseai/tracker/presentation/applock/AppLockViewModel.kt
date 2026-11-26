@@ -5,9 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.AppLockRepository
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.security.BiometricAuthManager
 import com.pennywiseai.tracker.ui.security.BiometricCapability
-import com.pennywiseai.tracker.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -21,6 +21,10 @@ class AppLockViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(AppLockUiState())
     val uiState: StateFlow<AppLockUiState> = _uiState.asStateFlow()
+
+    /** Settings → Security: whether the widgets mask amounts while the lock is on. */
+    val hideWidgetAmounts: StateFlow<Boolean> = appLockRepository.hideWidgetAmounts
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
 
     init {
         observeAppLockState()
@@ -107,6 +111,12 @@ class AppLockViewModel @Inject constructor(
     fun setAppLockEnabled(enabled: Boolean) {
         viewModelScope.launch {
             appLockRepository.setAppLockEnabled(enabled)
+        }
+    }
+
+    fun setHideWidgetAmounts(hide: Boolean) {
+        viewModelScope.launch {
+            appLockRepository.setHideWidgetAmounts(hide)
         }
     }
 

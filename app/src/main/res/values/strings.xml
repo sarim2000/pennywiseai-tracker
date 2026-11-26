@@ -142,4 +142,7 @@
     <!-- rd:lead -->
     <string name="settings_help_community_subtitle">Chat with other PennyWise users</string>
     <string name="settings_help_rate_subtitle">Rate PennyWise on Google Play</string>
+    <!-- Settings → Security, shown while App Lock is on -->
+    <string name="settings_hide_widget_amounts_title">Hide amounts in widgets</string>
+    <string name="settings_hide_widget_amounts_subtitle">Home screen widgets show •••• while App Lock is on</string>
 </resources>

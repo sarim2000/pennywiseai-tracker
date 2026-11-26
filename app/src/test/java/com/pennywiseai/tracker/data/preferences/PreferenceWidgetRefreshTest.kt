@@ -66,6 +66,16 @@ class PreferenceWidgetRefreshTest {
     }
 
     @Test
+    fun `App Lock and its widget switch refresh the widgets`() = runBlocking {
+        repository.setAppLockEnabledWithTimestamp(true)
+        assertEquals(1, refreshes)
+        repository.setAppLockEnabled(false)
+        assertEquals(2, refreshes)
+        repository.setHideWidgetAmountsWhileLocked(false)
+        assertEquals(3, refreshes)
+    }
+
+    @Test
     fun `the selected profile refreshes the widgets`() = runBlocking {
         repository.updateSelectedProfileId(7L)
         repository.updateSelectedProfileId(null)

@@ -433,8 +433,11 @@ class AccountBalanceRepositoryAccountTypeTest {
         markCredit()
 
         assertOwed("1200.00")
-        assertEquals(listOf(1L, 2L, 3L), balanceRows.map { it.transactionId })
-        assertTrue(balanceRows.none { it.sourceType == AccountBalanceRepository.SOURCE_MANUAL })
+        // A MANUAL zero anchor first, then one row per transaction in time order.
+        val ordered = balanceRows.sortedBy { it.timestamp }
+        assertEquals(listOf(null, 1L, 2L, 3L), ordered.map { it.transactionId })
+        assertEquals(AccountBalanceRepository.SOURCE_MANUAL, ordered.first().sourceType)
+        assertEquals(0, BigDecimal.ZERO.compareTo(ordered.first().balance))
     }
 
     @Test
@@ -447,8 +450,8 @@ class AccountBalanceRepositoryAccountTypeTest {
         markCredit()
 
         assertOwed("1000.00")
-        assertEquals(1, balanceRows.size)
-        assertEquals("USD", balanceRows.single().currency)
+        assertEquals(2, balanceRows.size)
+        assertTrue(balanceRows.all { it.currency == "USD" })
     }
 
     @Test
@@ -464,7 +467,7 @@ class AccountBalanceRepositoryAccountTypeTest {
 
         markCredit()
 
-        val row = balanceRows.single()
+        val row = balanceRows.maxBy { it.timestamp }
         assertOwed("1000.00")
         assertEquals("Travel card", row.alias)
         assertEquals(7L, row.profileId)
@@ -501,7 +504,10 @@ class AccountBalanceRepositoryAccountTypeTest {
         repository.deleteTransactionDerivedBalances()
 
         assertOwed("1500.00")
-        assertEquals(listOf("Test SMS 1", "Test SMS 2"), balanceRows.map { it.smsSource })
+        assertEquals(
+            listOf("Test SMS 1", "Test SMS 2"),
+            balanceRows.filter { it.transactionId != null }.sortedBy { it.timestamp }.map { it.smsSource }
+        )
     }
 
     @Test
@@ -514,6 +520,57 @@ class AccountBalanceRepositoryAccountTypeTest {
         val account = repository.getLatestBalance("Unknown Test Bank", "4321")!!
         assertEquals("AED", account.currency)
         assertEquals(0, BigDecimal("40.00").compareTo(account.balance))
+    }
+
+    @Test
+    fun `a new account takes its bank parser's currency, not the one its spends share`() = runBlocking {
+        // An INR bank whose card was only used abroad.
+        cardTransactions += cardTxn(1, daysAgo = 2, TransactionType.EXPENSE, "40.00", currency = "USD", bankName = "ICICI Bank")
+        cardTransactions += cardTxn(2, daysAgo = 1, TransactionType.EXPENSE, "25.00", currency = "USD", bankName = "ICICI Bank")
+
+        repository.ensureCreditCardAccount("ICICI Bank", "4321", cardCreatedAt)
+
+        assertEquals("INR", repository.getLatestBalance("ICICI Bank", "4321")!!.currency)
+    }
+
+    @Test
+    fun `a rebuilt account keeps its currency when its transactions are in several`() = runBlocking {
+        val usd = cardTxn(1, daysAgo = 2, TransactionType.EXPENSE, "100.00", currency = "USD")
+        val eur = cardTxn(2, daysAgo = 1, TransactionType.EXPENSE, "50.00", currency = "EUR")
+        cardTransactions += usd
+        cardTransactions += eur
+        // The live receiver's USD account: the EUR spend left it as it was.
+        balanceRows += liveDebitRow(usd, "-100.00")
+        balanceRows += liveDebitRow(eur, "-100.00").copy(currency = "USD")
+
+        markCredit()
+
+        assertOwed("100.00")
+        assertTrue(balanceRows.all { it.currency == "USD" })
+    }
+
+    @Test
+    fun `an account whose figure the user corrected is relabelled, not rebuilt`() = runBlocking {
+        val spend = cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "1000.00")
+        cardTransactions += spend
+        // Balance History edit: same source and transaction, the user's figure.
+        balanceRows += liveDebitRow(spend, "-1000.00").copy(balance = BigDecimal("2500.00"))
+
+        markCredit()
+
+        assertOwed("2500.00")
+        assertEquals(1, balanceRows.size)
+    }
+
+    @Test
+    fun `clearing local history keeps an account whose transactions were recorded by hand`() = runBlocking {
+        cardTransactions += cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "1000.00").copy(smsBody = null)
+        markCredit()
+
+        repository.deleteTransactionDerivedBalances()
+
+        assertOwed("0")
+        assertEquals(AccountBalanceRepository.SOURCE_MANUAL, balanceRows.single().sourceType)
     }
 
     @Test

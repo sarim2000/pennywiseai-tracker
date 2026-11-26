@@ -338,20 +338,26 @@ open class AccountBalanceRepository @Inject constructor(
      * on it.
      *
      * - Already a credit account: left alone.
-     * - An account whose every row is a TRANSACTION row of this card's own
-     *   transactions: the live receiver wrote it as a bank account while the
-     *   card was an unlinked debit card, so a spend lowered it. Relabelling it
-     *   would read that as money the bank owes; its rows are dropped and the
-     *   card's transactions replayed instead.
-     * - Any other existing account: switched to CREDIT.
-     * - No account: the card's transactions are replayed in time order, each
-     *   moving what is owed by its ledger type, so a paired repayment counts.
-     *   A balance stated in those SMS is not used: they were read while the
-     *   card was a debit card, so it can be an available balance, not what is
-     *   owed. Replayed rows keep their SMS as `smsSource`, like the scan's, so
-     *   clearing local history doesn't remove the account.
-     * - No account and no transactions: a MANUAL zero row stamped at
-     *   [cardCreatedAt], so any SMS of the card sorts after it.
+     * - An account the live receiver wrote as a bank account while the card was
+     *   an unlinked debit card (every row a TRANSACTION row of this card's own
+     *   transactions, each still the figure that transaction gave): a spend
+     *   lowered it, so relabelling it would read the debt as money the bank
+     *   owes. Its rows are dropped and the card's transactions replayed.
+     * - Any other existing account, including one whose figures the user
+     *   corrected in Balance History: switched to CREDIT, its rows kept.
+     * - Otherwise the account is built: a MANUAL zero row dated before the
+     *   card's first SMS (or at [cardCreatedAt] when it has none), then the
+     *   card's transactions replayed in time order, each moving what is owed by
+     *   its ledger type, so a paired repayment counts. The MANUAL row has no
+     *   transaction, so clearing local history leaves the account in place even
+     *   when its transactions were recorded by hand. A balance stated in those
+     *   SMS is not used: they were read while the card was a debit card, so it
+     *   can be an available balance, not what is owed. Replayed rows keep their
+     *   SMS as `smsSource`, like the scan's.
+     *
+     * The account keeps the currency it has; a new one takes its bank parser's
+     * currency, else the one its transactions share, else INR. A transaction in
+     * another currency leaves the balance as it is (see BalanceCalculator).
      *
      * The check, the read and the writes share one transaction, so a
      * transaction edited meanwhile either lands before the replay reads it or
@@ -371,39 +377,48 @@ open class AccountBalanceRepository @Inject constructor(
         val transactions = transactionDao.getTransactionsForAccountStrict(bankName, cardLast4)
             .sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
         if (existing != null) {
-            val cardTransactionIds = transactions.mapTo(HashSet()) { it.id }
             val rows = accountBalanceDao.getBalanceHistoryForAccount(bankName, cardLast4)
-            val writtenForThisCard = cardTransactionIds.isNotEmpty() && rows.all {
-                it.sourceType == "TRANSACTION" && it.transactionId in cardTransactionIds
-            }
-            if (!writtenForThisCard) {
+            if (!isUntouchedLiveDebitAccount(rows, transactions)) {
                 setAccountType(bankName, cardLast4, AccountType.CREDIT)
                 return@withTransaction
             }
             accountBalanceDao.deleteAccount(bankName, cardLast4)
         }
-        // The card's own currency when its SMS agree on one; a spend in another
-        // currency then leaves the balance as it is (see BalanceCalculator).
-        val accountCurrency = transactions.map { it.currency }.distinct().singleOrNull()
-            ?: CurrencyFormatter.getBankBaseCurrency(bankName)
-        if (transactions.isEmpty()) {
-            accountBalanceDao.insertBalance(
-                AccountBalanceEntity(
-                    bankName = bankName,
-                    accountLast4 = cardLast4,
-                    balance = BigDecimal.ZERO,
-                    timestamp = cardCreatedAt,
-                    isCreditCard = true,
-                    accountType = AccountType.CREDIT.toDatabaseString(),
-                    currency = accountCurrency,
-                    sourceType = SOURCE_MANUAL
-                )
+        val accountCurrency = existing?.currency
+            ?: CurrencyFormatter.resolveAccountCurrency(
+                sourceType = null,
+                storedCurrency = transactions.map { it.currency }.distinct().singleOrNull() ?: "INR",
+                bankName = bankName
             )
-            return@withTransaction
-        }
-        var running: BigDecimal? = null
+        // A rebuilt account keeps what the user set on it.
+        fun row(
+            balance: BigDecimal,
+            timestamp: LocalDateTime,
+            sourceType: String,
+            txn: TransactionEntity?
+        ) = AccountBalanceEntity(
+            bankName = bankName,
+            accountLast4 = cardLast4,
+            balance = balance,
+            timestamp = timestamp,
+            transactionId = txn?.id,
+            isCreditCard = true,
+            smsSource = txn?.smsBody?.take(500),
+            accountType = AccountType.CREDIT.toDatabaseString(),
+            currency = accountCurrency,
+            sourceType = sourceType,
+            profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
+            alias = existing?.alias,
+            lowBalanceThreshold = existing?.lowBalanceThreshold
+        ).withAccountFieldsOf(existing)
+
+        val anchorAt = transactions.firstOrNull()?.dateTime
+            ?.let { minOf(it, cardCreatedAt).minusSeconds(1) }
+            ?: cardCreatedAt
+        accountBalanceDao.insertBalance(row(BigDecimal.ZERO, anchorAt, SOURCE_MANUAL, txn = null))
+        var running = BigDecimal.ZERO
         for (txn in transactions) {
-            val balance = BalanceCalculator.balanceAfter(
+            running = BalanceCalculator.balanceAfter(
                 explicitBalance = null,
                 isCreditCard = true,
                 transactionType = txn.ledgerType(),
@@ -412,26 +427,40 @@ open class AccountBalanceRepository @Inject constructor(
                 accountCurrency = accountCurrency,
                 currentBalance = running
             )
-            running = balance
-            accountBalanceDao.insertBalance(
-                AccountBalanceEntity(
-                    bankName = bankName,
-                    accountLast4 = cardLast4,
-                    balance = balance,
-                    timestamp = txn.dateTime,
-                    transactionId = txn.id,
-                    isCreditCard = true,
-                    smsSource = txn.smsBody?.take(500),
-                    accountType = AccountType.CREDIT.toDatabaseString(),
-                    currency = accountCurrency,
-                    sourceType = "TRANSACTION",
-                    // A rebuilt account keeps what the user set on it.
-                    profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
-                    alias = existing?.alias,
-                    lowBalanceThreshold = existing?.lowBalanceThreshold
-                ).withAccountFieldsOf(existing)
-            )
+            accountBalanceDao.insertBalance(row(running, txn.dateTime, "TRANSACTION", txn))
         }
+    }
+
+    /**
+     * True when [rows] are exactly what the live receiver writes for an
+     * unlinked debit card's [transactions]: each a TRANSACTION row of one of
+     * them, holding the figure that transaction gave from the row before it.
+     * A row the user corrected in Balance History keeps its source and
+     * transaction but not that figure, so the account is not rebuilt over it.
+     */
+    private fun isUntouchedLiveDebitAccount(
+        rows: List<AccountBalanceEntity>,
+        transactions: List<TransactionEntity>
+    ): Boolean {
+        if (transactions.isEmpty() || rows.isEmpty()) return false
+        val byId = transactions.associateBy { it.id }
+        var before: BigDecimal? = null
+        for (row in rows.sortedWith(compareBy<AccountBalanceEntity> { it.timestamp }.thenBy { it.id })) {
+            if (row.sourceType != "TRANSACTION") return false
+            val txn = row.transactionId?.let(byId::get) ?: return false
+            val expected = BalanceCalculator.balanceAfter(
+                explicitBalance = txn.balanceAfter,
+                isCreditCard = row.isCreditCard,
+                transactionType = txn.ledgerType(),
+                transactionAmount = txn.amount,
+                transactionCurrency = txn.currency,
+                accountCurrency = row.currency,
+                currentBalance = before
+            )
+            if (expected.compareTo(row.balance) != 0) return false
+            before = row.balance
+        }
+        return true
     }
 
     /**

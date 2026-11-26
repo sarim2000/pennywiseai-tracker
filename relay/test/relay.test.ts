@@ -233,7 +233,7 @@ describe("older apps behind the relay", () => {
 		const out = refuseHiddenConditions("create_rule", { conditions: [{ field: "MERCHANT" }], actions: [{ field: "NARRATION", actionType: "SET", value: "x" }] });
 		expect(out?.content[0].text).toContain("write a transaction's note");
 		expect(refuseHiddenConditions("update_rule", { actions: [{ field: "CATEGORY", actionType: "SET", value: "Food" }] })).toBeNull();
-		const listed = (value: string) => ({ content: [{ type: "text" as const, text: JSON.stringify({ rules: [{ name: "N", conditions: [{ field: "NARRATION", value }, { field: "MERCHANT", value: "cafe" }] }] }) }] });
+		const listed = (value: string) => ({ content: [{ type: "text" as const, text: JSON.stringify({ rules: [{ name: "N", conditions: [{ field: "NARRATION", value }, { field: "MERCHANT", value: "cafe" }], actions: [{ field: "NARRATION", actionType: "SET", value }] }] }) }] });
 		const shown = hideNoteConditions("list_rules", listed("my private note"));
 		expect(shown.content[0].text).not.toContain("my private note");
 		expect(shown.content[0].text).toContain("(note hidden)");

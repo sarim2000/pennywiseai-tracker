@@ -40,7 +40,7 @@ import java.math.RoundingMode
 object AiToolLogic {
     /**
      * Rules as AI apps may see them. A condition on the SMS text or a note can quote real text,
-     * and AI apps never get either, so its value is hidden.
+     * and AI apps never get either, so its value is hidden. So is the text a rule writes into a note.
      */
     fun shareableRules(rules: List<TransactionRule>): List<TransactionRule> = rules.map { rule ->
         rule.copy(conditions = rule.conditions.map { c ->
@@ -49,6 +49,8 @@ object AiToolLogic {
                 TransactionField.NARRATION -> c.copy(value = HIDDEN_NOTE)
                 else -> c
             }
+        }, actions = rule.actions.map { a ->
+            if (a.field == TransactionField.NARRATION && a.value.isNotEmpty()) a.copy(value = HIDDEN_NOTE) else a
         })
     }
 

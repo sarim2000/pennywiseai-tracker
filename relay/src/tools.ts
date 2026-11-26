@@ -319,15 +319,15 @@ export function refuseHiddenConditions(name: string, args: unknown): ToolResult 
 	return null;
 }
 
-/** An older app's list_rules quotes the text of a note condition; hide it as the current app does. */
+/** An older app's list_rules quotes the text a rule matches in, or writes to, a note; hide it as the current app does. */
 export function hideNoteConditions(name: string, result: ToolResult): ToolResult {
 	if (name !== "list_rules" || result.isError) return result;
 	try {
 		const set = JSON.parse(result.content[0].text);
 		let changed = false;
-		for (const rule of list(set?.rules) as { conditions?: unknown }[])
-			for (const c of list(rule?.conditions) as { field?: unknown; value?: unknown }[])
-				if (c?.field === "NARRATION" && c.value !== "(note hidden)") {
+		for (const rule of list(set?.rules) as { conditions?: unknown; actions?: unknown }[])
+			for (const c of [...list(rule?.conditions), ...list(rule?.actions)] as { field?: unknown; value?: unknown }[])
+				if (c?.field === "NARRATION" && c.value && c.value !== "(note hidden)") {
 					c.value = "(note hidden)";
 					changed = true;
 				}

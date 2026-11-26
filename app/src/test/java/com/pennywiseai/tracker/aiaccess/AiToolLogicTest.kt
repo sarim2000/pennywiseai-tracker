@@ -341,10 +341,18 @@ class AiToolLogicTest {
                     com.pennywiseai.tracker.domain.model.rule.ConditionOperator.CONTAINS, "cafe"
                 )
             ),
-            actions = emptyList()
+            actions = listOf(
+                com.pennywiseai.tracker.domain.model.rule.RuleAction(
+                    com.pennywiseai.tracker.domain.model.rule.TransactionField.NARRATION, ActionType.SET, "written note text"
+                ),
+                com.pennywiseai.tracker.domain.model.rule.RuleAction(
+                    com.pennywiseai.tracker.domain.model.rule.TransactionField.CATEGORY, ActionType.SET, "Food"
+                ),
+            )
         )
-        val shared = AiToolLogic.shareableRules(listOf(rule)).single().conditions.map { it.value }
-        assertEquals(listOf(AiToolLogic.HIDDEN_SMS_TEXT, AiToolLogic.HIDDEN_NOTE, "cafe"), shared)
+        val shown = AiToolLogic.shareableRules(listOf(rule)).single()
+        assertEquals(listOf(AiToolLogic.HIDDEN_SMS_TEXT, AiToolLogic.HIDDEN_NOTE, "cafe"), shown.conditions.map { it.value })
+        assertEquals(listOf(AiToolLogic.HIDDEN_NOTE, "Food"), shown.actions.map { it.value })
     }
 
     private fun ruleWith(conditions: String) = Json.parseToJsonElement(

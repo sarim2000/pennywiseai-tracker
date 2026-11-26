@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -166,7 +167,7 @@ fun BudgetGroupsScreen(
                     title = stringResource(if (planTab != null) R.string.nav_plan else R.string.budgets_title),
                     overline = if (planTab != null) planOverline() else null,
                     hasBackButton = planTab == null,
-                    actionContent = { if (uiState.hasGroups) PinBudgetWidgetMenu() },
+                    actionContent = { if (uiState.hasGroups) PinWidgetMenu(WidgetPinning::pinBudgetWidget) },
                     navigationContent = {
                         IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
@@ -270,9 +271,9 @@ fun BudgetGroupsScreen(
     }
 }
 
-/** "Add to home screen" for the Budget Overview widget, where the launcher can pin one. */
+/** A top bar overflow with "Add to home screen" for one widget, where the launcher can pin one. */
 @Composable
-private fun PinBudgetWidgetMenu() {
+internal fun PinWidgetMenu(pin: (Context) -> Boolean) {
     val context = LocalContext.current
     if (!remember { WidgetPinning.isSupported(context) }) return
     var open by remember { mutableStateOf(false) }
@@ -284,7 +285,7 @@ private fun PinBudgetWidgetMenu() {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.widget_add_to_home_screen)) },
                 leadingIcon = { Icon(Icons.Default.Widgets, contentDescription = null) },
-                onClick = { open = false; WidgetPinning.pinBudgetWidget(context) },
+                onClick = { open = false; pin(context) },
             )
         }
     }

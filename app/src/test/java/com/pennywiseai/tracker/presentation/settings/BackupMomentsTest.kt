@@ -192,4 +192,22 @@ class BackupMomentsTest {
 
         assertEquals(emptyList<MascotMoment>(), heard)
     }
+
+    @Test
+    fun `a restore that couldn't bring back some receipts says nothing`() {
+        coEvery { importer.importBackup(any(), any()) } returns ImportResult.Success(3, 1, 0, skippedReceipts = 1)
+
+        viewModel.importBackup(mockk())
+
+        assertEquals(emptyList<MascotMoment>(), heard)
+    }
+
+    @Test
+    fun `a restore that only skipped duplicates still says so`() {
+        coEvery { importer.importBackup(any(), any()) } returns ImportResult.Success(3, 1, 5)
+
+        viewModel.importBackup(mockk())
+
+        assertEquals(listOf<MascotMoment>(MascotMoment.BackupRestored), heard)
+    }
 }

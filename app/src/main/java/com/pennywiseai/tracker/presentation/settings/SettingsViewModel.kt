@@ -704,8 +704,11 @@ class SettingsViewModel @Inject constructor(
                         } else {
                             UiText.Res(R.string.settings_import_backup_success, counts)
                         }
-                        // Rows that failed to insert make it a partial restore, which the message says: no shield.
-                        if (result.skippedRows == 0) mascotMoments.announce(MascotMoment.BackupRestored)
+                        // Rows that failed to insert, or receipts that didn't land, make it a partial
+                        // restore, which the message says: no shield. Duplicates are already here.
+                        if (result.skippedRows == 0 && result.skippedReceipts == 0) {
+                            mascotMoments.announce(MascotMoment.BackupRestored)
+                        }
                     }
                     is ImportResult.Error -> {
                         _importExportMessage.value = UiText.Res(R.string.settings_import_failed, listOf("${result.message}"))

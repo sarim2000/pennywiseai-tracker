@@ -101,7 +101,10 @@ class QuickAddViewModel @Inject constructor(
         date = draft.dateTime ?: LocalDateTime.now(),
         bankName = draft.account?.bankName,
         accountLast4 = draft.account?.accountLast4,
-        currency = draft.currency
+        currency = draft.currency,
+        // The sheet's toast says the amount, and sits over the bar for most of the Chat
+        // tab's hold: a chip under it would be unreadable, so the owl turns without one.
+        echoAmount = false
     )
 
     /** Past merchants for the "where" typed (#1392); none if the lookup fails, as typing goes on. */

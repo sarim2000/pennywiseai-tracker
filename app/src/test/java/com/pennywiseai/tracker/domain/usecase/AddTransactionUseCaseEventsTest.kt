@@ -85,6 +85,18 @@ class AddTransactionUseCaseEventsTest {
     }
 
     @Test
+    fun `a save whose caller shows the amount itself announces it without one`() {
+        insertReturns(7)
+        runBlocking {
+            useCase.execute(
+                amount = BigDecimal.TEN, merchant = "Shop", category = "Food", type = TransactionType.EXPENSE,
+                date = LocalDateTime.now(), currency = ten.currency, echoAmount = false,
+            )
+        }
+        assertEquals(listOf(TransactionEvent(TransactionType.EXPENSE, 1, TransactionOrigin.MANUAL)), heard)
+    }
+
+    @Test
     fun `a manual transfer announces one transfer`() {
         insertReturns(7)
         assertEquals(7L, transfer())

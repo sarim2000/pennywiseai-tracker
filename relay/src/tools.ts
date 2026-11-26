@@ -182,7 +182,7 @@ export const TOOLS = [
 						properties: {
 							id: { type: "string", description: "The id from search_transactions" },
 							category: { type: "string", description: "An existing category name from list_categories" },
-							tags: { type: "array", items: { type: "string" }, description: "The full tag list; [] removes all tags" },
+							tags: { type: "array", maxItems: 10, items: { type: "string", maxLength: 40 }, description: "The full tag list; [] removes all tags. One call can create at most 20 tags that don't exist yet." },
 							excluded_from_analytics: { type: "boolean" },
 						},
 						required: ["id"],

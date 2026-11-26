@@ -113,6 +113,20 @@
     <string name="settings_transaction_groups_subtitle">Organise transactions under a topic</string>
     <string name="settings_export_data_title">Export Data</string>
     <string name="settings_export_data_subtitle">Backup all data to a file</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <string name="settings_export_encrypted_title">Export Data (Encrypted)</string>
+    <string name="settings_export_encrypted_subtitle">Lock the backup file with a passphrase</string>
+    <string name="settings_backup_passphrase_export_title">Encrypt backup</string>
+    <string name="settings_backup_passphrase_export_body">You\'ll need this passphrase to restore the backup. It can\'t be recovered if you forget it.</string>
+    <string name="settings_backup_passphrase_label">Passphrase</string>
+    <string name="settings_backup_passphrase_confirm_label">Confirm passphrase</string>
+    <string name="settings_backup_passphrase_mismatch">Passphrases don\'t match</string>
+    <string name="settings_backup_passphrase_export_action">Export</string>
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <string name="settings_backup_passphrase_restore_title">Encrypted backup</string>
+    <string name="settings_backup_passphrase_restore_body">Enter the passphrase this backup was exported with.</string>
+    <string name="settings_backup_passphrase_wrong">Wrong passphrase, or the file is damaged. Nothing was changed.</string>
+    <string name="settings_backup_passphrase_restore_action">Restore</string>
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_export_csv_title">Export Transactions (CSV)</string>
     <string name="settings_export_csv_subtitle">A spreadsheet file of every transaction</string>

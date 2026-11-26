@@ -10,7 +10,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -19,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
@@ -133,6 +137,8 @@ internal fun DataPage(
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showExportOptionsDialog by remember { mutableStateOf(false) }
+    var showEncryptedExportDialog by remember { mutableStateOf(false) }
+    val backupPassphrasePrompt by settingsViewModel.backupPassphrasePrompt.collectAsStateWithLifecycle()
 
     // File picker for import
     val importLauncher = rememberLauncherForActivityResult(
@@ -186,6 +192,13 @@ internal fun DataPage(
             subtitle = stringResource(R.string.settings_export_data_subtitle),
             onClick = { settingsViewModel.exportBackup() },
             position = ListItemPosition.Top
+        )
+        SettingsNavItem(
+            icon = Icons.Default.Lock,
+            title = stringResource(R.string.settings_export_encrypted_title),
+            subtitle = stringResource(R.string.settings_export_encrypted_subtitle),
+            onClick = { showEncryptedExportDialog = true },
+            position = ListItemPosition.Middle
         )
         SettingsSwitchRow(
             icon = Icons.Default.Receipt,
@@ -480,4 +493,107 @@ internal fun DataPage(
     if (showUpgradeSheet) {
         UpgradeSheet(onDismiss = { showUpgradeSheet = false })
     }
+
+    if (showEncryptedExportDialog) {
+        EncryptedExportDialog(
+            onExport = { passphrase ->
+                showEncryptedExportDialog = false
+                settingsViewModel.exportBackup(passphrase)
+            },
+            onDismiss = { showEncryptedExportDialog = false }
+        )
+    }
+
+    backupPassphrasePrompt?.let { prompt ->
+        BackupPassphraseDialog(
+            wrongPassphrase = prompt.wrongPassphrase,
+            onRestore = { passphrase -> settingsViewModel.importBackup(prompt.uri, passphrase) },
+            onDismiss = { settingsViewModel.cancelBackupPassphrase() }
+        )
+    }
+}
+
+/** Picks the passphrase for an encrypted backup export. Never stored. */
+@Composable
+private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -> Unit) {
+    // Plain remember, not saveable: the passphrase must not land in saved instance state.
+    val passphraseState = remember { TextFieldState() }
+    val confirmState = remember { TextFieldState() }
+    val mismatch = confirmState.text.isNotEmpty() && confirmState.text.toString() != passphraseState.text.toString()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Lock, contentDescription = null) },
+        title = { Text(stringResource(R.string.settings_backup_passphrase_export_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(stringResource(R.string.settings_backup_passphrase_export_body))
+                PassphraseField(passphraseState, stringResource(R.string.settings_backup_passphrase_label))
+                PassphraseField(
+                    confirmState,
+                    stringResource(R.string.settings_backup_passphrase_confirm_label),
+                    error = if (mismatch) stringResource(R.string.settings_backup_passphrase_mismatch) else null
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onExport(passphraseState.text.toString().toCharArray()) },
+                enabled = passphraseState.text.isNotEmpty() && confirmState.text.toString() == passphraseState.text.toString(),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Text(stringResource(R.string.settings_backup_passphrase_export_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.settings_action_cancel)) }
+        }
+    )
+}
+
+/** Asks for an encrypted backup's passphrase before restoring it. Never stored. */
+@Composable
+private fun BackupPassphraseDialog(wrongPassphrase: Boolean, onRestore: (CharArray) -> Unit, onDismiss: () -> Unit) {
+    // Plain remember, not saveable: the passphrase must not land in saved instance state.
+    val passphraseState = remember { TextFieldState() }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Lock, contentDescription = null) },
+        title = { Text(stringResource(R.string.settings_backup_passphrase_restore_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(stringResource(R.string.settings_backup_passphrase_restore_body))
+                PassphraseField(
+                    passphraseState,
+                    stringResource(R.string.settings_backup_passphrase_label),
+                    error = if (wrongPassphrase) stringResource(R.string.settings_backup_passphrase_wrong) else null
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onRestore(passphraseState.text.toString().toCharArray()) },
+                enabled = passphraseState.text.isNotEmpty(),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Text(stringResource(R.string.settings_backup_passphrase_restore_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.settings_action_cancel)) }
+        }
+    )
+}
+
+@Composable
+private fun PassphraseField(state: TextFieldState, label: String, error: String? = null) {
+    OutlinedSecureTextField(
+        state = state,
+        textObfuscationMode = TextObfuscationMode.Hidden,
+        label = { Text(label) },
+        isError = error != null,
+        supportingText = error?.let { { Text(it) } },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedField.shape
+    )
 }

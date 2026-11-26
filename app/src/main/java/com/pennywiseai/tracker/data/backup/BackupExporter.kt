@@ -42,18 +42,34 @@ class BackupExporter @Inject constructor(
 ) {
 
     /**
-     * Export complete app data to a backup file
+     * Export complete app data to a backup file. With a [passphrase] the file is
+     * encrypted ([BackupCrypto]); the caller clears the array afterwards.
      */
     suspend fun exportBackup(
         privacy: ExportPrivacy = ExportPrivacy.FULL,
-        includeReceipts: Boolean = false
+        includeReceipts: Boolean = false,
+        passphrase: CharArray? = null
     ): ExportResult {
         return try {
             val (backup, skippedReceipts) = createBackup(privacy, includeReceipts)
             val file = createBackupFile()
             try {
-                // Streamed so the photos aren't held twice more as one big JSON string.
-                withContext(Dispatchers.IO) { file.outputStream().buffered().use { backupJson.encodeToStream(backup, it) } }
+                withContext(Dispatchers.IO) {
+                    if (passphrase == null) {
+                        writeJson(backup, file)
+                    } else {
+                        // The plain JSON only lives in cache until it's encrypted.
+                        val plain = File.createTempFile("backup_plain_", ".json", context.cacheDir)
+                        try {
+                            writeJson(backup, plain)
+                            plain.inputStream().buffered().use { input ->
+                                file.outputStream().buffered().use { BackupCrypto.encrypt(input, it, passphrase) }
+                            }
+                        } finally {
+                            plain.delete()
+                        }
+                    }
+                }
             } catch (e: Throwable) {
                 file.delete() // don't leave a partial backup in cache
                 throw e
@@ -64,6 +80,11 @@ class BackupExporter @Inject constructor(
         } catch (e: OutOfMemoryError) {
             ExportResult.Error(TOO_LARGE)
         }
+    }
+
+    // Streamed so the photos aren't held twice more as one big JSON string.
+    private fun writeJson(backup: PennyWiseBackup, file: File) {
+        file.outputStream().buffered().use { backupJson.encodeToStream(backup, it) }
     }
 
     /** Creates the backup, and counts the PDF receipts too large to go in it. */

@@ -125,6 +125,10 @@ class SettingsViewModel @Inject constructor(
     private val _exportSkippedReceipts = MutableStateFlow(0)
     val exportSkippedReceipts: StateFlow<Int> = _exportSkippedReceipts.asStateFlow()
 
+    // An encrypted backup picked for restore, waiting for its passphrase.
+    private val _backupPassphrasePrompt = MutableStateFlow<BackupPassphrasePrompt?>(null)
+    val backupPassphrasePrompt: StateFlow<BackupPassphrasePrompt?> = _backupPassphrasePrompt.asStateFlow()
+
     // "Delete all transactions": null while the confirmation isn't open, else the
     // number of rows the delete would remove — observed, not snapshotted, so the
     // figure the user is consenting to stays the one the delete will act on even
@@ -585,12 +589,18 @@ class SettingsViewModel @Inject constructor(
         null
     }
 
-    fun exportBackup() {
+    /** With a [passphrase] the backup is encrypted; the array is cleared once it's used. */
+    fun exportBackup(passphrase: CharArray? = null) {
         viewModelScope.launch {
             try {
-                val result = backupExporter.exportBackup(
-                    includeReceipts = userPreferencesRepository.exportIncludeReceipts.first()
-                )
+                val result = try {
+                    backupExporter.exportBackup(
+                        includeReceipts = userPreferencesRepository.exportIncludeReceipts.first(),
+                        passphrase = passphrase
+                    )
+                } finally {
+                    passphrase?.fill('\u0000')
+                }
                 when (result) {
                     is ExportResult.Success -> {
                         // Store the file for later saving
@@ -681,13 +691,24 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun importBackup(uri: android.net.Uri) {
+    /** An encrypted backup asks for its [passphrase] first; the array is cleared once it's used. */
+    fun importBackup(uri: android.net.Uri, passphrase: CharArray? = null) {
+        _backupPassphrasePrompt.value = null
         viewModelScope.launch {
             try {
                 _importExportMessage.value = UiText.Res(R.string.settings_importing_backup)
                 val baseBefore = userPreferencesRepository.baseCurrency.first()
-                val result = backupImporter.importBackup(uri, ImportStrategy.MERGE)
+                val result = try {
+                    backupImporter.importBackup(uri, ImportStrategy.MERGE, passphrase)
+                } finally {
+                    passphrase?.fill('\u0000')
+                }
                 when (result) {
+                    ImportResult.PassphraseRequired, ImportResult.WrongPassphrase -> {
+                        // Nothing was imported: ask (again), with the error on a retry.
+                        _importExportMessage.value = null
+                        _backupPassphrasePrompt.value = BackupPassphrasePrompt(uri, wrongPassphrase = result == ImportResult.WrongPassphrase)
+                    }
                     is ImportResult.Success -> {
                         // A restored base currency moves this device's budgets with it, as picking it in Settings does.
                         val baseAfter = userPreferencesRepository.baseCurrency.first()
@@ -728,6 +749,10 @@ class SettingsViewModel @Inject constructor(
                 Log.e("SettingsViewModel", "Import error", e)
             }
         }
+    }
+
+    fun cancelBackupPassphrase() {
+        _backupPassphrasePrompt.value = null
     }
 
     /**
@@ -1001,6 +1026,9 @@ class SettingsViewModel @Inject constructor(
 private const val BYTES_PER_MB = 1024L * 1024L
 
 data class BudgetConversionPrompt(val from: String, val to: String, val rate: java.math.BigDecimal)
+
+/** An encrypted backup at [uri] waiting for its passphrase; [wrongPassphrase] after a failed try. */
+data class BackupPassphrasePrompt(val uri: Uri, val wrongPassphrase: Boolean = false)
 
 enum class DownloadState {
     NOT_DOWNLOADED,

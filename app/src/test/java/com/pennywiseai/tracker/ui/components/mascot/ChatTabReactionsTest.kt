@@ -439,4 +439,40 @@ class ChatTabReactionsTest {
         assertEquals(reactionFor(MascotMoment.DebtPaidOff), shown)
         job.cancel()
     }
+
+    @Test
+    fun `a toggle made in the bar's entrance beat answers once the beat settles`() {
+        val job = start()
+        reactions.onBarShown(false)
+        // Back from a pushed screen: the bar is on screen, its beat not yet over.
+        reactions.onBarShown(false, arriving = true)
+        reactions.onMoment(MascotMoment.AmountsHidden)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.AmountsHidden), shown)
+        // The beat (350ms) settles: the toggle's whole hold is left.
+        advanceTimeBy(350)
+        reactions.onBarShown(true)
+        advanceTimeBy(TOGGLE_HOLD_MS - 1)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.AmountsHidden), shown)
+        advanceTimeBy(2)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `a toggle made in the beat of a bar that leaves again doesn't wait for its return`() {
+        val job = start()
+        reactions.onBarShown(false, arriving = true)
+        reactions.onMoment(MascotMoment.AmountsHidden)
+        reactions.onBarShown(false)
+        advanceTimeBy(TOGGLE_HOLD_MS + 1)
+        runCurrent()
+        assertNull(shown)
+        reactions.onBarShown(true)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
 }

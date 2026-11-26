@@ -815,7 +815,7 @@ fun MainScreen(
                 // entrance. A hidden Chat tab shows nothing and doesn't follow the scan.
                 var barSettled by remember { mutableStateOf(false) }
                 val chatReaction = if (BottomNavItem.Chat.route !in hiddenTabs) {
-                    rememberChatTabReaction(chatTabViewModel.reactions, chatTabViewModel.scan, barSettled)
+                    rememberChatTabReaction(chatTabViewModel.reactions, chatTabViewModel.scan, barSettled, barVisible)
                 } else null
                 PennyWiseBottomNavigation(
                     selectedRoute = lastTabRoute[0],

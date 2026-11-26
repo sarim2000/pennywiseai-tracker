@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Delete
@@ -84,11 +85,14 @@ fun TransactionDetailScreen(
     onDuplicateTransaction: (Long) -> Unit = {},
     onNavigateToGoal: (Long) -> Unit = {},
     onCreateGoal: () -> Unit = {},
+    onNavigateToTransaction: (Long) -> Unit = {},
+    onNavigateToReimbursements: () -> Unit = {},
     /** The list of this raw merchant's or this category's transactions (the other one null), in [currency], from [profileId]. */
     onOpenRelated: (merchant: String?, category: String?, currency: String, profileId: Long) -> Unit = { _, _, _, _ -> },
     viewModel: TransactionDetailViewModel = hiltViewModel(),
     goalsViewModel: TransactionGoalsViewModel = hiltViewModel(),
-    splitViewModel: SplitBillViewModel = hiltViewModel()
+    splitViewModel: SplitBillViewModel = hiltViewModel(),
+    reimbursementViewModel: TransactionReimbursementViewModel = hiltViewModel()
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
     val isEditMode by viewModel.isEditMode.collectAsStateWithLifecycle()
@@ -141,6 +145,10 @@ fun TransactionDetailScreen(
     // Split a bill (#346): reload after a save so lent_shares_total is fresh.
     LaunchedEffect(transaction) { splitViewModel.setTransaction(transaction) }
     LaunchedEffect(Unit) { splitViewModel.changed.collect { viewModel.loadTransaction(transactionId) } }
+    // Reimbursable (#1389): same reload after a change.
+    LaunchedEffect(transaction) { reimbursementViewModel.setTransaction(transaction) }
+    LaunchedEffect(Unit) { reimbursementViewModel.changed.collect { viewModel.loadTransaction(transactionId) } }
+    var showPaidBackBy by rememberSaveable { mutableStateOf(false) }
     fun closeAddToGoal() { showAddToGoal = false; goalsViewModel.closeSheet() }
     // Bumped by each confirmed user action that settles the receipt: Save, Add to goal.
     var settleRequests by remember { mutableIntStateOf(0) }
@@ -327,6 +335,16 @@ fun TransactionDetailScreen(
                                 }
                             )
                         }
+                        if (transaction?.let(::canMarkReimbursable) == true) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.reimburse_menu_mark)) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.ReceiptLong, contentDescription = null) },
+                                onClick = {
+                                    dismiss()
+                                    reimbursementViewModel.markPending()
+                                }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.txn_detail_menu_duplicate)) },
                             leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
@@ -394,6 +412,17 @@ fun TransactionDetailScreen(
                 splitWith = {
                     transaction?.let { SplitSection(splitViewModel, it, onOpenLoan = onNavigateToLoanDetail) }
                 },
+                reimbursement = {
+                    transaction?.let {
+                        ReimbursementSection(
+                            viewModel = reimbursementViewModel,
+                            transaction = it,
+                            onOpenTransaction = onNavigateToTransaction,
+                            onOpenAll = onNavigateToReimbursements,
+                            onPickPayment = { showPaidBackBy = true }
+                        )
+                    }
+                },
                 onCategoryClick = {
                     // A split row's categories live in the editor's split section.
                     // Unknown yet (still loading): do nothing rather than guess.
@@ -411,6 +440,12 @@ fun TransactionDetailScreen(
 
     transaction?.let { SplitBillSheet(splitViewModel, it) }
 
+    if (showPaidBackBy) {
+        transaction?.let { txn ->
+            PaidBackBySheet(reimbursementViewModel, txn, onDismiss = { showPaidBackBy = false })
+        }
+    }
+
     if (showCategoryPicker) {
         val categories by viewModel.categories.collectAsStateWithLifecycle()
         val mostUsed by viewModel.mostUsedCategories.collectAsStateWithLifecycle()
@@ -423,7 +458,11 @@ fun TransactionDetailScreen(
                     viewModel.quickUpdateCategory(name)
                 },
                 onDismiss = { showCategoryPicker = false },
-                mostUsed = mostUsed
+                mostUsed = mostUsed,
+                onWhatWasThis = {
+                    showCategoryPicker = false
+                    showWhatWasThis = true
+                }.takeIf { whatWasThisOptions(txn, loan != null).isNotEmpty() }
             )
         }
     }
@@ -690,6 +729,7 @@ private fun TransactionDetailContent(
     hazeState: HazeState,
     towardGoals: @Composable () -> Unit,
     splitWith: @Composable () -> Unit,
+    reimbursement: @Composable () -> Unit,
     whatWasThis: @Composable () -> Unit,
     onCategoryClick: () -> Unit,
     hasClassificationAction: Boolean,
@@ -746,6 +786,7 @@ private fun TransactionDetailContent(
                 accountProfileId = accountProfileId,
                 towardGoals = towardGoals,
                 splitWith = splitWith,
+                reimbursement = reimbursement,
                 whatWasThis = whatWasThis,
                 onCategoryClick = onCategoryClick,
                 onEditClick = { viewModel.enterEditMode() },

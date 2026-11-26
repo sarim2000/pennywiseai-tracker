@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tracking check-up widget: whether PennyWise is still reading bank SMS. -->
+<resources>
+    <!-- %1$s is a relative time such as "2 hours ago", or widget_tracking_just_now. -->
+    <!-- Widget picker preview only. -->
+</resources>

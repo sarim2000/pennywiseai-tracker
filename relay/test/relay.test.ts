@@ -1,6 +1,7 @@
 import { runInDurableObject } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { requireFilterEcho } from "../src/tools";
 
 const BASE = "https://relay.test";
 const REDIRECT = "https://client.test/callback";
@@ -207,5 +208,31 @@ describe("dashboard", () => {
 		await signIn(await pair(auth), "Claude");
 		const { connections } = (await (await call("/device/connections", { headers: auth })).json()) as any;
 		expect(connections.map((c: any) => c.clientName).sort()).toEqual(["Claude", "PennyWise dashboard"]);
+	});
+});
+
+describe("requireFilterEcho", () => {
+	const answer = (body: object) => ({ content: [{ type: "text" as const, text: JSON.stringify(body) }] });
+	const args = { from: "2026-09-01", to: "2026-09-30", exclude_categories: ["Shopping"] };
+
+	it("refuses an unfiltered answer to a filtered request", () => {
+		const out = requireFilterEcho("spending_summary", args, answer({ grand_total: [] }));
+		expect(out.isError).toBe(true);
+		expect(out.content[0].text).toContain("needs a newer version of the PennyWise app");
+	});
+
+	it("passes an answer that echoes the filters", () => {
+		const result = answer({ grand_total: [], filters: { tag: [], exclude_categories: ["Shopping"], exclude_tags: [] } });
+		expect(requireFilterEcho("search_transactions", args, result)).toBe(result);
+	});
+
+	it("passes an answer when no filter was asked for", () => {
+		const result = answer({ grand_total: [] });
+		expect(requireFilterEcho("spending_summary", { from: "2026-09-01", to: "2026-09-30", exclude_tags: [] }, result)).toBe(result);
+		expect(requireFilterEcho("list_accounts", args, result)).toBe(result);
+		// Not names to the app either: numbers, nested lists, blanks.
+		for (const tag of [5, true, [["Trip"]], [1, null, ""], "  ", "\ufeff", "\u001f", "\u0085", "\u180e"]) {
+			expect(requireFilterEcho("spending_summary", { tag }, result)).toBe(result);
+		}
 	});
 });

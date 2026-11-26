@@ -7,6 +7,7 @@
     "deploy": "bash scripts/deploy.sh",
     "redeploy": "bash scripts/deploy.sh",
     "dev": "wrangler dev",
+    "test": "node --test src/edge-cache.test.js",
     "cf-typegen": "wrangler types"
   },
   "devDependencies": {

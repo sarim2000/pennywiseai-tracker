@@ -51,7 +51,7 @@ object SharedComponents {
         // Matches --bg in each scheme so the browser chrome blends into the page.
         meta { name = "theme-color"; content = "#F9F9FF"; attributes["media"] = "(prefers-color-scheme: light)" }
         meta { name = "theme-color"; content = "#111318"; attributes["media"] = "(prefers-color-scheme: dark)" }
-        link { rel = "icon"; href = "/static/logo.png" }
+        link { rel = "icon"; href = "/static/logo-72.png" }
         // Google Sans Flex is the app's own typeface since the Material 3 Expressive
         // redesign, so the site speaks in the same voice. IBM Plex Mono stays for SMS
         // text and parsed fields — the "data" voice.
@@ -74,7 +74,7 @@ object SharedComponents {
         header(classes = "header") {
             div(classes = "header-content") {
                 a(href = "/", classes = "brand") {
-                    img(src = "/static/logo.png", alt = "", classes = "logo")
+                    img(src = "/static/logo-72.png", alt = "", classes = "logo")
                     span(classes = "logo-text") { +"PennyWise" }
                 }
                 nav(classes = "nav-links") {
@@ -137,7 +137,7 @@ object SharedComponents {
             div(classes = "footer-inner") {
                 div(classes = "footer-brand") {
                     a(href = "/", classes = "brand") {
-                        img(src = "/static/logo.png", alt = "", classes = "logo")
+                        img(src = "/static/logo-72.png", alt = "", classes = "logo")
                         span(classes = "logo-text") { +"PennyWise" }
                     }
                     p { +"Private, on-device expense tracking from your bank SMS. Open source." }

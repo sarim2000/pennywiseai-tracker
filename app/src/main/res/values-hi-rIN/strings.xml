@@ -8,6 +8,7 @@
     <string name="widget_description_category_pie">इस महीने का श्रेणी के हिसाब से खर्च, लेजेंड के साथ पाई चार्ट में।</string>
     <string name="widget_name_add_transaction">कैश खर्च</string>
     <string name="widget_name_summary">खर्च का सारांश</string>
+    <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">लेन-देन जोड़ें</string>
     <string name="shortcut_add_transaction_short">जोड़ें</string>

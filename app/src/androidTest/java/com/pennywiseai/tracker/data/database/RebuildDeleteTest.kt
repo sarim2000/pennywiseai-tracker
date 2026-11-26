@@ -4,6 +4,7 @@ import androidx.room3.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
@@ -42,7 +43,12 @@ class RebuildDeleteTest {
             row(5, "AD-KOTAKB", deleted = true), // user deleted it -> kept, so it isn't resurrected
             row(6, "AD-KOTAKB", date = LocalDateTime.of(2025, 1, 1, 12, 0)), // older than the re-read window -> kept
             // Booked from a taught template: only comes back if the user confirms it again -> kept
-            row(7, "AD-KOTAKB").copy(transactionHash = "taught_h7")
+            row(7, "AD-KOTAKB").copy(transactionHash = "taught_h7"),
+            // Marked reimbursable (#1389): a re-parsed row wouldn't have the mark -> kept
+            row(8, "AD-KOTAKB").copy(reimbursementStatus = ReimbursementStatus.PENDING),
+            // The payment that paid row 10 back: the link has no foreign key -> kept
+            row(9, "AD-KOTAKB").copy(transactionType = TransactionType.INCOME),
+            row(10, "AD-KOTAKB").copy(reimbursementStatus = ReimbursementStatus.REIMBURSED, reimbursedById = 9),
         ).forEach { dao.insertTransaction(it) }
 
         dao.deleteRebuildableSmsTransactions(
@@ -51,7 +57,7 @@ class RebuildDeleteTest {
         )
 
         val left = db.longs("SELECT id FROM transactions ORDER BY id")
-        assertEquals(listOf(2L, 3L, 4L, 5L, 6L, 7L), left)
+        assertEquals(listOf(2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L), left)
     }
 
     @Test fun aRebuiltCardGetsItsBillBack() = runBlocking {

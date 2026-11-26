@@ -4,11 +4,15 @@ import android.content.Context
 import androidx.work.WorkManager
 import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.events.TransactionEvents
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
+import com.pennywiseai.tracker.ui.components.mascot.ReactionAmount
 import com.pennywiseai.tracker.ui.components.mascot.reactionFor
+import com.pennywiseai.tracker.utils.Money
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
@@ -24,11 +28,12 @@ import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.math.BigDecimal
 
 /** The playground's buttons play on the real Chat tab, through the app's own event source. */
 class MascotPlaygroundViewModelTest {
     @Test
-    fun `each button gives the Chat tab that type's reaction`() {
+    fun `each button gives the Chat tab that type's reaction, with a sample amount in the base currency`() {
         val dispatcher = StandardTestDispatcher()
         Dispatchers.setMain(dispatcher)
         mockkObject(WorkManager.Companion)
@@ -37,20 +42,67 @@ class MascotPlaygroundViewModelTest {
                 every { getWorkInfosForUniqueWorkFlow(any()) } returns flowOf(emptyList())
             }
             val events = TransactionEvents(AppForegroundState { true })
-            val playground = MascotPlaygroundViewModel(events)
+            val moments = MascotMoments(AppForegroundState { true })
+            val playground = MascotPlaygroundViewModel(
+                events,
+                mockk<CurrencyPreferences> { every { baseCurrency } returns flowOf("EUR") },
+                moments,
+            )
             val tab = ChatTabViewModel(
                 mockk<Context>(),
                 events,
                 AppForegroundState { true },
                 mockk<UserPreferencesRepository> { every { userPreferences } returns flowOf(UserPreferences()) },
+                moments,
             )
             runTest(dispatcher) {
                 runCurrent() // the tab is listening
                 for (type in TransactionType.entries) {
                     playground.fire(type)
                     runCurrent()
-                    assertEquals(reactionFor(type), tab.reactions.shown.value)
+                    val sample = ReactionAmount(Money(BigDecimal("12.50"), "EUR"), type)
+                    assertEquals(reactionFor(type).copy(chip = sample), tab.reactions.shown.value)
                     advanceUntilIdle() // the hold ends and the owl is back
+                    assertNull(tab.reactions.shown.value)
+                }
+            }
+        } finally {
+            unmockkObject(WorkManager.Companion)
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun `each moment button gives the Chat tab that moment's reaction`() {
+        val dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        mockkObject(WorkManager.Companion)
+        try {
+            every { WorkManager.getInstance(any()) } returns mockk {
+                every { getWorkInfosForUniqueWorkFlow(any()) } returns flowOf(emptyList())
+            }
+            val events = TransactionEvents(AppForegroundState { true })
+            val moments = MascotMoments(AppForegroundState { true })
+            val playground = MascotPlaygroundViewModel(
+                events,
+                mockk<CurrencyPreferences> { every { baseCurrency } returns flowOf("EUR") },
+                moments,
+            )
+            val tab = ChatTabViewModel(
+                mockk<Context>(),
+                events,
+                AppForegroundState { true },
+                mockk<UserPreferencesRepository> { every { userPreferences } returns flowOf(UserPreferences()) },
+                moments,
+            )
+            val money = Money(BigDecimal("12.50"), "EUR")
+            runTest(dispatcher) {
+                runCurrent() // the tab is listening
+                for (name in PLAYGROUND_MOMENTS) {
+                    playground.fireMoment(name)
+                    runCurrent()
+                    assertEquals(name, reactionFor(sampleMoment(name, money)!!), tab.reactions.shown.value)
+                    advanceUntilIdle()
                     assertNull(tab.reactions.shown.value)
                 }
             }

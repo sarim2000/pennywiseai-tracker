@@ -6,6 +6,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.events.TransactionOrigin
 import com.pennywiseai.tracker.data.preferences.UserPreferences
@@ -62,6 +63,7 @@ class ChatTabViewModelTest {
     }
 
     private val events = TransactionEvents(AppForegroundState { true })
+    private val moments = MascotMoments(AppForegroundState { true })
     private val backgrounded = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private val preferences = MutableStateFlow(UserPreferences())
 
@@ -78,7 +80,7 @@ class ChatTabViewModelTest {
                 override val backgrounded: Flow<Unit> = this@ChatTabViewModelTest.backgrounded
             }
             val repository = mockk<UserPreferencesRepository> { every { userPreferences } returns preferences }
-            block(ChatTabViewModel(mockk<Context>(), events, appForeground, repository))
+            block(ChatTabViewModel(mockk<Context>(), events, appForeground, repository, moments))
         } finally {
             unmockkObject(WorkManager.Companion)
             Dispatchers.resetMain()

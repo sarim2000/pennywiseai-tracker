@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mascot_chip_goal_reached">تحقق الهدف</string>
+    <string name="mascot_chip_paid_off">سُدّد بالكامل</string>
+    <string name="mascot_chip_learned">تعلّمتها</string>
+    <string name="mascot_chip_backup_saved">حُفظت النسخة</string>
+    <string name="mascot_chip_restored">تمت الاستعادة</string>
+    <string name="mascot_chip_bill_tracked">قيد المتابعة</string>
+    <plurals name="mascot_chip_rules_applied">
+        <item quantity="zero">لم يُحدَّث شيء</item>
+        <item quantity="one">حُدّثت %d</item>
+        <item quantity="two">حُدّثت اثنتان</item>
+        <item quantity="few">حُدّثت %d</item>
+        <item quantity="many">حُدّثت %d</item>
+        <item quantity="other">حُدّثت %d</item>
+    </plurals>
+    <plurals name="mascot_chip_imported">
+        <item quantity="zero">لم يُستورد شيء</item>
+        <item quantity="one">استُوردت %d</item>
+        <item quantity="two">استُوردت اثنتان</item>
+        <item quantity="few">استُوردت %d</item>
+        <item quantity="many">استُوردت %d</item>
+        <item quantity="other">استُوردت %d</item>
+    </plurals>
+</resources>

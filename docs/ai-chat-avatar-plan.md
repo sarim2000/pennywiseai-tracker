@@ -57,8 +57,9 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
   - **Default plan:** the body uses the theme accent in both states, and the pill marks selection.
   - **When pill and labels are both hidden:** fall back to the muted tint when unselected, because colour would then be the only selection cue.
   - The preview has a "Muted tab" toggle for comparing the two.
-- **At 24/32dp:** a two-tone silhouette only, with the eyes cut in the colour behind it. No mask, iris, coin or receipt lines **(Codex)**. The arrivals still play, since they are the tab's reaction: the receipt's check is cut out like the eyes and is the one mark that stays; the coin's shine is cut through it and its sparkles drawn in the tint around it; the coin dropping into the jar is drawn in the tint. Each is gone within its arrival (under 1.6s).
+- **At 24/32dp:** a two-tone silhouette only, with the eyes cut in the colour behind it. No mask, iris, coin or receipt lines **(Codex)**. The one mark is an arrival's: the receipt's check, cut out like the eyes.
 - **Coming back to the bar:** the bar returns from under a pushed screen (Add) already holding the save's reaction. The owl shows for a beat (350ms) and then turns, so the change is seen rather than already done.
+- **Amount chip (2026-11-17):** while a single save's reaction holds, a small pill beside the Chat slot shows what was saved (on its start side, level with the owl, so it lies over the bar and never lands in a list's amount column): `+` in the income colour, `-` in the spending colour, transfers and investments unsigned. It formats with `Money.format` (so it shows a bare `••••`, unsigned, while amounts are hidden), takes no touches and is silent to TalkBack. A batch (a chat card of several rows, a scan) shows none. Neither does the quick add sheet's save: its toast already says the amount and sits over the bar for most of the hold, so the owl turns without a chip.
 - **Behaviour:** no poke, drag, haptic or separate focus target on the tab. The click goes to the parent. The accessible name stays the localized "Chat", and the drawing is decorative.
 - **Hidden tab:** if the user hid the Chat tab, the mascot runs no animation and queues nothing.
 - **RTL:** the artwork is symmetric and is not mirrored. Directional gaze is mirrored.
@@ -74,14 +75,35 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
 | `INVESTMENT` | Jar | Calm |
 
 - **Duration:** hold ~3s, then return to the owl.
-- **Bursts:** a burst coalesces into the reaction already showing. It never queues a sequence and never extends the hold **(Codex)**.
+- **Bursts:** nothing queues **(Codex)**. The latest save takes over with a hold of its own, so an expense then an income shows the income, not the expense's amount.
 - **Foreground only:** react only to saves made while the app is in the foreground (`AppForegroundState`). Saves that happened in the background are never replayed when the user returns.
 - **SMS scans:** show the SMS bubble only during a foreground scan the user started, with the existing progress UI kept. At most one neutral beat afterwards, and only if new rows were saved. No reaction to rebuilds.
 - **Not on the tab:** budget, bill-due and subscription triggers stay on their own screens.
 
+### Moment reactions on the tab (2026-11-17)
+
+Besides plain saves, the tab answers a few things the user just finished: progress, closure, learning and care for their records. Each comes through `MascotMoments` (`data/events/MascotMoments.kt`), announced once, after the action committed, from the user's own action in the foreground. Never from a worker, a restore replaying rows, or a screen first observing a state.
+
+| Moment | Shape · mood | Cue | Chip |
+|---|---|---|---|
+| Money put into a goal by hand | Jar · Calm | CoinDrop | the amount, unsigned |
+| A goal reached | Jar (full) · Happy | Brim | "Goal reached" |
+| A debt paid off | Wallet · Happy | PaidOff | "Paid off" |
+| An unrecognised message taught | Bubble · Calm | Learned | "Learned" |
+| Rules applied to past rows | Receipt · Calm | Sorted | "N updated" |
+| A statement imported | Receipt · Calm | Read | "N imported" |
+| A backup saved / restored | Shield · Calm | Secured | "Backup saved" / "Restored" |
+| A bill tracked / marked paid | Bell · Calm | Ring / Paid | "Now tracking" / the amount, "-" |
+| Amounts hidden / shown | Owl · Calm | CoverEyes / Peek | none |
+
+- **Rank:** a save < an action < a milestone < a toggle. The same or a higher rank takes over from what's showing, with a hold of its own; a lower one folds in. The latest toggle answers for the switch as it is now, and holds only ~1.4s. A toggle never waits for the bar: flipped where the bar is away (a shake on Settings), it goes unanswered.
+- **Made off the tabs:** most moments happen on a pushed screen, where the bar is away. The reaction waits for the bar (up to 90s) and its hold starts when the bar reports that the owl's 350ms beat is over (the bar keeps the one clock, so a slow first frame doesn't shorten the hold), so the user sees all of it on return; a hold already running ends on time.
+- **Cues** are apart from shapes: a new one on the same shape plays in place (the owl covering its eyes, a jar saved into brimming). A cue's check sits on any shape and carries across a morph.
+- **Left out:** creating a goal, a rule, a split or an account (setup, already confirmed on screen); a subscription ended (it isn't cancelled); renewal reminders, automatic detection and scheduled backups (background); first transaction, streaks and months closed (no reliable commit); budget thresholds (computed in a worker, and `Worried` stays off the tab).
+
 ### Event source **(Codex)**
 - **No "newest Room row" observer and no universal repository hook.** Many paths insert rows (imports, backups, recurring, autopay, loans), and most of them must not react.
-- **One app-scoped `TransactionEvents`:** a `MutableSharedFlow(replay = 0)` carrying `type`, `count` and `origin` only. No amounts, no merchants, no mascot enums. It is not persisted, so the backup format is untouched (constraint 3).
+- **One app-scoped `TransactionEvents`:** a `MutableSharedFlow(replay = 0)` carrying `type`, `count`, `origin` and, for a single save, its currency-tagged `Money` (for the tab's amount chip; a batch carries none). No merchants, no mascot enums. It is not persisted, so the backup format is untouched (constraint 3).
 - **Emit only after a confirmed insert.** The DAO's conflict-ignore returns `-1`, so check the result.
 
 | Path | Emit? | Where |
@@ -130,7 +152,7 @@ ui/components/mascot/
   Mascot.kt          // @Composable Mascot(shape, mood, size, modifier, value, tint, interactive)
   MascotShapes.kt    // enum MascotShape + one `when` with Path + EyeSpec per shape
   MascotPose.kt      // pure: mascotPose(mood, from, tMillis, seed, look) -> MascotPose
-  ChatTabReactions.kt // the tab's type -> shape table, hold and coalescing
+  ChatTabReactions.kt // the tab's type -> shape table, hold and ranks
 data/events/TransactionEvents.kt   // app-scoped SharedFlow, replay = 0
 ```
 
@@ -177,7 +199,7 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
 - [ ] Battery check: no frames between blinks (Layout Inspector / `dumpsys gfxinfo`)
 
 ### M2 — Transaction reactions on the tab
-- [x] `data/events/TransactionEvents.kt` (not `core`: `core` may not import `TransactionType`): `MutableSharedFlow(replay = 0)`, Hilt `@Singleton`, payload `type`, `count`, `origin`. It drops saves made while the app is in the background (`AppForegroundState`) at the source
+- [x] `data/events/TransactionEvents.kt` (not `core`: `core` may not import `TransactionType`): `MutableSharedFlow(replay = 0)`, Hilt `@Singleton`, payload `type`, `count`, `origin`, plus a single save's `Money`. It drops saves made while the app is in the background (`AppForegroundState`) at the source
 - [x] Emit from:
   - [x] Success branch of `SmsTransactionProcessor.saveParsedTransaction`
   - [x] `AddTransactionUseCase.execute`
@@ -189,13 +211,13 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
   - [x] Foreground only (`AppForegroundState`)
   - [x] Maps the type to shape and mood (table above)
   - [x] ~3s hold, then the owl
-  - [x] Bursts coalesce, nothing queues, the hold never extends
+  - [x] Nothing queues; the latest save takes over
   - [x] Cleared on background or when Chat is hidden
 - [x] Body swap is a morph (was an effects crossfade until 2026-11-17). `Happy` hop is translation only.
 - [x] SMS bubble while a user-started foreground scan runs (`WorkInfo`). One neutral beat afterwards if new rows were saved.
 - [x] Tests:
   - [x] Type → shape mapping
-  - [x] Coalescing (three events → one reaction)
+  - [x] The latest of a burst shows
   - [x] An event while backgrounded is not replayed
   - [x] `insert` returning `-1` emits nothing
 - [ ] On device: each reaction on both bar styles, light and dark, with "Remove animations"; no frames between reactions once the owl is back
@@ -243,7 +265,7 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
 ### M6 — Developer playground
 - [x] A screen behind Developer mode showing every shape × mood with poke and drag, for on-device QA screenshots in both themes. Skip it if the HTML preview plus emulator checks prove enough.
   - Settings → Developer → **Mascot playground**, a row that shows only while Developer mode is on. A fixed stage on top shows the pose at the sizes the app draws: the 96dp hero to poke and drag, the chat's 32dp glyph and the tab's 24dp glyph in its pill. A value slider shows for the shapes that draw a figure (pie slice, jar fill, gauge needle up to 125% to see it pin, bars -100..100%). Below it, every shape × mood at 40dp; a tap puts it on the stage, so a mood change blends and a shape change morphs as it would in the app.
-  - Reaction buttons, one per `TransactionType`, announce a save through `TransactionEvents` as a manual add does (nothing is written). The bottom bar stays up on this screen, so each plays on the real Chat tab, and a second tap inside a reaction shows the coalescing.
+  - Reaction buttons, one per `TransactionType`, announce a save through `TransactionEvents` as a manual add does (nothing is written). The bottom bar stays up on this screen, so each plays on the real Chat tab, and a second tap inside a reaction shows the latest taking over.
 - [ ] On device: every cell in light and dark, with "Remove animations", and each reaction on both bar styles
 
 ---
@@ -268,7 +290,7 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
 | 24dp legibility and tab recognition | Two-tone silhouette; same footprint, eyes and label in every shape; check on a real phone |
 | Reacting to rows the user didn't just make | Explicit emitters only; foreground only; no replay; import and restore paths excluded and tested |
 | Theme roles collide (`primary` ≈ `primaryContainer`) | Fallback mask role; contrast check across schemes |
-| Noise | One character per surface; coalesced reactions; none on data screens |
+| Noise | One character per surface; one reaction at a time, nothing queued; none on data screens |
 
 ## Decisions taken (2026-11-15)
 1. **Tab colour:** theme accent in both states; muted when unselected only when both pill and labels are hidden.

@@ -438,8 +438,21 @@ class AccountBalanceRepositoryAccountTypeTest {
         assertEquals(listOf(null, 1L, 2L, 3L), ordered.map { it.transactionId })
         assertEquals(AccountBalanceRepository.SOURCE_MANUAL, ordered.first().sourceType)
         assertEquals(0, BigDecimal.ZERO.compareTo(ordered.first().balance))
-        // An hour before the first transaction, not at the card's createdAt.
-        assertEquals(ordered[1].timestamp.minusHours(1), ordered.first().timestamp)
+        // A second before the card's createdAt, which here is earlier than its first transaction.
+        assertEquals(cardCreatedAt.minusSeconds(1), ordered.first().timestamp)
+    }
+
+    @Test
+    fun `the anchor goes a second before a first transaction older than the card`() = runBlocking {
+        // A hand-recorded transaction dated before the app first saw the card.
+        val first = cardTxn(1, daysAgo = 20, TransactionType.EXPENSE, "100.00")
+        cardTransactions += first
+
+        markCredit()
+
+        val anchor = balanceRows.minBy { it.timestamp }
+        assertEquals(AccountBalanceRepository.SOURCE_MANUAL, anchor.sourceType)
+        assertEquals(first.dateTime.minusSeconds(1), anchor.timestamp)
     }
 
     @Test

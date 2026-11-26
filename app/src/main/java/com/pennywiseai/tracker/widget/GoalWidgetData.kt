@@ -36,6 +36,9 @@ data class GoalWidgetItem(
     /** 2×2: "JD 9,600 left · 5 mo", or Reached / Missed by. */
     val shortLine: String,
     val tone: GoalTone = GoalTone.NEUTRAL,
+    /** [line] and [shortLine] with every amount as [HIDDEN_AMOUNT], for while amounts are hidden. */
+    val maskedLine: String = HIDDEN_AMOUNT,
+    val maskedShortLine: String = HIDDEN_AMOUNT,
 )
 
 /**
@@ -44,6 +47,7 @@ data class GoalWidgetItem(
  */
 fun GoalProgress.toWidgetItem(context: Context): GoalWidgetItem {
     val money = { amount: BigDecimal, currency: String -> widgetMoney(context, amount, currency) }
+    val masked = { _: BigDecimal, _: String -> HIDDEN_AMOUNT }
     return GoalWidgetItem(
         id = goal.id,
         name = goal.name,
@@ -53,6 +57,8 @@ fun GoalProgress.toWidgetItem(context: Context): GoalWidgetItem {
         line = statusLine(context, money, latinDigits = true),
         shortLine = shortLine(context, money, latinDigits = true),
         tone = tone(),
+        maskedLine = statusLine(context, masked, latinDigits = true),
+        maskedShortLine = shortLine(context, masked, latinDigits = true),
     )
 }
 

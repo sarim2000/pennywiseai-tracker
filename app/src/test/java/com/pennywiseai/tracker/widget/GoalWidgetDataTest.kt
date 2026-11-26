@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.widget
 
 import android.content.Context
+import android.content.res.Configuration
 import android.content.res.Resources
+import android.view.View
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.repository.GoalProgress
@@ -14,6 +16,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -51,6 +54,10 @@ class GoalWidgetDataTest {
             every { getQuantityString(any(), any(), *anyVararg()) } answers {
                 @Suppress("UNCHECKED_CAST")
                 localDigits(templates.getValue(firstArg()).format(*(args[2] as Array<Any?>)))
+            }
+            // Left to right, for widgetMoney.
+            every { configuration } returns mockk<Configuration> {
+                every { layoutDirection } returns View.LAYOUT_DIRECTION_LTR
             }
         }
         every { resources } returns res
@@ -143,5 +150,29 @@ class GoalWidgetDataTest {
         assertEquals(items, GoalWidgetDataStore.decode(GoalWidgetDataStore.encode(items)))
         assertEquals(emptyList<GoalWidgetItem>(), GoalWidgetDataStore.decode("{not json"))
         assertEquals(emptyList<GoalWidgetItem>(), GoalWidgetDataStore.decode(null))
+    }
+
+    @Test
+    fun `the widget item carries its lines with every amount masked`() {
+        val onPace = progress("24000", "0", today.plusMonths(12)).toWidgetItem(context)
+        assertEquals("$HIDDEN_AMOUNT/mo · 12 months left", onPace.maskedLine)
+        assertEquals("$HIDDEN_AMOUNT left · 12 mo", onPace.maskedShortLine)
+        assertFalse(HIDDEN_AMOUNT in onPace.line)
+        assertFalse(HIDDEN_AMOUNT in onPace.shortLine)
+
+        val behind = progress("12000", "0", today.plusMonths(6), created = today.minusMonths(6)).toWidgetItem(context)
+        assertEquals("Behind $HIDDEN_AMOUNT", behind.maskedLine)
+
+        val reached = progress("1000", "1000", today.plusMonths(3)).toWidgetItem(context)
+        assertEquals("Reached", reached.maskedLine)
+        assertEquals("Reached", reached.maskedShortLine)
+    }
+
+    @Test
+    fun `a snapshot from before masked lines reads them as hidden`() {
+        val old = """[{"id":1,"name":"Goal 1","color":"#1565C0","percent":10,"fraction":0.1,"line":"line","shortLine":"short"}]"""
+        val item = GoalWidgetDataStore.decode(old).single()
+        assertEquals(HIDDEN_AMOUNT, item.maskedLine)
+        assertEquals(HIDDEN_AMOUNT, item.maskedShortLine)
     }
 }

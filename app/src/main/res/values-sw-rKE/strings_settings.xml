@@ -91,6 +91,7 @@
     <string name="settings_transaction_groups_subtitle">Panga miamala chini ya mada moja</string>
     <string name="settings_export_data_title">Hamisha Data</string>
     <string name="settings_export_data_subtitle">Hifadhi nakala ya data yote kwenye faili</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Nakala ya Akiba ya Folda Kiotomatiki</string>
     <string name="settings_folder_backup_subtitle_enabled">Nakala ya kila siku saa 8 usiku (2:00 AM) kwenye folda uliyochagua</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Hifadhi nakala kwenye folda kila siku saa 8 usiku (2:00 AM)</string>

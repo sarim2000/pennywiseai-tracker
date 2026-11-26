@@ -90,6 +90,7 @@
     <string name="settings_transaction_groups_subtitle">Organiza transacciones bajo un tema</string>
     <string name="settings_export_data_title">Exportar datos</string>
     <string name="settings_export_data_subtitle">Guarda una copia de seguridad de todos los datos en un archivo</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Copia de seguridad automática en carpeta</string>
     <string name="settings_folder_backup_subtitle_enabled">Copia diaria a las 2:00 en la carpeta que elegiste</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Guarda una copia de seguridad en una carpeta cada día a las 2:00</string>

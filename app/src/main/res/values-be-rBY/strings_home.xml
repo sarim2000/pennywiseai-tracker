@@ -381,4 +381,9 @@
     <string name="safe_to_spend_choose_accounts">Абраць рахункі</string>
     <string name="safe_to_spend_done">Гатова</string>
     <string name="safe_to_spend_footnote">Плацяжы бяруцца з вашых актыўных падпісак. Крэдытныя карткі і пазыкі не лічацца грашыма, якія можна выдаткаваць.</string>
+    <!-- Weekly guess: a Home card and its sheet. %1$s is a category name, %2$s a currency code. -->
+    <!-- %1$s is the setting's name, "Count card spend as expense". -->
+    <!-- %1$s is the guessed amount. -->
+    <!-- %1$d is a whole percent. -->
+    <!-- %1$s is an amount, %2$d a whole percent. -->
 </resources>

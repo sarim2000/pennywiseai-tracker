@@ -385,6 +385,7 @@
     <string name="share_banner_dismiss">Ondoa</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Badilisha kategoria</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">Si matumizi</string>
     <string name="quick_category_not_income">Si mapato</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

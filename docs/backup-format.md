@@ -200,6 +200,45 @@ The one deliberate exception is `importProfilesAndBuildMap`: its inserts build
 the profile id-remap map that transactions/balances depend on, so it stays
 strict (a profile failure should surface, not be silently swallowed).
 
+## Encrypted backups
+
+*Export Data (Encrypted)* (Settings → Data) wraps the same JSON in a
+passphrase envelope (`data/backup/BackupCrypto.kt`). The file keeps the
+`.pennywisebackup` extension; the JSON inside is unchanged, so everything
+above still applies once it's decrypted. The passphrase is never stored.
+
+| Bytes | Field |
+|-------|-------|
+| 5 | magic `PWENC` (ASCII) |
+| 1 | envelope version, `1` |
+| 1 | KDF id, `1` = PBKDF2WithHmacSHA256, 256-bit key |
+| 4 | iterations, big-endian int (310 000 when written; readers accept 100 000–2 000 000 and reject the rest before deriving) |
+| 16 | random salt |
+| 8 | random nonce prefix |
+
+Then frames until the one marked last:
+
+| Bytes | Field |
+|-------|-------|
+| 1 | `isLast`: `1` on the final frame, else `0` |
+| 4 | ciphertext length, big-endian int (16 to 64 KiB + 16) |
+| n | AES/GCM/NoPadding ciphertext + 128-bit tag of up to 64 KiB plaintext |
+
+- Nonce = nonce prefix ‖ frame index (4 bytes, big-endian, from 0).
+- AAD = the 35 header bytes ‖ frame index ‖ `isLast`. A changed header,
+  reordered or dropped frames, a moved `isLast` flag, a missing last frame or
+  bytes after it all fail.
+- The writer always ends with a frame marked last (empty for an empty input).
+- **Export** writes the JSON to a temp file in `cacheDir`, encrypts it into the
+  backup file, and deletes the temp file whatever happens.
+- **Import** sniffs the first 5 bytes. A plain backup takes the usual path. An
+  encrypted one asks for the passphrase, is decrypted in full to a temp file in
+  `cacheDir` and parsed **before the database is touched**, so a wrong
+  passphrase (the first frame fails) or a damaged file changes nothing. The temp
+  file is deleted whatever happens.
+- A new KDF or cipher needs a new envelope version; readers reject versions
+  they don't know.
+
 ## How to change the format safely
 
 ### Adding a column to an existing entity

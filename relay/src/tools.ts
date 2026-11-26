@@ -317,7 +317,9 @@ export function requireAppliedToPast(name: string, args: unknown, result: ToolRe
 	if (name !== "create_rule" || result.isError || (mode !== "uncategorized" && mode !== "all")) return result;
 	const text = result.content[0]?.text ?? "";
 	try {
-		if ("past_transactions_updated" in JSON.parse(text)) return result;
+		// A current app always says what happened to the past run: a count, or past_error if it failed.
+		const answer = JSON.parse(text);
+		if ("past_transactions_updated" in answer || "past_error" in answer) return result;
 	} catch {}
 	return textResult(`${text}\n\nThe rule was created but not applied to past transactions: that needs a newer version of the PennyWise app.`);
 }

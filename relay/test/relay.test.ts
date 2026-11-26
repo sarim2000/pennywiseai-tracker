@@ -241,6 +241,8 @@ describe("older apps behind the relay", () => {
 		const failed = { ...created, isError: true };
 		expect(requireAppliedToPast("create_rule", { apply_to_past: "all" }, failed)).toBe(failed);
 		expect(requireAppliedToPast("update_rule", { apply_to_past: "all" }, created)).toBe(created);
+		const pastFailed = answer({ created: "Cafe", past_error: "failed" });
+		expect(requireAppliedToPast("create_rule", { apply_to_past: "all" }, pastFailed)).toBe(pastFailed);
 	});
 });
 

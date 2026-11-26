@@ -110,6 +110,25 @@ class PeriodReviewLoader @Inject constructor(
         transactionRepository.observeActiveTransactionCount(),
     ) { _, _, _, _ -> }
 
+    /**
+     * The [count] weeks ending with the last full one, oldest first, as the Week review
+     * counts them (forgiven loans aside: they belong to no category): the weekly guess's
+     * question and its slider.
+     */
+    suspend fun lastWeeks(count: Int, today: LocalDate = LocalDate.now()): PeriodDetail {
+        val firstDay = localFirstDayOfWeek()
+        val weeks = (count downTo 1).map { back ->
+            reviewRange(ReviewKind.WEEK, -back, today, cycleStartDay = 1, firstDay).let { it.start to it.end }
+        }
+        val keep = currentScope()
+        return buildPeriodDetail(
+            cycles = weeks,
+            rows = rowsIn(weeks.first().first, weeks.last().second).first().filter { keep(it.transaction) },
+            creditAsExpense = userPreferencesRepository.countCreditCardAsExpense.first(),
+            parentOf = categoryRepository.getAllCategories().first().parentNameOf(),
+        )
+    }
+
     /** How many transactions a period holds, by the same scope the review itself uses. */
     suspend fun rowCount(start: LocalDate, end: LocalDate): Int {
         val keep = currentScope()

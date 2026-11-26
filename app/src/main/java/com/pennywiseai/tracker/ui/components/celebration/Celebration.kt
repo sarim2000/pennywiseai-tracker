@@ -138,6 +138,9 @@ object CelebrationKeys {
     fun budgetMonth(month: java.time.YearMonth, currency: String, cycleStart: java.time.LocalDate) =
         "budget_month:$month:$currency:$cycleStart"
 
+    /** A close weekly guess; [weekStart] is the week's first day ("2026-11-09"). */
+    fun weeklyGuess(weekStart: java.time.LocalDate) = "guess:$weekStart"
+
     /**
      * Claimed with the first visit's tiers. When it's among the fresh claims, those tiers
      * are history (an install, upgrade or restore), recorded without confetti.

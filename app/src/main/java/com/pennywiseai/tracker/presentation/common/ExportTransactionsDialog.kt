@@ -44,7 +44,7 @@ fun ExportTransactionsDialog(
     val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     var exportState by remember { mutableStateOf<ExportState>(ExportState.Ready) }
-    val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
+    val csvAccess by viewModel.csvAccess.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     // F-Droid support nudge: on the open build there's no Pro to sell, so a
     // successful export (a Pro-equivalent power feature) is a natural, capped
@@ -63,10 +63,9 @@ fun ExportTransactionsDialog(
     // Free users get the FIRST `csvLimit` rows on every export — never a
     // hard block. The advertised free tier is "first 100 rows," so we
     // actually deliver them when the selection exceeds the limit. Pro is
-    // unlimited. Truncation is surfaced in the summary card + CTA label so
-    // it's never a silent surprise.
-    val willTruncate = !isProEntitled && transactions.size > csvLimit
-    val transactionsToExport = if (willTruncate) transactions.take(csvLimit) else transactions
+    // unlimited, and so is a running CSV trial. Truncation is surfaced in the
+    // summary card + CTA label so it's never a silent surprise.
+    val willTruncate = !csvAccess.unlocked && transactions.size > csvLimit
 
     Dialog(onDismissRequest = {
         if (exportState !is ExportState.Exporting) {
@@ -178,6 +177,16 @@ fun ExportTransactionsDialog(
                                     )
                                 }
                             }
+                        }
+
+                        csvAccess.trialDaysLeft?.let { days ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = pluralStringResource(R.plurals.feature_trial_days_left, days, days),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
                         }
 
                         // Free-tier truncation notice. Shown ONLY when we're
@@ -313,8 +322,10 @@ fun ExportTransactionsDialog(
                                     // Truncation case still surfaces the
                                     // paywall via the link beside this
                                     // button so they can unlock the rest.
+                                    // The cap is re-read now: a trial may have ended
+                                    // while the dialog was open.
                                     scope.launch {
-                                        viewModel.exportTransactions(transactionsToExport).collect { result ->
+                                        viewModel.exportTransactions(viewModel.rowsToExport(transactions)).collect { result ->
                                             when (result) {
                                                 is ExportResult.Progress -> {
                                                     exportState = ExportState.Exporting(
@@ -413,6 +424,7 @@ fun ExportTransactionsDialog(
     if (showUpgradeSheet) {
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
             onDismiss = { showUpgradeSheet = false },
+            onStartTrial = if (csvAccess.canStartTrial) viewModel::startCsvTrial else null,
         )
     }
 

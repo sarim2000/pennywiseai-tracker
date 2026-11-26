@@ -1,30 +1,52 @@
 package com.pennywiseai.tracker.presentation.common
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.billing.EntitlementGate
+import com.pennywiseai.tracker.core.entitlement.FeatureAccess
+import com.pennywiseai.tracker.core.entitlement.FeatureTrials
+import com.pennywiseai.tracker.core.entitlement.FreeTierLimits
+import com.pennywiseai.tracker.core.entitlement.TrialFeature
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.export.CsvExporter
 import com.pennywiseai.tracker.data.export.ExportResult
 import com.pennywiseai.tracker.data.preferences.BillingPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 @HiltViewModel
 class ExportViewModel @Inject constructor(
     private val csvExporter: CsvExporter,
     private val userPreferencesRepository: BillingPreferences,
-    entitlementGate: EntitlementGate,
+    private val entitlementGate: EntitlementGate,
+    private val featureTrials: FeatureTrials,
 ) : ViewModel() {
 
     /**
-     * Pro entitlement. Free users are capped at
-     * [com.pennywiseai.tracker.core.entitlement.FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH]
-     * rows per export; the dialog checks this before calling
-     * [exportTransactions].
+     * Pro, or the CSV trial running, exports every row. Otherwise an export is capped
+     * at [FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH] rows; the dialog shows the
+     * cap from this, and [rowsToExport] re-checks it when the export starts.
      */
-    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
+    val csvAccess: StateFlow<FeatureAccess> = featureTrials
+        .access(TrialFeature.CSV_EXPORT, entitlementGate.isProEntitled)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            FeatureAccess(entitlementGate.isProEntitled.value, featureTrials.status(TrialFeature.CSV_EXPORT)),
+        )
+
+    /** Starts the CSV export's one trial, from the upgrade sheet. */
+    fun startCsvTrial() = featureTrials.start(TrialFeature.CSV_EXPORT)
+
+    /** The rows an export started now writes: all of them while unlocked, else the first ones up to the cap. */
+    fun <T> rowsToExport(rows: List<T>): List<T> {
+        val unlimited = entitlementGate.isProEntitled.value || featureTrials.isActive(TrialFeature.CSV_EXPORT)
+        return if (unlimited) rows else rows.take(FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH)
+    }
 
     fun exportTransactions(
         transactions: List<TransactionEntity>,

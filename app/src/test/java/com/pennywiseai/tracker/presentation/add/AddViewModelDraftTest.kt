@@ -42,6 +42,7 @@ class AddViewModelDraftTest {
                 merchantMappingRepository = mockk(relaxed = true),
                 tagRepository = mockk(relaxed = true),
                 receiptManager = mockk(relaxed = true),
+                receiptTextRecognizer = mockk(relaxed = true),
                 unrecognizedSmsRepository = mockk(relaxed = true),
                 learnedSendersStore = mockk(relaxed = true),
                 profilePreferences = mockk(relaxed = true),

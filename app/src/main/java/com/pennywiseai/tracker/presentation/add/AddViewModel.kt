@@ -18,7 +18,9 @@ import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.receipt.ReceiptExtractor
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
+import com.pennywiseai.tracker.data.receipt.ReceiptTextRecognizer
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
@@ -33,6 +35,7 @@ import com.pennywiseai.tracker.presentation.subscriptions.billTrackedMoment
 import com.pennywiseai.tracker.presentation.transactions.normalizeReference
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.pickerDefault
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -63,6 +66,7 @@ class AddViewModel @Inject constructor(
     private val merchantMappingRepository: MerchantMappingRepository,
     private val tagRepository: TagRepository,
     private val receiptManager: ReceiptManager,
+    private val receiptTextRecognizer: ReceiptTextRecognizer,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val learnedSendersStore: LearnedSendersStore,
     private val profilePreferences: UserPreferencesRepository,
@@ -299,7 +303,8 @@ class AddViewModel @Inject constructor(
                     merchant = draftMerchant ?: it.merchant,
                     category = draftCategory ?: it.category,
                     currency = draftCurrency ?: it.currency,
-                    date = draftDateTime ?: it.date
+                    date = draftDateTime ?: it.date,
+                    dateSet = draftDateTime != null
                 )
             }
             // The same draft starts the Subscription form, so switching forms keeps what was
@@ -483,7 +488,7 @@ class AddViewModel @Inject constructor(
         val newDateTime = LocalDateTime.of(localDate, currentTime)
 
         _transactionUiState.update { currentState ->
-            currentState.copy(date = newDateTime)
+            currentState.copy(date = newDateTime, dateSet = true)
         }
     }
 
@@ -492,7 +497,7 @@ class AddViewModel @Inject constructor(
         val newDateTime = currentDate.atTime(hour, minute)
 
         _transactionUiState.update { currentState ->
-            currentState.copy(date = newDateTime)
+            currentState.copy(date = newDateTime, dateSet = true)
         }
     }
 
@@ -543,6 +548,8 @@ class AddViewModel @Inject constructor(
 
     fun updateReceiptUri(uri: Uri?) {
         receiptCheck?.cancel()
+        // A removed or replaced receipt no longer speaks for the form.
+        cancelReceiptScan()
         if (uri == null) {
             _transactionUiState.update { it.copy(receiptUri = null, receiptError = null, checkingReceipt = false) }
             return
@@ -566,6 +573,83 @@ class AddViewModel @Inject constructor(
     }
 
     fun createCameraUri(): Uri = receiptManager.createCameraUri()
+
+    /** False on F-Droid, which ships no OCR model: the form offers no "Scan receipt". */
+    val canScanReceipts: Boolean get() = receiptTextRecognizer.isAvailable
+
+    // The OCR of the receipt last scanned; a newer pick or a removal cancels it.
+    private var receiptScan: Job? = null
+
+    private fun cancelReceiptScan() {
+        receiptScan?.cancel()
+        _transactionUiState.update { it.copy(scanningReceipt = false) }
+    }
+
+    /**
+     * "Scan receipt": attaches the photo like any receipt, reads it on the device, and
+     * fills the amount, date and merchant it finds into the fields still untouched.
+     * Nothing is saved; the user checks the form and taps Save.
+     */
+    fun scanReceipt(uri: Uri) {
+        updateReceiptUri(uri)
+        _transactionUiState.update { it.copy(scanningReceipt = true, scanMessage = null) }
+        receiptScan = viewModelScope.launch {
+            val lines = receiptTextRecognizer.recognize(uri)
+            val known = try {
+                transactionRepository.getAllMerchants().first()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Only for matching a past spelling: the scan works without it.
+                Log.w("AddViewModel", "Merchants for the receipt scan failed", e)
+                emptyList()
+            }
+            val scan = lines?.let {
+                ReceiptExtractor.extract(it, known, LocalDate.now(), monthFirst = AppDates.locale().country == "US")
+            }
+            applyReceiptScan(scan)
+        }
+    }
+
+    private fun applyReceiptScan(scan: ReceiptExtractor.Scan?) {
+        val state = _transactionUiState.value
+        if (scan == null || scan.isEmpty) {
+            _transactionUiState.update {
+                it.copy(scanningReceipt = false, scanMessage = UiText.Res(R.string.add_receipt_scan_failed))
+            }
+            return
+        }
+        // A receipt in another currency only fills the amount when no account pins the
+        // form's currency, so it never lands as a figure in the wrong currency.
+        val otherCurrency = scan.currency?.takeIf { it != state.entryCurrency }
+        val amount = scan.amount?.takeIf {
+            state.amount.isBlank() && (otherCurrency == null || state.selectedAccount == null)
+        }
+        val merchant = scan.merchant?.takeIf {
+            state.merchant.isBlank() && state.transactionType != TransactionType.TRANSFER
+        }
+        val date = scan.date?.takeIf { !state.dateSet }
+
+        if (amount != null && otherCurrency != null) updateTransactionCurrency(otherCurrency)
+        amount?.let { updateTransactionAmount(it.toPlainString()) }
+        merchant?.let {
+            updateTransactionMerchant(it)
+            merchantQuery.value = ""
+        }
+        val filled = amount != null || merchant != null || date != null
+        _transactionUiState.update {
+            it.copy(
+                date = date?.atTime(it.date.toLocalTime()) ?: it.date,
+                scanningReceipt = false,
+                scanMessage = UiText.Res(if (filled) R.string.add_receipt_scan_filled else R.string.add_receipt_scan_kept)
+            )
+        }
+    }
+
+    /** The scan's message has been shown. */
+    fun scanMessageShown() {
+        _transactionUiState.update { it.copy(scanMessage = null) }
+    }
 
     fun updateBudgetImpactType(type: BudgetImpactType?) {
         _transactionUiState.update { it.copy(budgetImpactType = type, budgetCategory = keptBudgetCategory(type, it.budgetCategory)) }
@@ -960,6 +1044,11 @@ data class TransactionUiState(
     val receiptError: UiText? = null,
     // A picked receipt is still being checked; Save waits for it.
     val checkingReceipt: Boolean = false,
+    // "Scan receipt" is reading the photo, and what it then has to say (shown once).
+    val scanningReceipt: Boolean = false,
+    val scanMessage: UiText? = null,
+    // The date was picked (or came with a draft), so a scanned receipt's date doesn't replace it.
+    val dateSet: Boolean = false,
     val budgetImpactType: BudgetImpactType? = null,
     val budgetCategory: String? = null,
     // False until a Duplicate/shared/voice draft has been copied in, so the

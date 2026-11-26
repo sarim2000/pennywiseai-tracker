@@ -18,6 +18,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
 import com.pennywiseai.tracker.data.mapper.withTransferAccount
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
@@ -80,7 +82,8 @@ class TransactionDetailViewModel @Inject constructor(
     private val ruleRepository: com.pennywiseai.tracker.domain.repository.RuleRepository,
     private val detectBalanceDiscrepancy: com.pennywiseai.tracker.domain.usecase.DetectBalanceDiscrepancyUseCase,
     private val goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+    private val mascotMoments: MascotMoments,
 ) : ViewModel() {
 
     private val _transaction = MutableStateFlow<TransactionEntity?>(null)
@@ -1513,7 +1516,9 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     private suspend fun recordRepaymentOn(loanId: Long, transactionId: Long, contribution: BigDecimal, note: String?, overflow: LoanOverflow) {
-        loanRepository.recordRepayment(loanId, transactionId, contribution, note, overflow)
+        val paidOff = loanRepository.recordRepayment(loanId, transactionId, contribution, note, overflow)
+        // Before the reloads: leaving the screen cancels them, and the payment is already saved.
+        if (paidOff) mascotMoments.announce(MascotMoment.DebtPaidOff)
         _transaction.value = transactionRepository.getTransactionById(transactionId)
         _loan.value = loanRepository.getLoanById(loanId)
     }

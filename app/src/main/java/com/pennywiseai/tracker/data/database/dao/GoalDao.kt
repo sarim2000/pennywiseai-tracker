@@ -63,6 +63,10 @@ interface GoalDao {
     @Query("$EFFECTIVE_CONTRIBUTIONS AND c.goal_id = :goalId ORDER BY c.date DESC, c.id DESC")
     fun observeEffectiveContributionsForGoal(goalId: Long): Flow<List<GoalContributionEntity>>
 
+    /** [observeEffectiveContributionsForGoal] once, for a read inside a write's DB transaction. */
+    @Query("$EFFECTIVE_CONTRIBUTIONS AND c.goal_id = :goalId")
+    suspend fun getEffectiveContributionsForGoal(goalId: Long): List<GoalContributionEntity>
+
     /** Every row linked to a transaction, whether or not that transaction is soft-deleted. */
     @Query("SELECT * FROM goal_contributions WHERE transaction_id = :transactionId")
     fun observeContributionsForTransaction(transactionId: Long): Flow<List<GoalContributionEntity>>

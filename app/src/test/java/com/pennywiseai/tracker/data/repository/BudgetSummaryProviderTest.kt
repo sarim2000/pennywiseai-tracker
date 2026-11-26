@@ -114,8 +114,8 @@ class BudgetSummaryProviderTest {
             daysRemaining = 15, currency = "JOD"
         )
         val repo = mockk<BudgetGroupRepository> {
-            every { getGroupSpendingAllCurrencies(any(), any()) } returns flowOf(raw)
-            every { getGroupSpending(any(), any(), base) } returns flowOf(baseSummary)
+            every { getGroupSpendingAllCurrencies(any(), any(), any()) } returns flowOf(raw)
+            every { getGroupSpending(any(), any(), base, any()) } returns flowOf(baseSummary)
             coEvery { parentOf() } returns parentOf
         }
         val conversion = mockk<CurrencyConversionService> {

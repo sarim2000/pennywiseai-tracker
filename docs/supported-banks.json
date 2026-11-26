@@ -1,5 +1,5 @@
 {
-  "totalBanks": 178,
+  "totalBanks": 179,
   "totalCountries": 26,
   "countries": [
     {
@@ -107,20 +107,20 @@
       "banks": ["Commercial Bank of Ceylon", "National Development Bank", "National Savings Bank", "Nations Trust Bank", "Sampath Bank"]
     },
     {
+      "country": "Egypt",
+      "flag": "🇪🇬",
+      "currency": "EGP",
+      "symbol": "E£",
+      "bankCount": 4,
+      "banks": ["Arab Bank", "CIB Egypt", "Mashreq Egypt", "National Bank of Egypt"]
+    },
+    {
       "country": "Mozambique",
       "flag": "🇲🇿",
       "currency": "MZN",
       "symbol": "MT",
       "bankCount": 4,
       "banks": ["M-Pesa Mozambique", "Millennium BIM", "Standard Bank Mozambique", "eMola"]
-    },
-    {
-      "country": "Egypt",
-      "flag": "🇪🇬",
-      "currency": "EGP",
-      "symbol": "E£",
-      "bankCount": 3,
-      "banks": ["Arab Bank", "CIB Egypt", "National Bank of Egypt"]
     },
     {
       "country": "El Salvador",

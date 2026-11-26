@@ -1,35 +1,37 @@
 package com.pennywiseai.tracker.aiaccess
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.parentNameOf
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
-import kotlinx.serialization.json.JsonArray
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.add
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import javax.inject.Inject
@@ -48,6 +50,7 @@ class AiTools @Inject constructor(
     private val categories: CategoryRepository,
     private val mappings: MerchantMappingRepository,
     private val aliases: MerchantAliasRepository,
+    private val tags: TagRepository,
     private val rules: RuleRepository,
     private val applyRulesToPast: ApplyRulesToPastTransactionsUseCase,
     private val database: PennyWiseDatabase,
@@ -74,6 +77,11 @@ class AiTools @Inject constructor(
                     offset = args["offset"]?.jsonPrimitive?.intOrNull ?: 0,
                     sort = args.string("sort"),
                     aliases = aliases.getAllAliasesAsMap(),
+                    tagsById = if (args.strings("tag").isEmpty() && args.strings("exclude_tags").isEmpty()) emptyMap() else tags.observeTransactionTagNames().first(),
+                    tag = args.strings("tag"),
+                    excludeCategories = args.strings("exclude_categories"),
+                    excludeTags = args.strings("exclude_tags"),
+                    subCategories = subCategoriesByParent(),
                 )
                 "spending_summary" -> AiToolLogic.spendingSummary(
                     all = inRange(args) ?: return error("Give from and to as YYYY-MM-DD."),
@@ -81,6 +89,12 @@ class AiTools @Inject constructor(
                     type = args.string("type") ?: "EXPENSE",
                     account = args.string("account"),
                     limit = args["limit"]?.jsonPrimitive?.intOrNull,
+                    aliases = aliases.getAllAliasesAsMap(),
+                    tagsById = if (args.strings("tag").isEmpty() && args.strings("exclude_tags").isEmpty()) emptyMap() else tags.observeTransactionTagNames().first(),
+                    tag = args.strings("tag"),
+                    excludeCategories = args.strings("exclude_categories"),
+                    excludeTags = args.strings("exclude_tags"),
+                    subCategories = subCategoriesByParent(),
                 )
                 "list_accounts" -> AiToolLogic.accounts(balances.getAllLatestBalances().first())
                 "list_subscriptions" -> AiToolLogic.subscriptions(subscriptions.getActiveSubscriptions().first())
@@ -198,10 +212,25 @@ class AiTools @Inject constructor(
         return if (to.isBefore(from)) null else transactions.getTransactionsBetweenDates(from, to).first()
     }
 
+    /** parent category name to its sub-categories' names, the roll-up Analytics uses. */
+    private suspend fun subCategoriesByParent(): Map<String, List<String>> =
+        categories.getAllCategories().first().parentNameOf().entries.groupBy({ it.value }, { it.key })
+
     private fun JsonObject.date(key: String): LocalDate? =
         string(key)?.let { try { LocalDate.parse(it) } catch (_: DateTimeParseException) { null } }
 
     private fun JsonObject.string(key: String) = (this[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
+
+    /**
+     * A list of names; a lone string counts as a list of one. JSON strings only, the rule the
+     * relay's requireFilterEcho uses to decide whether a filter was asked for.
+     */
+    private fun JsonObject.strings(key: String): List<String> =
+        ((this[key] as? JsonArray) ?: listOfNotNull(this[key]))
+            .mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content?.takeIf(::isName) }
+
+    /** Has a visible character. Spelled out, not isNotBlank, so it is the same set as the relay's isName. */
+    private fun isName(s: String) = s.any { !it.isWhitespace() && !it.isISOControl() && it != '\uFEFF' && it != '\u180E' }
 
     private fun error(message: String) = text(message, isError = true)
 

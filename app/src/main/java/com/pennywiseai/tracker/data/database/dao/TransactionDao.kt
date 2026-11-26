@@ -3,9 +3,53 @@ package com.pennywiseai.tracker.data.database.dao
 import androidx.room3.*
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.model.MerchantSuggestion
+import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
+
+/**
+ * Past merchants for a merchant field (#1392): those whose name or alias contains `:term`
+ * (escaped with [MerchantSuggestions.likeTerm]), from the `:profileId` profile (null for
+ * all), names starting with it first, then by use and by last use. Spellings that differ
+ * only in case count as one, under the latest, or under the one the user named if any:
+ * an alias belongs to one exact spelling, so filling that one keeps the alias.
+ *
+ * A row's profile is its own, else its account's, else Personal, like
+ * `effectiveProfileId`. Rows the quick add named after their category (no "where"
+ * typed) aren't merchants. Plain SQL from SQLite 3.18 (minSdk 26): one `max()` keeps
+ * the bare `name` on the latest row.
+ */
+internal const val MERCHANT_SUGGESTIONS_SQL = """
+        WITH merchants AS (
+            SELECT t.merchant_name AS name, COUNT(*) AS uses, MAX(t.date_time) AS lastUsed
+            FROM transactions t
+            WHERE t.is_deleted = 0
+                AND t.merchant_name != t.category
+                AND (t.merchant_name LIKE '%' || :term || '%' ESCAPE '\'
+                    OR t.merchant_name COLLATE NOCASE IN (SELECT merchant_name FROM merchant_aliases
+                        WHERE alias LIKE '%' || :term || '%' ESCAPE '\'))
+                AND (:profileId IS NULL OR COALESCE(
+                    t.profile_id,
+                    (SELECT b.profile_id FROM account_balances b
+                        WHERE b.bank_name = t.bank_name AND b.account_last4 = t.account_number LIMIT 1),
+                    1
+                ) = :profileId)
+            GROUP BY t.merchant_name COLLATE NOCASE
+        )
+        SELECT COALESCE(a.merchant_name, m.name) AS merchantName, a.alias AS alias, m.uses AS uses, m.lastUsed AS lastUsed
+        FROM merchants m
+        LEFT JOIN merchant_aliases a ON a.merchant_name = (
+            SELECT n.merchant_name FROM merchant_aliases n
+            WHERE n.merchant_name = m.name COLLATE NOCASE
+            ORDER BY n.updated_at DESC LIMIT 1
+        )
+        ORDER BY (m.name LIKE :term || '%' ESCAPE '\'
+                OR IFNULL(a.alias LIKE :term || '%' ESCAPE '\', 0)) DESC,
+            uses DESC, lastUsed DESC
+        LIMIT :limit
+    """
 
 @Dao
 interface TransactionDao {
@@ -165,6 +209,10 @@ interface TransactionDao {
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 ORDER BY merchant_name ASC")
     fun getAllMerchants(): Flow<List<String>>
 
+    /** Past merchants matching [term] (#1392), best first; see [MERCHANT_SUGGESTIONS_SQL]. */
+    @Query(MERCHANT_SUGGESTIONS_SQL)
+    suspend fun suggestMerchants(term: String, profileId: Long?, limit: Int): List<MerchantSuggestion>
+
     @Query("""
         SELECT SUM(amount) FROM transactions 
         WHERE is_deleted = 0 
@@ -221,8 +269,10 @@ interface TransactionDao {
     /**
      * The "rebuild from scratch" resync: deletes only rows the SMS inbox can
      * rebuild — active, parsed from an SMS, and not loan-linked, grouped
-     * (#401), split with people (#346) or put toward a goal (#914: the hard delete would cascade the
-     * contribution away). Everything else is kept, since nothing would bring it back:
+     * (#401), split with people (#346), put toward a goal (#914: the hard delete would cascade the
+     * contribution away), marked reimbursable or the payment that paid one back (#1389: a
+     * re-parsed row has no mark, and the link has no foreign key). Everything else is kept,
+     * since nothing would bring it back:
      * manual / chat / CSV / recurring rows (no sender), PDF imports ("… PDF"
      * sender), bank-app notification rows ([notificationAliases]), and rows
      * the user deleted (kept so the rescan doesn't resurrect them, #703).
@@ -237,6 +287,8 @@ interface TransactionDao {
         WHERE loan_id IS NULL AND group_id IS NULL AND is_deleted = 0
           AND id NOT IN (SELECT transaction_id FROM goal_contributions WHERE transaction_id IS NOT NULL)
           AND id NOT IN (SELECT transaction_id FROM loan_shares)
+          AND reimbursement_status IS NULL
+          AND id NOT IN (SELECT reimbursed_by_id FROM transactions WHERE reimbursed_by_id IS NOT NULL)
           AND sms_sender IS NOT NULL
           AND sms_sender NOT LIKE '% PDF'
           AND sms_sender NOT IN (:notificationAliases)
@@ -284,6 +336,69 @@ interface TransactionDao {
     /** Flips only the "don't count" flag; 0 when it already had that value. */
     @Query("UPDATE transactions SET excluded_from_analytics = :excluded, updated_at = :updatedAt WHERE id = :transactionId AND excluded_from_analytics != :excluded")
     suspend fun setExcludedFromAnalytics(transactionId: Long, excluded: Boolean, updatedAt: LocalDateTime): Int
+
+    /**
+     * Sets only the reimbursement state (#1389): [status] is a [ReimbursementStatus] name or
+     * null, [reimbursedById] the incoming payment that paid it back.
+     */
+    @Query("UPDATE transactions SET reimbursement_status = :status, reimbursed_by_id = :reimbursedById, updated_at = :updatedAt WHERE id = :transactionId")
+    suspend fun setReimbursement(transactionId: Long, status: String?, reimbursedById: Long?, updatedAt: LocalDateTime): Int
+
+    /**
+     * Soft-deletes a duplicate (#1389): the keeper takes its reimbursement when it has none, and
+     * expenses it paid back point at the keeper instead. One transaction, so a cancel can't leave
+     * both rows active with the same claim.
+     */
+    @androidx.room3.Transaction
+    suspend fun softDeleteDuplicate(fromId: Long, toId: Long) {
+        if (fromId == toId) return
+        copyReimbursementIfUnset(fromId, toId)
+        repointReimbursedBy(fromId, toId)
+        softDeleteTransaction(fromId)
+    }
+
+    @Query(
+        """
+        UPDATE transactions SET
+            reimbursement_status = (SELECT reimbursement_status FROM transactions WHERE id = :fromId),
+            reimbursed_by_id = (SELECT reimbursed_by_id FROM transactions WHERE id = :fromId)
+        WHERE id = :toId AND reimbursement_status IS NULL
+            AND transaction_type IN ('EXPENSE', 'CREDIT')
+            AND (SELECT reimbursement_status FROM transactions WHERE id = :fromId) IS NOT NULL
+            AND (SELECT reimbursed_by_id FROM transactions WHERE id = :fromId) IS NOT :toId
+        """
+    )
+    suspend fun copyReimbursementIfUnset(fromId: Long, toId: Long)
+
+    @Query("UPDATE transactions SET reimbursed_by_id = :toId WHERE reimbursed_by_id = :fromId AND id != :toId")
+    suspend fun repointReimbursedBy(fromId: Long, toId: Long)
+
+    /** Points a restored row at its restored payment; see BackupImporter. */
+    @Query("UPDATE transactions SET reimbursed_by_id = :reimbursedById WHERE id = :transactionId")
+    suspend fun setReimbursedById(transactionId: Long, reimbursedById: Long?)
+
+    /** Every reimbursable expense, pending or reimbursed, newest first. */
+    @Query("SELECT * FROM transactions WHERE reimbursement_status IS NOT NULL AND is_deleted = 0 ORDER BY date_time DESC")
+    fun observeReimbursables(): Flow<List<TransactionEntity>>
+
+    /** The live payment row an expense links to (#1389); null once it's gone or deleted. */
+    @Query("SELECT * FROM transactions WHERE id = :paymentId AND is_deleted = 0")
+    fun observeReimbursementPayment(paymentId: Long): Flow<TransactionEntity?>
+
+    /** The expenses that [paymentId] paid back. */
+    @Query("SELECT * FROM transactions WHERE reimbursed_by_id = :paymentId AND is_deleted = 0 ORDER BY date_time DESC")
+    fun observeReimbursedBy(paymentId: Long): Flow<List<TransactionEntity>>
+
+    /**
+     * Incoming payments in [currency] from [since] on, newest first: what could have paid an
+     * expense back. Uncapped, so an old claim's payment stays reachable however many came after.
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE transaction_type = 'INCOME' AND is_deleted = 0 AND currency = :currency AND date_time >= :since
+        ORDER BY date_time DESC
+    """)
+    suspend fun getReimbursementCandidates(currency: String, since: LocalDateTime): List<TransactionEntity>
 
     @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
     suspend fun countExplicitProfileMismatchForAccount(bankName: String, accountLast4: String, profileId: Long): Int

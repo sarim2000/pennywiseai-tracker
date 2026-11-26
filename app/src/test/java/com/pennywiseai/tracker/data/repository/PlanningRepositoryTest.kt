@@ -114,6 +114,22 @@ class PlanningRepositoryTest {
     }
 
     @Test
+    fun `a limit rollover carried down to 0 is used up, not missing`() {
+        // 500 a month, rollover on, last period overspent by 500: this period's limit is 0.
+        val carriedToZero = group("Food", "500", "0", shown = "0").copy(carry = BigDecimal("-500"))
+        // Category limits converted one by one can leave the carried limit a cent under 0.
+        val aCentUnder = group("Fun", "0", "0", shown = "-0.01", allocations = listOf("8", "8")).copy(carry = BigDecimal("-16.01"))
+        val statuses = PlanningRepository.budgetStatuses(summary(carriedToZero, aCentUnder, currency = "INR"), today)
+        assertEquals(listOf("Food", "Fun"), statuses.map { it.name })
+        statuses.forEach {
+            assertEquals(0, it.limit!!.signum())
+            assertEquals(0, it.remaining!!.signum())
+        }
+        // Used up: the chat's budgets chip shows, as the Budgets card shows it 100% used.
+        assertEquals(ChatSuggestion(QuickAction.BUDGETS), ChatSuggestions.pick(BillsDue(today, emptyList(), emptyList()), statuses.take(1)).first())
+    }
+
+    @Test
     fun `a window that starts or ends today is live`() {
         val statuses = PlanningRepository.budgetStatuses(
             summary(group("Starts", "10", "0", start = today, end = today.plusDays(6)), group("Ends", "10", "0", start = today.minusDays(6), end = today)),

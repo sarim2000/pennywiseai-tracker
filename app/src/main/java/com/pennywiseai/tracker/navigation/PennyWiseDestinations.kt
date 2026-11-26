@@ -167,6 +167,10 @@ data class GoalEdit(val goalId: Long = -1L) : NavKey
 @Serializable
 data object Loans : NavKey
 
+/** Reimbursable expenses, pending and reimbursed (#1389). */
+@Serializable
+data object Reimbursements : NavKey
+
 @Serializable
 data object RecurringTransactions : NavKey
 
@@ -188,6 +192,10 @@ data object Webhooks : NavKey
 @Serializable
 data object AiAccess : NavKey
 
+/** The conscience's own screen, in a language that has its lines. Opens inside the tab. */
+@Serializable
+data object Conscience : NavKey
+
 /** Developer mode's mascot playground. It opens inside the tab, under the bottom bar. */
 @Serializable
 data object MascotPlayground : NavKey
@@ -206,6 +214,8 @@ data object LearnedCategories : NavKey
 data class TransactionsWithFilter(
     /** Null lists every category: a calendar day's transactions. */
     val category: String? = null,
+    /** A raw merchant name, searched for: a transaction's "More from". */
+    val merchant: String? = null,
     val period: String? = null,
     val currency: String? = null,
     val startDate: Long? = null,
@@ -213,7 +223,11 @@ data class TransactionsWithFilter(
     /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
     val currencyOnly: Boolean = false,
     /** Every profile's rows, whatever profile is selected: the list behind a budget, which counts them all. */
-    val allProfiles: Boolean = false
+    val allProfiles: Boolean = false,
+    /** A "More from"/"More in" row's profile: the list keeps to it when one profile is selected. */
+    val rowProfileId: Long? = null,
+    /** A budget's other lines, which count their own spend: left out of [category]'s list where they're its sub-categories (#1425). */
+    val withoutCategories: List<String> = emptyList()
 ) : NavKey
 
 /**

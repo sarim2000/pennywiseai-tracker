@@ -66,7 +66,7 @@ class ChatTabReactionsTest {
     }
 
     @Test
-    fun `three saves in a burst make one reaction that never extends`() {
+    fun `in a burst the latest save takes over, with a hold of its own, and nothing queues`() {
         val job = start()
         val seen = mutableListOf<MascotReaction?>()
         save(TransactionType.EXPENSE)
@@ -77,29 +77,44 @@ class ChatTabReactionsTest {
         save(TransactionType.INVESTMENT)
         runCurrent()
         seen += shown
-        // The hold still ends where the first save started it.
-        advanceTimeBy(REACTION_HOLD_MS - 1_000 + 1)
+        // Its hold runs from when it took over: still up past where the first save's ends.
+        advanceTimeBy(REACTION_HOLD_MS - 1)
+        seen += shown
+        advanceTimeBy(2)
         seen += shown
         // And nothing was queued behind it.
         advanceTimeBy(REACTION_HOLD_MS * 3)
         seen += shown
-        assertEquals(listOf(reactionFor(TransactionType.EXPENSE), reactionFor(TransactionType.EXPENSE), null, null), seen)
+        assertEquals(
+            listOf(
+                reactionFor(TransactionType.EXPENSE),
+                reactionFor(TransactionType.INVESTMENT),
+                reactionFor(TransactionType.INVESTMENT),
+                null,
+                null,
+            ),
+            seen,
+        )
         job.cancel()
     }
 
     @Test
-    fun `a save's amount rides its reaction, and a burst keeps the first`() {
+    fun `a save's amount rides its reaction, and a save right after shows its own`() {
         val job = start()
-        val spent = Money(BigDecimal("12.50"), "EUR")
+        val spent = Money(BigDecimal("111"), "EUR")
         save(TransactionType.EXPENSE, spent)
         runCurrent()
-        val expected = reactionFor(TransactionType.EXPENSE).copy(chip = ReactionAmount(spent, TransactionType.EXPENSE))
-        assertEquals(expected, shown)
+        assertEquals(reactionFor(TransactionType.EXPENSE).copy(chip = ReactionAmount(spent, TransactionType.EXPENSE)), shown)
 
-        save(TransactionType.INCOME, Money(BigDecimal.TEN, "EUR"))
+        advanceTimeBy(300)
+        val earned = Money(BigDecimal.TEN, "EUR")
+        save(TransactionType.INCOME, earned)
         runCurrent()
-        assertEquals(expected, shown)
-        advanceTimeBy(REACTION_HOLD_MS + 1)
+        val income = reactionFor(TransactionType.INCOME).copy(chip = ReactionAmount(earned, TransactionType.INCOME))
+        assertEquals(income, shown)
+        advanceTimeBy(REACTION_HOLD_MS - 1)
+        assertEquals(income, shown)
+        advanceTimeBy(2)
         assertNull(shown)
         job.cancel()
     }
@@ -379,6 +394,80 @@ class ChatTabReactionsTest {
         reactions.onBarShown(false)
         reactions.onMoment(MascotMoment.GoalReached)
         advanceTimeBy(REACTION_WAIT_MS + 1)
+        runCurrent()
+        assertNull(shown)
+        reactions.onBarShown(true)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `a waiting reaction's hold starts when the bar settles, and only once`() {
+        val job = start()
+        reactions.onBarShown(false)
+        reactions.onMoment(MascotMoment.GoalReached)
+        runCurrent()
+        // The bar reports itself settled once its entrance beat is over: the whole hold is left.
+        reactions.onBarShown(true)
+        // Hearing it again mid-hold doesn't start it over.
+        advanceTimeBy(REACTION_HOLD_MS / 2)
+        reactions.onBarShown(true)
+        advanceTimeBy(REACTION_HOLD_MS / 2 - 1)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.GoalReached), shown)
+        advanceTimeBy(2)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `a toggle made while the bar is away goes unanswered and leaves a waiting reaction alone`() {
+        val job = start()
+        reactions.onBarShown(false)
+        reactions.onMoment(MascotMoment.AmountsHidden)
+        runCurrent()
+        assertNull(shown)
+        reactions.onMoment(MascotMoment.DebtPaidOff)
+        reactions.onMoment(MascotMoment.AmountsShown)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.DebtPaidOff), shown)
+        reactions.onBarShown(true)
+        advanceTimeBy(REACTION_HOLD_MS - 1)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.DebtPaidOff), shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `a toggle made in the bar's entrance beat answers once the beat settles`() {
+        val job = start()
+        reactions.onBarShown(false)
+        // Back from a pushed screen: the bar is on screen, its beat not yet over.
+        reactions.onBarShown(false, arriving = true)
+        reactions.onMoment(MascotMoment.AmountsHidden)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.AmountsHidden), shown)
+        // The beat (350ms) settles: the toggle's whole hold is left.
+        advanceTimeBy(350)
+        reactions.onBarShown(true)
+        advanceTimeBy(TOGGLE_HOLD_MS - 1)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.AmountsHidden), shown)
+        advanceTimeBy(2)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `a toggle made in the beat of a bar that leaves again doesn't wait for its return`() {
+        val job = start()
+        reactions.onBarShown(false, arriving = true)
+        reactions.onMoment(MascotMoment.AmountsHidden)
+        reactions.onBarShown(false)
+        advanceTimeBy(TOGGLE_HOLD_MS + 1)
         runCurrent()
         assertNull(shown)
         reactions.onBarShown(true)

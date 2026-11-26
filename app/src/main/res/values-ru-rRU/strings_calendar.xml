@@ -4,6 +4,7 @@
     <!-- The Analytics toolbar button that opens the calendar -->
     <!-- Toolbar button that jumps back to the current month -->
     <!-- The ends of the shading scale under the calendar: less spent on a day, more spent -->
+    <!-- Under the calendar while the user has hidden amounts: why the days have no shading -->
     <!-- %1$s = a month, e.g. "November 2026" -->
     <!-- Read out for a day; %1$s = what was spent, e.g. "₹500" or "₹500, $10" -->
     <!-- A weekday and a date, e.g. "Monday, 16 Nov 2026"; %1$s = the weekday, %2$s = the date -->

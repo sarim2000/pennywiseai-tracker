@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.conscience.ConscienceDetectors
 import com.pennywiseai.tracker.domain.conscience.ConscienceEligibility
+import com.pennywiseai.tracker.domain.conscience.ConscienceRemark
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
@@ -59,8 +60,9 @@ class ConscienceManager @Inject constructor(
         if (!preferences.conscienceEnabled.first()) return
         val text = ConscienceText(context)
         if (!text.speaksAppLanguage) return
-        // Late at night with the screen off the user is likely asleep: no remark, and no slot spent.
-        if (isQuietHour(LocalTime.now()) && !isScreenOn()) return
+        // Late at night with the screen off the user is likely asleep: no notification, only a
+        // remark kept on the Conscience screen.
+        val quiet = isQuietHour(LocalTime.now()) && !isScreenOn()
         if (appForeground.isInForeground()) return
         // Checked before a slot is claimed, so none is spent on something invisible.
         if (!ConscienceNotifier.canPost(context)) return
@@ -103,21 +105,34 @@ class ConscienceManager @Inject constructor(
         val facts = ConscienceDetectors.detect(current, history, ledgerStart, activeDates, refunds)
         if (facts.isEmpty()) return
 
-        val choice = preferences.tryClaimConscience(
+        // The candidates only hold lines that rendered, so rendering inside the claim can't fail on a bad line.
+        val remark = preferences.tryClaimConscience(
             facts.map(text::candidate),
             text.contentLocale,
             nowMillis,
             LocalDate.now().toEpochDay(),
             Random.Default
-        ) ?: return
-        // The candidates only hold lines that rendered, so this can't come back null here.
-        val line = text.render(choice.fact, choice.line) ?: return
+        ) { choice ->
+            text.render(choice.fact, choice.line)?.let { line ->
+                ConscienceRemark(
+                    id = nowMillis,
+                    atMillis = nowMillis,
+                    text = line,
+                    kind = choice.fact.kind,
+                    lineKey = choice.lineKey,
+                    notified = !quiet
+                )
+            }
+        } ?: return
+        if (!remark.notified) return
         ConscienceNotifier.post(
             context,
             text,
-            line,
-            openTransaction = notificationActions.openTransaction(transactionId),
-            retireLine = notificationActions.retireLine(choice.lineKey)
+            remark.text,
+            remark.id,
+            remark.lineKey,
+            contentIntent = notificationActions.openTransaction(transactionId),
+            actions = notificationActions
         )
     }
 
@@ -126,7 +141,8 @@ class ConscienceManager @Inject constructor(
 
     companion object {
         private const val TAG = "ConscienceManager"
-        private const val HISTORY_DAYS = 42L
+        // Nine weeks of spikes' baseline plus this week, with room to spare.
+        private const val HISTORY_DAYS = 95L
         private const val RENEWAL_HISTORY_DAYS = 2 * 380L + 1
         private const val FRESH_WINDOW_MILLIS = 10 * 60 * 1000L
         private val QUIET_FROM: LocalTime = LocalTime.of(23, 0)

@@ -2,6 +2,7 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">การตั้งค่า</string>
+    <!-- Other words people type for these settings; search only, never shown. -->
     <string name="settings_back">กลับ</string>
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">ยกเลิก</string>
@@ -236,6 +237,7 @@
     <!-- %1$s = app version, e.g. 2.18.0 -->
     <!-- Settings hub: section headers -->
     <!-- Settings hub: the profile block and shortcut tiles -->
+    <!-- %1$d = position of the color in the picker, e.g. 3 -->
     <!-- Settings hub: what each page holds. Keep to one line. -->
     <!-- Settings pages: the short explanation at the top of each page -->
     <!-- Settings pages: groups and rows -->

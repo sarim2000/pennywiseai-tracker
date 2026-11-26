@@ -65,6 +65,7 @@
     <string name="budgets_title">बजेटहरू</string>
     <string name="budgets_back">पछाडि</string>
     <string name="budgets_add">बजेट थप्नुहोस्</string>
+    <!-- Budgets card the week after a budget cycle ends: %1$s is the month's name ("October ended under budget"), or the cycle's dates when it starts on another day than the 1st ("Sep 25 - Oct 24 ended under budget") -->
     <string name="budgets_action_cancel">रद्द गर्नुहोस्</string>
     <string name="budgets_action_delete">हटाउनुहोस्</string>
     <string name="budgets_action_ok">ठीक छ</string>

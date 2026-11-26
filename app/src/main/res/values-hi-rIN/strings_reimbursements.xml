@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reimbursable expenses (#1389): money you paid that someone (often an employer) pays back -->
+    <!-- Transaction detail -->
+    <!-- %1$s is the incoming payment's merchant, %2$s its amount, %3$s its date -->
+    <!-- On an incoming payment: the expenses it paid back -->
+    <!-- "Paid back by" sheet -->
+    <!-- %1$s is a currency code, %2$s the expense's date -->
+    <!-- Reimbursements screen -->
+    <!-- Settings → Planning -->
+</resources>

@@ -78,8 +78,9 @@ class ChallengeWidgetUpdateWorker @AssistedInject constructor(
                 ctx.canReadSms() && ctx.canReceiveSms(),
                 BackgroundAccessState(backgroundRestricted = ctx.isBackgroundRestricted()),
             ) == null
-            run.namedAsNow(categories)
-                .progress(challengeRows(rows, categories.parentNameOf()), today, tracking = tracking, inboxReadBefore = readBefore)
+            // Like Plan: the week's category stays itself after it's moved under a parent.
+            val current = run.namedAsNow(categories)
+            current.progress(challengeRows(rows, categories.parentNameOf(), keep = current.categoryName), today, tracking = tracking, inboxReadBefore = readBefore)
         }
         val language = ctx.inAppLanguage()
         val snapshot = challengeWidgetSnapshot(stored, progress) { name ->

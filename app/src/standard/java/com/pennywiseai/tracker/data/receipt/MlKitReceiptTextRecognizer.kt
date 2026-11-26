@@ -54,12 +54,20 @@ class MlKitReceiptTextRecognizer @Inject constructor(
     private fun decode(uri: Uri): Pair<Bitmap, Int>? {
         val resolver = context.contentResolver
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        // A bounds-only decode always returns null; it just fills in outWidth/outHeight.
+        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
+            Log.w(TAG, "Receipt photo couldn't be decoded")
+            return null
+        }
         var sample = 1
         while (maxOf(bounds.outWidth, bounds.outHeight) / sample > MAX_SIDE) sample *= 2
         val options = BitmapFactory.Options().apply { inSampleSize = sample }
-        val bitmap = resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) } ?: return null
+        val bitmap = resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+        if (bitmap == null) {
+            Log.w(TAG, "Receipt photo couldn't be decoded")
+            return null
+        }
         // A camera photo is often stored sideways with its turn noted in EXIF.
         val orientation = runCatching {
             resolver.openInputStream(uri)?.use {

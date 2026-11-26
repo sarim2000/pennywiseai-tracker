@@ -165,14 +165,16 @@ private const val GOAL_FILL = 0.55f
  * a higher rank takes over, with a hold of its own, so a second save shows itself rather
  * than the first one's amount; a lower one folds into what's showing. So a goal reached
  * stays over a save that follows it, and the owl covering its eyes over anything. A scan
- * takes over from a reaction, and the scan's bubble carries no chip.
+ * takes over from a reaction, all but a toggle, which shows over the bubble for its hold;
+ * the scan's bubble carries no chip.
  *
  * Saves and moments come in through [onSave] and [onMoment] while the Chat tab is
  * visible, for as long as [scope] lives (the Chat tab's ViewModel), so one made on a screen
  * pushed over the tabs still shows when the bar comes back. Its hold starts once the bar
  * says it is up and past its entrance ([onBarShown]): made while the bar is away, it
- * waits up to [waitMillis] for it, then goes unseen. A toggle never waits: it answers the switch now
- * or not at all. The timers run on [scope], so they end on time whether or not anyone
+ * waits up to [waitMillis] for it, then goes unseen. A toggle never waits for the bar: it
+ * answers the switch now or not at all, though a bar on screen in its entrance beat counts
+ * as shown. The timers run on [scope], so they end on time whether or not anyone
  * watches; [clear] drops the reaction early.
  */
 internal class ChatTabReactions(
@@ -186,6 +188,9 @@ internal class ChatTabReactions(
 
     /** Whether the bar is up and past its entrance, so a hold can start. */
     private var barShown = true
+
+    /** Whether the bar is on screen but still in its entrance beat. */
+    private var barArriving = false
 
     /** Whether [flash]'s hold has started; until then it waits for the bar. */
     private var holding = false
@@ -203,11 +208,13 @@ internal class ChatTabReactions(
 
     /** A moment just finished in the foreground (gated at the source). */
     fun onMoment(moment: MascotMoment) {
-        if (scanning) return
         val reaction = reactionFor(moment)
+        // The user's own toggle still answers during a scan; anything else waits it out unseen.
+        if (scanning && reaction.rank < RANK_TOGGLE) return
         // Made with the bar away (a shake on Settings), a toggle would cover the owl's eyes
-        // long after the switch was flipped, so it goes unanswered.
-        if (reaction.rank == RANK_TOGGLE && !barShown) return
+        // long after the switch was flipped, so it goes unanswered. A bar in its entrance beat
+        // is on screen (Home's eye tapped just back from a pushed screen): that one answers.
+        if (reaction.rank == RANK_TOGGLE && !barShown && !barArriving) return
         react(reaction)
     }
 
@@ -215,10 +222,12 @@ internal class ChatTabReactions(
      * The bar went away, or is up and past its entrance: the owl it brought back has
      * turned, so a reaction waiting for it starts its hold now and none of it is spent on
      * the owl. The bar times that beat itself, so the hold and what the user sees share one
-     * clock. One already holding runs out on time.
+     * clock. One already holding runs out on time. [arriving] says a bar not yet shown is on
+     * screen in that beat.
      */
-    fun onBarShown(shown: Boolean) {
+    fun onBarShown(shown: Boolean, arriving: Boolean = false) {
         barShown = shown
+        barArriving = !shown && arriving
         if (shown && flash != null && !holding) startHold()
     }
 
@@ -241,7 +250,8 @@ internal class ChatTabReactions(
             var sawRunning = false
             scan.collect { status ->
                 val running = status == SmsScanStatus.Running
-                if (running && !scanning) clearFlash()
+                // A scan takes over from a reaction, all but a toggle, which keeps its hold.
+                if (running && !scanning && flash?.rank != RANK_TOGGLE) clearFlash()
                 scanning = running
                 publish()
                 // The beat belongs to the scan that just ended: it runs out on time, bar or not.
@@ -266,7 +276,8 @@ internal class ChatTabReactions(
             startHold()
         } else {
             holding = false
-            endAfter(waitMillis)
+            // A toggle waits out only the bar's entrance beat, never for the bar to come back.
+            endAfter(if (reaction.rank == RANK_TOGGLE) TOGGLE_HOLD_MS else waitMillis)
         }
     }
 
@@ -294,22 +305,27 @@ internal class ChatTabReactions(
     }
 
     private fun publish() {
-        _shown.value = if (scanning) SCANNING else flash
+        _shown.value = if (scanning && flash?.rank != RANK_TOGGLE) SCANNING else flash
     }
 }
 
 /**
  * Follows the scan while the screen is STARTED and returns what the tab shows. Call it
  * only while the Chat tab is shown, with whether the bar is up and past its entrance
- * ([barShown], as PennyWiseBottomNavigation reports it); leaving composition counts as the
- * bar going away. Going to the background clears the reaction; one made while a screen
+ * ([barShown], as PennyWiseBottomNavigation reports it) and whether it is on screen at all
+ * ([barVisible]); leaving composition counts as the bar going away. Going to the background clears the reaction; one made while a screen
  * covers the tabs waits for them and shows on return.
  */
 @Composable
-internal fun rememberChatTabReaction(reactions: ChatTabReactions, scan: Flow<SmsScanStatus>, barShown: Boolean): MascotReaction? {
+internal fun rememberChatTabReaction(
+    reactions: ChatTabReactions,
+    scan: Flow<SmsScanStatus>,
+    barShown: Boolean,
+    barVisible: Boolean,
+): MascotReaction? {
     // A root screen (a goal, Settings) covers the tabs, bar and all: gone counts as hidden.
-    DisposableEffect(reactions, barShown) {
-        reactions.onBarShown(barShown)
+    DisposableEffect(reactions, barShown, barVisible) {
+        reactions.onBarShown(barShown, arriving = barVisible)
         onDispose { reactions.onBarShown(false) }
     }
     val lifecycle = LocalLifecycleOwner.current.lifecycle

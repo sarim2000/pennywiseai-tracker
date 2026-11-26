@@ -134,6 +134,9 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     val updatedTransaction = guarded(transaction, ruleResult)
                     val ruleApplications = rawApplications.landedOn(updatedTransaction, ruleResult)
                     val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
+                    // Most rows have nothing to write: opening a transaction for each made a
+                    // run take a minute whatever the rule matched (each one waits on the caller's thread).
+                    if (!entityChanged && ruleApplications.tagChanges().let { (add, remove) -> add.isEmpty() && remove.isEmpty() }) continue
                     val changed = database.withTransaction {
                         if (entityChanged) updateWithBalances(transaction, updatedTransaction)
                         val tagsChanged = persistTagActions(transaction.id, ruleApplications)

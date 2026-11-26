@@ -420,6 +420,9 @@ fun MainScreen(
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
                 },
+                onNavigateToWeekReview = { weekStart ->
+                    openRoot(com.pennywiseai.tracker.navigation.Review(com.pennywiseai.tracker.domain.review.ReviewKind.WEEK.name, weekStart.toString()))
+                },
                 onNavigateToInsights = {
                     openRoot(Insights)
                 },

@@ -260,4 +260,20 @@ class WeeklyGuessTest {
         // Every multiple stays, so the chips still land on a stop.
         assertTrue(stops.containsAll((0..max.toInt()).map { BigDecimal(it) }))
     }
+
+    @Test
+    fun `the starting pick is never graded or shown as picked`() {
+        // Four weeks at 200 and last week at 100: max 400, and a quarter of it is the answer.
+        val q = question(
+            mapOf("AED" to weeks(*Array(4) { mapOf("Food & Dining" to "200") }, mapOf("Food & Dining" to "100"))),
+            preferred = "AED",
+        )!!
+        val start = q.startingPick()
+        assertTrue(isCloseGuess(start, q.actual))
+        assertTrue(q.chips.any { it.compareTo(start) == 0 })
+        // Untouched: nothing to lock in, and no chip is highlighted.
+        assertNull(lockableGuess(start, touched = false))
+        // Once the user drags or taps a chip, that pick is the guess, even the same one.
+        assertEquals(start, lockableGuess(start, touched = true))
+    }
 }

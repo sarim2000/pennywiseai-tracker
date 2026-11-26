@@ -52,8 +52,9 @@ import com.pennywiseai.tracker.domain.review.CLOSE_GUESS_PERCENT
 import com.pennywiseai.tracker.domain.review.WeeklyGuessQuestion
 import com.pennywiseai.tracker.domain.review.guessGapPercent
 import com.pennywiseai.tracker.domain.review.isCloseGuess
+import com.pennywiseai.tracker.domain.review.lockableGuess
 import com.pennywiseai.tracker.domain.review.sliderStops
-import com.pennywiseai.tracker.domain.review.snap
+import com.pennywiseai.tracker.domain.review.startingPick
 import com.pennywiseai.tracker.ui.components.celebration.Celebration
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
@@ -208,13 +209,12 @@ internal fun WeeklyGuessSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GuessPicker(question: WeeklyGuessQuestion, onLockIn: (BigDecimal) -> Unit) {
-    // A quarter of the way, only as a place to start: the thumb can land inside the hit band
-    // on a light week, so nothing locks in until the user has dragged or picked.
-    var picked by rememberSaveable(question.weekStart) {
-        mutableStateOf(snap(question.max.divide(BigDecimal(4)), question.step).toPlainString())
-    }
-    var touched by rememberSaveable(question.weekStart) { mutableStateOf(false) }
+    // Keyed on the whole question: one refreshed under an open sheet starts over, so an old
+    // pick is never graded against a new figure or left above the new top.
+    var picked by rememberSaveable(question) { mutableStateOf(question.startingPick().toPlainString()) }
+    var touched by rememberSaveable(question) { mutableStateOf(false) }
     val amount = BigDecimal(picked)
+    val lockable = lockableGuess(amount, touched)
     val shown = CurrencyFormatter.formatCurrency(amount, question.currency)
     val label = stringResource(R.string.weekly_guess_your_guess)
     Card(
@@ -235,11 +235,11 @@ private fun GuessPicker(question: WeeklyGuessQuestion, onLockIn: (BigDecimal) ->
             )
             // Whole stops, and never more than the slider can allocate a tick for. A keyboard
             // or TalkBack nudge moves one stop. The ticks aren't drawn.
-            val stops = remember(question.weekStart, question.max, question.step, question.actual) {
+            val stops = remember(question.max, question.step, question.actual) {
                 sliderStops(question.max, question.step, question.actual)
             }
             val index = stops.indices.minBy { (stops[it] - amount).abs() }.toFloat()
-            val slider = remember(question.weekStart, stops) {
+            val slider = remember(question, stops) {
                 SliderState(index, (stops.size - 2).coerceAtLeast(0), 0f..stops.lastIndex.toFloat())
             }
             // A chip moves the thumb too.
@@ -272,7 +272,7 @@ private fun GuessPicker(question: WeeklyGuessQuestion, onLockIn: (BigDecimal) ->
             ) {
                 question.chips.forEach { chip ->
                     FilterChip(
-                        selected = amount.compareTo(chip) == 0,
+                        selected = lockable?.compareTo(chip) == 0,
                         onClick = { picked = chip.toPlainString(); touched = true },
                         label = { Text(CurrencyFormatter.formatCurrency(chip, question.currency)) },
                         shapes = FilterChipDefaults.shapes(),
@@ -283,8 +283,8 @@ private fun GuessPicker(question: WeeklyGuessQuestion, onLockIn: (BigDecimal) ->
         }
     }
     Button(
-        onClick = { onLockIn(amount) },
-        enabled = touched,
+        onClick = { lockable?.let(onLockIn) },
+        enabled = lockable != null,
         modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
         shapes = ButtonDefaults.shapes(),
         contentPadding = ButtonDefaults.contentPaddingFor(ButtonDefaults.MediumContainerHeight),

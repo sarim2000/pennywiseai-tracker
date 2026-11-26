@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
+import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.events.MascotMoment
 import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency

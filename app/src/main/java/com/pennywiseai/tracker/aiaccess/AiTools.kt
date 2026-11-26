@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.aiaccess
 
 import com.pennywiseai.tracker.billing.EntitlementGate
+import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -57,6 +58,7 @@ class AiTools @Inject constructor(
     private val applyRulesToPast: ApplyRulesToPastTransactionsUseCase,
     private val database: PennyWiseDatabase,
     private val writeAccess: AiWriteAccess,
+    private val widgets: TransactionWidgets,
 ) {
     private val ruleLock = Mutex()
 
@@ -104,6 +106,7 @@ class AiTools @Inject constructor(
                 "list_rules" -> return text(AiToolLogic.listRules(rules.getAllRules().first()), isError = false)
                 "categorize_merchants" -> categorizeMerchants(args["mappings"] as? JsonArray ?: return error("Give mappings as a list of {merchant, category}."))
                 "set_merchant_aliases" -> setAliases(args["aliases"] as? JsonArray ?: return error("Give aliases as a list of {merchant, alias}."))
+                "update_transactions" -> updateTransactions(args["updates"] as? JsonArray ?: return error("Give updates as a list of {id, category?, tags?, excluded_from_analytics?}."))
                 "create_category" -> createCategory(
                     name = args.string("name")?.trim() ?: return error("Give the category a name."),
                     isIncome = args["is_income"]?.jsonPrimitive?.booleanOrNull ?: false,
@@ -159,6 +162,119 @@ class AiTools @Inject constructor(
             buildJsonObject { put("merchant", merchant); put("category", category.name); put("past_transactions_moved", moved) }
         }
         return buildJsonObject { put("results", JsonArray(results)) }
+    }
+
+    /**
+     * Changes the category, tags and "don't count in analytics" flag of specific rows, by the `id`
+     * search_transactions gives. Each field goes through the same repository call the transaction
+     * detail screen uses (quick category pick, tag save, exclude toggle); nothing else can be sent.
+     * A row that already has the asked values is reported `unchanged` and not written. Results come
+     * back in input order.
+     */
+    private suspend fun updateTransactions(items: JsonArray): JsonObject {
+        if (items.size > MAX_BATCH) throw Refused("Send at most $MAX_BATCH updates at a time. Nothing was changed.")
+        return lockedWrite {
+            val seen = mutableSetOf<Long>()
+            val existingTags = tags.observeAllTagNames().first().map { tagKey(it) }.toSet()
+            val newTags = mutableSetOf<String>()
+            // One database transaction for the whole batch, so open screens re-query once, not per row. A
+            // row that throws can leave half of itself written, so any such failure rolls the whole call back.
+            val results = try {
+                database.withTransaction {
+                    items.map { item ->
+                        val o = item as? JsonObject
+                        val idValue = o?.get("id") as? JsonPrimitive
+                        val rawId = idValue?.takeIf { it.isString }?.content?.trim()
+                        val id = rawId?.takeIf { r -> r.isNotEmpty() && r.all { it in '0'..'9' } }?.toLongOrNull()?.takeIf { it.toString() == rawId }
+                        val outcome = try {
+                            when {
+                                !writeAccess.allowed.value -> "refused" to "Changes from AI apps were turned off while this ran. Nothing more was changed."
+                                o == null -> "refused" to "each update must be an object"
+                                idValue != null && !idValue.isString -> "refused" to "id must be a string, the one from search_transactions"
+                                rawId.isNullOrEmpty() -> "refused" to "id is missing; use the id from search_transactions"
+                                id == null -> "refused" to "not found"
+                                !seen.add(id) -> "refused" to "duplicate id in this call"
+                                else -> updateOne(id, o, existingTags, newTags)
+                            }
+                        } catch (e: Refused) {
+                            "refused" to e.message!!
+                        }
+                        buildJsonObject {
+                            if (rawId != null && rawId.length <= 20) put("id", rawId)
+                            put("result", outcome.first)
+                            outcome.second?.let { put("reason", it) }
+                        }
+                    }
+                }
+            } catch (e: Refused) {
+                throw e
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                throw Refused("PennyWise couldn't save these. Nothing was changed. Try again.")
+            }
+            if (results.any { it["result"]?.jsonPrimitive?.content == "updated" }) {
+                // The rows are committed: a widget that fails to redraw must not turn the answer into "couldn't save".
+                try { widgets.refresh() } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
+            }
+            buildJsonObject { put("results", JsonArray(results)) }
+        }
+    }
+
+    /**
+     * One row of update_transactions: ("updated" | "unchanged", null), or a [Refused] with the reason.
+     * [existingTags] are the lowercase names of tags that exist; [newTags] collects the ones this call
+     * creates, capped at [MAX_NEW_TAGS] for the whole call.
+     */
+    private suspend fun updateOne(id: Long, o: JsonObject, existingTags: Set<String>, newTags: MutableSet<String>): Pair<String, String?> {
+        o.keys.firstOrNull { it !in UPDATE_KEYS }?.let { throw Refused("\"$it\" can't be changed from here. Only category, tags and excluded_from_analytics can.") }
+        val category = if ("category" in o) {
+            val name = (o["category"] as? JsonPrimitive)?.takeIf { it.isString }?.content ?: throw Refused("category must be a category name")
+            findCategory(name) ?: throw Refused(NO_CATEGORY.format(name))
+        } else null
+        val wantedTags = if ("tags" in o) {
+            val list = o["tags"] as? JsonArray ?: throw Refused("tags must be a list of names")
+            // New tags are created on the fly, so a careless caller could flood the tag list.
+            if (list.size > MAX_TAGS) throw Refused("at most $MAX_TAGS tags on a transaction")
+            list.map { t ->
+                val name = (t as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()?.takeIf(::isName) ?: throw Refused("tags must be a list of non-empty names")
+                // The joiners U+200C/U+200D are format characters too, but emoji sequences and Persian words need them.
+                // A name made only of joiners would show as a blank chip.
+                if (name.all { it.isWhitespace() || Character.getType(it) == Character.FORMAT.toInt() }) throw Refused("tags must be a list of non-empty names")
+                if (name.any { it.isISOControl() || (Character.getType(it) == Character.FORMAT.toInt() && it != '‌' && it != '‍') }) throw Refused("a tag name can't contain control or invisible formatting characters")
+                if (name.length > MAX_TAG_LENGTH) throw Refused("a tag name can be at most $MAX_TAG_LENGTH characters")
+                name
+            }
+        } else null
+        val excluded = if ("excluded_from_analytics" in o) {
+            (o["excluded_from_analytics"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: throw Refused("excluded_from_analytics must be true or false")
+        } else null
+        if (category == null && wantedTags == null && excluded == null) throw Refused("nothing to change; give category, tags or excluded_from_analytics")
+
+        val txn = transactions.getTransactionById(id)?.takeIf { !it.isDeleted } ?: throw Refused("not found")
+        val categoryChanges = category != null && txn.category != category.name
+        if (categoryChanges) {
+            // What the detail screen's picker offers: visible income categories for income, visible expense ones for the rest.
+            if (category!!.isHidden) throw Refused(NO_CATEGORY.format(category.name))
+            if (category.isIncome != (txn.transactionType == TransactionType.INCOME)) {
+                throw Refused("\"${category.name}\" is an ${if (category.isIncome) "income" else "expense"} category and doesn't fit this ${txn.transactionType.name} transaction")
+            }
+            // A split's categories live in its splits; the app's quick pick isn't offered for it either.
+            if (transactions.hasSplits(txn.id)) throw Refused("this transaction is split across categories; change it in PennyWise")
+        }
+        // Deduplicated first the way setTagsForTransaction does, or a list with both "Café" and "CAFÉ" would never read as unchanged.
+        val wantedKeys = wantedTags?.distinctBy { it.lowercase() }?.map { tagKey(it) }?.toSet()
+        val tagsChange = wantedKeys != null && wantedKeys != tags.getTagNamesForTransaction(txn.id).map { tagKey(it) }.toSet()
+        val excludedChanges = excluded != null && excluded != txn.excludedFromAnalytics
+        if (!categoryChanges && !tagsChange && !excludedChanges) return "unchanged" to null
+        if (tagsChange) {
+            val fresh = wantedKeys!!.filter { it !in existingTags && it !in newTags }
+            if (newTags.size + fresh.size > MAX_NEW_TAGS) throw Refused("this call would create more than $MAX_NEW_TAGS new tags")
+            newTags += fresh
+        }
+        if (categoryChanges) transactions.updateCategory(txn.id, category!!.name)
+        if (tagsChange) tags.setTagsForTransaction(txn.id, wantedTags!!)
+        if (excludedChanges) transactions.setExcludedFromAnalytics(txn.id, excluded!!)
+        return "updated" to null
     }
 
     /** An empty alias removes the merchant's alias. */
@@ -344,6 +460,9 @@ class AiTools @Inject constructor(
         ((this[key] as? JsonArray) ?: listOfNotNull(this[key]))
             .mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content?.takeIf(::isName) }
 
+    /** How the tag table tells names apart: its case-insensitive match folds ASCII letters only, so "CAFÉ" and "Café" are two tags. */
+    private fun tagKey(s: String) = String(CharArray(s.length) { i -> s[i].let { if (it in 'A'..'Z') it + 32 else it } })
+
     /** Has a visible character. Spelled out, not isNotBlank, so it is the same set as the relay's isName. */
     private fun isName(s: String) = s.any { !it.isWhitespace() && !it.isISOControl() && it != '\uFEFF' && it != '\u180E' }
 
@@ -353,8 +472,13 @@ class AiTools @Inject constructor(
     private class Refused(message: String) : Exception(message)
 
     private companion object {
-        val WRITE_TOOLS = setOf("categorize_merchants", "set_merchant_aliases", "create_category", "create_rule", "update_rule", "delete_rule")
+        val WRITE_TOOLS = setOf("categorize_merchants", "set_merchant_aliases", "create_category", "create_rule", "update_rule", "delete_rule", "update_transactions")
+        val UPDATE_KEYS = setOf("id", "category", "tags", "excluded_from_analytics")
         const val MAX_BATCH = 100
+        const val MAX_NEW_TAGS = 20
+        const val NO_CATEGORY = "No category named \"%s\". Use list_categories, or create_category first."
+        const val MAX_TAGS = 10
+        const val MAX_TAG_LENGTH = 40
         const val WRITES_OFF = "Changes from AI apps are off. Ask the user to turn on \"Let AI apps make changes\" in PennyWise → Settings → Connect Claude / ChatGPT, then try again. Nothing was changed."
         const val DEFAULT_CATEGORY_COLOR = "#4CAF50" // the category editor's default
     }

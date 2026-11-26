@@ -96,6 +96,7 @@
     <string name="settings_transaction_groups_subtitle">Организовать транзакции по теме</string>
     <string name="settings_export_data_title">Экспорт данных</string>
     <string name="settings_export_data_subtitle">Резервировать все данные в файл</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Автоматическое резервное копирование папок</string>
     <string name="settings_folder_backup_subtitle_enabled">Ежедневное резервное копирование в 2:00 в выбранную папку</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Сохранять резервную копию каждый день в 2:00 утра</string>

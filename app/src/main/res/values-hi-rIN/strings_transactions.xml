@@ -385,6 +385,7 @@
     <string name="share_banner_dismiss">नामंजूर करें</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">श्रेणी बदलें</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">खर्च नहीं है</string>
     <string name="quick_category_not_income">आय नहीं है</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

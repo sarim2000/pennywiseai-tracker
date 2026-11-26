@@ -91,6 +91,7 @@
     <string name="settings_transaction_groups_subtitle">लेनदेनलाई एउटा विषयअन्तर्गत मिलाउनुहोस्</string>
     <string name="settings_export_data_title">डेटा निर्यात गर्नुहोस्</string>
     <string name="settings_export_data_subtitle">सबै डेटा फाइलमा ब्याकअप गर्नुहोस्</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">स्वचालित फोल्डर ब्याकअप</string>
     <string name="settings_folder_backup_subtitle_enabled">तपाईंले छानेको फोल्डरमा हरेक दिन बिहान 2:00 बजे ब्याकअप</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · हरेक दिन बिहान 2:00 बजे फोल्डरमा ब्याकअप सुरक्षित गर्नुहोस्</string>

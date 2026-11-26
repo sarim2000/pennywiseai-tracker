@@ -386,6 +386,7 @@
     <string name="share_banner_dismiss">Verwerfen</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Kategorie ändern</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">Keine Ausgabe</string>
     <string name="quick_category_not_income">Keine Einnahme</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

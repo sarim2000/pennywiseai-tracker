@@ -375,6 +375,7 @@
     <string name="share_banner_dismiss">ปิด</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">เปลี่ยนหมวดหมู่</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">ไม่ใช่รายจ่าย</string>
     <string name="quick_category_not_income">ไม่ใช่รายรับ</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

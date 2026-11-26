@@ -51,4 +51,12 @@ class ChallengeRowsTest {
         assertEquals(setOf("Groceries"), counted[2].categories)
         assertEquals(day, counted[0].date)
     }
+
+    @Test
+    fun `the running week's category keeps its own name after it's moved under a parent`() {
+        val rows = listOf(tx(1, TransactionType.EXPENSE, category = "Coffee"), tx(2, TransactionType.EXPENSE, category = "Tea"))
+        val counted = challengeRows(rows, mapOf("Coffee" to "Drinks", "Tea" to "Drinks"), keep = "Coffee")
+        assertEquals(setOf("Coffee"), counted[0].categories)
+        assertEquals(setOf("Drinks"), counted[1].categories)
+    }
 }

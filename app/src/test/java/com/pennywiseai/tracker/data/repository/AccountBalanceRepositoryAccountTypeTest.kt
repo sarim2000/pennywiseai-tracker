@@ -452,6 +452,27 @@ class AccountBalanceRepositoryAccountTypeTest {
     }
 
     @Test
+    fun `a rebuilt account keeps the alias, profile, alert and statement day set on it`() = runBlocking {
+        val spend = cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "1000.00")
+        cardTransactions += spend
+        balanceRows += liveDebitRow(spend, "-1000.00").copy(
+            alias = "Travel card",
+            profileId = 7L,
+            lowBalanceThreshold = BigDecimal("50.00"),
+            statementDay = 12
+        )
+
+        markCredit()
+
+        val row = balanceRows.single()
+        assertOwed("1000.00")
+        assertEquals("Travel card", row.alias)
+        assertEquals(7L, row.profileId)
+        assertEquals(0, BigDecimal("50.00").compareTo(row.lowBalanceThreshold))
+        assertEquals(12, row.statementDay)
+    }
+
+    @Test
     fun `an account with rows from elsewhere only switches its type`() = runBlocking {
         val spend = cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "1000.00")
         cardTransactions += spend

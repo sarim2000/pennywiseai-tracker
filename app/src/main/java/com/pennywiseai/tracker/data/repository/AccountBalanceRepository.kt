@@ -424,8 +424,12 @@ open class AccountBalanceRepository @Inject constructor(
                     smsSource = txn.smsBody?.take(500),
                     accountType = AccountType.CREDIT.toDatabaseString(),
                     currency = accountCurrency,
-                    sourceType = "TRANSACTION"
-                )
+                    sourceType = "TRANSACTION",
+                    // A rebuilt account keeps what the user set on it.
+                    profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
+                    alias = existing?.alias,
+                    lowBalanceThreshold = existing?.lowBalanceThreshold
+                ).withAccountFieldsOf(existing)
             )
         }
     }

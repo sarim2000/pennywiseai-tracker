@@ -91,12 +91,12 @@ class AnalyticsGroupingTest {
     @Test
     fun `pro groupings fall back to category without pro`() {
         AnalyticsGroupBy.entries.forEach { option ->
-            assertEquals(option, option.allowedFor(isProEntitled = true))
+            assertEquals(option, option.allowedFor(unlocked = true))
         }
-        assertEquals(AnalyticsGroupBy.CATEGORY, AnalyticsGroupBy.TAG.allowedFor(isProEntitled = false))
-        assertEquals(AnalyticsGroupBy.CATEGORY, AnalyticsGroupBy.DAY_OF_WEEK.allowedFor(isProEntitled = false))
-        assertEquals(AnalyticsGroupBy.MERCHANT, AnalyticsGroupBy.MERCHANT.allowedFor(isProEntitled = false))
-        assertEquals(AnalyticsGroupBy.ACCOUNT, AnalyticsGroupBy.ACCOUNT.allowedFor(isProEntitled = false))
+        assertEquals(AnalyticsGroupBy.CATEGORY, AnalyticsGroupBy.TAG.allowedFor(unlocked = false))
+        assertEquals(AnalyticsGroupBy.CATEGORY, AnalyticsGroupBy.DAY_OF_WEEK.allowedFor(unlocked = false))
+        assertEquals(AnalyticsGroupBy.MERCHANT, AnalyticsGroupBy.MERCHANT.allowedFor(unlocked = false))
+        assertEquals(AnalyticsGroupBy.ACCOUNT, AnalyticsGroupBy.ACCOUNT.allowedFor(unlocked = false))
     }
 
     @Test

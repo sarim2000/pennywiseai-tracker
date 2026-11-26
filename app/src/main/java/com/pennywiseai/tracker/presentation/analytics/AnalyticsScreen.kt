@@ -89,9 +89,10 @@ fun AnalyticsScreen(
     val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
     val budgetCycleStartDay by viewModel.budgetCycleStartDay.collectAsStateWithLifecycle()
     val chartType by viewModel.selectedChartType.collectAsStateWithLifecycle()
-    val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
+    val groupingAccess by viewModel.groupingAccess.collectAsStateWithLifecycle()
     val groupBy by viewModel.groupBy.collectAsStateWithLifecycle()
-    var showUpgradeSheet by remember { mutableStateOf(false) }
+    // The locked grouping that opened the upgrade sheet; its trial shows it once started.
+    var lockedPick by remember { mutableStateOf<AnalyticsGroupBy?>(null) }
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.LIST) }
     var tagViewType by rememberSaveable { mutableStateOf(CategoryViewType.LIST) }
@@ -220,7 +221,8 @@ fun AnalyticsScreen(
                     BreakdownSection(
                         uiState = uiState,
                         groupBy = groupBy,
-                        isProEntitled = isProEntitled,
+                        groupingsUnlocked = groupingAccess.unlocked,
+                        trialDaysLeft = groupingAccess.trialDaysLeft,
                         categoryViewType = categoryViewType,
                         tagViewType = tagViewType,
                         onToggleCategoryView = {
@@ -228,11 +230,11 @@ fun AnalyticsScreen(
                         },
                         onToggleTagView = { tagViewType = tagViewType.toggled() },
                         onGroupBySelected = { option ->
-                            // A Pro grouping without Pro opens the upgrade sheet; the view stays put.
-                            if (option.allowedFor(isProEntitled) == option) {
+                            // A locked Pro grouping opens the upgrade sheet; the view stays put.
+                            if (option.allowedFor(groupingAccess.unlocked) == option) {
                                 viewModel.setGroupBy(option)
                             } else {
-                                showUpgradeSheet = true
+                                lockedPick = option
                             }
                         },
                         drillDown = drillDown,
@@ -312,9 +314,12 @@ fun AnalyticsScreen(
         }
     }
 
-    if (showUpgradeSheet) {
+    lockedPick?.let { pick ->
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
-            onDismiss = { showUpgradeSheet = false }
+            onDismiss = { lockedPick = null },
+            onStartTrial = if (groupingAccess.canStartTrial) {
+                { viewModel.startGroupingTrial(pick) }
+            } else null
         )
     }
 }
@@ -332,7 +337,8 @@ internal fun TransactionTypeFilter.isSpendView(): Boolean =
 private fun BreakdownSection(
     uiState: AnalyticsUiState,
     groupBy: AnalyticsGroupBy,
-    isProEntitled: Boolean,
+    groupingsUnlocked: Boolean,
+    trialDaysLeft: Int?,
     categoryViewType: CategoryViewType,
     tagViewType: CategoryViewType,
     onToggleCategoryView: () -> Unit,
@@ -351,7 +357,7 @@ private fun BreakdownSection(
         Row(verticalAlignment = Alignment.CenterVertically) {
             GroupByMenuButton(
                 groupBy = groupBy,
-                isProEntitled = isProEntitled,
+                groupingsUnlocked = groupingsUnlocked,
                 onSelected = onGroupBySelected,
                 modifier = Modifier.weight(1f, fill = false)
             )
@@ -374,6 +380,13 @@ private fun BreakdownSection(
                     )
                 }
             }
+        }
+        trialDaysLeft?.let { days ->
+            Text(
+                text = pluralStringResource(R.plurals.feature_trial_days_left, days, days),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
 
         when (groupBy) {
@@ -490,7 +503,7 @@ private fun BreakdownSection(
 @Composable
 private fun GroupByMenuButton(
     groupBy: AnalyticsGroupBy,
-    isProEntitled: Boolean,
+    groupingsUnlocked: Boolean,
     onSelected: (AnalyticsGroupBy) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -517,8 +530,8 @@ private fun GroupByMenuButton(
                     colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                     leadingIcon = { Icon(option.icon(), contentDescription = null) },
                     selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
-                    // Subtle Pro hint for free users; picking it opens the upgrade sheet.
-                    trailingContent = if (option.isPro && !isProEntitled) {
+                    // Subtle Pro hint while locked; picking it opens the upgrade sheet.
+                    trailingContent = if (option.isPro && !groupingsUnlocked) {
                         {
                             Icon(
                                 Icons.Default.Lock,

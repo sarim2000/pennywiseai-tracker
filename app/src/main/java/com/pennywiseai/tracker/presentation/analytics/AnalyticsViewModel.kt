@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.entitlement.FeatureAccess
+import com.pennywiseai.tracker.core.entitlement.FeatureTrials
+import com.pennywiseai.tracker.core.entitlement.TrialFeature
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -95,13 +98,24 @@ class AnalyticsViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val categoryRepository: CategoryRepository,
     private val tagRepository: TagRepository,
-    entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
+    private val entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
+    private val featureTrials: FeatureTrials,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
 
-    // The tag and day-of-week groupings are Pro (#422); basic tagging (create /
-    // apply / filter-by-tag) stays free.
-    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
+    // The tag and day-of-week groupings are Pro (#422), or open while their trial
+    // runs; basic tagging (create / apply / filter-by-tag) stays free.
+    val groupingAccess: StateFlow<FeatureAccess> = featureTrials
+        .access(TrialFeature.ANALYTICS_GROUPING, entitlementGate.isProEntitled)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            FeatureAccess(entitlementGate.isProEntitled.value, featureTrials.status(TrialFeature.ANALYTICS_GROUPING))
+        )
+
+    /** Read now, not from [groupingAccess]: a trial can end while the screen is open. */
+    private fun groupingsUnlocked(): Boolean =
+        entitlementGate.isProEntitled.value || featureTrials.isActive(TrialFeature.ANALYTICS_GROUPING)
 
     // name -> hex color for the user's categories (incl. recolored built-ins), so
     // Analytics renders each category in its assigned color instead of gray (#586).
@@ -170,18 +184,24 @@ class AnalyticsViewModel @Inject constructor(
 
     /**
      * The breakdown's grouping (#422), remembered like the chart type. A stored Pro
-     * grouping shows as Category while the user isn't Pro (a lapsed subscription).
+     * grouping shows as Category while it's locked (a lapsed subscription, an ended trial).
      */
     val groupBy: StateFlow<AnalyticsGroupBy> = combine(
         userPreferencesRepository.getAnalyticsGroupBy(),
-        isProEntitled
-    ) { saved, isPro -> AnalyticsGroupBy.fromSaved(saved).allowedFor(isPro) }
+        groupingAccess
+    ) { saved, access -> AnalyticsGroupBy.fromSaved(saved).allowedFor(access.unlocked) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, AnalyticsGroupBy.CATEGORY)
 
-    /** Picks a grouping. A Pro one without Pro is ignored; the screen shows the upgrade sheet instead. */
+    /** Picks a grouping. A locked Pro one is ignored; the screen shows the upgrade sheet instead. */
     fun setGroupBy(groupBy: AnalyticsGroupBy) {
-        if (groupBy.allowedFor(isProEntitled.value) != groupBy) return
+        if (groupBy.allowedFor(groupingsUnlocked()) != groupBy) return
         viewModelScope.launch { userPreferencesRepository.saveAnalyticsGroupBy(groupBy.name) }
+    }
+
+    /** Starts the groupings' one trial from the upgrade sheet, then shows [groupBy]. */
+    fun startGroupingTrial(groupBy: AnalyticsGroupBy) {
+        featureTrials.start(TrialFeature.ANALYTICS_GROUPING)
+        setGroupBy(groupBy)
     }
 
     private val _selectedChartType = MutableStateFlow(ChartType.LINE)

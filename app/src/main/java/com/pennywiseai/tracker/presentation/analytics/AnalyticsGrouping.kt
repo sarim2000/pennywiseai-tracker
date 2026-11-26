@@ -22,9 +22,12 @@ enum class AnalyticsGroupBy(val isPro: Boolean) {
     TAG(true),
     DAY_OF_WEEK(true);
 
-    /** This grouping when the user may see it, else Category (a lapsed Pro user falls back). */
-    fun allowedFor(isProEntitled: Boolean): AnalyticsGroupBy =
-        if (isPro && !isProEntitled) CATEGORY else this
+    /**
+     * This grouping when the user may see it ([unlocked]: Pro, or the groupings' trial
+     * running), else Category (a lapsed Pro user or an ended trial falls back).
+     */
+    fun allowedFor(unlocked: Boolean): AnalyticsGroupBy =
+        if (isPro && !unlocked) CATEGORY else this
 
     companion object {
         /** The stored grouping, or Category when nothing (or an unknown name) is stored. */

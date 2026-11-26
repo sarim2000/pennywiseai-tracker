@@ -62,7 +62,7 @@ export const TOOLS = [
 		name: "search_transactions",
 		title: "Search transactions",
 		description:
-			"Find the user's transactions in a date range, optionally filtered by text, category, tag or type, or leaving out categories or tags. Amounts are returned with their currency; never add amounts in different currencies together.",
+			"Find the user's transactions in a date range, optionally filtered by text, category, tag or type, or leaving out categories or tags. Amounts are returned with their currency; never add amounts in different currencies together. Each transaction has an id, which update_transactions takes.",
 		inputSchema: {
 			type: "object",
 			properties: {
@@ -162,6 +162,35 @@ export const TOOLS = [
 				},
 			},
 			required: ["mappings"],
+		},
+		annotations: write,
+	},
+	{
+		name: "update_transactions",
+		title: "Update transactions",
+		description:
+			"Change the category, tags or analytics flag of specific transactions, by the id search_transactions returns. category is an existing category name; tags replaces the transaction's whole tag list (new tags are created); excluded_from_analytics true keeps it out of spending totals. Nothing else (type, amount, date, merchant, note) can be changed. Each row is answered updated, unchanged (it already had those values) or refused with a reason, in the order sent. Sending the same list again changes nothing. Split transactions can't be re-categorized." +
+			WRITE_NOTE,
+		inputSchema: {
+			type: "object",
+			properties: {
+				updates: {
+					type: "array",
+					maxItems: 200,
+					items: {
+						type: "object",
+						properties: {
+							id: { type: "string", description: "The id from search_transactions" },
+							category: { type: "string", description: "An existing category name from list_categories" },
+							tags: { type: "array", items: { type: "string" }, description: "The full tag list; [] removes all tags" },
+							excluded_from_analytics: { type: "boolean" },
+						},
+						required: ["id"],
+						additionalProperties: false,
+					},
+				},
+			},
+			required: ["updates"],
 		},
 		annotations: write,
 	},

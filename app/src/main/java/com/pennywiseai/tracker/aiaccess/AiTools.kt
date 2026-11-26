@@ -104,6 +104,7 @@ class AiTools @Inject constructor(
                 "list_rules" -> return text(AiToolLogic.listRules(rules.getAllRules().first()), isError = false)
                 "categorize_merchants" -> categorizeMerchants(args["mappings"] as? JsonArray ?: return error("Give mappings as a list of {merchant, category}."))
                 "set_merchant_aliases" -> setAliases(args["aliases"] as? JsonArray ?: return error("Give aliases as a list of {merchant, alias}."))
+                "update_transactions" -> updateTransactions(args["updates"] as? JsonArray ?: return error("Give updates as a list of {id, category?, tags?, excluded_from_analytics?}."))
                 "create_category" -> createCategory(
                     name = args.string("name")?.trim() ?: return error("Give the category a name."),
                     isIncome = args["is_income"]?.jsonPrimitive?.booleanOrNull ?: false,
@@ -159,6 +160,74 @@ class AiTools @Inject constructor(
             buildJsonObject { put("merchant", merchant); put("category", category.name); put("past_transactions_moved", moved) }
         }
         return buildJsonObject { put("results", JsonArray(results)) }
+    }
+
+    /**
+     * Changes the category, tags and "don't count in analytics" flag of specific rows, by the `id`
+     * search_transactions gives. Each field goes through the same repository call the transaction
+     * detail screen uses (quick category pick, tag save, exclude toggle); nothing else can be sent.
+     * A row that already has the asked values is reported `unchanged` and not written. Results come
+     * back in input order.
+     */
+    private suspend fun updateTransactions(items: JsonArray): JsonObject {
+        if (items.size > MAX_UPDATES) throw Refused("Send at most $MAX_UPDATES updates at a time. Nothing was changed.")
+        return lockedWrite {
+            val seen = mutableSetOf<String>()
+            val results = items.map { item ->
+                val o = item as? JsonObject
+                val rawId = (o?.get("id") as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()
+                val outcome = try {
+                    when {
+                        o == null -> "refused" to "each update must be an object"
+                        rawId.isNullOrEmpty() -> "refused" to "id is missing; use the id from search_transactions"
+                        !seen.add(rawId) -> "refused" to "duplicate id in this call"
+                        else -> updateOne(rawId, o)
+                    }
+                } catch (e: Refused) {
+                    "refused" to e.message!!
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    "refused" to "couldn't save this one"
+                }
+                buildJsonObject {
+                    if (rawId != null && rawId.length <= 20) put("id", rawId)
+                    put("result", outcome.first)
+                    outcome.second?.let { put("reason", it) }
+                }
+            }
+            buildJsonObject { put("results", JsonArray(results)) }
+        }
+    }
+
+    /** One row of update_transactions: ("updated" | "unchanged", null), or a [Refused] with the reason. */
+    private suspend fun updateOne(id: String, o: JsonObject): Pair<String, String?> {
+        o.keys.firstOrNull { it !in UPDATE_KEYS }?.let { throw Refused("\"$it\" can't be changed from here. Only category, tags and excluded_from_analytics can.") }
+        val category = if ("category" in o) {
+            val name = (o["category"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+            findCategory(name) ?: throw Refused("No category named \"${name.orEmpty()}\". Use list_categories, or create_category first.")
+        } else null
+        val newTags = if ("tags" in o) {
+            val list = o["tags"] as? JsonArray ?: throw Refused("tags must be a list of names")
+            list.map { t -> (t as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()?.takeIf(::isName) ?: throw Refused("tags must be a list of non-empty names") }
+        } else null
+        val excluded = if ("excluded_from_analytics" in o) {
+            (o["excluded_from_analytics"] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull ?: throw Refused("excluded_from_analytics must be true or false")
+        } else null
+        if (category == null && newTags == null && excluded == null) throw Refused("nothing to change; give category, tags or excluded_from_analytics")
+
+        val txn = id.toLongOrNull()?.let { transactions.getTransactionById(it) }?.takeIf { !it.isDeleted } ?: throw Refused("not found")
+        val categoryChanges = category != null && txn.category != category.name
+        // A split's categories live in its splits; the app's quick pick isn't offered for it either.
+        if (categoryChanges && transactions.hasSplits(txn.id)) throw Refused("this transaction is split across categories; change it in PennyWise")
+        val tagsChange = newTags != null && newTags.distinctBy { it.lowercase() }.map { it.lowercase() }.toSet() != tags.getTagNamesForTransaction(txn.id).map { it.lowercase() }.toSet()
+        val excludedChanges = excluded != null && excluded != txn.excludedFromAnalytics
+        if (!categoryChanges && !tagsChange && !excludedChanges) return "unchanged" to null
+        database.withTransaction {
+            if (categoryChanges) transactions.updateCategory(txn.id, category!!.name)
+            if (tagsChange) tags.setTagsForTransaction(txn.id, newTags!!)
+            if (excludedChanges) transactions.setExcludedFromAnalytics(txn.id, excluded!!)
+        }
+        return "updated" to null
     }
 
     /** An empty alias removes the merchant's alias. */
@@ -353,8 +422,10 @@ class AiTools @Inject constructor(
     private class Refused(message: String) : Exception(message)
 
     private companion object {
-        val WRITE_TOOLS = setOf("categorize_merchants", "set_merchant_aliases", "create_category", "create_rule", "update_rule", "delete_rule")
+        val WRITE_TOOLS = setOf("categorize_merchants", "set_merchant_aliases", "create_category", "create_rule", "update_rule", "delete_rule", "update_transactions")
+        val UPDATE_KEYS = setOf("id", "category", "tags", "excluded_from_analytics")
         const val MAX_BATCH = 100
+        const val MAX_UPDATES = 200
         const val WRITES_OFF = "Changes from AI apps are off. Ask the user to turn on \"Let AI apps make changes\" in PennyWise → Settings → Connect Claude / ChatGPT, then try again. Nothing was changed."
         const val DEFAULT_CATEGORY_COLOR = "#4CAF50" // the category editor's default
     }

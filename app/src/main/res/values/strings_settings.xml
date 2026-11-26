@@ -149,6 +149,17 @@
     <string name="settings_export_include_receipts_subtitle">Receipt photos and PDFs go in the backup, which makes it larger</string>
     <string name="settings_folder_backup_include_receipts_title">Include receipts in automatic backups</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Makes each daily backup larger</string>
+    <!-- Settings > Data > Automatic Folder Backup: lock each daily backup with a passphrase -->
+    <string name="settings_folder_backup_encrypt_title">Encrypt Automatic Backups</string>
+    <string name="settings_folder_backup_encrypt_subtitle_off">Lock each daily backup with a passphrase</string>
+    <string name="settings_folder_backup_encrypt_subtitle_on">Each daily backup is locked with your passphrase</string>
+    <string name="settings_folder_backup_passphrase_title">Encrypt automatic backups</string>
+    <string name="settings_folder_backup_passphrase_body">Daily backups will be locked with this passphrase, and you\'ll need it to restore one. It can\'t be recovered if you forget it.</string>
+    <string name="settings_folder_backup_passphrase_action">Save</string>
+    <string name="settings_folder_backup_passphrase_save_failed">Couldn\'t save the backup passphrase on this device</string>
+    <!-- Shown when this device can no longer unlock the saved passphrase for automatic backups -->
+    <string name="settings_folder_backup_passphrase_lost_title">Re-enter Backup Passphrase</string>
+    <string name="settings_folder_backup_passphrase_lost_subtitle">This device can\'t unlock your backup passphrase, so automatic backups are paused</string>
     <string name="settings_backup_now_title">Back Up Now</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Last backup: %1$s</string>

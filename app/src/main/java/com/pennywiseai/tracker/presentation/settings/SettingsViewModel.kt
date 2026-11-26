@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.core.NumberFormatStyle
 import com.pennywiseai.tracker.data.backup.BackupExporter
 import com.pennywiseai.tracker.data.backup.BackupImporter
 import com.pennywiseai.tracker.data.backup.ExportResult
+import com.pennywiseai.tracker.data.backup.FolderBackupPassphrase
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.backup.ImportStrategy
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -39,6 +40,7 @@ import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
+import com.pennywiseai.tracker.worker.FolderBackupRunner
 import com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -60,6 +62,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.net.URLEncoder
@@ -79,6 +82,8 @@ class SettingsViewModel @Inject constructor(
     private val backupImporter: BackupImporter,
     private val importCsvUseCase: com.pennywiseai.tracker.data.csv.ImportCsvUseCase,
     private val folderBackupWriter: FolderBackupWriter,
+    private val folderBackupRunner: FolderBackupRunner,
+    private val folderBackupPassphrase: FolderBackupPassphrase,
     private val scheduledFolderBackupScheduler: ScheduledFolderBackupScheduler,
     private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver,
     private val modelDownloader: com.pennywiseai.tracker.data.manager.ModelDownloader,
@@ -188,6 +193,31 @@ class SettingsViewModel @Inject constructor(
 
     fun setFolderBackupIncludeReceipts(include: Boolean) {
         viewModelScope.launch { userPreferencesRepository.setFolderBackupIncludeReceipts(include) }
+    }
+
+    val folderBackupEncryption: StateFlow<FolderBackupPassphrase.Status> = folderBackupPassphrase.status
+
+    /**
+     * Encrypts automatic backups with [passphrase] (cleared once it's saved), then backs up
+     * straight away so the folder doesn't keep a plain copy until the next night.
+     */
+    fun setFolderBackupPassphrase(passphrase: CharArray) {
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) { folderBackupPassphrase.save(passphrase) }
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Failed to save the folder backup passphrase", e)
+                _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_passphrase_save_failed)
+                return@launch
+            } finally {
+                passphrase.fill('\u0000')
+            }
+            performFolderBackup(showSuccessMessage = true)
+        }
+    }
+
+    fun turnOffFolderBackupEncryption() {
+        folderBackupPassphrase.clear()
     }
 
     private val _requestFolderPicker = MutableStateFlow(false)
@@ -922,40 +952,26 @@ class SettingsViewModel @Inject constructor(
             return null
         }
 
-        val includeReceipts = userPreferencesRepository.folderBackupIncludeReceipts.first()
-        return when (val exportResult = backupExporter.exportBackup(includeReceipts = includeReceipts)) {
-            is ExportResult.Success -> {
-                val writeResult = try {
-                    folderBackupWriter.writeBackup(treeUri, exportResult.file)
-                } finally {
-                    exportResult.file.delete()
-                }
-                when (writeResult) {
-                    is FolderBackupWriter.Result.Success -> {
-                        userPreferencesRepository.recordScheduledFolderBackup(
-                            System.currentTimeMillis(),
-                            exportResult.skippedReceipts
-                        )
-                        if (showSuccessMessage) {
-                            _importExportMessage.value = if (exportResult.skippedReceipts > 0) {
-                                UiText.Plural(R.plurals.settings_folder_backup_saved_skipped_receipts, exportResult.skippedReceipts)
-                            } else {
-                                UiText.Res(R.string.settings_folder_backup_saved)
-                            }
-                        }
-                        // Only the user reaches here (back up now, a new folder, turning it on);
-                        // the scheduled worker writes its backups on its own.
-                        mascotMoments.announce(MascotMoment.BackupSaved)
-                        exportResult.skippedReceipts
-                    }
-                    is FolderBackupWriter.Result.Failure -> {
-                        _importExportMessage.value = UiText.Plain(writeResult.message)
-                        null
+        return when (val result = folderBackupRunner.run(treeUri)) {
+            is FolderBackupRunner.Result.Success -> {
+                if (showSuccessMessage) {
+                    _importExportMessage.value = if (result.skippedReceipts > 0) {
+                        UiText.Plural(R.plurals.settings_folder_backup_saved_skipped_receipts, result.skippedReceipts)
+                    } else {
+                        UiText.Res(R.string.settings_folder_backup_saved)
                     }
                 }
+                // Only the user reaches here (back up now, a new folder, turning it on);
+                // the scheduled worker writes its backups on its own.
+                mascotMoments.announce(MascotMoment.BackupSaved)
+                result.skippedReceipts
             }
-            is ExportResult.Error -> {
-                _importExportMessage.value = UiText.Plain(exportResult.message)
+            FolderBackupRunner.Result.PassphraseLost -> {
+                _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_passphrase_lost_subtitle)
+                null
+            }
+            is FolderBackupRunner.Result.Failure -> {
+                _importExportMessage.value = UiText.Plain(result.message)
                 null
             }
         }

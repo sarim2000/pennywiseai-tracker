@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.backup.BackupCrypto
+import com.pennywiseai.tracker.data.backup.FolderBackupPassphrase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.presentation.common.ExportTransactionsDialog
@@ -146,6 +147,8 @@ internal fun DataPage(
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showEncryptedExportDialog by remember { mutableStateOf(false) }
+    val folderBackupEncryption by settingsViewModel.folderBackupEncryption.collectAsStateWithLifecycle()
+    var showFolderPassphraseDialog by remember { mutableStateOf(false) }
     val backupPassphrasePrompt by settingsViewModel.backupPassphrasePrompt.collectAsStateWithLifecycle()
 
     // File picker for import
@@ -306,6 +309,30 @@ internal fun DataPage(
                 onCheckedChange = { settingsViewModel.setFolderBackupIncludeReceipts(it) },
                 position = ListItemPosition.Middle
             )
+            SettingsSwitchRow(
+                icon = Icons.Default.Lock,
+                title = stringResource(R.string.settings_folder_backup_encrypt_title),
+                subtitle = if (folderBackupEncryption == FolderBackupPassphrase.Status.OFF) {
+                    stringResource(R.string.settings_folder_backup_encrypt_subtitle_off)
+                } else {
+                    stringResource(R.string.settings_folder_backup_encrypt_subtitle_on)
+                },
+                checked = folderBackupEncryption != FolderBackupPassphrase.Status.OFF,
+                onCheckedChange = { encrypt ->
+                    if (encrypt) showFolderPassphraseDialog = true else settingsViewModel.turnOffFolderBackupEncryption()
+                },
+                position = ListItemPosition.Middle
+            )
+            // Backups stop rather than go out plain: say so until the passphrase is entered again.
+            if (folderBackupEncryption == FolderBackupPassphrase.Status.LOST) {
+                SettingsNavItem(
+                    icon = Icons.Default.Warning,
+                    title = stringResource(R.string.settings_folder_backup_passphrase_lost_title),
+                    subtitle = stringResource(R.string.settings_folder_backup_passphrase_lost_subtitle),
+                    onClick = { showFolderPassphraseDialog = true },
+                    position = ListItemPosition.Middle
+                )
+            }
             SettingsNavItem(
                 icon = Icons.Default.FolderOpen,
                 title = stringResource(R.string.settings_change_backup_folder_title),
@@ -539,12 +566,28 @@ internal fun DataPage(
     }
 
     if (showEncryptedExportDialog) {
-        EncryptedExportDialog(
-            onExport = { passphrase ->
+        NewPassphraseDialog(
+            heading = stringResource(R.string.settings_backup_passphrase_export_title),
+            body = stringResource(R.string.settings_backup_passphrase_export_body),
+            action = stringResource(R.string.settings_backup_passphrase_export_action),
+            onConfirm = { passphrase ->
                 showEncryptedExportDialog = false
                 settingsViewModel.exportBackup(passphrase)
             },
             onDismiss = { showEncryptedExportDialog = false }
+        )
+    }
+
+    if (showFolderPassphraseDialog) {
+        NewPassphraseDialog(
+            heading = stringResource(R.string.settings_folder_backup_passphrase_title),
+            body = stringResource(R.string.settings_folder_backup_passphrase_body),
+            action = stringResource(R.string.settings_folder_backup_passphrase_action),
+            onConfirm = { passphrase ->
+                showFolderPassphraseDialog = false
+                settingsViewModel.setFolderBackupPassphrase(passphrase)
+            },
+            onDismiss = { showFolderPassphraseDialog = false }
         )
     }
 
@@ -560,9 +603,15 @@ internal fun DataPage(
     }
 }
 
-/** Picks the passphrase for an encrypted backup export. Never stored. */
+/** Picks a new backup passphrase, typed twice. */
 @Composable
-private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -> Unit) {
+private fun NewPassphraseDialog(
+    heading: String,
+    body: String,
+    action: String,
+    onConfirm: (CharArray) -> Unit,
+    onDismiss: () -> Unit
+) {
     // Plain remember, not saveable: the passphrase must not land in saved instance state.
     val passphraseState = remember { TextFieldState() }
     val confirmState = remember { TextFieldState() }
@@ -573,10 +622,10 @@ private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Lock, contentDescription = null) },
-        title = { Text(stringResource(R.string.settings_backup_passphrase_export_title)) },
+        title = { Text(heading) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(stringResource(R.string.settings_backup_passphrase_export_body))
+                Text(body)
                 PassphraseField(
                     passphraseState,
                     stringResource(R.string.settings_backup_passphrase_label),
@@ -599,12 +648,12 @@ private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -
                     val passphrase = passphraseState.toCharArray()
                     passphraseState.wipe()
                     confirmState.wipe()
-                    onExport(passphrase)
+                    onConfirm(passphrase)
                 },
                 enabled = canCreateEncryptedBackup(passphraseState.text, confirmState.text),
                 shapes = ButtonDefaults.shapes()
             ) {
-                Text(stringResource(R.string.settings_backup_passphrase_export_action))
+                Text(action)
             }
         },
         dismissButton = {

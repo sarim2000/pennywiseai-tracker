@@ -227,6 +227,7 @@ internal fun settingsSearchIndex(sdkInt: Int = Build.VERSION.SDK_INT): List<Sett
             keywords = listOf(
                 R.string.settings_backup_now_title,
                 R.string.settings_folder_backup_include_receipts_title,
+                R.string.settings_folder_backup_encrypt_title,
                 R.string.settings_change_backup_folder_title,
             ),
         ),

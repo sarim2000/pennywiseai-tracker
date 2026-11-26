@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.backup.BackupExporter
 import com.pennywiseai.tracker.data.backup.BackupImporter
 import com.pennywiseai.tracker.data.backup.ExportResult
+import com.pennywiseai.tracker.data.backup.FolderBackupPassphrase
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.events.MascotMoment
 import com.pennywiseai.tracker.data.events.MascotMoments
@@ -15,6 +16,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import com.pennywiseai.tracker.worker.DailySummaryWorker
+import com.pennywiseai.tracker.worker.FolderBackupRunner
 import com.pennywiseai.tracker.worker.WeeklySummaryWorker
 import io.mockk.coEvery
 import io.mockk.every
@@ -25,6 +27,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -49,6 +52,10 @@ class BackupMomentsTest {
     private val exporter = mockk<BackupExporter>()
     private val importer = mockk<BackupImporter>()
     private val writer = mockk<FolderBackupWriter>()
+    private val passphrase = mockk<FolderBackupPassphrase> {
+        every { load() } returns null
+        every { status } returns MutableStateFlow(FolderBackupPassphrase.Status.OFF)
+    }
     private val moments = MascotMoments(AppForegroundState { true })
     private val heard = mutableListOf<MascotMoment>()
     private lateinit var listening: Job
@@ -84,6 +91,8 @@ class BackupMomentsTest {
             backupImporter = importer,
             importCsvUseCase = mockk(relaxed = true),
             folderBackupWriter = writer,
+            folderBackupRunner = FolderBackupRunner(exporter, writer, passphrase, preferences),
+            folderBackupPassphrase = passphrase,
             scheduledFolderBackupScheduler = mockk(relaxed = true),
             contactsResolver = mockk(relaxed = true),
             modelDownloader = mockk(relaxed = true),
@@ -137,6 +146,17 @@ class BackupMomentsTest {
 
         viewModel.backupToFolderNow()
 
+        assertEquals(emptyList<MascotMoment>(), heard)
+    }
+
+    @Test
+    fun `back up now with a passphrase this device can't unlock asks for it again and writes nothing`() {
+        // writeBackup isn't stubbed: a write would fail the test.
+        every { passphrase.load() } throws FolderBackupPassphrase.LostException(IllegalStateException("key gone"))
+
+        viewModel.backupToFolderNow()
+
+        assertEquals(UiText.Res(R.string.settings_folder_backup_passphrase_lost_subtitle), viewModel.importExportMessage.value)
         assertEquals(emptyList<MascotMoment>(), heard)
     }
 

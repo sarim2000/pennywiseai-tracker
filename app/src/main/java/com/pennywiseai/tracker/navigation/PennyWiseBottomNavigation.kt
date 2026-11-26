@@ -49,23 +49,29 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.node.GlobalPositionAwareModifierNode
+import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.pluralStringResource
@@ -77,9 +83,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
+import com.pennywiseai.tracker.ui.animations.emphasisStyle
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.components.DockedActionButton
 import com.pennywiseai.tracker.ui.components.NavDockAction
@@ -121,6 +132,11 @@ fun PennyWiseBottomNavigation(
     hiddenTabs: Set<String> = emptySet(),
     /** What the Chat tab's owl has turned into for a moment, or null for the owl. */
     chatReaction: MascotReaction? = null,
+    /**
+     * Whether the bar is up and past its entrance beat, as it changes: the moment the owl
+     * turns into [chatReaction], so a waiting reaction's hold starts then and not before.
+     */
+    onSettledChange: (Boolean) -> Unit = {},
     hazeState: HazeState = remember { HazeState() },
     dock: NavDockState? = null,
 ) {
@@ -137,11 +153,15 @@ fun PennyWiseBottomNavigation(
     val animate = rememberAnimationsEnabled()
     // Set while the bar is away, so its first frame back is already the owl.
     var arriving by remember { mutableStateOf(animate) }
+    val settledChange by rememberUpdatedState(onSettledChange)
     LaunchedEffect(visible, animate) {
         arriving = animate
+        if (!visible || animate) settledChange(false)
         if (!visible) return@LaunchedEffect
         if (animate) delay(CHAT_TAB_ENTRANCE_MS)
         arriving = false
+        // One clock: the hold starts as the owl turns, however late the bar's first frame was.
+        settledChange(true)
     }
     val shownReaction = if (animate && arriving) null else chatReaction
 
@@ -154,9 +174,7 @@ fun PennyWiseBottomNavigation(
             exit = navBarExit(),
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .anchorsBarTop(normalChatAnchor)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 HorizontalDivider(
                     thickness = Dimensions.Component.dividerThickness,
@@ -173,9 +191,12 @@ fun PennyWiseBottomNavigation(
                 ) {
                     navigationItems.forEach { item ->
                         val selected = item.route == selectedRoute
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val pressed by interactionSource.collectIsPressedAsState()
                         NavigationBarItem(
                             selected = selected,
                             onClick = { selectTab(item) },
+                            interactionSource = interactionSource,
                             icon = {
                                 // Without a pill or a label there is nothing
                                 // else marking the selected item, so the glyph
@@ -209,7 +230,8 @@ fun PennyWiseBottomNavigation(
                                         text = stringResource(item.titleRes),
                                         color = if (selected) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        style = MaterialTheme.typography.labelMedium
+                                        // Grade, not weight: the tab labels never shift.
+                                        style = emphasisStyle(MaterialTheme.typography.labelMedium, selected, pressed)
                                     )
                                 }
                             },
@@ -261,9 +283,7 @@ fun PennyWiseBottomNavigation(
                         .padding(horizontal = Dimensions.Padding.content)
                         .padding(bottom = Dimensions.Component.floatingNavBottomGap)
                         .zIndex(1000f)
-                        .selectableGroup()
-                        // The tallest of the pill and the docked column: the chip clears an action stacked over Ask.
-                        .anchorsBarTop(floatingChatAnchor),
+                        .selectableGroup(),
                     verticalAlignment = Alignment.Bottom
                 ) {
                     FloatingNavPill(
@@ -318,7 +338,7 @@ fun PennyWiseBottomNavigation(
         }
 
         // Last, so it draws over both bars. Outside them, so neither the floating pill's
-        // clip nor the bars' blur layer cuts it off above the bar.
+        // clip nor the bars' blur layer cuts it off where it overhangs them.
         ChatReactionChip(
             chip = shownReaction?.chip,
             visible = visible && BottomNavItem.Chat in navigationItems,
@@ -525,31 +545,47 @@ private fun ChatTabMascot(
     }
 }
 
-/** Where the Chat slot sits on screen, in root pixels, for the chip above it. */
+/** Where the Chat slot sits on screen, for the chip beside it. */
 @Stable
 private class ChatSlotAnchor {
-    /** The Chat slot's horizontal centre. */
-    var centerX by mutableFloatStateOf(Float.NaN)
-
-    /** The top edge of the bar the slot sits in. */
-    var barTop by mutableFloatStateOf(Float.NaN)
+    /**
+     * The slot's bounds in root pixels, or null until it is placed: it goes when the slot
+     * leaves with its bar, so a bar coming back never shows the chip where it last was.
+     */
+    var bounds by mutableStateOf<Rect?>(null)
 }
 
-private fun Modifier.anchorsChatSlot(anchor: ChatSlotAnchor) = onGloballyPositioned {
-    anchor.centerX = it.positionInRoot().x + it.size.width / 2f
+private fun Modifier.anchorsChatSlot(anchor: ChatSlotAnchor) = this then ChatSlotAnchorElement(anchor)
+
+private data class ChatSlotAnchorElement(val anchor: ChatSlotAnchor) : ModifierNodeElement<ChatSlotAnchorNode>() {
+    override fun create() = ChatSlotAnchorNode(anchor)
+
+    override fun update(node: ChatSlotAnchorNode) {
+        node.anchor = anchor
+    }
 }
 
-private fun Modifier.anchorsBarTop(anchor: ChatSlotAnchor) = onGloballyPositioned {
-    anchor.barTop = it.positionInRoot().y
+private class ChatSlotAnchorNode(var anchor: ChatSlotAnchor) : Modifier.Node(), GlobalPositionAwareModifierNode {
+    override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
+        anchor.bounds = Rect(coordinates.positionInRoot(), coordinates.size.toSize())
+    }
+
+    override fun onDetach() {
+        anchor.bounds = null
+    }
 }
 
 /**
- * What a reaction says, in a small pill just above the Chat slot while it holds: the
- * amount a single save moved, or a word or a count for a moment. It rises in as the shape
- * appears and sinks out as the owl comes back. It echoes what the user just did, which
- * the screen they did it on already says, so TalkBack skips it, and it takes no touches. Centred on the slot (the
- * slot's measured centre, so RTL and the docked action need no special case), but kept a
- * gap inside the screen's edges.
+ * What a reaction says, in a small pill beside the Chat slot while it holds: the amount a
+ * single save moved, or a word or a count for a moment. It rises in as the shape appears
+ * and sinks out as the owl comes back. It echoes what the user just did, which the screen
+ * they did it on already says, so TalkBack skips it, and it takes no touches.
+ *
+ * It sits on the slot's start side, level with the owl, so it lies over the bar (the
+ * floating pill's end) and never over the content: above the bar it would land in a
+ * list's amount column and read as another row's amount. It is placed from the slot's
+ * measured bounds, so the docked action needs no special case, and kept a gap inside the
+ * screen's edges.
  */
 @Composable
 private fun ChatReactionChip(
@@ -565,27 +601,39 @@ private fun ChatReactionChip(
     val motion = MaterialTheme.motionScheme
     val animate = rememberAnimationsEnabled()
     val travel = with(LocalDensity.current) { Spacing.sm.roundToPx() }
+    // Leaving the app clears the reaction, but the frame clock stops with the app, so the
+    // chip's exit would only play on return: the old amount fading out over the bar. Each
+    // stop starts the chip afresh instead, so it comes back as it is now, without a fade.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var stops by remember { mutableIntStateOf(0) }
+    DisposableEffect(lifecycle) {
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) stops++ }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
 
     Layout(
         content = {
-            AnimatedVisibility(
-                visible = visible && chip != null,
-                enter = if (animate) {
-                    // The chip carries an amount, so its short drift settles on effects: no overshoot.
-                    fadeIn(motion.fastEffectsSpec()) + slideInVertically(motion.fastEffectsSpec()) { travel }
-                } else EnterTransition.None,
-                exit = if (animate) {
-                    fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastEffectsSpec()) { travel }
-                } else ExitTransition.None
-            ) {
-                when (shownChip) {
-                    is ReactionAmount -> AmountPill(shownChip)
-                    is ReactionLabel -> ChipPill(stringResource(shownChip.text), MaterialTheme.colorScheme.onSurface)
-                    is ReactionCount -> ChipPill(
-                        pluralStringResource(shownChip.text, shownChip.count, shownChip.count),
-                        MaterialTheme.colorScheme.onSurface
-                    )
-                    null -> Unit
+            key(stops) {
+                AnimatedVisibility(
+                    visible = visible && chip != null,
+                    enter = if (animate) {
+                        // The chip carries an amount, so its short drift settles on effects: no overshoot.
+                        fadeIn(motion.fastEffectsSpec()) + slideInVertically(motion.fastEffectsSpec()) { travel }
+                    } else EnterTransition.None,
+                    exit = if (animate) {
+                        fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastEffectsSpec()) { travel }
+                    } else ExitTransition.None
+                ) {
+                    when (shownChip) {
+                        is ReactionAmount -> AmountPill(shownChip)
+                        is ReactionLabel -> ChipPill(stringResource(shownChip.text), MaterialTheme.colorScheme.onSurface)
+                        is ReactionCount -> ChipPill(
+                            pluralStringResource(shownChip.text, shownChip.count, shownChip.count),
+                            MaterialTheme.colorScheme.onSurface
+                        )
+                        null -> Unit
+                    }
                 }
             }
         },
@@ -596,14 +644,17 @@ private fun ChatReactionChip(
         val chip = measurables.firstOrNull()?.measure(
             constraints.copy(minWidth = 0, minHeight = 0, maxWidth = (constraints.maxWidth - 2 * gap).coerceAtLeast(0))
         )
+        val rtl = layoutDirection == LayoutDirection.Rtl
         layout(constraints.maxWidth, constraints.maxHeight) {
             val origin = coordinates?.positionInRoot()
-            if (chip == null || origin == null || anchor.centerX.isNaN() || anchor.barTop.isNaN()) return@layout
-            val centred = (anchor.centerX - origin.x - chip.width / 2f).roundToInt()
+            // Not until the slot is placed in the bar showing now.
+            val slot = anchor.bounds
+            if (chip == null || origin == null || slot == null) return@layout
+            val beside = if (rtl) slot.right + gap else slot.left - gap - chip.width
             val maxX = constraints.maxWidth - gap - chip.width
-            val x = if (maxX >= gap) centred.coerceIn(gap, maxX) else (constraints.maxWidth - chip.width) / 2
-            val y = (anchor.barTop - origin.y).roundToInt() - gap - chip.height
-            // Absolute: the anchor is already in screen terms, mirrored or not.
+            val x = if (maxX >= gap) (beside - origin.x).roundToInt().coerceIn(gap, maxX) else (constraints.maxWidth - chip.width) / 2
+            val y = (slot.center.y - origin.y - chip.height / 2f).roundToInt()
+            // Absolute: the slot is already in screen terms, mirrored or not.
             chip.place(x, y)
         }
     }

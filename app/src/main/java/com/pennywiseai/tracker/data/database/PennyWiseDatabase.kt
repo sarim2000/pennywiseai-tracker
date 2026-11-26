@@ -71,7 +71,7 @@ import com.pennywiseai.tracker.data.database.entity.WebhookProfileEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 71
+const val SCHEMA_VERSION = 72
 
 /**
  * The PennyWise Room database.
@@ -147,6 +147,7 @@ const val SCHEMA_VERSION = 71
         // 68→69 adds the card bill columns to account_balances: manual.
         // 69→70 adds the rollover setting to budgets: manual.
         // 70→71 adds subscriptions.total_payments and payments_made: manual.
+        // 71→72 adds transactions.reimbursement_status and reimbursed_by_id: manual.
     ]
 )
 @ColumnTypeConverters(Converters::class)

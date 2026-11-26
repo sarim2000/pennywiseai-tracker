@@ -19,8 +19,11 @@ interface PrivacyPreferences {
      */
     suspend fun toggleBalanceHidden(hiddenWhenUnset: Boolean = true): Boolean
 
-    /** Saves the choice outright: the top bars' "Show amounts" eye, where a toggle would re-hide on a double tap. */
-    suspend fun setBalanceHidden(hidden: Boolean)
+    /**
+     * Saves the choice outright: the top bars' "Show amounts" eye, where a toggle would re-hide on a double tap.
+     * Returns whether the saved choice changed, read in the same edit, so a double tap is one change.
+     */
+    suspend fun setBalanceHidden(hidden: Boolean): Boolean
 
     val shakeToHideAmounts: Flow<Boolean>
 

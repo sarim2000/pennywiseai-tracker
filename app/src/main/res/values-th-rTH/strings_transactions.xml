@@ -66,6 +66,8 @@
     <string name="txn_detail_more_actions">การทำงานเพิ่มเติม</string>
     <string name="txn_detail_menu_add_to_group">เพิ่มลงกลุ่ม</string>
     <string name="txn_detail_menu_duplicate">ทำซ้ำ</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">รายงานปัญหา</string>
     <string name="txn_detail_delete_title">ลบรายการธุรกรรม</string>
     <string name="txn_detail_delete_message">คุณแน่ใจหรือว่าต้องการลบรายการธุรกรรมนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</string>

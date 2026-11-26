@@ -2,8 +2,10 @@ package com.pennywiseai.tracker.presentation.settings
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,7 +17,10 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,14 +38,17 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.Surface
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -70,6 +78,7 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.ProfileAvatar
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
+import com.pennywiseai.tracker.ui.components.barTitleStyle
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
@@ -109,6 +118,23 @@ fun SettingsScreen(
     val hub by hubViewModel.state.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
+    // Search takes over the bar and the page; Back closes it before it leaves Settings.
+    var searching by rememberSaveable { mutableStateOf(false) }
+    // Saved so rotation requests focus again when the field was focused. Set when search
+    // opens, cleared on the way into a result, and updated from the field's own focus.
+    var focusSearch by rememberSaveable { mutableStateOf(false) }
+    val navigate: (NavKey) -> Unit = {
+        focusSearch = false
+        onNavigate(it)
+    }
+    val searchQuery = rememberTextFieldState()
+    val searchFocus = remember { FocusRequester() }
+    val closeSearch = {
+        searching = false
+        searchQuery.clearText()
+    }
+    BackHandler(enabled = searching, onBack = closeSearch)
+    var showEditProfile by rememberSaveable { mutableStateOf(false) }
     // F-Droid builds have no Play billing, so they show a "Support development"
     // tip jar instead of the (un-buyable) Pro upsell. Play builds keep Pro.
     val isFdroidBuild = com.pennywiseai.tracker.BuildConfig.IS_FDROID_BUILD
@@ -123,11 +149,44 @@ fun SettingsScreen(
         customTopBar = {
             TopAppBar(
                 title = {
-                    AnimatedVisibility(visible = showBarTitle, enter = pwFadeIn(), exit = pwFadeOut()) {
-                        Text(stringResource(R.string.settings_title))
+                    if (searching) {
+                        SettingsSearchField(
+                            searchQuery,
+                            focus = focusSearch,
+                            onFocusChange = { focusSearch = it },
+                            focusRequester = searchFocus,
+                        )
+                    } else {
+                        AnimatedVisibility(visible = showBarTitle, enter = pwFadeIn(), exit = pwFadeOut()) {
+                            Text(stringResource(R.string.settings_title), style = barTitleStyle())
+                        }
                     }
                 },
-                navigationIcon = { SettingsNavigationContent(onNavigateBack) },
+                navigationIcon = { SettingsNavigationContent(if (searching) closeSearch else onNavigateBack) },
+                actions = {
+                    // Same filled circle and edge inset as the back button.
+                    val barIconInset = Modifier.padding(end = Spacing.md)
+                    val barIconColors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        contentColor = MaterialTheme.colorScheme.onBackground,
+                    )
+                    if (!searching) {
+                        IconButton(onClick = {
+                            searching = true
+                            focusSearch = true
+                        }, colors = barIconColors, shapes = IconButtonDefaults.shapes(), modifier = barIconInset) {
+                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.settings_search))
+                        }
+                    } else if (searchQuery.text.isNotEmpty()) {
+                        IconButton(onClick = {
+                            searchQuery.clearText()
+                            // After Back from a result or a config change the field isn't focused.
+                            searchFocus.requestFocus()
+                        }, colors = barIconColors, shapes = IconButtonDefaults.shapes(), modifier = barIconInset) {
+                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.txn_list_clear_search))
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     scrolledContainerColor = MaterialTheme.colorScheme.background,
@@ -135,6 +194,21 @@ fun SettingsScreen(
             )
         },
     ) { paddingValues ->
+        // Until something is typed the hub stays under the field.
+        if (searching && searchQuery.text.isNotBlank()) {
+            val direction = LocalLayoutDirection.current
+            SettingsSearchResults(
+                query = searchQuery.text.toString(),
+                contentPadding = PaddingValues(
+                    start = paddingValues.calculateStartPadding(direction) + Dimensions.Padding.content,
+                    top = paddingValues.calculateTopPadding() + Spacing.md,
+                    end = paddingValues.calculateEndPadding(direction) + Dimensions.Padding.content,
+                    bottom = paddingValues.calculateBottomPadding() + Spacing.Layout.scrollBottomPadding,
+                ),
+                onNavigate = navigate,
+            )
+            return@PennyWiseScaffold
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -148,11 +222,12 @@ fun SettingsScreen(
         ) {
             SettingsProfileHeader(
                 state = hub,
+                onEdit = { showEditProfile = true },
                 modifier = Modifier.onSizeChanged { profileHeight = it.height },
             )
 
             // What people came to Settings for most, one tap away instead of a page deep.
-            SettingsShortcutTiles(state = hub, onNavigate = onNavigate)
+            SettingsShortcutTiles(state = hub, onNavigate = navigate)
 
             // Its own block, high on the page: the highest-discoverability slot.
             SettingsGroup {
@@ -183,7 +258,7 @@ fun SettingsScreen(
                 }
             }
 
-            fun open(section: SettingsSection) = onNavigate(SettingsPage(section))
+            fun open(section: SettingsSection) = navigate(SettingsPage(section))
 
             SettingsGroupHeader(stringResource(R.string.settings_hub_money))
             SettingsGroup {
@@ -224,7 +299,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Palette,
                     title = stringResource(R.string.settings_appearance_title),
                     subtitle = stringResource(R.string.settings_appearance_subtitle),
-                    onClick = { onNavigate(Appearance) },
+                    onClick = { navigate(Appearance) },
                     position = ListItemPosition.Top,
                     trailingText = stringResource(
                         when (hub.isDarkTheme) {
@@ -294,7 +369,7 @@ fun SettingsScreen(
                     icon = Icons.AutoMirrored.Filled.Help,
                     title = stringResource(R.string.settings_help_faq_title),
                     subtitle = stringResource(R.string.settings_help_faq_subtitle),
-                    onClick = { onNavigate(Faq) },
+                    onClick = { navigate(Faq) },
                     position = ListItemPosition.Top,
                 )
                 HubRow(
@@ -357,6 +432,15 @@ fun SettingsScreen(
         }
     }
 
+    if (showEditProfile) {
+        EditProfileSheet(
+            state = hub,
+            onImportPhoto = hubViewModel::importPhoto,
+            onSave = hubViewModel::saveProfile,
+            onDismiss = { showEditProfile = false },
+        )
+    }
+
     if (showUpgradeSheet) {
         UpgradeSheet(onDismiss = { showUpgradeSheet = false })
     }
@@ -402,9 +486,9 @@ private fun SettingsGroupHeader(title: String) {
     )
 }
 
-/** The user, big and centred, with the app's one promise under their name. */
+/** The user, big and centred, with the app's one promise under their name. Tapping them edits them. */
 @Composable
-private fun SettingsProfileHeader(state: SettingsHubState, modifier: Modifier = Modifier) {
+private fun SettingsProfileHeader(state: SettingsHubState, onEdit: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -412,14 +496,37 @@ private fun SettingsProfileHeader(state: SettingsHubState, modifier: Modifier = 
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        ProfileAvatar(
-            name = state.name,
-            imageUri = state.imageUri,
-            backgroundColor = state.backgroundColor,
-            size = Dimensions.Icon.extraLarge,
-            shape = MaterialShapes.Cookie9Sided.toShape(),
-            initialsStyle = MaterialTheme.typography.headlineLargeEmphasized,
-        )
+        // The pencil badge says the avatar is tappable and names the one button. Editing
+        // waits for the stored profile, or the sheet would start from blanks.
+        Box(
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.extraLarge)
+                .clickable(enabled = state.isLoaded, role = Role.Button, onClick = onEdit),
+        ) {
+            ProfileAvatar(
+                name = state.name,
+                imageUri = state.imageUri,
+                backgroundColor = state.backgroundColor,
+                size = Dimensions.Icon.extraLarge,
+                shape = MaterialShapes.Cookie9Sided.toShape(),
+                initialsStyle = MaterialTheme.typography.headlineLargeEmphasized,
+            )
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                border = BorderStroke(Spacing.xxs, MaterialTheme.colorScheme.background),
+                modifier = Modifier.align(Alignment.BottomEnd),
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = stringResource(R.string.settings_profile_edit),
+                    modifier = Modifier
+                        .padding(Spacing.xs)
+                        .size(Dimensions.Icon.small),
+                )
+            }
+        }
         if (state.name.isNotBlank()) {
             Text(
                 text = state.name,
@@ -685,6 +792,7 @@ internal fun SettingsNavItem(
     subtitle: String,
     onClick: () -> Unit,
     position: ListItemPosition,
+    modifier: Modifier = Modifier,
     trailingText: String? = null,
     trailingIcon: ImageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
     // Pro and support are the one accent on an otherwise neutral list.
@@ -700,7 +808,7 @@ internal fun SettingsNavItem(
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
-    GroupedRow(position = position, onClick = onClick) {
+    GroupedRow(position = position, modifier = modifier, onClick = onClick) {
         IconTile(icon = icon, containerColor = container, contentColor = tint)
         // Settings copy explains what a control does, so it wraps instead of truncating.
         RowLabels(title = title, subtitle = subtitle, titleMaxLines = 2, subtitleMaxLines = Int.MAX_VALUE)

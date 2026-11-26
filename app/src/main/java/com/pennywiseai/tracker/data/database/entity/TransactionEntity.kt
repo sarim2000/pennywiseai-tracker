@@ -4,10 +4,10 @@ import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
-import java.math.BigDecimal
-import java.time.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @Entity(
     tableName = "transactions",
@@ -18,49 +18,49 @@ data class TransactionEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
-    
+
     @ColumnInfo(name = "amount")
     @Contextual
     val amount: BigDecimal,
-    
+
     @ColumnInfo(name = "merchant_name")
     val merchantName: String,
-    
+
     @ColumnInfo(name = "category")
     val category: String,
-    
+
     @ColumnInfo(name = "transaction_type")
     val transactionType: TransactionType,
-    
+
     @ColumnInfo(name = "date_time")
     @Contextual
     val dateTime: LocalDateTime,
-    
+
     @ColumnInfo(name = "description")
     val description: String? = null,
-    
+
     @ColumnInfo(name = "sms_body")
     val smsBody: String? = null,
-    
+
     @ColumnInfo(name = "bank_name")
     val bankName: String? = null,
-    
+
     @ColumnInfo(name = "sms_sender")
     val smsSender: String? = null,
-    
+
     @ColumnInfo(name = "account_number")
     val accountNumber: String? = null,
-    
+
     @ColumnInfo(name = "balance_after")
     @Contextual
     val balanceAfter: BigDecimal? = null,
-    
+
     @ColumnInfo(name = "transaction_hash", defaultValue = "")
     val transactionHash: String,
-    
+
     @ColumnInfo(name = "is_recurring")
     val isRecurring: Boolean = false,
-    
+
     @ColumnInfo(name = "is_deleted", defaultValue = "0")
     val isDeleted: Boolean = false,
 
@@ -132,8 +132,27 @@ data class TransactionEntity(
 
     // Shared by the debit and credit marked as one transfer; see utils/TransferPairs.kt.
     @ColumnInfo(name = "transfer_pair_id", defaultValue = "NULL")
-    val transferPairId: String? = null
+    val transferPairId: String? = null,
+
+    // Reimbursable expense (#1389): null when it isn't one, PENDING until the
+    // money comes back, REIMBURSED after. It's a label only: the row still
+    // counts toward totals as before (see countedAmount).
+    @ColumnInfo(name = "reimbursement_status", defaultValue = "NULL")
+    val reimbursementStatus: ReimbursementStatus? = null,
+
+    // The incoming payment that paid this back: another transaction's id, or
+    // null when the user marked it reimbursed without one. One payment can
+    // pay back many expenses (an employer settling a whole claim).
+    @ColumnInfo(name = "reimbursed_by_id", defaultValue = "NULL")
+    val reimbursedById: Long? = null
 )
+
+/** Where a reimbursable expense stands (#1389). Stored by name: never rename a constant. */
+@Serializable
+enum class ReimbursementStatus {
+    PENDING,
+    REIMBURSED
+}
 
 @Serializable
 enum class BudgetImpactType {

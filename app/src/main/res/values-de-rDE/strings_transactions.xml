@@ -69,6 +69,8 @@
     <string name="txn_detail_more_actions">Weitere Aktionen</string>
     <string name="txn_detail_menu_add_to_group">Zur Gruppe hinzufügen</string>
     <string name="txn_detail_menu_duplicate">Duplizieren</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">Problem melden</string>
     <string name="txn_detail_delete_title">Transaktion löschen</string>
     <string name="txn_detail_delete_message">Sind Sie sicher, dass Sie diese Transaktion löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.</string>

@@ -34,6 +34,7 @@ import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.repository.keepReimbursement
 import com.pennywiseai.tracker.data.repository.mappingFits
 import com.pennywiseai.tracker.domain.loan.LoanCurrencyRules
 import com.pennywiseai.tracker.domain.loan.LoanOverflow
@@ -1207,7 +1208,8 @@ class TransactionDetailViewModel @Inject constructor(
                 // Only now: a step above that failed leaves the edit open on the old
                 // receipt, and a cancel would show a deleted file.
                 discardReplacedReceipt(toSave.receiptPath, newReceiptPath, receiptManager::deleteReceipt)
-                _transaction.value = normalizedTransaction
+                // The repository kept or dropped the reimbursement columns (#1389); show what it wrote.
+                _transaction.value = keepReimbursement(persisted, normalizedTransaction)
                 loadReceiptUri(normalizedTransaction)
                 _pendingReceiptUri.value = null
                 _receiptRemoved.value = false

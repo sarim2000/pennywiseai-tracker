@@ -59,6 +59,7 @@ import com.pennywiseai.tracker.presentation.home.HomeScreen
 import com.pennywiseai.tracker.presentation.plan.PlanGoalsScreen
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
+import com.pennywiseai.tracker.presentation.settings.ConscienceScreen
 import com.pennywiseai.tracker.presentation.settings.FAQScreen
 import com.pennywiseai.tracker.presentation.settings.MascotPlaygroundScreen
 import com.pennywiseai.tracker.presentation.settings.SettingsScreen
@@ -136,6 +137,7 @@ internal fun transactionsFor(rows: BudgetCategoryRows) = TransactionsWithFilter(
     endDate = rows.end.toEpochDay(),
     currencyOnly = rows.currencyOnly,
     allProfiles = true,
+    withoutCategories = rows.without,
 )
 
 /** The full Add form, carrying what the quick sheet held so nothing is typed twice. */
@@ -264,7 +266,7 @@ fun MainScreen(
 
     // What a Settings row opens lives either in this tab's graph or above the tabs.
     fun openFromSettings(tab: BottomNavItem, key: NavKey) = when (key) {
-        Rules, Loans, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess, BackgroundAccess, SmsCheckup, LearnedCategories,
+        Rules, Loans, Reimbursements, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess, BackgroundAccess, SmsCheckup, LearnedCategories,
         is BudgetGroups -> openRoot(key)
         else -> open(tab, key)
     }
@@ -661,6 +663,10 @@ fun MainScreen(
             )
         }
 
+        entry<Conscience> { key ->
+            ConscienceScreen(onNavigateBack = { backFrom(tab, key) })
+        }
+
         entry<MascotPlayground> { key ->
             MascotPlaygroundScreen(onNavigateBack = { backFrom(tab, key) })
         }
@@ -805,10 +811,11 @@ fun MainScreen(
                 // The mascot playground keeps it up too: its reactions play on the real tab.
                 val barVisible = (onTabScreen || topKey == MascotPlayground) && !WindowInsets.isImeVisible && !hideNavBar.value
                 // The ViewModel hears saves and moments even while a pushed screen covers
-                // the tabs, and holds one made there until the bar comes back. A hidden
-                // Chat tab shows nothing and doesn't follow the scan.
+                // the tabs, and holds one made there until the bar is back and past its
+                // entrance. A hidden Chat tab shows nothing and doesn't follow the scan.
+                var barSettled by remember { mutableStateOf(false) }
                 val chatReaction = if (BottomNavItem.Chat.route !in hiddenTabs) {
-                    rememberChatTabReaction(chatTabViewModel.reactions, chatTabViewModel.scan, barVisible)
+                    rememberChatTabReaction(chatTabViewModel.reactions, chatTabViewModel.scan, barSettled, barVisible)
                 } else null
                 PennyWiseBottomNavigation(
                     selectedRoute = lastTabRoute[0],
@@ -817,6 +824,7 @@ fun MainScreen(
                     visible = barVisible,
                     hiddenTabs = hiddenTabs,
                     chatReaction = chatReaction,
+                    onSettledChange = { barSettled = it },
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,
                     dock = dockForTabs,

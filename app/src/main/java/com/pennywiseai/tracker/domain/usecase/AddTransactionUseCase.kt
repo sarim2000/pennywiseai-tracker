@@ -43,7 +43,9 @@ class AddTransactionUseCase @Inject constructor(
         currency: String = "INR",
         receiptPath: String? = null,
         budgetCategory: String? = null,
-        budgetImpactType: BudgetImpactType? = null
+        budgetImpactType: BudgetImpactType? = null,
+        /** False when the caller shows the amount itself, where the Chat tab's chip would sit. */
+        echoAmount: Boolean = true
     ): Long = insert(
         amount = amount,
         merchant = merchant,
@@ -60,7 +62,9 @@ class AddTransactionUseCase @Inject constructor(
         receiptPath = receiptPath,
         budgetCategory = budgetCategory,
         budgetImpactType = budgetImpactType
-    ).also { if (it != -1L) transactionEvents.onSaved(type, TransactionOrigin.MANUAL, money = Money(amount, currency)) }
+    ).also {
+        if (it != -1L) transactionEvents.onSaved(type, TransactionOrigin.MANUAL, money = Money(amount, currency).takeIf { echoAmount })
+    }
 
     /** [execute] without the announcement, for [executeAll], whose caller announces the card once it commits. */
     private suspend fun insert(

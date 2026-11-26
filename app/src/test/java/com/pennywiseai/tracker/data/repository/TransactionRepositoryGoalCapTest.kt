@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import io.mockk.coEvery
@@ -48,11 +49,21 @@ class TransactionRepositoryGoalCapTest {
     }
 
     @Test
+    fun transferUndoRestoresTheRowAndItsReimbursementInOneWrite() = runBlocking {
+        repo.restoreTransaction(txn("250"), ReimbursementStatus.PENDING, null)
+        coVerify { goals.writeAndCap<Any?>(9, any()) }
+        coVerifyOrder {
+            dao.updateTransaction(any())
+            dao.setReimbursement(9, "PENDING", null, any())
+        }
+    }
+
+    @Test
     fun removingADuplicateMovesItsContributionsFirst() = runBlocking {
         assertTrue(repo.deleteDuplicate(duplicateId = 8, keeperId = 9))
         coVerifyOrder {
             goals.moveContributions(8, 9)
-            dao.softDeleteTransaction(8)
+            dao.softDeleteDuplicate(8, 9)
         }
     }
 
@@ -63,7 +74,7 @@ class TransactionRepositoryGoalCapTest {
         assertTrue(repo.deleteDuplicate(duplicateId = 8, keeperId = 9))
         coVerifyOrder {
             dao.moveSharesToKeeper(8, 9)
-            dao.softDeleteTransaction(8)
+            dao.softDeleteDuplicate(8, 9)
         }
     }
 
@@ -73,7 +84,7 @@ class TransactionRepositoryGoalCapTest {
         coEvery { dao.getShareAmounts(8) } returns listOf(BigDecimal("300"))
         coEvery { dao.moveSharesToKeeper(8, 9) } returns false
         assertFalse(repo.deleteDuplicate(duplicateId = 8, keeperId = 9))
-        coVerify(exactly = 0) { dao.softDeleteTransaction(8) }
+        coVerify(exactly = 0) { dao.softDeleteDuplicate(any(), any()) }
         coVerify(exactly = 0) { goals.moveContributions(any(), any()) }
     }
 

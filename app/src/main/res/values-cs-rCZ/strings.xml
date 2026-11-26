@@ -8,6 +8,7 @@
     <string name="widget_description_category_pie">Výdaje tohoto měsíce podle kategorií jako koláčový graf s legendou.</string>
     <string name="widget_name_add_transaction">Platba hotově</string>
     <string name="widget_name_summary">Souhrn výdajů</string>
+    <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Přidat transakci</string>
     <string name="shortcut_add_transaction_short">Přidat</string>
@@ -28,6 +29,7 @@
     <string name="duplicate_accounts_message">Kvůli rozdílným formátům bankovních SMS nebo dřívějšímu zpracování mohly vzniknout duplicitní účty s třemi a čtyřmi číslicemi. Pokud jsou %1$s a %2$s stejný účet, chcete je sloučit? Transakce se přesunou na čtyřmístný účet, jeho historie zůstatku zůstane zachována a budoucí SMS ho budou používat automaticky.</string>
     <string name="duplicate_accounts_merge">Sloučit a zapamatovat</string>
     <string name="duplicate_accounts_keep">Ponechat zvlášť</string>
+    <!-- Top-bar eye, shown on every screen while the user has hidden amounts: tapping it shows them again -->
     <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
     <!-- AI chat: the badge by the latest reply's mascot. Saved: the rows of an Add card were just saved -->
     <!-- Developer mode: a screen showing the mascot in every shape and mood, for checking it on a device -->

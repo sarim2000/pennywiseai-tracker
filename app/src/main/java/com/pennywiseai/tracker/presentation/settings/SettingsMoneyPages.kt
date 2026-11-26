@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,6 +23,7 @@ import com.pennywiseai.tracker.navigation.ExchangeRates
 import com.pennywiseai.tracker.navigation.LearnedCategories
 import com.pennywiseai.tracker.navigation.Loans
 import com.pennywiseai.tracker.navigation.RecurringTransactions
+import com.pennywiseai.tracker.navigation.Reimbursements
 import com.pennywiseai.tracker.navigation.Subscriptions
 import com.pennywiseai.tracker.navigation.TransactionGroups
 import com.pennywiseai.tracker.presentation.split.UpiIdDialog
@@ -186,7 +188,7 @@ internal fun PlanningPage(
     val planHidden = BottomNavItem.Plan.route in hiddenTabs
     var showBudgetCycleSheet by remember { mutableStateOf(false) }
     // Budgets and bills are the Plan tab. Show those links only when the tab is hidden.
-    val rowCount = 4 + if (planHidden) 2 else 0
+    val rowCount = 5 + if (planHidden) 2 else 0
     var row = 0
 
     SettingsGroup {
@@ -232,6 +234,13 @@ internal fun PlanningPage(
             title = stringResource(R.string.settings_loans_title),
             subtitle = stringResource(R.string.settings_loans_subtitle),
             onClick = { onNavigate(Loans) },
+            position = ListItemPosition.from(row++, rowCount)
+        )
+        SettingsNavItem(
+            icon = Icons.AutoMirrored.Filled.ReceiptLong,
+            title = stringResource(R.string.reimburse_screen_title),
+            subtitle = stringResource(R.string.settings_reimbursements_subtitle),
+            onClick = { onNavigate(Reimbursements) },
             position = ListItemPosition.from(row++, rowCount)
         )
         SettingsNavItem(

@@ -71,7 +71,7 @@ class GoalMomentsViewModelTest {
     }
 
     private fun detailViewModel() = GoalDetailViewModel(
-        goals, mockk(relaxed = true), mockk(relaxed = true), moments, SavedStateHandle(mapOf("goalId" to 1L))
+        goals, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), moments, SavedStateHandle(mapOf("goalId" to 1L))
     ).also { vm -> screen.launch { vm.state.collect {} } }
 
     private fun deposit(vm: GoalDetailViewModel, amount: String, withdrawal: Boolean = false) =

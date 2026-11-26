@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
@@ -87,6 +88,9 @@ fun QuickCategoryPickerSheet(
     subject: String? = null,
     excludeLabel: String? = null,
     onExclude: (() -> Unit)? = null,
+    // In-app picker: a "Not a category?" row for a loan, transfer or split, which no
+    // category fits. Shown while searching too, so typing "loan" still finds it.
+    onWhatWasThis: (() -> Unit)? = null,
     // Category names by recent use, most first: a "Most used" section above "All" (#1058).
     mostUsed: List<String> = emptyList(),
     // When set, an "Add category" row leads the list and, while searching, a
@@ -98,7 +102,11 @@ fun QuickCategoryPickerSheet(
     val shown = categories.matching(query) { labels[it.id] ?: it.name }
     val top = if (query.isBlank()) categories.mostUsed(mostUsed) else emptyList()
     val addCategoryLabel = stringResource(R.string.txn_detail_add_category)
+    val notACategoryLabel = stringResource(R.string.category_picker_not_a_category)
     val actions = buildList {
+        if (onWhatWasThis != null) {
+            add(Triple(Icons.AutoMirrored.Filled.HelpOutline, notACategoryLabel, onWhatWasThis))
+        }
         if (onExclude != null && excludeLabel != null) {
             add(Triple(Icons.Outlined.VisibilityOff, excludeLabel, onExclude))
         }
@@ -304,11 +312,13 @@ fun QuickCategoryPickerSheet(
     categories: List<CategoryEntity>,
     onCategorySelected: (String) -> Unit,
     onDismiss: () -> Unit,
-    mostUsed: List<String> = emptyList()
+    mostUsed: List<String> = emptyList(),
+    onWhatWasThis: (() -> Unit)? = null
 ) = QuickCategoryPickerSheet(
     currentCategory = transaction.category,
     categories = categories,
     onCategorySelected = onCategorySelected,
     onDismiss = onDismiss,
-    mostUsed = mostUsed
+    mostUsed = mostUsed,
+    onWhatWasThis = onWhatWasThis
 )

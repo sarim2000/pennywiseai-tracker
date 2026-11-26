@@ -8,6 +8,7 @@
     <string name="widget_description_category_pie">यो महिनाको खर्च वर्गअनुसार, संकेतसहितको पाई चार्टमा।</string>
     <string name="widget_name_add_transaction">नगद खर्च</string>
     <string name="widget_name_summary">खर्च सारांश</string>
+    <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">लेनदेन थप्नुहोस्</string>
     <string name="shortcut_add_transaction_short">थप्नुहोस्</string>
@@ -28,6 +29,7 @@
     <string name="duplicate_accounts_message">बैंक SMS को ढाँचामा फरक वा पहिलेको पार्सिङले गर्दा तीन र चार अङ्कका दोहोरिएका खाता बनेका हुन सक्छन्। यदि %1$s र %2$s एउटै खाता हुन् भने, गाभ्ने? लेनदेनहरू चार अङ्कको खातामा सर्नेछन्, यसको बालान्स इतिहास राखिनेछ, र आउँदा SMS ले स्वतः यही खाता प्रयोग गर्नेछन्।</string>
     <string name="duplicate_accounts_merge">गाभ्नुहोस् र सम्झनुहोस्</string>
     <string name="duplicate_accounts_keep">छुट्टै राख्नुहोस्</string>
+    <!-- Top-bar eye, shown on every screen while the user has hidden amounts: tapping it shows them again -->
     <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
     <!-- AI chat: the badge by the latest reply's mascot. Saved: the rows of an Add card were just saved -->
     <!-- Developer mode: a screen showing the mascot in every shape and mood, for checking it on a device -->

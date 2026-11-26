@@ -60,6 +60,29 @@ fun NavBackStack<NavKey>.pop(key: NavKey) {
     if (size > 1 && lastOrNull() == key) removeAt(lastIndex)
 }
 
+/**
+ * Opens [key] from the screen [from]: back to it when it's the entry right under [from], so a
+ * link from a row a list showed doesn't stack that list again; otherwise on top of [from]. Only the
+ * direct parent counts, so no other screen deeper in the stack is ever dropped.
+ */
+fun NavBackStack<NavKey>.openFrom(from: NavKey, key: NavKey) {
+    val under = getOrNull(lastIndex - 1)
+    when {
+        lastOrNull() != from -> navigate(key)
+        under != null && sameScreen(under, key) -> removeAt(lastIndex)
+        // Stacks even when [key] is the same kind of screen (a payment's detail over its
+        // expense's), where [navigate] would replace [from] and back would skip it.
+        else -> add(key)
+    }
+}
+
+/**
+ * Whether [a] and [b] open the same screen. A related list's row profile doesn't count: the
+ * list under a detail already shows that row, whichever row's link opened the list.
+ */
+private fun sameScreen(a: NavKey, b: NavKey) = a == b ||
+    (a is TransactionsWithFilter && b is TransactionsWithFilter && a.copy(rowProfileId = null) == b.copy(rowProfileId = null))
+
 /** popUpTo(the last screen matching [match]) { inclusive = true }, then [key] in its place. */
 fun NavBackStack<NavKey>.replaceLast(key: NavKey, match: (NavKey) -> Boolean) {
     val i = indexOfLast(match)
@@ -236,6 +259,16 @@ fun PennyWiseNavHost(
                                 },
                                 onCreateGoal = {
                                     backStack.navigate(GoalEdit())
+                                },
+                                // A linked payment or expense stacks on top, so back returns here.
+                                onNavigateToTransaction = { id ->
+                                    backStack.openFrom(key, TransactionDetail(id))
+                                },
+                                onNavigateToReimbursements = {
+                                    backStack.navigate(Reimbursements)
+                                },
+                                onOpenRelated = { merchant, category, currency, profileId ->
+                                    backStack.openFrom(key, relatedTransactions(merchant, category, currency, profileId))
                                 }
                             )
                         }
@@ -390,6 +423,13 @@ fun PennyWiseNavHost(
                             onNavigateToLoanDetail = { loanId ->
                                 backStack.navigate(LoanDetail(loanId))
                             }
+                        )
+                    }
+
+                    entry<Reimbursements> { key ->
+                        com.pennywiseai.tracker.presentation.reimbursements.ReimbursementsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onOpenTransaction = { id -> backStack.navigate(TransactionDetail(id)) }
                         )
                     }
 
@@ -550,12 +590,15 @@ fun PennyWiseNavHost(
                     entry<TransactionsWithFilter> { args ->
                         com.pennywiseai.tracker.presentation.transactions.TransactionsScreen(
                             initialCategory = args.category,
+                            initialMerchant = args.merchant,
                             initialPeriod = args.period,
                             initialCurrency = args.currency,
                             initialCustomStartEpochDay = args.startDate,
                             initialCustomEndEpochDay = args.endDate,
                             currencyOnly = args.currencyOnly,
                             profilePinned = args.allProfiles,
+                            rowProfileId = args.rowProfileId,
+                            excludedCategories = args.withoutCategories,
                             onNavigateBack = { backStack.pop(args) },
                             onTransactionClick = { transactionId ->
                                 backStack.navigate(TransactionDetail(transactionId))
@@ -570,6 +613,20 @@ fun PennyWiseNavHost(
         }
     }
 }
+
+/**
+ * A transaction's "More from" (its [merchant]) or "More in" (its [category]): all time, pinned to
+ * its [currency] so the list neither follows the default currency nor converts in unified mode,
+ * and kept to its [profileId] when one profile is selected, so the row itself is listed.
+ */
+internal fun relatedTransactions(merchant: String?, category: String?, currency: String, profileId: Long) = TransactionsWithFilter(
+    category = category,
+    merchant = merchant,
+    period = com.pennywiseai.tracker.presentation.common.TimePeriod.ALL.name,
+    currency = currency,
+    currencyOnly = true,
+    rowProfileId = profileId,
+)
 
 /** Where an insight's button leads; the domain names the target, the app picks the screen. */
 private fun insightDestination(action: InsightAction): NavKey = when (action) {

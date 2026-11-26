@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.events.TransactionOrigin
 import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.utils.Money
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -53,14 +54,22 @@ class AddTransactionUseCaseEventsTest {
         coEvery { balances.insertTransferWithBalance(any(), any(), any(), any(), any()) } returns id
     }
 
+    /** What [add] saves, and [transfer] in another currency: neither is the default INR, so each must be forwarded. */
+    private val ten = Money(BigDecimal.TEN, "EUR")
+    private val tenDollars = Money(BigDecimal.TEN, "USD")
+
     private fun add(type: TransactionType) = runBlocking {
-        useCase.execute(amount = BigDecimal.TEN, merchant = "Shop", category = "Food", type = type, date = LocalDateTime.now())
+        useCase.execute(
+            amount = BigDecimal.TEN, merchant = "Shop", category = "Food", type = type,
+            date = LocalDateTime.now(), currency = ten.currency,
+        )
     }
 
     private fun transfer() = runBlocking {
         useCase.executeTransfer(
             amount = BigDecimal.TEN,
             date = LocalDateTime.now(),
+            currency = tenDollars.currency,
             fromBankName = "Bank A",
             fromLast4 = "1111",
             toBankName = "Bank B",
@@ -72,14 +81,26 @@ class AddTransactionUseCaseEventsTest {
     fun `a manual add announces one save of its type`() {
         insertReturns(7)
         add(TransactionType.INCOME)
-        assertEquals(listOf(TransactionEvent(TransactionType.INCOME, 1, TransactionOrigin.MANUAL)), heard)
+        assertEquals(listOf(TransactionEvent(TransactionType.INCOME, 1, TransactionOrigin.MANUAL, ten)), heard)
+    }
+
+    @Test
+    fun `a save whose caller shows the amount itself announces it without one`() {
+        insertReturns(7)
+        runBlocking {
+            useCase.execute(
+                amount = BigDecimal.TEN, merchant = "Shop", category = "Food", type = TransactionType.EXPENSE,
+                date = LocalDateTime.now(), currency = ten.currency, echoAmount = false,
+            )
+        }
+        assertEquals(listOf(TransactionEvent(TransactionType.EXPENSE, 1, TransactionOrigin.MANUAL)), heard)
     }
 
     @Test
     fun `a manual transfer announces one transfer`() {
         insertReturns(7)
         assertEquals(7L, transfer())
-        assertEquals(listOf(TransactionEvent(TransactionType.TRANSFER, 1, TransactionOrigin.MANUAL)), heard)
+        assertEquals(listOf(TransactionEvent(TransactionType.TRANSFER, 1, TransactionOrigin.MANUAL, tenDollars)), heard)
     }
 
     @Test

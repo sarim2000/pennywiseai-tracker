@@ -86,8 +86,10 @@ import androidx.compose.ui.graphics.lerp as lerpColor
  *
  * A new [shape] is one body bending into the next on the theme's spatial spring, never two
  * bodies faded over each other, so the glyph keeps its [tint] whole the whole way (see
- * MascotMorph.kt); then it plays the shape's arrival (MascotArrival.kt). A new [mood]
- * blends from the pose on screen.
+ * MascotMorph.kt); then it plays [cue], or the shape's own when that is null
+ * (MascotArrival.kt). A new non-null [cue] on the same shape plays in place, so the owl
+ * can cover its eyes or a jar saved into can brim. A cue never plays when the mascot
+ * first shows. A new [mood] blends from the pose on screen.
  *
  * [value] is the shape's figure: a [MascotShape.Pie]'s slice share, how full a
  * [MascotShape.Jar] is or how much of a [MascotShape.Gauge] is used (0..1), or which way a
@@ -110,6 +112,7 @@ fun Mascot(
     look: Offset? = null,
     interactive: Boolean = false,
     alive: Boolean = false,
+    cue: MascotCue? = null,
     containerColor: Color = Color.Unspecified,
 ) {
     val detailed = size > Dimensions.Icon.large
@@ -135,7 +138,11 @@ fun Mascot(
     // A change plays out with the motion in effect when it arrives, not the one at the last change.
     val currentMotion by rememberUpdatedState(motion)
     LaunchedEffect(mood) { state.changeMood(mood, currentMotion, blendSpec, lifecycle) }
-    LaunchedEffect(shape) { state.changeShape(shape, { currentMotion }, morphSpec) }
+    // Only a new cue restarts the change: one dropped (a reaction ending) plays out.
+    val cueRequests = remember { CueRequests(cue) }
+    val cueRequest = cueRequests.idFor(cue)
+    SideEffect { cueRequests.commit(cue) }
+    LaunchedEffect(shape, cueRequest) { state.change(shape, cue, { currentMotion }, morphSpec) }
 
     val colors = if (detailed) mascotColors(tint, containerColor) else null
     // The artwork is symmetric and never mirrored; only where it looks and leans is.
@@ -169,7 +176,7 @@ fun Mascot(
                 onDrawBehind {
                     val pose = state.pose(motion).let { it.copy(gazeX = it.gazeX * direction, roll = it.roll * direction) }
                     if (colors != null) scale(k, k, pivot = Offset.Zero) { drawShadow(pose, colors.shadow) }
-                    val decor = Decor(state.arrivedShape, state.arrivalProgress, tint, colors, scratch, layer)
+                    val decor = Decor(state.arrivedCue, state.arrivalProgress, tint, colors, scratch, layer)
                     if (morph == null) {
                         drawShape(current, geometry, pose, k, decor)
                     } else {
@@ -260,10 +267,13 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     /** How far the outline has bent from [morphFrom] into [shape]; a spring passes 1 and comes back. Read it in the draw phase. */
     val morphProgress: Float get() = morph.value
 
-    /** The shape whose arrival last played (see MascotArrival.kt), or null. */
-    var arrivedShape by mutableStateOf<MascotShape?>(null)
+    /** The cue that last played on [shape] (see MascotArrival.kt), or null. */
+    var arrivedCue by mutableStateOf<MascotCue?>(null)
         private set
     private val arrival = Animatable(1f)
+
+    /** False until the first change, which is the mascot first showing: no cue then. */
+    private var started = false
 
     /** How far that arrival has played, 0..1. Read it in the draw phase. */
     val arrivalProgress: Float get() = arrival.value
@@ -342,9 +352,9 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         var pose = moodPose(mood, t, t - moodStart, seed, motion, sweep = isSweeping(shape, mood))
         if (motion == MascotMotion.Quiet) pose = pose.copy(blink = max(pose.blink, quietBlink.floatValue))
         if (shape == MascotShape.Bars && value != 0f) pose = lookAt(pose, trendGaze(value), 1f)
-        val arrivedAt = arrivedShape
-        if (arrivedAt == shape && morphFrom == null && arrival.value < 1f) {
-            pose = arrived(pose, shape, (arrival.value * ARRIVAL_MS).toLong())
+        val cue = arrivedCue
+        if (cue != null && morphFrom == null && arrival.value < 1f) {
+            pose = arrived(pose, cue, (arrival.value * ARRIVAL_MS).toLong())
         }
         morphFrom?.let { from ->
             pose = withCutArrival(pose, from.moves, morph.value)
@@ -446,56 +456,75 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     }
 
     /**
-     * Bends the outline on screen into [target] on [spec], then plays [target]'s arrival.
-     * A change that lands mid-morph starts from the outline as it is, so nothing jumps.
+     * Bends the outline on screen into [target] on [spec], then plays [cue], or [target]'s
+     * own. A change that lands mid-morph starts from the outline as it is, so nothing jumps.
+     * The same shape with a non-null [cue] plays it in place (or once a morph cut short into
+     * it lands). Called again only for a new shape or a new cue (see [CueRequests]).
      * [motion] is read again once the morph lands: "Remove animations" turned on during
-     * it lets the morph finish but plays no arrival.
+     * it lets the morph finish but plays no cue.
      */
-    suspend fun changeShape(target: MascotShape, motion: () -> MascotMotion, spec: FiniteAnimationSpec<Float>) {
-        if (target == shape) return
+    suspend fun change(target: MascotShape, cue: MascotCue?, motion: () -> MascotMotion, spec: FiniteAnimationSpec<Float>) {
+        val first = !started
+        started = true
+        if (target == shape && morphFrom == null) {
+            if (first || cue == null) return
+            if (motion() == MascotMotion.Still) {
+                arrival.snapTo(1f)
+                arrivedCue = null
+                return
+            }
+            play(cue)
+            return
+        }
         if (motion() == MascotMotion.Still) {
             arrival.snapTo(1f)
             morphFrom = null
-            arrivedShape = null
+            arrivedCue = null
             shape = target
             value = latestValue
             morph.snapTo(1f)
             return
         }
-        // Before the arrival stops: a check half stamped is caught half stamped.
-        morphFrom = outlineOnScreen()
-        // The old arrival now lives in morphFrom. Left set, a morph back to a receipt that
-        // lands with "Remove animations" on would show the old check without its arrival.
-        arrivedShape = null
-        arrival.snapTo(1f)
-        shape = target
-        value = latestValue
-        morph.snapTo(0f)
+        if (target != shape) {
+            // Before the cue stops: a check half stamped is caught half stamped.
+            morphFrom = outlineOnScreen()
+            // The old cue now lives in morphFrom. Left set, a morph back that lands with
+            // "Remove animations" on would show the old check without its cue.
+            arrivedCue = null
+            arrival.snapTo(1f)
+            shape = target
+            value = latestValue
+            morph.snapTo(0f)
+        }
         morph.animateTo(1f, spec)
         morphFrom = null
         if (motion() == MascotMotion.Still) return
-        arrivedShape = target
-        // Only as long as the arrival moves: a settled shape asks for no more frames.
-        val end = arrivalEnd(target)
-        if (end > 0f) {
-            arrival.snapTo(0f)
-            arrival.animateTo(end, tween((end * ARRIVAL_MS).toInt(), easing = LinearEasing))
-        }
+        play(cue ?: defaultCue(target))
+    }
+
+    /** Plays [cue] from its start; only as long as it moves, so a settled shape asks for no more frames. */
+    private suspend fun play(cue: MascotCue?) {
+        val end = arrivalEnd(cue)
+        // At its start before it shows, so no frame draws it where the last one ended.
+        arrival.snapTo(if (end > 0f) 0f else 1f)
+        arrivedCue = cue
+        if (end > 0f) arrival.animateTo(end, tween((end * ARRIVAL_MS).toInt(), easing = LinearEasing))
     }
 
     /** The outline drawn right now: the shape, or the morph where it has got to. */
     private fun outlineOnScreen(): MorphFrom {
         val g = shape.geometry(value)
         val here = profileOf(shape, value)
-        val stamped = if (arrivedShape == MascotShape.Receipt && shape == MascotShape.Receipt) stampAlpha(arrival.value) else 0f
         // A jar mid-dip or a wallet mid-lean keeps that pose and lets it go through the morph.
-        val moving = if (arrivedShape == shape && arrival.value < 1f) {
-            CutArrival(shape, (arrival.value * ARRIVAL_MS).toLong(), 1f)
-        } else {
-            null
-        }
+        val moving = arrivedCue?.takeIf { arrival.value < 1f }?.let { CutArrival(it, (arrival.value * ARRIVAL_MS).toLong(), 1f) }
         val gaze = if (shape == MascotShape.Bars && value != 0f) trendGaze(value) else null
-        val from = morphFrom ?: return MorphFrom(here, g.eyes, g.pivot, shape, value, stamp = stamped, moves = moving, gaze = gaze)
+        val from = morphFrom ?: return MorphFrom(
+            here, g.eyes, g.pivot, shape, value,
+            gaze = gaze,
+            stamp = checkAlpha(arrivedCue, arrival.value),
+            stampAt = checkSpot(shape),
+            moves = moving,
+        )
         val p = morph.value
         val w = p.coerceIn(0f, 1f)
         val early = w < 0.5f
@@ -509,6 +538,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             faceAlpha = if (early) fromFaceAlpha(from, w) else fadeAt(1f - FACE_FADE, 1f, w),
             owl = lerp(from.owl, owlness(shape), w),
             stamp = fromStampAlpha(from, w),
+            stampAt = from.stampAt,
             squint = morphEyes(from, p),
             moves = from.moves?.let { it.copy(weight = cutWeight(it, p)) }?.takeIf { it.weight > 0f },
             // Into Bars, pose() already looks along the trend; out of it, what's left of the old look.
@@ -627,8 +657,8 @@ private inline fun DrawScope.withAlpha(alpha: Float, paint: Paint, content: Draw
 
 /** What the drawing needs besides the shape and pose: the arrival under way, and how to paint. */
 private class Decor(
-    /** The shape whose arrival last played, and how far it has got (0..1). */
-    val arrived: MascotShape?,
+    /** The cue that last played on the shape, and how far it has got (0..1). */
+    val arrived: MascotCue?,
     val t: Float,
     val tint: Color,
     /** Null for the two-tone glyph. */
@@ -665,7 +695,7 @@ private fun DrawScope.drawShape(shape: MascotShape, g: MascotGeometry, pose: Mas
                 drawPillEyes(g.eyes, 1f, pose, c.objectInk, d.scratch, DrawScope.DefaultBlendMode)
             }
         }
-        if (d.arrived == shape) drawArrival(shape, g, d)
+        d.arrived?.let { drawArrival(it, shape, g, d) }
     }
 }
 
@@ -700,7 +730,7 @@ private fun DrawScope.drawMorph(
             drawPath(body, d.tint)
             drawOwlCuts(eyes, owlCuts, m.beak, d.scratch)
             drawPillEyes(eyes, lerp(TWO_TONE_EYE_SCALE, OWL_TWO_TONE_EYE_SCALE, owl), squinting, d.tint, d.scratch, BlendMode.DstOut)
-            drawStamp(fromStampAlpha(m.from, w), d.tint, TWO_TONE_STAMP, BlendMode.DstOut, d.scratch)
+            drawStamp(fromStampAlpha(m.from, w), m.from.stampAt, d.tint, TWO_TONE_STAMP, BlendMode.DstOut, d.scratch)
         } else {
             drawPath(body, lerpColor(c.objectBody, c.body, owl))
             val fromFace = fromFaceAlpha(m.from, w)
@@ -712,7 +742,7 @@ private fun DrawScope.drawMorph(
             // The owl's eyes are cut out, an object's are inked: cross from one to the other.
             if (owl > 0f) drawPillEyes(eyes, 1f, squinting, CUT.copy(alpha = owl), d.scratch, BlendMode.DstOut)
             if (owl < 1f) drawPillEyes(eyes, 1f, squinting, c.objectInk.copy(alpha = c.objectInk.alpha * (1f - owl)), d.scratch, DrawScope.DefaultBlendMode)
-            clipPath(body) { drawStamp(fromStampAlpha(m.from, w), c.objectInk, 1f, DrawScope.DefaultBlendMode, d.scratch) }
+            clipPath(body) { drawStamp(fromStampAlpha(m.from, w), m.from.stampAt, c.objectInk, 1f, DrawScope.DefaultBlendMode, d.scratch) }
         }
     }
 }
@@ -775,22 +805,31 @@ private fun DrawScope.drawFace(g: MascotGeometry, c: MascotColors) {
     g.details?.let { drawPath(it, c.objectInk, alpha = g.detailAlpha) }
 }
 
-/** A shape's arrival (MascotArrival.kt), over its body: in its ink when detailed, cut out or in the tint as a glyph. */
-private fun DrawScope.drawArrival(shape: MascotShape, g: MascotGeometry, d: Decor) {
+/** [cue] (MascotArrival.kt) over [shape]'s body: in its ink when detailed, cut out or in the tint as a glyph. */
+private fun DrawScope.drawArrival(cue: MascotCue, shape: MascotShape, g: MascotGeometry, d: Decor) {
     val c = d.colors
-    val cut = if (c == null) BlendMode.DstOut else DrawScope.DefaultBlendMode
-    when (shape) {
-        MascotShape.Receipt -> drawStamp(stampAlpha(d.t), c?.objectInk ?: d.tint, if (c == null) TWO_TONE_STAMP else 1f, cut, d.scratch)
-        MascotShape.Coin -> if (d.t < 1f) {
+    val ink = CueInk(
+        // The owl is cut out at every size, so its marks are too.
+        mark = if (c == null) d.tint else if (shape == MascotShape.Owl) CUT else c.objectInk,
+        markBlend = if (c == null || shape == MascotShape.Owl) BlendMode.DstOut else DrawScope.DefaultBlendMode,
+        accent = c?.iris ?: d.tint,
+        light = c?.disc ?: d.tint,
+        body = if (c == null) d.tint else if (shape == MascotShape.Owl) c.body else c.objectBody,
+        glyph = c == null,
+        scratch = d.scratch,
+    )
+    drawStamp(checkAlpha(cue, d.t), checkSpot(shape), ink.mark, if (ink.glyph) TWO_TONE_STAMP else 1f, ink.markBlend, d.scratch)
+    when (cue) {
+        MascotCue.Shine -> if (d.t < 1f) {
             coinShineX(d.t)?.let { x ->
                 clipPath(g.body) {
                     rotate(SHINE_TILT, pivot = Offset(x, 52f)) {
                         drawRect(
-                            color = c?.disc ?: d.tint,
+                            color = ink.light,
                             topLeft = Offset(x - SHINE_WIDTH / 2, -BOX / 2),
                             size = Size(SHINE_WIDTH, BOX * 2),
                             alpha = SHINE_ALPHA,
-                            blendMode = cut,
+                            blendMode = ink.markBlend,
                         )
                     }
                 }
@@ -798,21 +837,39 @@ private fun DrawScope.drawArrival(shape: MascotShape, g: MascotGeometry, d: Deco
             // Outside the coin: drawn in the tint, never cut.
             for (s in COIN_SPARKLES) {
                 val a = sparkleAlpha(s, d.t)
-                if (a > 0f) drawSparkle(s.at, s.radius, c?.iris ?: d.tint, a, d.scratch)
+                if (a > 0f) drawSparkle(s.at, s.radius, ink.accent, a, d.scratch)
             }
         }
-        MascotShape.Jar -> if (d.t < 1f) {
-            jarCoin(d.t)?.let { drawCircle(c?.iris ?: d.tint, JAR_COIN_R, it, alpha = jarCoinAlpha(d.t)) }
+        MascotCue.CoinDrop -> if (d.t < 1f) {
+            jarCoin(d.t)?.let { drawCircle(ink.accent, JAR_COIN_R, it, alpha = jarCoinAlpha(d.t)) }
         }
+        MascotCue.Brim -> drawBrim(g, d.t, ink)
+        MascotCue.CoverEyes -> drawCoverEyes(g, d.t, ink)
+        MascotCue.Peek -> drawPeek(g, d.t, ink)
+        MascotCue.Learned -> drawLearned(d.t, ink)
         else -> Unit
     }
 }
 
-/** The receipt's check: a ring with a tick in its lower corner, [enlarge]d for the glyph. */
-private fun DrawScope.drawStamp(alpha: Float, color: Color, enlarge: Float, blendMode: BlendMode, scratch: Path) {
+/**
+ * How a cue paints over a body: [mark]s on it in [markBlend] (cut out of the glyph),
+ * [accent] off it, [light] for a highlight on it, and [body] for a part over the face (a
+ * wing), all in the tint as a glyph.
+ */
+internal class CueInk(
+    val mark: Color,
+    val markBlend: BlendMode,
+    val accent: Color,
+    val light: Color,
+    val body: Color,
+    val glyph: Boolean,
+    val scratch: Path,
+)
+
+/** A check: a ring at [center] with a tick in it, [enlarge]d for the glyph. */
+private fun DrawScope.drawStamp(alpha: Float, center: Offset, color: Color, enlarge: Float, blendMode: BlendMode, scratch: Path) {
     if (alpha <= 0f) return
     val line = STAMP_LINE * enlarge
-    val center = Offset(64f, 65f)
     val r = STAMP_R + (enlarge - 1f) * 1.5f
     drawCircle(color, r, center, alpha = alpha, style = Stroke(line), blendMode = blendMode)
     scratch.reset()
@@ -830,7 +887,7 @@ private const val SHINE_WIDTH = 9f
 private const val SHINE_ALPHA = 0.55f
 
 /** A four-pointed sparkle at [at], [r] to each point. */
-private fun DrawScope.drawSparkle(at: Offset, r: Float, color: Color, alpha: Float, scratch: Path) {
+internal fun DrawScope.drawSparkle(at: Offset, r: Float, color: Color, alpha: Float, scratch: Path) {
     scratch.reset()
     scratch.moveTo(at.x, at.y - r)
     scratch.quadraticTo(at.x, at.y, at.x + r, at.y)

@@ -280,7 +280,8 @@ object AiToolLogic {
     fun ruleFrom(args: JsonObject, actionsFromCaller: Boolean = true): TransactionRule {
         val rule = decodeRule(args)
         require(rule.conditions.none { it.field in HIDDEN_FIELDS }) { NO_HIDDEN_CONDITIONS }
-        // A note the caller writes is one it can then test other rules' note conditions against.
+        // A note the caller writes, or aims a stored note action at by changing the conditions, is one
+        // it can then test other rules' note conditions against.
         require(!actionsFromCaller || rule.actions.none { it.field == TransactionField.NARRATION }) { NO_NOTE_ACTIONS }
         return rule
     }
@@ -339,7 +340,7 @@ object AiToolLogic {
         if (keepsHidden) require("actions" !in args && "conditions" !in args) {
             "\"${existing.name}\" matches on SMS text or a note, which are hidden from AI apps, so only its name, description and priority can be changed from here."
         }
-        val build: (JsonObject) -> TransactionRule = if (keepsHidden) ::decodeRule else { a -> ruleFrom(a, actionsFromCaller = "actions" in args) }
+        val build: (JsonObject) -> TransactionRule = if (keepsHidden) ::decodeRule else { a -> ruleFrom(a, actionsFromCaller = "actions" in args || "conditions" in args) }
         val edited = build(buildJsonObject {
             put("name", existing.name)
             existing.description?.let { put("description", it) }

@@ -327,6 +327,8 @@ class AiToolsRulesTest {
         val noteRule = stored.copy(id = "n1", name = "Notes", actions = listOf(RuleAction(TransactionField.NARRATION, ActionType.SET, "mine")))
         coEvery { rules.getRuleById("n1") } returns noteRule
         assertFalse(call("update_rule", """{"id":"n1","name":"Renamed"}""").first)
+        // New conditions would aim its note at transactions the caller picks.
+        assertTrue(error("update_rule", """{"id":"n1","conditions":[$merchantCondition]}""").contains("write a transaction's note"))
     }
 
     @Test

@@ -139,7 +139,7 @@ internal fun arrived(pose: MascotPose, cue: MascotCue, sinceMs: Long): MascotPos
         MascotCue.Sorted -> sortedPose(pose, t)
         MascotCue.Read -> readPose(pose, t)
         MascotCue.Secured -> securedPose(pose, t)
-        MascotCue.Paid -> paidPose(pose, t, sinceMs)
+        MascotCue.Paid -> paidPose(pose, t)
         MascotCue.CoverEyes -> coverEyesPose(pose, t)
         MascotCue.Peek -> peekPose(pose, t)
         MascotCue.Shine, MascotCue.Stamp -> pose

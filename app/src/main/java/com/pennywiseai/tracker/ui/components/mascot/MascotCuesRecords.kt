@@ -206,7 +206,7 @@ internal fun paidRoll(t: Float): Float {
     return PAID_ROLL * exp(-s * PAID_DECAY) * sin(s * PAID_RATE) * (1 - smoothstep(PAID_QUIET, PAID_END, t))
 }
 
-internal fun paidPose(pose: MascotPose, t: Float, @Suppress("UNUSED_PARAMETER") sinceMs: Long): MascotPose =
+internal fun paidPose(pose: MascotPose, t: Float): MascotPose =
     pose.copy(roll = pose.roll + paidRoll(t))
 
 internal fun paidCheck(t: Float): Float = smoothstep(0.24f, 0.4f, t)

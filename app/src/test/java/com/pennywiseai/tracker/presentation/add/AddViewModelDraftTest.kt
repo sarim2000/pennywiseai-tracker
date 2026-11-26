@@ -46,7 +46,7 @@ class AddViewModelDraftTest {
                 learnedSendersStore = mockk(relaxed = true),
                 profilePreferences = mockk(relaxed = true),
                 mascotMoments = mockk(relaxed = true),
-                savedStateHandle = SavedStateHandle(mapOf("type" to type.name, "amount" to "12")),
+                savedStateHandle = SavedStateHandle(mapOf("type" to type.name, "amount" to "12", "note" to "Lunch with team")),
             )
             try {
                 block(viewModel)
@@ -65,10 +65,12 @@ class AddViewModelDraftTest {
         assertEquals(TransactionType.INCOME, transaction.transactionType)
         assertEquals("12", transaction.amount)
         assertEquals("USD", transaction.currency)
+        assertEquals("Lunch with team", transaction.notes)
         val subscription = vm.subscriptionUiState.value
         assertEquals(SubscriptionDirection.INCOME, subscription.direction)
         assertEquals("Income", subscription.category)
         assertEquals("12", subscription.amount)
+        assertEquals("Lunch with team", subscription.notes)
     }
 
     @Test

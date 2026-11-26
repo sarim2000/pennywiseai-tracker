@@ -96,6 +96,7 @@ class AddViewModel @Inject constructor(
     private val draftDateTime: LocalDateTime? = savedStateHandle.get<String>("dateTime")
         ?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
     private val unrecognizedSmsId: Long? = savedStateHandle.get<Long>("unrecognizedSmsId")
+    private val draftNote: String? = savedStateHandle.get<String>("note")
 
     // General UI State
     private val _uiState = MutableStateFlow(AddUiState())
@@ -299,7 +300,8 @@ class AddViewModel @Inject constructor(
                     merchant = draftMerchant ?: it.merchant,
                     category = draftCategory ?: it.category,
                     currency = draftCurrency ?: it.currency,
-                    date = draftDateTime ?: it.date
+                    date = draftDateTime ?: it.date,
+                    notes = draftNote ?: it.notes
                 )
             }
             // The same draft starts the Subscription form, so switching forms keeps what was
@@ -312,7 +314,8 @@ class AddViewModel @Inject constructor(
                     amount = draftAmount ?: it.amount,
                     serviceName = draftMerchant ?: it.serviceName,
                     category = draftCategory ?: it.category,
-                    currency = draftCurrency ?: it.currency
+                    currency = draftCurrency ?: it.currency,
+                    notes = draftNote ?: it.notes
                 )
             }
             selectAccount(draftBankName, draftAccountLast4)

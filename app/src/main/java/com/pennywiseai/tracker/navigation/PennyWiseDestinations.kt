@@ -104,6 +104,8 @@ data class AddTransaction(
     val type: String? = null,
     val dateTime: String? = null,
     val unrecognizedSmsId: Long? = null,
+    // An automation app's note (see AddAutomation).
+    val note: String? = null,
     // Bills' "+" opens the Subscription form directly.
     val form: AddForm = AddForm.TRANSACTION,
     // Unique per open, so two Add screens on the stack never share one ViewModel/draft

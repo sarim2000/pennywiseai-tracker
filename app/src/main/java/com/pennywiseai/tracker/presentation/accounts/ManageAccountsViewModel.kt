@@ -490,8 +490,14 @@ class ManageAccountsViewModel @Inject constructor(
                     )
                     // A credit card is its own account. The card list drops it once it
                     // isn't DEBIT, so give it that account now rather than at its next SMS.
+                    // Under the card's bank before this edit: its SMS are stored there,
+                    // and the parser keeps sending new ones there after a rename.
                     if (cardType == CardType.CREDIT) {
-                        accountBalanceRepository.ensureCreditCardAccount(bankName.trim(), existing.cardLast4)
+                        accountBalanceRepository.ensureCreditCardAccount(
+                            bankName = existing.bankName,
+                            cardLast4 = existing.cardLast4,
+                            cardCreatedAt = existing.createdAt
+                        )
                     }
                 }
                 _uiState.update { it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_card_updated)) }

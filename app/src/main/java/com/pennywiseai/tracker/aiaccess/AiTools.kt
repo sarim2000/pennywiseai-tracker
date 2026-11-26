@@ -212,7 +212,10 @@ class AiTools @Inject constructor(
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 throw Refused("PennyWise couldn't save these. Nothing was changed. Try again.")
             }
-            if (results.any { it["result"]?.jsonPrimitive?.content == "updated" }) widgets.refresh()
+            if (results.any { it["result"]?.jsonPrimitive?.content == "updated" }) {
+                // The rows are committed: a widget that fails to redraw must not turn the answer into "couldn't save".
+                try { widgets.refresh() } catch (e: Exception) { if (e is kotlinx.coroutines.CancellationException) throw e }
+            }
             buildJsonObject { put("results", JsonArray(results)) }
         }
     }

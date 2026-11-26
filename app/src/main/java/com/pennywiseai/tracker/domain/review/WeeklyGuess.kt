@@ -207,3 +207,12 @@ fun guessGapPercent(guess: BigDecimal, actual: BigDecimal): Int =
 
 /** No trailing zeros and no exponent: 200, not 2E+2, so figures compare and print plainly. */
 private fun BigDecimal.plain(): BigDecimal = stripTrailingZeros().let { if (it.scale() < 0) it.setScale(0) else it }
+
+/**
+ * Where the thumb starts: a quarter of the way, only as a place to start. On a light week
+ * it can sit inside the hit band, so it is never graded or shown as picked (see [lockableGuess]).
+ */
+internal fun WeeklyGuessQuestion.startingPick(): BigDecimal = snap(max.divide(BigDecimal(4)), step)
+
+/** The guess "Lock in my guess" grades and the chip shown as picked: none until the user dragged or tapped a chip. */
+internal fun lockableGuess(amount: BigDecimal, touched: Boolean): BigDecimal? = amount.takeIf { touched }

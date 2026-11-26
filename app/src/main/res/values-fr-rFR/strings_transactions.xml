@@ -68,6 +68,8 @@
     <string name="txn_detail_more_actions">Plus d\'actions</string>
     <string name="txn_detail_menu_add_to_group">Ajouter au groupe</string>
     <string name="txn_detail_menu_duplicate">Dupliquer</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">Signaler un problème</string>
     <string name="txn_detail_delete_title">Supprimer la transaction</string>
     <string name="txn_detail_delete_message">Êtes-vous sûr de vouloir supprimer cette opération ? Cette action ne peut pas être annulée.</string>

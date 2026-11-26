@@ -2,6 +2,16 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">Settings</string>
+    <string name="settings_search">Search settings</string>
+    <string name="settings_search_empty">No settings match “%1$s”</string>
+    <plurals name="settings_search_results">
+        <item quantity="one">%1$d setting</item>
+        <item quantity="other">%1$d settings</item>
+    </plurals>
+    <!-- Other words people type for these settings; search only, never shown. -->
+    <string name="settings_search_keywords_dark">dark mode, dark theme, night mode, theme</string>
+    <string name="settings_search_keywords_light">light mode, light theme, day mode, theme</string>
+    <string name="settings_search_keywords_app_lock">password, PIN, fingerprint, face unlock, biometric</string>
     <string name="settings_back">Back</string>
 
     <!-- Shared dialog actions -->
@@ -103,6 +113,9 @@
     <string name="settings_transaction_groups_subtitle">Organise transactions under a topic</string>
     <string name="settings_export_data_title">Export Data</string>
     <string name="settings_export_data_subtitle">Backup all data to a file</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
+    <string name="settings_export_csv_title">Export Transactions (CSV)</string>
+    <string name="settings_export_csv_subtitle">A spreadsheet file of every transaction</string>
     <string name="settings_folder_backup_title">Automatic Folder Backup</string>
     <string name="settings_folder_backup_subtitle_enabled">Daily backup at 2:00 AM to your chosen folder</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Save a backup to a folder every day at 2:00 AM</string>

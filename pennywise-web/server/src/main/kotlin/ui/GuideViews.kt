@@ -570,7 +570,7 @@ object GuideViews {
         div(classes = "header") {
             div(classes = "header-content") {
                 div(classes = "logo-section") {
-                    img(src = "/static/logo.png", alt = "", classes = "logo")
+                    img(src = "/static/logo-72.png", alt = "", classes = "logo")
                     span(classes = "logo-text") { +"PennyWise guide" }
                 }
                 nav(classes = "nav-links") { a(href = "/guide") { +"All guides" } }

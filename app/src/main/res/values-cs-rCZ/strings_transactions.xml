@@ -73,6 +73,8 @@
     <string name="txn_detail_more_actions">Další akce</string>
     <string name="txn_detail_menu_add_to_group">Přidat do skupiny</string>
     <string name="txn_detail_menu_duplicate">Duplikovat</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">Nahlásit problém</string>
     <string name="txn_detail_delete_title">Odstranit transakci</string>
     <string name="txn_detail_delete_message">Opravdu chcete odstranit tuto transakci? Tuto akci nelze vrátit zpět.</string>

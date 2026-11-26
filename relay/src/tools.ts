@@ -7,6 +7,13 @@ const readOnly = { readOnlyHint: true, destructiveHint: false, idempotentHint: t
 const write = { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const create = { ...write, idempotentHint: false };
 const merchant = { type: "string", description: "Merchant exactly as shown in search_transactions results (the merchant field, not the alias)" };
+// Names match ignoring case; a name that matches nothing leaves nothing out.
+const tag = {
+	anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+	description: "Only transactions with this tag: a single tag name, or a list of names to match any of them",
+};
+const excludeCategories = { type: "array", items: { type: "string" }, description: "Leave out transactions in these categories" };
+const excludeTags = { type: "array", items: { type: "string" }, description: "Leave out transactions with any of these tags" };
 const field = {
 	type: "string",
 	enum: ["AMOUNT", "TYPE", "CATEGORY", "MERCHANT", "NARRATION", "SMS_TEXT", "BANK_NAME", "TRANSACTION_HOUR", "TRANSACTION_TIME", "TRANSACTION_DAY_OF_WEEK", "TRANSACTION_DAY_OF_MONTH", "TRANSACTION_DATE", "ACCOUNT", "TAGS"],
@@ -18,14 +25,17 @@ export const TOOLS = [
 		name: "search_transactions",
 		title: "Search transactions",
 		description:
-			"Find the user's transactions in a date range, optionally filtered by text, category or type. Amounts are returned with their currency; never add amounts in different currencies together.",
+			"Find the user's transactions in a date range, optionally filtered by text, category, tag or type, or leaving out categories or tags. Amounts are returned with their currency; never add amounts in different currencies together.",
 		inputSchema: {
 			type: "object",
 			properties: {
 				from: date,
 				to: date,
-				query: { type: "string", description: "Words to match in the merchant or description" },
+				query: { type: "string", description: "Words to match in the merchant or its alias" },
 				category: { type: "string", description: "Category name, e.g. Food & Dining" },
+				tag,
+				exclude_categories: excludeCategories,
+				exclude_tags: excludeTags,
 				type: { type: "string", enum: ["EXPENSE", "INCOME", "TRANSFER", "CREDIT", "INVESTMENT"] },
 				account: { type: "string", description: "Only this account, exactly as shown in results, e.g. HDFC ••1234" },
 				sort: { type: "string", enum: ["date_desc", "date_asc", "amount_desc", "amount_asc"], default: "date_desc" },
@@ -40,7 +50,7 @@ export const TOOLS = [
 		name: "spending_summary",
 		title: "Spending summary",
 		description:
-			"Totals for a date range grouped by category, merchant, month, day, account, or month and category together. EXPENSE means spending, including card purchases. Each total is per currency; the result never mixes currencies.",
+			"Totals for a date range grouped by category, merchant, month, day, account, or month and category together, optionally for one tag or leaving out categories or tags. Merchant groups use the merchant's alias when it has one, so aliased merchants total together. EXPENSE means spending, including card purchases. Each total is per currency; the result never mixes currencies.",
 		inputSchema: {
 			type: "object",
 			properties: {
@@ -54,6 +64,9 @@ export const TOOLS = [
 				},
 				type: { type: "string", enum: ["EXPENSE", "INCOME"], default: "EXPENSE" },
 				account: { type: "string", description: "Only this account, exactly as shown in results, e.g. HDFC ••1234" },
+				tag,
+				exclude_categories: excludeCategories,
+				exclude_tags: excludeTags,
 				limit: { type: "integer", minimum: 1, description: "Only the first this many groups, most transactions first. total_groups says how many there are." },
 			},
 			required: ["from", "to"],
@@ -207,3 +220,23 @@ export const textResult = (text: string, isError = false): ToolResult => ({ cont
 
 export const NOT_CONNECTED =
 	"PennyWise isn't connected right now. On your phone, open PennyWise → Settings → Connect Claude / ChatGPT and start an AI session (or tap the PennyWise AI tile in Quick Settings), then ask again. If the session is on and the phone is online but this keeps happening, the connection may belong to an earlier install of PennyWise (for example after reinstalling): remove the PennyWise connector here and add it again.";
+
+const FILTER_KEYS = ["tag", "exclude_categories", "exclude_tags"];
+// The app reads a filter as a non-blank JSON string or a list of them; anything else is no filter there either.
+// Has a visible character: the same set the app's isName uses (whitespace, control characters, BOM).
+const isName = (v: unknown): boolean => typeof v === "string" && /[^\s\u0000-\u001f\u007f-\u009f\u180e\ufeff]/.test(v);
+const nonEmpty = (v: unknown): boolean => (Array.isArray(v) ? v.some(isName) : isName(v));
+
+/**
+ * An older PennyWise app ignores the filter arguments and answers unfiltered. A newer one echoes
+ * them back in a `filters` field, so a result for filtered arguments without it isn't passed on.
+ */
+export function requireFilterEcho(name: string, args: unknown, result: ToolResult): ToolResult {
+	if ((name !== "search_transactions" && name !== "spending_summary") || result.isError) return result;
+	const given = args as Record<string, unknown> | null;
+	if (!FILTER_KEYS.some((k) => nonEmpty(given?.[k]))) return result;
+	try {
+		if ("filters" in JSON.parse(result.content[0].text)) return result;
+	} catch {}
+	return textResult("This filter needs a newer version of the PennyWise app. Update the app, or retry without tag, exclude_categories and exclude_tags.", true);
+}

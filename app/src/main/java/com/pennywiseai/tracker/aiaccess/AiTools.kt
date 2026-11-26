@@ -261,7 +261,8 @@ class AiTools @Inject constructor(
             // A split's categories live in its splits; the app's quick pick isn't offered for it either.
             if (transactions.hasSplits(txn.id)) throw Refused("this transaction is split across categories; change it in PennyWise")
         }
-        val wantedKeys = wantedTags?.map { tagKey(it) }?.toSet()
+        // Deduplicated first the way setTagsForTransaction does, or a list with both "Café" and "CAFÉ" would never read as unchanged.
+        val wantedKeys = wantedTags?.distinctBy { it.lowercase() }?.map { tagKey(it) }?.toSet()
         val tagsChange = wantedKeys != null && wantedKeys != tags.getTagNamesForTransaction(txn.id).map { tagKey(it) }.toSet()
         val excludedChanges = excluded != null && excluded != txn.excludedFromAnalytics
         if (!categoryChanges && !tagsChange && !excludedChanges) return "unchanged" to null

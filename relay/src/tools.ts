@@ -15,10 +15,10 @@ const tag = {
 };
 const excludeCategories = { type: "array", items: { type: "string" }, description: "Leave out transactions in these categories" };
 const excludeTags = { type: "array", items: { type: "string" }, description: "Leave out transactions with any of these tags" };
-const field = {
-	type: "string",
-	enum: ["AMOUNT", "TYPE", "CATEGORY", "MERCHANT", "NARRATION", "SMS_TEXT", "BANK_NAME", "TRANSACTION_HOUR", "TRANSACTION_TIME", "TRANSACTION_DAY_OF_WEEK", "TRANSACTION_DAY_OF_MONTH", "TRANSACTION_DATE", "ACCOUNT", "TAGS"],
-};
+const actionFields = ["AMOUNT", "TYPE", "CATEGORY", "MERCHANT", "NARRATION", "SMS_TEXT", "BANK_NAME", "TRANSACTION_HOUR", "TRANSACTION_TIME", "TRANSACTION_DAY_OF_WEEK", "TRANSACTION_DAY_OF_MONTH", "TRANSACTION_DATE", "ACCOUNT", "TAGS"];
+const actionField = { type: "string", enum: actionFields };
+// Conditions on SMS text or a note are made in the app: both are hidden from AI apps.
+const conditionField = { type: "string", enum: actionFields.filter((f) => f !== "SMS_TEXT" && f !== "NARRATION") };
 const ruleId = { type: "string", description: "The rule's id, from list_rules" };
 const applyToPast = {
 	type: "string",
@@ -32,7 +32,7 @@ const conditions = {
 	items: {
 		type: "object",
 		properties: {
-			field,
+			field: conditionField,
 			operator: { type: "string", enum: ["EQUALS", "NOT_EQUALS", "CONTAINS", "STARTS_WITH", "LESS_THAN", "GREATER_THAN", "LESS_THAN_OR_EQUAL", "GREATER_THAN_OR_EQUAL", "IN"] },
 			value: { type: "string", description: "Comma-separated for IN" },
 			logicalOperator: { type: "string", enum: ["AND", "OR"], default: "AND", description: "How this condition joins the ones before it" },
@@ -46,7 +46,7 @@ const actions = {
 	items: {
 		type: "object",
 		properties: {
-			field,
+			field: actionField,
 			actionType: { type: "string", enum: ["SET", "APPEND", "PREPEND", "CLEAR", "ADD_TAG", "REMOVE_TAG"] },
 			value: { type: "string", description: "Empty for CLEAR" },
 		},
@@ -54,7 +54,7 @@ const actions = {
 	},
 };
 const RULE_OPERATORS =
-	" Operators allowed by field (others are refused): AMOUNT LESS_THAN/GREATER_THAN/EQUALS (number); TYPE EQUALS/NOT_EQUALS (EXPENSE, INCOME, CREDIT, TRANSFER, INVESTMENT), e.g. TYPE NOT_EQUALS TRANSFER; MERCHANT, NARRATION, SMS_TEXT, CATEGORY, BANK_NAME CONTAINS/EQUALS/STARTS_WITH; TRANSACTION_HOUR EQUALS/LESS_THAN/GREATER_THAN (0-23); TRANSACTION_TIME EQUALS/LESS_THAN/GREATER_THAN/LESS_THAN_OR_EQUAL/GREATER_THAN_OR_EQUAL (HH:mm); TRANSACTION_DAY_OF_MONTH EQUALS/IN/LESS_THAN/GREATER_THAN (1-31); TRANSACTION_DAY_OF_WEEK EQUALS/IN/NOT_EQUALS (1=Monday..7=Sunday), e.g. TRANSACTION_DAY_OF_WEEK IN \"6,7\"; TRANSACTION_DATE EQUALS/LESS_THAN/GREATER_THAN (YYYY-MM-DD, both bounds exclusive); ACCOUNT EQUALS/NOT_EQUALS (\"Bank||last4\"), e.g. ACCOUNT NOT_EQUALS \"HDFC||1234\". There is no BETWEEN: between two dates is two TRANSACTION_DATE conditions, the second with logicalOperator AND, e.g. GREATER_THAN 2026-03-31 then LESS_THAN 2026-05-01 for all of April. Actions: CATEGORY SET (a category name) or CLEAR; TYPE SET (a type name); MERCHANT or NARRATION SET/APPEND/PREPEND/CLEAR; TAGS ADD_TAG/REMOVE_TAG. SMS_TEXT is matched on the phone; you never see SMS text.";
+	" Operators allowed by field (others are refused): AMOUNT LESS_THAN/GREATER_THAN/EQUALS (number); TYPE EQUALS/NOT_EQUALS (EXPENSE, INCOME, CREDIT, TRANSFER, INVESTMENT), e.g. TYPE NOT_EQUALS TRANSFER; MERCHANT, CATEGORY, BANK_NAME CONTAINS/EQUALS/STARTS_WITH; TRANSACTION_HOUR EQUALS/LESS_THAN/GREATER_THAN (0-23); TRANSACTION_TIME EQUALS/LESS_THAN/GREATER_THAN/LESS_THAN_OR_EQUAL/GREATER_THAN_OR_EQUAL (HH:mm); TRANSACTION_DAY_OF_MONTH EQUALS/IN/LESS_THAN/GREATER_THAN (1-31); TRANSACTION_DAY_OF_WEEK EQUALS/IN/NOT_EQUALS (1=Monday..7=Sunday), e.g. TRANSACTION_DAY_OF_WEEK IN \"6,7\"; TRANSACTION_DATE EQUALS/LESS_THAN/GREATER_THAN (YYYY-MM-DD, both bounds exclusive); ACCOUNT EQUALS/NOT_EQUALS (\"Bank||last4\"), e.g. ACCOUNT NOT_EQUALS \"HDFC||1234\". There is no BETWEEN: between two dates is two TRANSACTION_DATE conditions, the second with logicalOperator AND, e.g. GREATER_THAN 2026-03-31 then LESS_THAN 2026-05-01 for all of April. Actions: CATEGORY SET (a category name) or CLEAR; TYPE SET (a type name); MERCHANT or NARRATION SET/APPEND/PREPEND/CLEAR; TAGS ADD_TAG/REMOVE_TAG. Rules that match on SMS text or a transaction's note are made in the app: both are hidden from you.";
 const WRITE_NOTE = " Changes data: only works while the user has turned on Let AI apps make changes in PennyWise.";
 
 export const TOOLS = [
@@ -303,6 +303,14 @@ export function requireFilterEcho(name: string, args: unknown, result: ToolResul
 		if ("filters" in JSON.parse(result.content[0].text)) return result;
 	} catch {}
 	return textResult("This filter needs a newer version of the PennyWise app. Update the app, or retry without tag, exclude_categories and exclude_tags.", true);
+}
+
+/** An older app saves a rule on SMS text or a note, which lets the caller probe hidden text; so it never gets one. */
+export function refuseHiddenConditions(name: string, args: unknown): ToolResult | null {
+	if (name !== "create_rule" && name !== "update_rule") return null;
+	const conditions = (args as Record<string, unknown> | null)?.conditions;
+	if (!Array.isArray(conditions) || !conditions.some((c) => c !== null && typeof c === "object" && ((c as Record<string, unknown>).field === "SMS_TEXT" || (c as Record<string, unknown>).field === "NARRATION"))) return null;
+	return textResult("Rules that match on SMS text or a transaction's note can't be created or changed from here: both are hidden from AI apps. Create it in PennyWise → Rules.", true);
 }
 
 /** An older app ignores dry_run and would really save the rule, so it never gets the argument. */

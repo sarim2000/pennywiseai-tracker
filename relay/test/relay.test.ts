@@ -1,7 +1,7 @@
 import { runInDurableObject } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { refuseDryRun, requireAppliedToPast, requireFilterEcho } from "../src/tools";
+import { refuseDryRun, refuseHiddenConditions, requireAppliedToPast, requireFilterEcho } from "../src/tools";
 
 const BASE = "https://relay.test";
 const REDIRECT = "https://client.test/callback";
@@ -213,6 +213,21 @@ describe("dashboard", () => {
 
 describe("older apps behind the relay", () => {
 	const answer = (body: object) => ({ content: [{ type: "text" as const, text: JSON.stringify(body) }] });
+
+	it("refuses create_rule and update_rule with a condition on SMS text or a note, and passes the rest", () => {
+		for (const name of ["create_rule", "update_rule"]) {
+			for (const field of ["SMS_TEXT", "NARRATION"]) {
+				const out = refuseHiddenConditions(name, { conditions: [{ field: "MERCHANT" }, { field, operator: "CONTAINS", value: "x" }] });
+				expect(out?.isError).toBe(true);
+				expect(out?.content[0].text).toContain("hidden from AI apps");
+			}
+			expect(refuseHiddenConditions(name, { conditions: [{ field: "MERCHANT", operator: "CONTAINS", value: "x" }] })).toBeNull();
+			for (const conditions of ["SMS_TEXT", { field: "SMS_TEXT" }, [null, 3, "NARRATION"], []]) expect(refuseHiddenConditions(name, { conditions })).toBeNull();
+			expect(refuseHiddenConditions(name, null)).toBeNull();
+			expect(refuseHiddenConditions(name, undefined)).toBeNull();
+		}
+		expect(refuseHiddenConditions("preview_rule", { conditions: [{ field: "SMS_TEXT" }] })).toBeNull();
+	});
 
 	it("refuses dry_run on create_rule and update_rule, and nothing else", () => {
 		for (const name of ["create_rule", "update_rule"]) {

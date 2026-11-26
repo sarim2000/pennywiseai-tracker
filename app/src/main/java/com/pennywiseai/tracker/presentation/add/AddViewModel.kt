@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.model.MerchantSuggestion
 import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
@@ -28,6 +29,7 @@ import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
+import com.pennywiseai.tracker.presentation.subscriptions.billTrackedMoment
 import com.pennywiseai.tracker.presentation.transactions.normalizeReference
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.pickerDefault
@@ -64,6 +66,7 @@ class AddViewModel @Inject constructor(
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val learnedSendersStore: LearnedSendersStore,
     private val profilePreferences: UserPreferencesRepository,
+    private val mascotMoments: MascotMoments,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -879,7 +882,10 @@ class AddViewModel @Inject constructor(
                 )
             }
             when (outcome) {
-                SaveOutcome.Saved -> onSuccess()
+                SaveOutcome.Saved -> {
+                    billTrackedMoment(state.direction)?.let(mascotMoments::announce)
+                    onSuccess()
+                }
                 SaveOutcome.Busy -> Unit
                 else -> {
                     (outcome as? SaveOutcome.Failed)?.let { Log.e("AddViewModel", "Error saving subscription", it.error) }

@@ -54,6 +54,7 @@ object AiToolLogic {
 
     const val HIDDEN_SMS_TEXT = "(SMS text hidden)"
     const val HIDDEN_NOTE = "(note hidden)"
+    const val NO_NOTE_ACTIONS = "Rules that write a transaction's note can't be created or changed from here: notes are hidden from AI apps. Create it in PennyWise → Rules."
 
     private val HIDDEN_FIELDS = setOf(TransactionField.SMS_TEXT, TransactionField.NARRATION)
     const val NO_HIDDEN_CONDITIONS = "Rules that match on SMS text or a transaction's note can't be created or changed from here: both are hidden from AI apps. Create it in PennyWise → Rules."
@@ -276,9 +277,11 @@ object AiToolLogic {
      * A rule from `create_rule` arguments, checked exactly like an imported rules file. BLOCK
      * is refused: it silently drops future SMS, too much for an AI app to set up.
      */
-    fun ruleFrom(args: JsonObject): TransactionRule {
+    fun ruleFrom(args: JsonObject, actionsFromCaller: Boolean = true): TransactionRule {
         val rule = decodeRule(args)
         require(rule.conditions.none { it.field in HIDDEN_FIELDS }) { NO_HIDDEN_CONDITIONS }
+        // A note the caller writes is one it can then test other rules' note conditions against.
+        require(!actionsFromCaller || rule.actions.none { it.field == TransactionField.NARRATION }) { NO_NOTE_ACTIONS }
         return rule
     }
 
@@ -336,7 +339,8 @@ object AiToolLogic {
         if (keepsHidden) require("actions" !in args && "conditions" !in args) {
             "\"${existing.name}\" matches on SMS text or a note, which are hidden from AI apps, so only its name, description and priority can be changed from here."
         }
-        val edited = (if (keepsHidden) ::decodeRule else ::ruleFrom)(buildJsonObject {
+        val build: (JsonObject) -> TransactionRule = if (keepsHidden) ::decodeRule else { a -> ruleFrom(a, actionsFromCaller = "actions" in args) }
+        val edited = build(buildJsonObject {
             put("name", existing.name)
             existing.description?.let { put("description", it) }
             put("priority", existing.priority)

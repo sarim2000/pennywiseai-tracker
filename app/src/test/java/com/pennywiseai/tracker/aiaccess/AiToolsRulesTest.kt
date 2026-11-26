@@ -317,6 +317,19 @@ class AiToolsRulesTest {
     }
 
     @Test
+    fun `a rule that writes a note can't be created or given such an action, but one the user made can be renamed`() {
+        val setNote = """{"field":"NARRATION","actionType":"SET","value":"x"}"""
+        assertTrue(error("create_rule", withActions(setNote)).contains("write a transaction's note"))
+        assertTrue(error("preview_rule", withActions(setNote)).contains("write a transaction's note"))
+        assertTrue(error("update_rule", """{"id":"r1","actions":[$setNote]}""").contains("write a transaction's note"))
+        coVerify(exactly = 0) { rules.insertRule(any()) }
+        coVerify(exactly = 0) { rules.updateRule(any()) }
+        val noteRule = stored.copy(id = "n1", name = "Notes", actions = listOf(RuleAction(TransactionField.NARRATION, ActionType.SET, "mine")))
+        coEvery { rules.getRuleById("n1") } returns noteRule
+        assertFalse(call("update_rule", """{"id":"n1","name":"Renamed"}""").first)
+    }
+
+    @Test
     fun `an ordinary merchant rule still creates, updates, previews and applies`() {
         assertFalse(call("create_rule", create(""","apply_to_past":"all"""")).first)
         assertFalse(call("update_rule", """{"id":"r1","conditions":[$merchantCondition],"apply_to_past":"all"}""").first)
@@ -340,10 +353,10 @@ class AiToolsRulesTest {
         assertFalse(call("update_rule", """{"id":"r1","actions":[$setType]}""").first)
         coVerify(exactly = 0) { transactions.updateTransaction(any()) }
         // Notes and merchant names stay out: the old text is lost with the rule, and a count would read notes.
-        for (field in listOf("NARRATION", "MERCHANT")) {
-            assertTrue(error("preview_rule", withActions("""{"field":"$field","actionType":"SET","value":"x"}""")).contains("changes more than categories or tags"))
-            assertTrue(error("preview_rule", withActions("""{"field":"$field","actionType":"CLEAR","value":""}""")).contains("changes more than categories or tags"))
-        }
+        assertTrue(error("preview_rule", withActions("""{"field":"MERCHANT","actionType":"SET","value":"x"}""")).contains("changes more than categories or tags"))
+        assertTrue(error("preview_rule", withActions("""{"field":"MERCHANT","actionType":"CLEAR","value":""}""")).contains("changes more than categories or tags"))
+        // A note action is refused outright, before the past-run check.
+        assertTrue(error("preview_rule", withActions("""{"field":"NARRATION","actionType":"CLEAR","value":""}""")).contains("write a transaction's note"))
         // Setting a category and adding a tag repeat safely.
         val safe = """{"field":"CATEGORY","actionType":"SET","value":"Food"},{"field":"TAGS","actionType":"ADD_TAG","value":"trip"}"""
         assertFalse(call("preview_rule", withActions(safe)).first)

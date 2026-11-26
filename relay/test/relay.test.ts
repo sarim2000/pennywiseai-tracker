@@ -1,7 +1,7 @@
 import { runInDurableObject } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { refuseDryRun, refuseHiddenConditions, requireAppliedToPast, requireFilterEcho } from "../src/tools";
+import { hideNoteConditions, refuseDryRun, refuseHiddenConditions, requireAppliedToPast, requireFilterEcho } from "../src/tools";
 
 const BASE = "https://relay.test";
 const REDIRECT = "https://client.test/callback";
@@ -227,6 +227,21 @@ describe("older apps behind the relay", () => {
 			expect(refuseHiddenConditions(name, undefined)).toBeNull();
 		}
 		expect(refuseHiddenConditions("preview_rule", { conditions: [{ field: "SMS_TEXT" }] })).toBeNull();
+	});
+
+	it("refuses a rule that writes a note, and hides note condition text an older app lists", () => {
+		const out = refuseHiddenConditions("create_rule", { conditions: [{ field: "MERCHANT" }], actions: [{ field: "NARRATION", actionType: "SET", value: "x" }] });
+		expect(out?.content[0].text).toContain("write a transaction's note");
+		expect(refuseHiddenConditions("update_rule", { actions: [{ field: "CATEGORY", actionType: "SET", value: "Food" }] })).toBeNull();
+		const listed = (value: string) => ({ content: [{ type: "text" as const, text: JSON.stringify({ rules: [{ name: "N", conditions: [{ field: "NARRATION", value }, { field: "MERCHANT", value: "cafe" }] }] }) }] });
+		const shown = hideNoteConditions("list_rules", listed("my private note"));
+		expect(shown.content[0].text).not.toContain("my private note");
+		expect(shown.content[0].text).toContain("(note hidden)");
+		expect(shown.content[0].text).toContain("cafe");
+		const already = listed("(note hidden)");
+		expect(hideNoteConditions("list_rules", already)).toBe(already);
+		const other = listed("my private note");
+		expect(hideNoteConditions("search_transactions", other)).toBe(other);
 	});
 
 	it("refuses dry_run on create_rule and update_rule, and nothing else", () => {

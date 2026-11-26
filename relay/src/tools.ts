@@ -15,10 +15,10 @@ const tag = {
 };
 const excludeCategories = { type: "array", items: { type: "string" }, description: "Leave out transactions in these categories" };
 const excludeTags = { type: "array", items: { type: "string" }, description: "Leave out transactions with any of these tags" };
-const actionFields = ["AMOUNT", "TYPE", "CATEGORY", "MERCHANT", "NARRATION", "SMS_TEXT", "BANK_NAME", "TRANSACTION_HOUR", "TRANSACTION_TIME", "TRANSACTION_DAY_OF_WEEK", "TRANSACTION_DAY_OF_MONTH", "TRANSACTION_DATE", "ACCOUNT", "TAGS"];
-const actionField = { type: "string", enum: actionFields };
-// Conditions on SMS text or a note are made in the app: both are hidden from AI apps.
-const conditionField = { type: "string", enum: actionFields.filter((f) => f !== "SMS_TEXT" && f !== "NARRATION") };
+const fields = ["AMOUNT", "TYPE", "CATEGORY", "MERCHANT", "NARRATION", "SMS_TEXT", "BANK_NAME", "TRANSACTION_HOUR", "TRANSACTION_TIME", "TRANSACTION_DAY_OF_WEEK", "TRANSACTION_DAY_OF_MONTH", "TRANSACTION_DATE", "ACCOUNT", "TAGS"];
+// Rules from AI apps neither match on nor write SMS text or notes: both are hidden from them.
+const hidden = (f: string) => f === "SMS_TEXT" || f === "NARRATION";
+const field = { type: "string", enum: fields.filter((f) => !hidden(f)) };
 const ruleId = { type: "string", description: "The rule's id, from list_rules" };
 const applyToPast = {
 	type: "string",
@@ -32,7 +32,7 @@ const conditions = {
 	items: {
 		type: "object",
 		properties: {
-			field: conditionField,
+			field,
 			operator: { type: "string", enum: ["EQUALS", "NOT_EQUALS", "CONTAINS", "STARTS_WITH", "LESS_THAN", "GREATER_THAN", "LESS_THAN_OR_EQUAL", "GREATER_THAN_OR_EQUAL", "IN"] },
 			value: { type: "string", description: "Comma-separated for IN" },
 			logicalOperator: { type: "string", enum: ["AND", "OR"], default: "AND", description: "How this condition joins the ones before it" },
@@ -46,7 +46,7 @@ const actions = {
 	items: {
 		type: "object",
 		properties: {
-			field: actionField,
+			field,
 			actionType: { type: "string", enum: ["SET", "APPEND", "PREPEND", "CLEAR", "ADD_TAG", "REMOVE_TAG"] },
 			value: { type: "string", description: "Empty for CLEAR" },
 		},
@@ -305,12 +305,36 @@ export function requireFilterEcho(name: string, args: unknown, result: ToolResul
 	return textResult("This filter needs a newer version of the PennyWise app. Update the app, or retry without tag, exclude_categories and exclude_tags.", true);
 }
 
-/** An older app saves a rule on SMS text or a note, which lets the caller probe hidden text; so it never gets one. */
+const fieldOf = (item: unknown): unknown => (item !== null && typeof item === "object" ? (item as Record<string, unknown>).field : undefined);
+const list = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+
+/** An older app saves a rule that matches on SMS text or a note, or writes a note; so it never gets one. */
 export function refuseHiddenConditions(name: string, args: unknown): ToolResult | null {
 	if (name !== "create_rule" && name !== "update_rule") return null;
-	const conditions = (args as Record<string, unknown> | null)?.conditions;
-	if (!Array.isArray(conditions) || !conditions.some((c) => c !== null && typeof c === "object" && ((c as Record<string, unknown>).field === "SMS_TEXT" || (c as Record<string, unknown>).field === "NARRATION"))) return null;
-	return textResult("Rules that match on SMS text or a transaction's note can't be created or changed from here: both are hidden from AI apps. Create it in PennyWise → Rules.", true);
+	const given = args as Record<string, unknown> | null;
+	if (list(given?.conditions).some((c) => hidden(String(fieldOf(c)))))
+		return textResult("Rules that match on SMS text or a transaction's note can't be created or changed from here: both are hidden from AI apps. Create it in PennyWise → Rules.", true);
+	if (list(given?.actions).some((a) => fieldOf(a) === "NARRATION"))
+		return textResult("Rules that write a transaction's note can't be created or changed from here: notes are hidden from AI apps. Create it in PennyWise → Rules.", true);
+	return null;
+}
+
+/** An older app's list_rules quotes the text of a note condition; hide it as the current app does. */
+export function hideNoteConditions(name: string, result: ToolResult): ToolResult {
+	if (name !== "list_rules" || result.isError) return result;
+	try {
+		const set = JSON.parse(result.content[0].text);
+		let changed = false;
+		for (const rule of list(set?.rules) as { conditions?: unknown }[])
+			for (const c of list(rule?.conditions) as { field?: unknown; value?: unknown }[])
+				if (c?.field === "NARRATION" && c.value !== "(note hidden)") {
+					c.value = "(note hidden)";
+					changed = true;
+				}
+		return changed ? textResult(JSON.stringify(set)) : result;
+	} catch {
+		return result;
+	}
 }
 
 /** An older app ignores dry_run and would really save the rule, so it never gets the argument. */

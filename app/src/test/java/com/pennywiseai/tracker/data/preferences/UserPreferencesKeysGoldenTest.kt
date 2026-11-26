@@ -101,6 +101,7 @@ class UserPreferencesKeysGoldenTest {
             "budget_month_cards_dismissed" to "Set<String>",
             "conscience_enabled" to "Boolean",
             "celebrated_moments" to "Set<String>",
+            "challenges" to "String",
             "conscience_log" to "Set<String>",
             "conscience_retired_lines" to "Set<String>",
             "conscience_liked_lines" to "Set<String>",

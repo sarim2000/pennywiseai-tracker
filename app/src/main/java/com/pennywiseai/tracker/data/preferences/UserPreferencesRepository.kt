@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.preferences.HomeShortcut
 import com.pennywiseai.tracker.data.preferences.HomeShortcutLayout
+import com.pennywiseai.tracker.domain.challenges.ChallengeState
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
@@ -35,6 +36,7 @@ import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
@@ -202,6 +204,8 @@ open class UserPreferencesRepository internal constructor(
         val WEEKLY_GUESS_HANDLED_WEEK = stringPreferencesKey("weekly_guess_handled_week")
         // "Don't ask again" on the weekly guess card. Device-local, like the other Home cards' choices.
         val WEEKLY_GUESS_OFF = booleanPreferencesKey("weekly_guess_off")
+        // Plan → Challenges: the running challenge and the last few results, as JSON. Device-local.
+        val CHALLENGES = stringPreferencesKey("challenges")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -376,7 +380,8 @@ open class UserPreferencesRepository internal constructor(
             K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.CELEBRATED_MOMENTS,
             K.BUDGET_MONTH_CARD_DISMISSED,
             K.WEEKLY_GUESS_HANDLED_WEEK, K.WEEKLY_GUESS_OFF,
-            K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES, K.LAST_AUTH_TIMESTAMP, K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
+            K.CHALLENGES, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES, K.LAST_AUTH_TIMESTAMP,
+            K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
             K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING,
@@ -1670,6 +1675,24 @@ open class UserPreferencesRepository internal constructor(
         } catch (_: IOException) {
             // Full disk: leave the stored set alone so a later visit can try again.
         }
+    }
+
+    // By the raw JSON: every other preference write re-emits dataStore.data.
+    val challenges: Flow<ChallengeState> = dataStore.data
+        .map { it[PreferencesKeys.CHALLENGES] }
+        .distinctUntilChanged()
+        .map { ChallengeState.fromJson(it) }
+
+    /** Applies [change] to the stored challenges in one edit. False if it couldn't be saved (full disk). */
+    suspend fun updateChallenges(change: (ChallengeState) -> ChallengeState): Boolean = try {
+        dataStore.edit { preferences ->
+            val current = ChallengeState.fromJson(preferences[PreferencesKeys.CHALLENGES])
+            val next = change(current)
+            if (next != current) preferences[PreferencesKeys.CHALLENGES] = next.toJson()
+        }
+        true
+    } catch (_: IOException) {
+        false
     }
 
     // Replace UPI VPAs with matching contact names at display time.

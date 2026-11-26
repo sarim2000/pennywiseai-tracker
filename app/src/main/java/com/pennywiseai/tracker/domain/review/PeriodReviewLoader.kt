@@ -135,11 +135,18 @@ class PeriodReviewLoader @Inject constructor(
         return rowsIn(start, end).first().count { keep(it.transaction) }
     }
 
-    /** Rows dated [start]..[end] in the review's scope: the selected profile, no ignored accounts. */
-    fun scopedRows(start: LocalDate, end: LocalDate): Flow<List<TransactionWithSplits>> = combine(
+    /**
+     * Rows dated [start]..[end] in the review's scope: [profileId] (the selected profile
+     * by default; null for all), no ignored accounts.
+     */
+    fun scopedRows(
+        start: LocalDate,
+        end: LocalDate,
+        profileId: Flow<Long?> = userPreferencesRepository.selectedProfileId,
+    ): Flow<List<TransactionWithSplits>> = combine(
         rowsIn(start, end),
         ignoredKeys(),
-        userPreferencesRepository.selectedProfileId,
+        profileId,
         accountBalanceRepository.getAllLatestBalances(),
     ) { rows, ignored, profileId, balances ->
         val keep = scopeOf(ignored, profileId, balances)

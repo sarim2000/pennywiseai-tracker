@@ -208,6 +208,9 @@ class AiTools @Inject constructor(
         } else null
         val newTags = if ("tags" in o) {
             val list = o["tags"] as? JsonArray ?: throw Refused("tags must be a list of names")
+            // New tags are created on the fly, so a careless caller could flood the tag list.
+            if (list.size > MAX_TAGS) throw Refused("at most $MAX_TAGS tags on a transaction")
+            if (list.any { (it as? JsonPrimitive)?.content.orEmpty().length > MAX_TAG_LENGTH }) throw Refused("a tag name can be at most $MAX_TAG_LENGTH characters")
             list.map { t -> (t as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()?.takeIf(::isName) ?: throw Refused("tags must be a list of non-empty names") }
         } else null
         val excluded = if ("excluded_from_analytics" in o) {
@@ -426,6 +429,8 @@ class AiTools @Inject constructor(
         val UPDATE_KEYS = setOf("id", "category", "tags", "excluded_from_analytics")
         const val MAX_BATCH = 100
         const val MAX_UPDATES = 200
+        const val MAX_TAGS = 10
+        const val MAX_TAG_LENGTH = 40
         const val WRITES_OFF = "Changes from AI apps are off. Ask the user to turn on \"Let AI apps make changes\" in PennyWise → Settings → Connect Claude / ChatGPT, then try again. Nothing was changed."
         const val DEFAULT_CATEGORY_COLOR = "#4CAF50" // the category editor's default
     }

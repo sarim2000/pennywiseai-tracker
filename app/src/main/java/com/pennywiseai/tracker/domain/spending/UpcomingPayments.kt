@@ -45,7 +45,7 @@ object UpcomingPayments {
         val start = maxOf(today, from)
         val hidden = cards.filter { isExcluded(it.bankName, it.accountLast4) }
         fun counts(bank: String?, last4: String?) = !isExcluded(bank, last4) && !onCard(bank, last4, hidden)
-        fun card(bank: String?, last4: String?) = cardOf(bank, last4, cards)
+        fun card(bank: String?, last4: String?) = cardsOf(bank, last4, cards)
         val subs = subscriptions(subscriptions.filter { counts(it.bankName, it.accountLast4) }, start, end, ::card)
         // A template for the same payment as a subscription is shown once.
         val templates = recurring(recurring.filter { counts(it.bankName, it.accountLast4) }, today, start, end, ::card)
@@ -67,7 +67,7 @@ object UpcomingPayments {
         subscriptions: List<SubscriptionEntity>,
         start: LocalDate,
         end: LocalDate,
-        card: (String?, String?) -> AccountBalanceEntity?,
+        card: (String?, String?) -> List<AccountBalanceEntity>,
     ): List<Bill> =
         subscriptions
             .filter { it.state == SubscriptionState.ACTIVE && it.direction == SubscriptionDirection.EXPENSE }
@@ -94,7 +94,7 @@ object UpcomingPayments {
         today: LocalDate,
         start: LocalDate,
         end: LocalDate,
-        card: (String?, String?) -> AccountBalanceEntity?,
+        card: (String?, String?) -> List<AccountBalanceEntity>,
     ): List<Bill> =
         templates
             .filter { it.isActive && it.transactionType == TransactionType.EXPENSE }
@@ -122,22 +122,29 @@ object UpcomingPayments {
             RecurringCharge.sameMerchant(name, other.name) &&
             RecurringCharge.sameAmount(amount.amount, other.amount.amount)
 
-    private fun onCard(bank: String?, last4: String?, cards: List<AccountBalanceEntity>): Boolean = cardOf(bank, last4, cards) != null
+    private fun onCard(bank: String?, last4: String?, cards: List<AccountBalanceEntity>): Boolean = cardsOf(bank, last4, cards).isNotEmpty()
 
-    private fun cardOf(bank: String?, last4: String?, cards: List<AccountBalanceEntity>): AccountBalanceEntity? =
+    /** The credit cards a payment names; several when it gives only digits two banks' cards share. */
+    private fun cardsOf(bank: String?, last4: String?, cards: List<AccountBalanceEntity>): List<AccountBalanceEntity> =
         if (last4 == null) {
-            null
+            emptyList()
         } else {
-            cards.firstOrNull { it.isCreditCard && it.accountLast4 == last4 && (bank == null || it.bankName.equals(bank, ignoreCase = true)) }
+            cards.filter { it.isCreditCard && it.accountLast4 == last4 && (bank == null || it.bankName.equals(bank, ignoreCase = true)) }
         }
 
-    /** Marks a charge to [card], with the day the card's bill carrying it is due when the card's due day is set. */
-    private fun Bill.chargedTo(card: AccountBalanceEntity?): Bill =
-        if (card == null) {
-            this
-        } else {
-            copy(onCreditCard = true, cardDueDate = card.cardDueDay?.let { CardBills.dueDateFor(dueDate, card.statementDay, it) })
-        }
+    /**
+     * Marks a charge to a card. Only one card it surely went to gives [Bill.cardDueDate]
+     * and [Bill.cardCurrency]: with several, which bill carries it isn't known.
+     */
+    private fun Bill.chargedTo(cards: List<AccountBalanceEntity>): Bill {
+        if (cards.isEmpty()) return this
+        val card = cards.singleOrNull() ?: return copy(onCreditCard = true)
+        return copy(
+            onCreditCard = true,
+            cardDueDate = card.cardDueDay?.let { CardBills.dueDateFor(dueDate, card.statementDay, it) },
+            cardCurrency = card.currency,
+        )
+    }
 
     /** A guard against a corrupt schedule; a month holds 31 daily bills at most. */
     private const val MAX_OCCURRENCES = 400

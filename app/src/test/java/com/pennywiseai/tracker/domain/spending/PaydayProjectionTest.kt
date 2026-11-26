@@ -136,6 +136,13 @@ class PaydayProjectionTest {
     }
 
     @Test
+    fun `a charge on a card in another currency takes no cash in its own`() {
+        val p = project("100", listOf(onCard("200", today.withDayOfMonth(20)).copy(cardCurrency = "USD")))
+        assertTrue(p.bills.isEmpty())
+        assertEquals(d("100"), p.lowest)
+    }
+
+    @Test
     fun `a card charge with no known due day counts on its charge day`() {
         val p = project("100", listOf(onCard("200", cardDue = null)))
         assertEquals(today.plusDays(2), p.belowZeroFrom)

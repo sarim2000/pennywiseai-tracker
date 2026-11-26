@@ -66,6 +66,8 @@ data class PaydayProjection(
          * counted: the income pays it. A payment charged to a credit card
          * ([Bill.onCreditCard]) takes cash when the card's bill carrying it is due
          * ([Bill.cardDueDate]); with no due day set, on its charge day, the earliest it can.
+         * One on a card in another currency ([Bill.cardCurrency]) takes no cash in its own:
+         * the card's bill pays it in the card's currency, at an amount not known here.
          */
         fun of(
             currency: String,
@@ -83,6 +85,7 @@ data class PaydayProjection(
             // An overdue card bill moves to today first, so it's cut like any other when payday is today.
             val due = bills
                 .filter { it.amount.currency == currency && (it.isCardBill || !it.dueDate.isBefore(today)) }
+                .filter { it.cardCurrency == null || it.cardCurrency == currency }
                 .map { it.copy(dueDate = it.cardDueDate ?: it.dueDate) }
                 .map { if (it.dueDate.isBefore(today)) it.copy(dueDate = today) else it }
                 .filter { it.dueDate.isBefore(until) }

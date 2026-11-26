@@ -82,6 +82,8 @@ data class Bill(
     val onCreditCard: Boolean = false,
     /** When [onCreditCard]: the day the card's bill carrying this charge is due; null when the card has no due day. */
     val cardDueDate: LocalDate? = null,
+    /** When [onCreditCard]: the card's currency, which its bill is paid in; null when the card isn't known for sure. */
+    val cardCurrency: String? = null,
 ) {
     val isCardBill: Boolean get() = source is BillSource.Card
 }

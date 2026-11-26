@@ -591,6 +591,13 @@ interface TransactionDao {
         endDate: LocalDateTime
     ): List<TransactionEntity>
 
+    /** One page of live rows after [after], by id: keeps a batch walk to a page in memory. */
+    @Query("SELECT * FROM transactions WHERE is_deleted = 0 AND id > :after ORDER BY id LIMIT :limit")
+    suspend fun getTransactionsPageAfter(after: Long, limit: Int): List<TransactionEntity>
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE is_deleted = 0")
+    suspend fun countLiveTransactions(): Int
+
     @Query("SELECT MIN(date_time) FROM transactions WHERE is_deleted = 0")
     suspend fun getOldestTransactionDateTime(): LocalDateTime?
 

@@ -85,4 +85,14 @@ interface TagDao {
         """
     )
     fun getAllTransactionTagPairs(): Flow<List<TransactionTagName>>
+
+    @Query(
+        """
+        SELECT cr.transaction_id AS transactionId, t.name AS name
+        FROM transaction_tag_cross_ref cr
+        INNER JOIN tags t ON cr.tag_id = t.id
+        WHERE cr.transaction_id BETWEEN :fromId AND :toId
+        """
+    )
+    suspend fun getTagPairsBetween(fromId: Long, toId: Long): List<TransactionTagName>
 }

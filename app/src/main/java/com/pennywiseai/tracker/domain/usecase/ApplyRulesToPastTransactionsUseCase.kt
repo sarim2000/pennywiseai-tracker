@@ -3,10 +3,13 @@ package com.pennywiseai.tracker.domain.usecase
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.data.ledger.keepTransferLeg
+import com.pennywiseai.tracker.data.ledger.needsCategory
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.loan.LoanMath
+import com.pennywiseai.tracker.domain.loan.SplitRules
 import com.pennywiseai.tracker.domain.model.rule.RuleApplication
 import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
@@ -14,9 +17,6 @@ import com.pennywiseai.tracker.domain.model.rule.applyTagActions
 import com.pennywiseai.tracker.domain.model.rule.tagChanges
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
 data class BatchApplyResult(
@@ -36,15 +36,13 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
 ) {
     /**
      * Writes a rule-edited row and moves the balances it touches, as a manual edit
-     * does. One transaction: a row that commits without its balance shift can't be
-     * repaired by re-applying the rule, which then sees nothing to change.
+     * does. Runs inside the row's transaction: a row that commits without its balance
+     * shift can't be repaired by re-applying the rule, which then sees nothing to change.
      */
     private suspend fun updateWithBalances(original: TransactionEntity, updated: TransactionEntity) {
-        database.withTransaction {
-            accountBalanceRepository.pinManualOpenings(original, updated)
-            transactionRepository.updateTransaction(updated)
-            accountBalanceRepository.reflectTransactionEdit(original, updated)
-        }
+        accountBalanceRepository.pinManualOpenings(original, updated)
+        transactionRepository.updateTransaction(updated)
+        accountBalanceRepository.reflectTransactionEdit(original, updated)
     }
 
     /**
@@ -58,165 +56,103 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
     }
 
     /**
-     * Apply a specific rule to all past transactions
+     * What a rule's result may write over [transaction]: a split bill (#346) keeps its
+     * type and currency (SplitRules.keepSplitBill), a loan-linked row its money
+     * direction (#876, LoanMath.keepLoanDirection), a paired transfer leg its type
+     * (keepTransferLeg). Apply and preview both go through here so they agree.
      */
+    private fun guarded(transaction: TransactionEntity, ruleResult: TransactionEntity): TransactionEntity =
+        LoanMath.keepLoanDirection(
+            transaction,
+            keepTransferLeg(transaction, SplitRules.keepSplitBill(transaction, ruleResult))
+        )
+
+    /** Apply a specific rule to all past transactions */
     suspend fun applyRuleToAllTransactions(
         rule: TransactionRule,
         onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }
-    ): BatchApplyResult {
-        val allTransactions = transactionRepository.getAllTransactionsList()
-        return processTransactionsWithRule(allTransactions, rule, onProgress)
-    }
+    ): BatchApplyResult = applyPaged(listOf(rule), onlyNeedingCategory = false, onProgress)
 
-    /**
-     * Apply a specific rule to uncategorized transactions only
-     */
+    /** Apply a specific rule to the transactions that still need a category */
     suspend fun applyRuleToUncategorizedTransactions(
         rule: TransactionRule,
         onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }
-    ): BatchApplyResult {
-        val uncategorizedTransactions = transactionRepository.getUncategorizedTransactions()
-        return processTransactionsWithRule(uncategorizedTransactions, rule, onProgress)
-    }
+    ): BatchApplyResult = applyPaged(listOf(rule), onlyNeedingCategory = true, onProgress)
 
-    /**
-     * Apply all active rules to all past transactions
-     */
+    /** Apply all active rules to all past transactions */
     suspend fun applyAllActiveRulesToTransactions(
         onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }
-    ): BatchApplyResult {
-        val activeRules = ruleRepository.getActiveRules()
-        val allTransactions = transactionRepository.getAllTransactionsList()
+    ): BatchApplyResult = applyPaged(ruleRepository.getActiveRules(), onlyNeedingCategory = false, onProgress)
 
-        var totalUpdated = 0
-        var totalDeleted = 0
-        val errors = mutableListOf<String>()
-
-        allTransactions.forEachIndexed { index, transaction ->
-            onProgress(index + 1, allTransactions.size)
-
-            try {
-                // Skip already deleted transactions
-                if (transaction.isDeleted) {
-                    return@forEachIndexed
-                }
-
-                // Get SMS body if available
-                val smsBody = transaction.smsBody
-
-                // Check if any rule would block this transaction
-                val blockingRule = ruleEngine.shouldBlockTransaction(
-                    transaction,
-                    smsBody,
-                    activeRules
-                )
-
-                if (blockingRule != null) {
-                    // Soft delete the transaction
-                    val deletedTransaction = transaction.copy(isDeleted = true)
-                    transactionRepository.updateTransaction(deletedTransaction)
-                    totalDeleted++
-                } else {
-                    // Apply rules to transaction
-                    val (ruleResult, rawApplications) = ruleEngine.evaluateRules(
-                        transaction,
-                        smsBody,
-                        activeRules
-                    )
-
-                    // A field change is real by construction; a tag action is recorded
-                    // even when it changes nothing, so ask the tag write whether it did.
-                    // Otherwise the completion count disagrees with the preview.
-                    // A split bill (#346) keeps its type and currency; see SplitRules.keepSplitBill.
-                    // A loan-linked row keeps its money direction (#876); see LoanMath.keepLoanDirection.
-                    // What it undid isn't recorded as applied.
-                    val updatedTransaction = com.pennywiseai.tracker.domain.loan.LoanMath.keepLoanDirection(transaction, com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult))
-                    val ruleApplications = rawApplications.landedOn(updatedTransaction, ruleResult)
-                    val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
-                    if (entityChanged) updateWithBalances(transaction, updatedTransaction)
-                    val tagsChanged = persistTagActions(transaction.id, ruleApplications)
-                    if (entityChanged || tagsChanged) {
-                        ruleRepository.saveRuleApplications(ruleApplications)
-                        totalUpdated++
-                    }
-                }
-            } catch (e: Exception) {
-                errors.add("Error processing transaction ${transaction.id}: ${e.message}")
-            }
-        }
-
-        return BatchApplyResult(
-            totalProcessed = allTransactions.size,
-            totalUpdated = totalUpdated,
-            totalDeleted = totalDeleted,
-            errors = errors
-        )
-    }
-
-    private suspend fun processTransactionsWithRule(
-        transactions: List<TransactionEntity>,
-        rule: TransactionRule,
+    /**
+     * Walks the ledger a page at a time by id, so only one page is in memory. Each row
+     * and its rule-history rows are written in one transaction: a failed history insert
+     * rolls the row back and it isn't counted. If the cause is a rule deleted mid-run,
+     * the run stops there rather than failing every remaining row.
+     */
+    private suspend fun applyPaged(
+        rules: List<TransactionRule>,
+        onlyNeedingCategory: Boolean,
         onProgress: (processed: Int, total: Int) -> Unit
     ): BatchApplyResult {
+        val total = transactionRepository.countLiveTransactions()
+        var scanned = 0
+        var totalProcessed = 0
         var totalUpdated = 0
         var totalDeleted = 0
         val errors = mutableListOf<String>()
+        var after = 0L
 
-        transactions.forEachIndexed { index, transaction ->
-            onProgress(index + 1, transactions.size)
+        pages@ while (true) {
+            val page = transactionRepository.getTransactionsPageAfter(after, PAGE_SIZE)
+            if (page.isEmpty()) break
+            after = page.last().id
 
-            try {
-                // Skip already deleted transactions
-                if (transaction.isDeleted) {
-                    return@forEachIndexed
-                }
+            for (transaction in page) {
+                scanned++
+                onProgress(scanned, maxOf(total, scanned))
 
-                // Get SMS body if available
-                val smsBody = transaction.smsBody
+                // Skip deleted rows, and rows that aren't waiting for a category when asked (same test as the list's "?")
+                if (transaction.isDeleted) continue
+                if (onlyNeedingCategory && !transaction.needsCategory()) continue
+                totalProcessed++
 
-                // Check if this transaction should be blocked
-                val shouldBlock = ruleEngine.shouldBlockTransaction(
-                    transaction,
-                    smsBody,
-                    listOf(rule)
-                ) != null
-
-                if (shouldBlock) {
-                    // Soft delete the transaction
-                    val deletedTransaction = transaction.copy(isDeleted = true)
-                    transactionRepository.updateTransaction(deletedTransaction)
-                    totalDeleted++
-                } else {
-                    // Apply regular rule actions
-                    val (ruleResult, rawApplications) = ruleEngine.evaluateRules(
-                        transaction,
-                        smsBody,
-                        listOf(rule)
-                    )
+                try {
+                    val smsBody = transaction.smsBody
+                    if (ruleEngine.shouldBlockTransaction(transaction, smsBody, rules) != null) {
+                        transactionRepository.updateTransaction(transaction.copy(isDeleted = true))
+                        totalDeleted++
+                        continue
+                    }
+                    val (ruleResult, rawApplications) = ruleEngine.evaluateRules(transaction, smsBody, rules)
 
                     // A field change is real by construction; a tag action is recorded
                     // even when it changes nothing, so ask the tag write whether it did.
                     // Otherwise the completion count disagrees with the preview.
-                    // A split bill (#346) keeps its type and currency; see SplitRules.keepSplitBill.
-                    // A loan-linked row keeps its money direction (#876); see LoanMath.keepLoanDirection.
-                    // What it undid isn't recorded as applied.
-                    val updatedTransaction = com.pennywiseai.tracker.domain.loan.LoanMath.keepLoanDirection(transaction, com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult))
+                    // What a guard undid isn't recorded as applied.
+                    val updatedTransaction = guarded(transaction, ruleResult)
                     val ruleApplications = rawApplications.landedOn(updatedTransaction, ruleResult)
                     val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
-                    if (entityChanged) updateWithBalances(transaction, updatedTransaction)
-                    val tagsChanged = persistTagActions(transaction.id, ruleApplications)
-                    if (entityChanged || tagsChanged) {
-                        ruleRepository.saveRuleApplications(ruleApplications)
-                        totalUpdated++
+                    val changed = database.withTransaction {
+                        if (entityChanged) updateWithBalances(transaction, updatedTransaction)
+                        val tagsChanged = persistTagActions(transaction.id, ruleApplications)
+                        (entityChanged || tagsChanged).also {
+                            if (it) ruleRepository.saveRuleApplications(ruleApplications)
+                        }
                     }
+                    if (changed) totalUpdated++
+                } catch (e: Exception) {
+                    if (rules.any { ruleRepository.getRuleById(it.id) == null }) {
+                        errors.add("A rule was deleted while it was being applied. The run stopped there.")
+                        break@pages
+                    }
+                    errors.add("Error processing transaction ${transaction.id}: ${e.message}")
                 }
-            } catch (e: Exception) {
-                errors.add("Error processing transaction ${transaction.id}: ${e.message}")
             }
         }
 
         return BatchApplyResult(
-            totalProcessed = transactions.size,
+            totalProcessed = totalProcessed,
             totalUpdated = totalUpdated,
             totalDeleted = totalDeleted,
             errors = errors
@@ -232,73 +168,84 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
         rule: TransactionRule,
         maxSamples: Int = 20
     ): DryRunResult {
-        val allTransactions = transactionRepository.getAllTransactionsList()
-        // One read for every transaction's tags rather than one query per row: the
-        // preview has to compare a tag rule against what is already there, or a
-        // transaction that already carries the tag is reported as an update.
-        val tagsByTransaction = tagRepository.observeTransactionTagNames().first()
         val diffs = mutableListOf<TransactionDiff>()
+        var totalScanned = 0
         var totalMatched = 0
         var totalWouldBlock = 0
+        var after = 0L
 
-        for (transaction in allTransactions) {
-            if (transaction.isDeleted) continue
+        while (true) {
+            val page = transactionRepository.getTransactionsPageAfter(after, PAGE_SIZE)
+            if (page.isEmpty()) break
+            after = page.last().id
+            // One read for the page's tags rather than one query per row: the preview has
+            // to compare a tag rule against what is already there, or a transaction that
+            // already carries the tag is reported as an update.
+            val tagsByTransaction = tagRepository.getTagNamesBetween(page.first().id, page.last().id)
 
-            val smsBody = transaction.smsBody
+            for (transaction in page) {
+                if (transaction.isDeleted) continue
+                totalScanned++
 
-            val wouldBlock = ruleEngine.shouldBlockTransaction(
-                transaction, smsBody, listOf(rule)
-            ) != null
+                val smsBody = transaction.smsBody
 
-            if (wouldBlock) {
-                totalWouldBlock++
-                totalMatched++
-                if (diffs.size < maxSamples) {
-                    diffs.add(TransactionDiff(original = transaction, modified = null, isBlock = true))
+                val wouldBlock = ruleEngine.shouldBlockTransaction(
+                    transaction, smsBody, listOf(rule)
+                ) != null
+
+                if (wouldBlock) {
+                    totalWouldBlock++
+                    totalMatched++
+                    if (diffs.size < maxSamples) {
+                        diffs.add(TransactionDiff(original = transaction, modified = null, isBlock = true))
+                    }
+                    continue
                 }
-                continue
-            }
 
-            val (ruleResult, rawApplications) = ruleEngine.evaluateRules(
-                transaction, smsBody, listOf(rule)
-            )
-            // Preview what apply will really write: a split bill keeps its type (#346),
-            // a loan-linked row its money direction (#876).
-            val updated = com.pennywiseai.tracker.domain.loan.LoanMath.keepLoanDirection(transaction, com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult))
-            val applications = rawApplications.landedOn(updated, ruleResult)
+                val (ruleResult, rawApplications) = ruleEngine.evaluateRules(
+                    transaction, smsBody, listOf(rule)
+                )
+                // Preview what apply will really write.
+                val updated = guarded(transaction, ruleResult)
+                val applications = rawApplications.landedOn(updated, ruleResult)
 
-            // A field change is a real change by construction (the engine only records
-            // one when the value differs). A tag action is recorded unconditionally,
-            // so diff it against the tags the row already has: adding a tag that is
-            // already present is not an update.
-            val existingTags = tagsByTransaction[transaction.id].orEmpty()
-            val newTags = applications.applyTagActions(existingTags)
-            val tagChanges = if (newTags === existingTags) emptyList() else {
-                (newTags - existingTags.toSet()).map { "+" + it } +
-                    (existingTags - newTags.toSet()).map { "-" + it }
-            }
-            if (updated != transaction || tagChanges.isNotEmpty()) {
-                totalMatched++
-                if (diffs.size < maxSamples) {
-                    diffs.add(
-                        TransactionDiff(
-                            original = transaction,
-                            modified = updated,
-                            isBlock = false,
-                            tagChanges = tagChanges
+                // A field change is a real change by construction (the engine only records
+                // one when the value differs). A tag action is recorded unconditionally,
+                // so diff it against the tags the row already has: adding a tag that is
+                // already present is not an update.
+                val existingTags = tagsByTransaction[transaction.id].orEmpty()
+                val newTags = applications.applyTagActions(existingTags)
+                val tagChanges = if (newTags === existingTags) emptyList() else {
+                    (newTags - existingTags.toSet()).map { "+" + it } +
+                        (existingTags - newTags.toSet()).map { "-" + it }
+                }
+                if (updated != transaction || tagChanges.isNotEmpty()) {
+                    totalMatched++
+                    if (diffs.size < maxSamples) {
+                        diffs.add(
+                            TransactionDiff(
+                                original = transaction,
+                                modified = updated,
+                                isBlock = false,
+                                tagChanges = tagChanges
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
 
         return DryRunResult(
-            totalScanned = allTransactions.count { !it.isDeleted },
+            totalScanned = totalScanned,
             totalMatched = totalMatched,
             totalWouldBlock = totalWouldBlock,
             totalWouldUpdate = totalMatched - totalWouldBlock,
             samples = diffs
         )
+    }
+
+    private companion object {
+        const val PAGE_SIZE = 500
     }
 }
 
@@ -319,10 +266,10 @@ data class TransactionDiff(
 )
 
 /**
- * These rule applications as they actually landed: when a split bill's guard
- * ([com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill]) turned
- * [raw] into [kept], the type or amount change it undid isn't recorded, and an
- * application left with nothing is dropped.
+ * These rule applications as they actually landed: when a guard
+ * ([com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill], loan direction or
+ * transfer leg) turned [raw] into [kept], the type or amount change it undid isn't
+ * recorded, and an application left with nothing is dropped.
  */
 internal fun List<RuleApplication>.landedOn(kept: TransactionEntity, raw: TransactionEntity): List<RuleApplication> {
     if (kept == raw) return this

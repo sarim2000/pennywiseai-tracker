@@ -5,9 +5,9 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.data.ledger.forTotals
+import com.pennywiseai.tracker.data.ledger.isUnsortedCategory
+import com.pennywiseai.tracker.data.ledger.needsCategory
 import com.pennywiseai.tracker.data.repository.TransactionRepository.MonthlyBreakdown
-import com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory
-import com.pennywiseai.tracker.ui.components.cards.needsCategory
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

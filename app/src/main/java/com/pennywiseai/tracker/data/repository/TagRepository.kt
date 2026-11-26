@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.data.repository
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.TagDao
 import com.pennywiseai.tracker.data.database.entity.TagEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
+import com.pennywiseai.tracker.data.database.withTransaction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -72,6 +72,10 @@ class TagRepository @Inject constructor(
         tagDao.getAllTransactionTagPairs().map { pairs ->
             pairs.groupBy({ it.transactionId }, { it.name })
         }
+
+    /** Tag names of the transactions with ids in [fromId]..[toId], one query for a page of rows. */
+    suspend fun getTagNamesBetween(fromId: Long, toId: Long): Map<Long, List<String>> =
+        tagDao.getTagPairsBetween(fromId, toId).groupBy({ it.transactionId }, { it.name })
 
     suspend fun getTagNamesForTransaction(transactionId: Long): List<String> =
         tagDao.getTagsForTransactionSync(transactionId).map { it.name }

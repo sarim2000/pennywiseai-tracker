@@ -49,6 +49,7 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
+import com.pennywiseai.tracker.data.ledger.isUnsortedCategory
 import com.pennywiseai.tracker.domain.loan.LoanOverflow
 import com.pennywiseai.tracker.presentation.goals.AddToGoalSheet
 import com.pennywiseai.tracker.presentation.goals.TowardGoalsSection
@@ -63,7 +64,6 @@ import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.RevealAmountsAction
 import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.ui.components.SplitItem
-import com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.withCommittedText

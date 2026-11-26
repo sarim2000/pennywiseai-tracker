@@ -81,8 +81,10 @@ class ApplyRulesBalanceTest {
                 FieldModification(TransactionField.TRANSFER_TO_ACCOUNT, "Wallet A||", "Wallet B||", ActionType.SET)
             )
         )
-        coEvery { transactions.getAllTransactionsList() } returns listOf(original)
-        every { tags.observeTransactionTagNames() } returns flowOf(emptyMap())
+        coEvery { transactions.countLiveTransactions() } returns 1
+        coEvery { transactions.getTransactionsPageAfter(any(), any()) } answers {
+            if (firstArg<Long>() < 1) listOf(original) else emptyList()
+        }
         every { engine.shouldBlockTransaction(any(), any(), any()) } returns null
         every { engine.evaluateRules(any(), any(), any()) } returns (updated to listOf(application))
 

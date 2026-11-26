@@ -131,6 +131,9 @@ class RuleEngine @Inject constructor() {
         smsText: String?,
         savedCondition: RuleCondition
     ): Boolean {
+        // No SMS (a file import, a manual entry): an SMS-text condition can't hold,
+        // not even a negative one, or "SMS text doesn't contain X" would block every row.
+        if (savedCondition.field == TransactionField.SMS_TEXT && smsText == null) return false
         // Time fields read in Latin digits (see getFieldValue). A value typed on an
         // Arabic keyboard, or saved while the engine still printed ٠٩, reads ٠-٩;
         // fold it to 0-9 so both match. Text fields are left alone.

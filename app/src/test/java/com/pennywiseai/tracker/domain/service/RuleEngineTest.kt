@@ -395,6 +395,21 @@ class RuleEngineTest {
         assertNotNull("Expected blocking rule to match", result)
     }
 
+    // --- No SMS text (file imports, manual entries) ---
+
+    @Test
+    fun `SMS text conditions never match a transaction without SMS text`() {
+        val blockUnlessOtp = rule(RuleCondition(TransactionField.SMS_TEXT, ConditionOperator.NOT_CONTAINS, "OTP"))
+            .copy(actions = listOf(RuleAction(TransactionField.CATEGORY, ActionType.BLOCK, "")))
+        val tagEmpty = rule(RuleCondition(TransactionField.SMS_TEXT, ConditionOperator.IS_EMPTY, ""))
+
+        assertNull(engine.shouldBlockTransaction(transaction(), null, listOf(blockUnlessOtp)))
+        assertTrue(engine.evaluateRules(transaction(), null, listOf(tagEmpty)).second.isEmpty())
+        // With SMS text the same conditions still apply.
+        assertNotNull(engine.shouldBlockTransaction(transaction(), "Debited Rs.100", listOf(blockUnlessOtp)))
+        assertFalse(engine.evaluateRules(transaction(), "", listOf(tagEmpty)).second.isEmpty())
+    }
+
     // --- TYPE action / condition tests (#515) ---
 
     @Test

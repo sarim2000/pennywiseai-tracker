@@ -100,14 +100,16 @@ internal fun SwipeToEditCategory(
 /**
  * A day's heading in the Activity list: "Today", "Yesterday" or "Mon, Nov 17"
  * on the left, the day's [net] (money in less spent, already formatted per
- * currency) on the right. Painted on the page background so it can stick
+ * currency) on the right, with [inOut] under it: one "In … · Out …" line per
+ * currency (see [dayInOut]). Painted on the page background so it can stick
  * while its rows scroll under it.
  */
 @Composable
 internal fun ActivityDayHeader(
     title: String,
     net: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    inOut: List<DayInOut> = emptyList()
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -124,11 +126,24 @@ internal fun ActivityDayHeader(
             modifier = Modifier.weight(1f)
         )
         if (net != null) {
-            Text(
-                text = net,
-                style = MaterialTheme.typography.bodyMedium.tabular(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = net,
+                    style = MaterialTheme.typography.bodyMedium.tabular(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                inOut.forEach { flow ->
+                    Text(
+                        text = stringResource(
+                            R.string.txn_list_day_in_out,
+                            CurrencyFormatter.formatCurrency(flow.moneyIn, flow.currency),
+                            CurrencyFormatter.formatCurrency(flow.moneyOut, flow.currency)
+                        ),
+                        style = MaterialTheme.typography.bodySmall.tabular(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }
@@ -149,9 +164,39 @@ internal fun daySections(rows: List<TransactionEntity>, sort: SortOption): List<
 }
 
 /**
+ * The day's rows that count, each as the currency it's shown in and its signed
+ * amount (money in positive, spent negative): its converted figure in unified
+ * mode when there is one, else its own.
+ */
+private fun dayFlows(
+    rows: List<TransactionEntity>,
+    splitShares: CategorySplitShares?,
+    convertedAmounts: Map<Long, BigDecimal>,
+    displayCurrency: String?
+): List<Pair<String, BigDecimal>> = rows.mapNotNull { tx ->
+    val sign = when (tx.transactionType) {
+        TransactionType.INCOME -> BigDecimal.ONE
+        TransactionType.EXPENSE -> BigDecimal.ONE.negate()
+        // Card spend, like transfers, stays out of Spent / Money in, so out of the net too.
+        TransactionType.CREDIT, TransactionType.TRANSFER, TransactionType.INVESTMENT -> return@mapNotNull null
+    }
+    // As the totals count it: loans, lent shares and excluded rows drop out.
+    val counted = (if (splitShares != null) splitShares.forTotals(tx) else tx.forTotals())?.amount
+        ?: return@mapNotNull null
+    val shown = splitShares?.shownAmount(tx) ?: tx.amount
+    val converted = convertedAmounts[tx.id]
+    if (converted != null && displayCurrency != null && shown.signum() != 0) {
+        val inDisplay = if (counted.compareTo(shown) == 0) converted
+        else converted.multiply(counted).divide(shown, 2, RoundingMode.HALF_UP)
+        displayCurrency to inDisplay * sign
+    } else {
+        tx.currency to counted * sign
+    }
+}
+
+/**
  * The day's net (money in less spent) as text, or null when nothing in it
- * counts (only transfers, say). Each row counts in the currency it's shown in:
- * its converted figure in unified mode when there is one, else its own. Buckets
+ * counts (only transfers, say). Rows count as [dayFlows] has them. Buckets
  * are never added together, so a mixed day reads "−₹500 · +$10".
  */
 internal fun dayNet(
@@ -160,27 +205,8 @@ internal fun dayNet(
     convertedAmounts: Map<Long, BigDecimal>,
     displayCurrency: String?
 ): String? {
-    val signed = rows.mapNotNull { tx ->
-        val sign = when (tx.transactionType) {
-            TransactionType.INCOME -> BigDecimal.ONE
-            TransactionType.EXPENSE -> BigDecimal.ONE.negate()
-            // Card spend, like transfers, stays out of Spent / Money in, so out of the net too.
-            TransactionType.CREDIT, TransactionType.TRANSFER, TransactionType.INVESTMENT -> return@mapNotNull null
-        }
-        // As the totals count it: loans, lent shares and excluded rows drop out.
-        val counted = (if (splitShares != null) splitShares.forTotals(tx) else tx.forTotals())?.amount
-            ?: return@mapNotNull null
-        val shown = splitShares?.shownAmount(tx) ?: tx.amount
-        val converted = convertedAmounts[tx.id]
-        if (converted != null && displayCurrency != null && shown.signum() != 0) {
-            val inDisplay = if (counted.compareTo(shown) == 0) converted
-            else converted.multiply(counted).divide(shown, 2, RoundingMode.HALF_UP)
-            displayCurrency to inDisplay * sign
-        } else {
-            tx.currency to counted * sign
-        }
-    }
-    val byCurrency = signed.sumByCurrency({ it.first }, { it.second })
+    val byCurrency = dayFlows(rows, splitShares, convertedAmounts, displayCurrency)
+        .sumByCurrency({ it.first }, { it.second })
     val nonZero = byCurrency.values.filter { it.amount.signum() != 0 }
     if (nonZero.isEmpty()) return null
     if (AmountPrivacy.hidden) return AmountPrivacy.MASK
@@ -192,6 +218,32 @@ internal fun dayNet(
                 CurrencyFormatter.formatCurrency(money.amount.abs(), money.currency)
             )
         }
+}
+
+/** What came into and went out of a day in one currency, both positive. */
+internal data class DayInOut(
+    val currency: String,
+    val moneyIn: BigDecimal,
+    val moneyOut: BigDecimal
+)
+
+/**
+ * The day's money in and spent per currency, from the rows [dayNet] counts.
+ * Only currencies where money went both ways: one way, the net already says it.
+ * Busiest currency first; currencies are never added together.
+ */
+internal fun dayInOut(
+    rows: List<TransactionEntity>,
+    splitShares: CategorySplitShares?,
+    convertedAmounts: Map<Long, BigDecimal>,
+    displayCurrency: String?
+): List<DayInOut> {
+    val flows = dayFlows(rows, splitShares, convertedAmounts, displayCurrency)
+    val moneyIn = flows.filter { it.second.signum() > 0 }.sumByCurrency({ it.first }, { it.second })
+    val moneyOut = flows.filter { it.second.signum() < 0 }.sumByCurrency({ it.first }, { it.second.negate() })
+    return moneyIn.mapNotNull { (currency, inMoney) ->
+        moneyOut[currency]?.let { outMoney -> DayInOut(currency, inMoney.amount, outMoney.amount) }
+    }.sortedByDescending { it.moneyIn + it.moneyOut }
 }
 
 /** "Today", "Yesterday", "Mon, Nov 17", with the year when it isn't this one. */

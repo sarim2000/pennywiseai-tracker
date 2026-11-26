@@ -699,6 +699,11 @@ fun TransactionsScreen(
                                     } else {
                                         null
                                     },
+                                    inOut = if (section.rows.size > 1) {
+                                        dayInOut(section.rows, uiState.splitShares, convertedAmounts, displayCurrency)
+                                    } else {
+                                        emptyList()
+                                    },
                                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                 )
                             }

@@ -343,7 +343,8 @@ object AiToolLogic {
 
     /** `none`, `uncategorized` or `all`. An older client's `true` still means uncategorized. */
     fun applyToPast(args: JsonObject, default: String): String {
-        val v = args["apply_to_past"] as? JsonPrimitive ?: return default
+        val raw = args["apply_to_past"] ?: return default
+        val v = raw as? JsonPrimitive ?: throw IllegalArgumentException("apply_to_past must be none, uncategorized or all.")
         return when {
             v.booleanOrNull == true -> "uncategorized"
             v.booleanOrNull == false -> "none"

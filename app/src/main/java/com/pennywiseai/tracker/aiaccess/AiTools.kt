@@ -65,7 +65,7 @@ class AiTools @Inject constructor(
             return error("AI access is part of PennyWise Pro, which isn't active on this phone. Renew Pro in PennyWise to continue.")
         }
         if (name in WRITE_TOOLS && !writeAccess.allowed.value) {
-            return error("Changes from AI apps are off. Ask the user to turn on \"Let AI apps make changes\" in PennyWise → Settings → Connect Claude / ChatGPT, then try again. Nothing was changed.")
+            return error(WRITES_OFF)
         }
         return try {
             val body = when (name) {
@@ -197,7 +197,7 @@ class AiTools @Inject constructor(
         if (mode != "none") AiToolLogic.pastApplyRefusal(rule)?.let { throw Refused(it) }
         // One at a time, and the past run stays inside the lock: two creates of the same rule both pass
         // the name check otherwise, and a delete or update must not land while rows are being rewritten.
-        return ruleLock.withLock {
+        return lockedWrite {
             checkNewName(rule)
             rules.insertRule(rule)
             buildJsonObject {
@@ -212,7 +212,7 @@ class AiTools @Inject constructor(
         refuseDryRun(args)
         val id = args.string("id") ?: throw Refused("Give the id of the rule, from list_rules.")
         val mode = applyMode(args, "none")
-        return ruleLock.withLock {
+        return lockedWrite {
             val updated = updatedRule(id, args)
             if (mode != "none") AiToolLogic.pastApplyRefusal(updated)?.let { throw Refused(it) }
             rules.updateRule(updated)
@@ -281,12 +281,21 @@ class AiTools @Inject constructor(
     }
 
     /** Built-in rules can be switched off in the app but not deleted, so they can't be here. Past transactions keep what the rule did. */
-    private suspend fun deleteRule(id: String): JsonObject = ruleLock.withLock {
+    private suspend fun deleteRule(id: String): JsonObject = lockedWrite {
         val rule = rules.getRuleById(id) ?: throw Refused("No rule with id \"$id\". It may already be deleted; use list_rules for the current ids.")
         if (rule.isSystemTemplate) throw Refused("\"${rule.name}\" is a built-in rule, which can't be deleted. It can be switched off in PennyWise → Rules.")
         if (rule.actions.any { it.actionType == ActionType.BLOCK }) throw Refused("\"${rule.name}\" blocks transactions, so it can only be deleted in PennyWise → Rules.")
         rules.deleteRule(id)
         buildJsonObject { put("deleted", rule.name) }
+    }
+
+    /**
+     * The rule lock for a write. The switch is checked again once inside: the wait behind another
+     * call's past run can outlast the user turning "Let AI apps make changes" off.
+     */
+    private suspend fun <T> lockedWrite(block: suspend () -> T): T = ruleLock.withLock {
+        if (!writeAccess.allowed.value) throw Refused(WRITES_OFF)
+        block()
     }
 
     private fun applyMode(args: JsonObject, default: String) = try {
@@ -298,7 +307,15 @@ class AiTools @Inject constructor(
     /** Runs [rule] over past transactions as [mode] says and reports how many changed. */
     private suspend fun JsonObjectBuilder.putPastResult(rule: TransactionRule, mode: String) {
         if (mode == "none") return
-        val r = if (mode == "all") applyRulesToPast.applyRuleToAllTransactions(rule) else applyRulesToPast.applyRuleToUncategorizedTransactions(rule)
+        val r = try {
+            if (mode == "all") applyRulesToPast.applyRuleToAllTransactions(rule) else applyRulesToPast.applyRuleToUncategorizedTransactions(rule)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // The rule is already saved; say so, or the caller is told nothing was saved and creates it again.
+            put("past_error", "The rule was saved, but applying it to past transactions failed. Use preview_rule to see what is left.")
+            return
+        }
         put("past_transactions_updated", r.totalUpdated)
         // Per-row failures don't stop the run; say which rows stayed as they were.
         if (r.errors.isNotEmpty()) putJsonArray("past_errors") { r.errors.take(20).forEach { add(it) } }
@@ -338,6 +355,7 @@ class AiTools @Inject constructor(
     private companion object {
         val WRITE_TOOLS = setOf("categorize_merchants", "set_merchant_aliases", "create_category", "create_rule", "update_rule", "delete_rule")
         const val MAX_BATCH = 100
+        const val WRITES_OFF = "Changes from AI apps are off. Ask the user to turn on \"Let AI apps make changes\" in PennyWise → Settings → Connect Claude / ChatGPT, then try again. Nothing was changed."
         const val DEFAULT_CATEGORY_COLOR = "#4CAF50" // the category editor's default
     }
 

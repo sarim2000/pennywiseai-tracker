@@ -365,4 +365,31 @@ class AiToolsRulesTest {
         assertFalse(delete.await().first)
         coVerify(exactly = 1) { rules.deleteRule("r1") }
     }
+
+    @Test
+    fun `a write queued behind a past run is refused if changes were turned off meanwhile`() = runBlocking {
+        val gate = CompletableDeferred<Unit>()
+        coEvery { transactions.getUncategorizedTransactions() } coAnswers {
+            gate.await()
+            listOf(swiggyOthers)
+        }
+        val update = async { callS("update_rule", """{"id":"r1","apply_to_past":"uncategorized"}""") }
+        repeat(5) { yield() }
+        val delete = async { callS("delete_rule", """{"id":"r1"}""") }
+        repeat(5) { yield() }
+        writeAllowed.value = false
+        gate.complete(Unit)
+        update.await()
+        val (isError, out) = delete.await()
+        assertTrue(isError)
+        assertTrue(out!!["error"]!!.jsonPrimitive.content.contains("Changes from AI apps are off"))
+        coVerify(exactly = 0) { rules.deleteRule(any()) }
+    }
+
+    @Test
+    fun `apply_to_past that is not a word or a boolean is refused`() {
+        assertTrue(error("create_rule", create(""","apply_to_past":{}""")).contains("apply_to_past must be"))
+        assertTrue(error("create_rule", create(""","apply_to_past":[]""")).contains("apply_to_past must be"))
+        coVerify(exactly = 0) { rules.insertRule(any()) }
+    }
 }

@@ -175,7 +175,7 @@ class AiTools @Inject constructor(
         if (items.size > MAX_BATCH) throw Refused("Send at most $MAX_BATCH updates at a time. Nothing was changed.")
         return lockedWrite {
             val seen = mutableSetOf<Long>()
-            val existingTags = tags.observeAllTagNames().first().map { it.lowercase() }.toSet()
+            val existingTags = tags.observeAllTagNames().first().map { tagKey(it) }.toSet()
             val newTags = mutableSetOf<String>()
             // One database transaction for the whole batch, so open screens re-query once, not per row. A
             // row that throws can leave half of itself written, so any such failure rolls the whole call back.
@@ -261,8 +261,8 @@ class AiTools @Inject constructor(
             // A split's categories live in its splits; the app's quick pick isn't offered for it either.
             if (transactions.hasSplits(txn.id)) throw Refused("this transaction is split across categories; change it in PennyWise")
         }
-        val wantedKeys = wantedTags?.map { it.lowercase() }?.toSet()
-        val tagsChange = wantedKeys != null && wantedKeys != tags.getTagNamesForTransaction(txn.id).map { it.lowercase() }.toSet()
+        val wantedKeys = wantedTags?.map { tagKey(it) }?.toSet()
+        val tagsChange = wantedKeys != null && wantedKeys != tags.getTagNamesForTransaction(txn.id).map { tagKey(it) }.toSet()
         val excludedChanges = excluded != null && excluded != txn.excludedFromAnalytics
         if (!categoryChanges && !tagsChange && !excludedChanges) return "unchanged" to null
         if (tagsChange) {
@@ -460,6 +460,9 @@ class AiTools @Inject constructor(
             .mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content?.takeIf(::isName) }
 
     /** Has a visible character. Spelled out, not isNotBlank, so it is the same set as the relay's isName. */
+    /** How the tag table tells names apart: its case-insensitive match folds ASCII letters only, so "CAFÉ" and "Café" are two tags. */
+    private fun tagKey(s: String) = String(CharArray(s.length) { i -> s[i].let { if (it in 'A'..'Z') it + 32 else it } })
+
     private fun isName(s: String) = s.any { !it.isWhitespace() && !it.isISOControl() && it != '\uFEFF' && it != '\u180E' }
 
     private fun error(message: String) = text(message, isError = true)

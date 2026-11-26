@@ -14,7 +14,8 @@ import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.data.rules.RuleSharingCodec
+import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
@@ -23,6 +24,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.booleanOrNull
@@ -63,7 +65,7 @@ class AiTools @Inject constructor(
             return error("AI access is part of PennyWise Pro, which isn't active on this phone. Renew Pro in PennyWise to continue.")
         }
         if (name in WRITE_TOOLS && !writeAccess.allowed.value) {
-            return error("Changes from AI apps are off. Ask the user to turn on \"Let AI apps make changes\" in PennyWise → Settings → Connect Claude / ChatGPT, then try again. Nothing was changed.")
+            return error(WRITES_OFF)
         }
         return try {
             val body = when (name) {
@@ -99,7 +101,7 @@ class AiTools @Inject constructor(
                 "list_accounts" -> AiToolLogic.accounts(balances.getAllLatestBalances().first())
                 "list_subscriptions" -> AiToolLogic.subscriptions(subscriptions.getActiveSubscriptions().first())
                 "list_categories" -> AiToolLogic.categories(categories.getVisibleCategories().first())
-                "list_rules" -> return text(RuleSharingCodec.encode(AiToolLogic.shareableRules(rules.getAllRules().first())), isError = false)
+                "list_rules" -> return text(AiToolLogic.listRules(rules.getAllRules().first()), isError = false)
                 "categorize_merchants" -> categorizeMerchants(args["mappings"] as? JsonArray ?: return error("Give mappings as a list of {merchant, category}."))
                 "set_merchant_aliases" -> setAliases(args["aliases"] as? JsonArray ?: return error("Give aliases as a list of {merchant, alias}."))
                 "create_category" -> createCategory(
@@ -107,6 +109,9 @@ class AiTools @Inject constructor(
                     isIncome = args["is_income"]?.jsonPrimitive?.booleanOrNull ?: false,
                 )
                 "create_rule" -> createRule(args)
+                "update_rule" -> updateRule(args)
+                "preview_rule" -> previewRule(args)
+                "delete_rule" -> deleteRule(args.string("id") ?: return error("Give the id of the rule, from list_rules."))
                 else -> return error("PennyWise doesn't know the tool $name.")
             }
             text(body.toString(), isError = false)
@@ -182,28 +187,138 @@ class AiTools @Inject constructor(
     }
 
     private suspend fun createRule(args: JsonObject): JsonObject {
+        refuseDryRun(args)
         val rule = try {
             AiToolLogic.ruleFrom(args)
         } catch (e: IllegalArgumentException) {
             throw Refused(e.message ?: "That rule isn't valid.")
         }
-        // Calls run side by side: one at a time, or two of the same rule both pass the name check.
-        ruleLock.withLock {
-            val existing = rules.getAllRules().first()
-            if (existing.any { it.name.equals(rule.name, ignoreCase = true) }) throw Refused("A rule named \"${rule.name}\" already exists.")
+        val mode = applyMode(args, "none")
+        if (mode != "none") AiToolLogic.pastApplyRefusal(rule)?.let { throw Refused(it) }
+        // One at a time, and the past run stays inside the lock: two creates of the same rule both pass
+        // the name check otherwise, and a delete or update must not land while rows are being rewritten.
+        return lockedWrite {
+            checkNewName(rule)
             rules.insertRule(rule)
-        }
-        val applied = if (args["apply_to_past"]?.jsonPrimitive?.booleanOrNull == true) {
-            applyRulesToPast.applyRuleToUncategorizedTransactions(rule)
-        } else null
-        return buildJsonObject {
-            put("created", rule.name)
-            applied?.let { r ->
-                put("past_uncategorized_transactions_updated", r.totalUpdated)
-                // Per-row failures don't stop the run; say which rows stayed as they were.
-                if (r.errors.isNotEmpty()) putJsonArray("past_errors") { r.errors.take(20).forEach { add(it) } }
+            buildJsonObject {
+                put("created", rule.name)
+                putPastResult(rule, mode)
             }
         }
+    }
+
+    /** Changes only the fields given; the rule stays where it is in the list and keeps its on/off state. */
+    private suspend fun updateRule(args: JsonObject): JsonObject {
+        refuseDryRun(args)
+        val id = args.string("id") ?: throw Refused("Give the id of the rule, from list_rules.")
+        val mode = applyMode(args, "none")
+        return lockedWrite {
+            val updated = updatedRule(id, args)
+            if (mode != "none") AiToolLogic.pastApplyRefusal(updated)?.let { throw Refused(it) }
+            rules.updateRule(updated)
+            buildJsonObject {
+                put("updated", updated.name)
+                putPastResult(updated, mode)
+            }
+        }
+    }
+
+    /** What update_rule would save for [id] and [args]; throws the refusal update_rule would give. */
+    private suspend fun updatedRule(id: String, args: JsonObject): TransactionRule {
+        val existing = rules.getRuleById(id) ?: throw Refused("No rule with id \"$id\". Use list_rules for the current ids.")
+        if (existing.isSystemTemplate) throw Refused("\"${existing.name}\" is a built-in rule, which can't be changed from here. It can be switched off or edited in PennyWise → Rules.")
+        if (existing.actions.any { it.actionType == ActionType.BLOCK }) throw Refused("\"${existing.name}\" blocks transactions, so it can only be changed in PennyWise → Rules.")
+        val updated = try {
+            AiToolLogic.ruleUpdated(existing, args)
+        } catch (e: IllegalArgumentException) {
+            // Nothing the caller sent is wrong when it sent neither list: the stored rule is the problem.
+            if ("conditions" !in args && "actions" !in args) throw Refused("This rule uses a condition that can't be written from here. Edit it in PennyWise → Rules.")
+            throw Refused(e.message ?: "That rule isn't valid.")
+        }
+        if (rules.getAllRules().first().any { it.id != id && it.name.equals(updated.name, ignoreCase = true) }) throw Refused("A rule named \"${updated.name}\" already exists.")
+        return updated
+    }
+
+    private suspend fun checkNewName(rule: TransactionRule) {
+        if (rules.getAllRules().first().any { it.name.equals(rule.name, ignoreCase = true) }) throw Refused("A rule named \"${rule.name}\" already exists.")
+    }
+
+    /** Counts what the rule would change on past transactions, validated like create_rule (no id) or update_rule (with id). Writes nothing. */
+    private suspend fun previewRule(args: JsonObject): JsonObject {
+        val mode = applyMode(args, "uncategorized")
+        if (mode == "none") throw Refused("Give apply_to_past as uncategorized or all; with none there is nothing to preview.")
+        val id = args.string("id")
+        // Inside the lock, so the count is not taken half way through another call's past run.
+        return ruleLock.withLock { previewLocked(id, args, mode) }
+    }
+
+    private suspend fun previewLocked(id: String?, args: JsonObject, mode: String): JsonObject {
+        val rule = if (id != null) updatedRule(id, args) else {
+            val new = try {
+                AiToolLogic.ruleFrom(args)
+            } catch (e: IllegalArgumentException) {
+                throw Refused(e.message ?: "That rule isn't valid.")
+            }
+            checkNewName(new)
+            new
+        }
+        AiToolLogic.pastApplyRefusal(rule)?.let { throw Refused(it) }
+        // ponytail: "uncategorized" keeps every matching row in memory to count the ones in Others; give
+        // the use case a count-only mode if large ledgers on low-memory phones make this a problem.
+        val preview = applyRulesToPast.previewRuleApplication(rule, maxSamples = if (mode == "all") 0 else Int.MAX_VALUE)
+        val others = BuiltinCategoryNames.current("Others")
+        val count = if (mode == "all") preview.totalWouldUpdate else preview.samples.count { !it.isBlock && (it.original.category.isNullOrBlank() || it.original.category == others) }
+        return buildJsonObject {
+            put("rule", rule.name)
+            put("past_transactions_would_update", count)
+            put("apply_to_past", mode)
+        }
+    }
+
+    /** A caller that asked for a dry run must never get a saved rule, so the argument is refused, not ignored. */
+    private fun refuseDryRun(args: JsonObject) {
+        if ("dry_run" in args) throw Refused("dry_run isn't supported. Use preview_rule to count what a rule would change. Nothing was changed.")
+    }
+
+    /** Built-in rules can be switched off in the app but not deleted, so they can't be here. Past transactions keep what the rule did. */
+    private suspend fun deleteRule(id: String): JsonObject = lockedWrite {
+        val rule = rules.getRuleById(id) ?: throw Refused("No rule with id \"$id\". It may already be deleted; use list_rules for the current ids.")
+        if (rule.isSystemTemplate) throw Refused("\"${rule.name}\" is a built-in rule, which can't be deleted. It can be switched off in PennyWise → Rules.")
+        if (rule.actions.any { it.actionType == ActionType.BLOCK }) throw Refused("\"${rule.name}\" blocks transactions, so it can only be deleted in PennyWise → Rules.")
+        rules.deleteRule(id)
+        buildJsonObject { put("deleted", rule.name) }
+    }
+
+    /**
+     * The rule lock for a write. The switch is checked again once inside: the wait behind another
+     * call's past run can outlast the user turning "Let AI apps make changes" off.
+     */
+    private suspend fun <T> lockedWrite(block: suspend () -> T): T = ruleLock.withLock {
+        if (!writeAccess.allowed.value) throw Refused(WRITES_OFF)
+        block()
+    }
+
+    private fun applyMode(args: JsonObject, default: String) = try {
+        AiToolLogic.applyToPast(args, default)
+    } catch (e: IllegalArgumentException) {
+        throw Refused(e.message!!)
+    }
+
+    /** Runs [rule] over past transactions as [mode] says and reports how many changed. */
+    private suspend fun JsonObjectBuilder.putPastResult(rule: TransactionRule, mode: String) {
+        if (mode == "none") return
+        val r = try {
+            if (mode == "all") applyRulesToPast.applyRuleToAllTransactions(rule) else applyRulesToPast.applyRuleToUncategorizedTransactions(rule)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // The rule is already saved; say so, or the caller is told nothing was saved and creates it again.
+            put("past_error", "The rule was saved, but applying it to past transactions failed. Use preview_rule to see what is left.")
+            return
+        }
+        put("past_transactions_updated", r.totalUpdated)
+        // Per-row failures don't stop the run; say which rows stayed as they were.
+        if (r.errors.isNotEmpty()) putJsonArray("past_errors") { r.errors.take(20).forEach { add(it) } }
     }
 
     private suspend fun inRange(args: JsonObject): List<com.pennywiseai.tracker.data.database.entity.TransactionEntity>? {
@@ -238,8 +353,9 @@ class AiTools @Inject constructor(
     private class Refused(message: String) : Exception(message)
 
     private companion object {
-        val WRITE_TOOLS = setOf("categorize_merchants", "set_merchant_aliases", "create_category", "create_rule")
+        val WRITE_TOOLS = setOf("categorize_merchants", "set_merchant_aliases", "create_category", "create_rule", "update_rule", "delete_rule")
         const val MAX_BATCH = 100
+        const val WRITES_OFF = "Changes from AI apps are off. Ask the user to turn on \"Let AI apps make changes\" in PennyWise → Settings → Connect Claude / ChatGPT, then try again. Nothing was changed."
         const val DEFAULT_CATEGORY_COLOR = "#4CAF50" // the category editor's default
     }
 

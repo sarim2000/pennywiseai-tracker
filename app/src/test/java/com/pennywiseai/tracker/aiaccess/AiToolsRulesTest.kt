@@ -81,7 +81,7 @@ class AiToolsRulesTest {
         val useCase = ApplyRulesToPastTransactionsUseCase(transactions, rules, RuleEngine(), tags, mockk(relaxed = true), database)
         tools = AiTools(
             transactions, mockk(relaxed = true), mockk(relaxed = true), gate, mockk(relaxed = true), mockk(relaxed = true),
-            mockk(relaxed = true), tags, rules, useCase, database, access,
+            mockk(relaxed = true), tags, rules, useCase, database, access, mockk(relaxed = true),
         )
     }
 

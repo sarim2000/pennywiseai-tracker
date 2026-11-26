@@ -324,7 +324,7 @@ class AiToolLogicTest {
     }
 
     @Test
-    fun `rules shared with AI apps hide SMS text conditions`() {
+    fun `rules shared with AI apps hide SMS text and note conditions`() {
         val rule = com.pennywiseai.tracker.domain.model.rule.TransactionRule(
             name = "r",
             conditions = listOf(
@@ -333,14 +333,26 @@ class AiToolLogicTest {
                     com.pennywiseai.tracker.domain.model.rule.ConditionOperator.CONTAINS, "sample message text"
                 ),
                 com.pennywiseai.tracker.domain.model.rule.RuleCondition(
+                    com.pennywiseai.tracker.domain.model.rule.TransactionField.NARRATION,
+                    com.pennywiseai.tracker.domain.model.rule.ConditionOperator.CONTAINS, "sample note text"
+                ),
+                com.pennywiseai.tracker.domain.model.rule.RuleCondition(
                     com.pennywiseai.tracker.domain.model.rule.TransactionField.MERCHANT,
                     com.pennywiseai.tracker.domain.model.rule.ConditionOperator.CONTAINS, "cafe"
                 )
             ),
-            actions = emptyList()
+            actions = listOf(
+                com.pennywiseai.tracker.domain.model.rule.RuleAction(
+                    com.pennywiseai.tracker.domain.model.rule.TransactionField.NARRATION, ActionType.SET, "written note text"
+                ),
+                com.pennywiseai.tracker.domain.model.rule.RuleAction(
+                    com.pennywiseai.tracker.domain.model.rule.TransactionField.CATEGORY, ActionType.SET, "Food"
+                ),
+            )
         )
-        val shared = AiToolLogic.shareableRules(listOf(rule)).single().conditions.map { it.value }
-        assertEquals(listOf(AiToolLogic.HIDDEN_SMS_TEXT, "cafe"), shared)
+        val shown = AiToolLogic.shareableRules(listOf(rule)).single()
+        assertEquals(listOf(AiToolLogic.HIDDEN_SMS_TEXT, AiToolLogic.HIDDEN_NOTE, "cafe"), shown.conditions.map { it.value })
+        assertEquals(listOf(AiToolLogic.HIDDEN_NOTE, "Food"), shown.actions.map { it.value })
     }
 
     private fun ruleWith(conditions: String) = Json.parseToJsonElement(
@@ -417,6 +429,26 @@ class AiToolLogicTest {
         assertFalse(renamed.isActive)
         assertEquals(existing.conditions, renamed.conditions)
         assertEquals(existing.actions, renamed.actions)
+    }
+
+    @Test
+    fun `ruleFrom refuses SMS text and note conditions, ruleUpdated keeps a stored one only for a rename`() {
+        val action = RuleAction(TransactionField.CATEGORY, ActionType.SET, "Food")
+        val merchantRule = TransactionRule(name = "m", conditions = listOf(RuleCondition(TransactionField.MERCHANT, ConditionOperator.CONTAINS, "a")), actions = listOf(action))
+        for (field in listOf("SMS_TEXT", "NARRATION")) {
+            val args = ruleWith("""[{"field":"$field","operator":"CONTAINS","value":"x"}]""")
+            assertThrows(IllegalArgumentException::class.java) { AiToolLogic.ruleFrom(args) }
+            assertThrows(IllegalArgumentException::class.java) { AiToolLogic.ruleUpdated(merchantRule, args) }
+        }
+        val stored = TransactionRule(name = "n", conditions = listOf(RuleCondition(TransactionField.NARRATION, ConditionOperator.CONTAINS, "real note")), actions = listOf(action))
+        assertEquals(stored.conditions, AiToolLogic.ruleUpdated(stored, Json.parseToJsonElement("""{"priority":4}""").jsonObject).conditions)
+        assertThrows(IllegalArgumentException::class.java) { AiToolLogic.ruleUpdated(stored, ruleWith("""[{"field":"MERCHANT","operator":"CONTAINS","value":"x"}]""")) }
+    }
+
+    @Test
+    fun `list_rules hides note conditions too`() {
+        val own = TransactionRule(id = "abc", name = "Mine", conditions = listOf(RuleCondition(TransactionField.NARRATION, ConditionOperator.CONTAINS, "private note")), actions = emptyList())
+        assertFalse(Json.parseToJsonElement(AiToolLogic.listRules(listOf(own))).toString().contains("private note"))
     }
 
     @Test

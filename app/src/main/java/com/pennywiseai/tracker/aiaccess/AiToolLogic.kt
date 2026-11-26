@@ -39,16 +39,27 @@ import java.math.RoundingMode
  */
 object AiToolLogic {
     /**
-     * Rules as AI apps may see them. A condition on the SMS text can quote a real message,
-     * and AI apps never get SMS text, so its value is hidden.
+     * Rules as AI apps may see them. A condition on the SMS text or a note can quote real text,
+     * and AI apps never get either, so its value is hidden. So is the text a rule writes into a note.
      */
     fun shareableRules(rules: List<TransactionRule>): List<TransactionRule> = rules.map { rule ->
         rule.copy(conditions = rule.conditions.map { c ->
-            if (c.field == com.pennywiseai.tracker.domain.model.rule.TransactionField.SMS_TEXT) c.copy(value = HIDDEN_SMS_TEXT) else c
+            when (c.field) {
+                TransactionField.SMS_TEXT -> c.copy(value = HIDDEN_SMS_TEXT)
+                TransactionField.NARRATION -> c.copy(value = HIDDEN_NOTE)
+                else -> c
+            }
+        }, actions = rule.actions.map { a ->
+            if (a.field == TransactionField.NARRATION && a.value.isNotEmpty()) a.copy(value = HIDDEN_NOTE) else a
         })
     }
 
     const val HIDDEN_SMS_TEXT = "(SMS text hidden)"
+    const val HIDDEN_NOTE = "(note hidden)"
+    const val NO_NOTE_ACTIONS = "Rules that write a transaction's note can't be created or changed from here: notes are hidden from AI apps. Create it in PennyWise → Rules."
+
+    private val HIDDEN_FIELDS = setOf(TransactionField.SMS_TEXT, TransactionField.NARRATION)
+    const val NO_HIDDEN_CONDITIONS = "Rules that match on SMS text or a transaction's note can't be created or changed from here: both are hidden from AI apps. Create it in PennyWise → Rules."
 
     const val MAX_ROWS = 200
 
@@ -268,7 +279,16 @@ object AiToolLogic {
      * A rule from `create_rule` arguments, checked exactly like an imported rules file. BLOCK
      * is refused: it silently drops future SMS, too much for an AI app to set up.
      */
-    fun ruleFrom(args: JsonObject): TransactionRule {
+    fun ruleFrom(args: JsonObject, actionsFromCaller: Boolean = true): TransactionRule {
+        val rule = decodeRule(args)
+        require(rule.conditions.none { it.field in HIDDEN_FIELDS }) { NO_HIDDEN_CONDITIONS }
+        // A note the caller writes, or aims a stored note action at by changing the conditions, is one
+        // it can then test other rules' note conditions against.
+        require(!actionsFromCaller || rule.actions.none { it.field == TransactionField.NARRATION }) { NO_NOTE_ACTIONS }
+        return rule
+    }
+
+    private fun decodeRule(args: JsonObject): TransactionRule {
         val shared = buildJsonObject {
             putJsonArray("rules") {
                 add(buildJsonObject { RULE_FIELDS.forEach { k -> args[k]?.let { put(k, it) } } })
@@ -282,8 +302,6 @@ object AiToolLogic {
             )
         }
         require(rule.actions.none { it.actionType == ActionType.BLOCK }) { "AI apps can't create rules that block transactions." }
-        // list_rules hides SMS text; writing the placeholder back would replace the real text.
-        require(rule.conditions.none { it.value == HIDDEN_SMS_TEXT }) { "A condition on the SMS text can't be written from here: its text is hidden from AI apps." }
         return rule
     }
 
@@ -319,7 +337,13 @@ object AiToolLogic {
     /** [existing] with only the fields [args] supplies replaced, checked like [ruleFrom]. Id, on/off, template flag and created time stay. */
     fun ruleUpdated(existing: TransactionRule, args: JsonObject): TransactionRule {
         val json = Json { encodeDefaults = true }
-        val edited = ruleFrom(buildJsonObject {
+        // A rule the user made on SMS text or a note keeps its real condition: only its label fields change here.
+        val keepsHidden = existing.conditions.any { it.field in HIDDEN_FIELDS }
+        if (keepsHidden) require("actions" !in args && "conditions" !in args) {
+            "\"${existing.name}\" matches on SMS text or a note, which are hidden from AI apps, so only its name, description and priority can be changed from here."
+        }
+        val build: (JsonObject) -> TransactionRule = if (keepsHidden) ::decodeRule else { a -> ruleFrom(a, actionsFromCaller = "actions" in args || "conditions" in args) }
+        val edited = build(buildJsonObject {
             put("name", existing.name)
             existing.description?.let { put("description", it) }
             put("priority", existing.priority)

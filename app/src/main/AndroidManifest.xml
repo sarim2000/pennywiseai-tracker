@@ -105,6 +105,15 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="pennywise" android:host="add" />
             </intent-filter>
+
+            <!-- The documented automation entry point (docs/automation.md): Tasker,
+                 MacroDroid or adb open Add Transaction pre-filled from extras.
+                 Not BROWSABLE, so a web page can't fire it. Nothing is saved
+                 until the user taps Save, and App Lock still applies. -->
+            <intent-filter>
+                <action android:name="com.pennywiseai.tracker.action.ADD_TRANSACTION" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
 
         <!-- Translucent picker launched from the "More categories…" txn-alert

@@ -19,6 +19,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.navigation.PlanSection
+import com.pennywiseai.tracker.presentation.add.AddAutomation
 import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
 import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.hilt.android.AndroidEntryPoint
@@ -67,7 +68,8 @@ class MainActivity : FragmentActivity() {
          * Deep link that jumps straight to Add Transaction: `pennywise://add`.
          * The single entry point every quick-add surface routes through — the
          * QS tile, the launcher shortcut, and anything the user wires up
-         * themselves (Tasker, an OEM gesture, a Pixel Quick Tap macro).
+         * themselves (Tasker, an OEM gesture, a Pixel Quick Tap macro). It takes
+         * the [AddAutomation] keys as query parameters (docs/automation.md).
          */
         const val DEEP_LINK_SCHEME = "pennywise"
         const val DEEP_LINK_HOST_ADD = "add"
@@ -243,7 +245,10 @@ class MainActivity : FragmentActivity() {
             chatDrafts.put(it)
             openChat = android.os.SystemClock.elapsedRealtime()
         }
-        if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true || intent.isAddDeepLink()) {
+        if (intent != null && (intent.action == AddAutomation.ACTION_ADD_TRANSACTION || intent.isAddDeepLink())) {
+            // From any app (Tasker, a shortcut): checked values only, and still reviewed before Save.
+            openAddTransaction = AddAutomation.prefill { key -> intent.automationValue(key) }
+        } else if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true) {
             openAddTransaction = com.pennywiseai.tracker.navigation.AddTransaction(
                 amount = intent?.getStringExtra(EXTRA_ADD_AMOUNT),
                 merchant = intent?.getStringExtra(EXTRA_ADD_MERCHANT),
@@ -276,6 +281,12 @@ class MainActivity : FragmentActivity() {
             .build()
         ShortcutManagerCompat.setDynamicShortcuts(this, listOf(shortcut))
     }
+
+    /** An extra (Tasker may send a number) or a `pennywise://add?key=…` parameter; null if unreadable. */
+    private fun Intent.automationValue(key: String): Any? = runCatching {
+        @Suppress("DEPRECATION")
+        extras?.get(key) ?: data?.takeIf { it.isHierarchical }?.getQueryParameter(key)
+    }.getOrNull()
 
     private fun Intent?.isAddDeepLink(): Boolean {
         val data = this?.data ?: return false

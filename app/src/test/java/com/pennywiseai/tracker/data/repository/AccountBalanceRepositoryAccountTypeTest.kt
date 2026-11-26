@@ -438,6 +438,8 @@ class AccountBalanceRepositoryAccountTypeTest {
         assertEquals(listOf(null, 1L, 2L, 3L), ordered.map { it.transactionId })
         assertEquals(AccountBalanceRepository.SOURCE_MANUAL, ordered.first().sourceType)
         assertEquals(0, BigDecimal.ZERO.compareTo(ordered.first().balance))
+        // An hour before the first transaction, not at the card's createdAt.
+        assertEquals(ordered[1].timestamp.minusHours(1), ordered.first().timestamp)
     }
 
     @Test

@@ -345,8 +345,9 @@ open class AccountBalanceRepository @Inject constructor(
      *   owes. Its rows are dropped and the card's transactions replayed.
      * - Any other existing account, including one whose figures the user
      *   corrected in Balance History: switched to CREDIT, its rows kept.
-     * - Otherwise the account is built: a MANUAL zero row dated before the
-     *   card's first SMS (or at [cardCreatedAt] when it has none), then the
+     * - Otherwise the account is built: a MANUAL zero row dated an hour before
+     *   the card's first transaction (or at [cardCreatedAt] when it has none),
+     *   so it opens the history and never sorts after a real row, then the
      *   card's transactions replayed in time order, each moving what is owed by
      *   its ledger type, so a paired repayment counts. The MANUAL row has no
      *   transaction, so clearing local history leaves the account in place even
@@ -412,9 +413,7 @@ open class AccountBalanceRepository @Inject constructor(
             lowBalanceThreshold = existing?.lowBalanceThreshold
         ).withAccountFieldsOf(existing)
 
-        val anchorAt = transactions.firstOrNull()?.dateTime
-            ?.let { minOf(it, cardCreatedAt).minusSeconds(1) }
-            ?: cardCreatedAt
+        val anchorAt = transactions.firstOrNull()?.dateTime?.minusHours(1) ?: cardCreatedAt
         accountBalanceDao.insertBalance(row(BigDecimal.ZERO, anchorAt, SOURCE_MANUAL, txn = null))
         var running = BigDecimal.ZERO
         for (txn in transactions) {

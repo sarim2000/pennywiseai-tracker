@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.aiaccess
 
 import com.pennywiseai.tracker.billing.EntitlementGate
+import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -41,6 +42,7 @@ class AiToolsUpdateTransactionsTest {
     private val tags = mockk<TagRepository>(relaxed = true)
     private val categories = mockk<CategoryRepository>(relaxed = true)
     private val database = mockk<PennyWiseDatabase>()
+    private val widgets = mockk<TransactionWidgets>(relaxed = true)
     private val writeAllowed = MutableStateFlow(true)
     private val tools: AiTools
 
@@ -57,7 +59,7 @@ class AiToolsUpdateTransactionsTest {
         val access = mockk<AiWriteAccess> { every { allowed } returns writeAllowed }
         tools = AiTools(
             transactions, mockk(relaxed = true), mockk(relaxed = true), gate, categories, mockk(relaxed = true),
-            mockk(relaxed = true), tags, mockk(relaxed = true), mockk(relaxed = true), database, access,
+            mockk(relaxed = true), tags, mockk(relaxed = true), mockk(relaxed = true), database, access, widgets,
         )
     }
 
@@ -65,7 +67,7 @@ class AiToolsUpdateTransactionsTest {
     fun setUp() {
         mockkStatic(ROOM_COMPAT_UT)
         coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers { secondArg<suspend () -> Any?>().invoke() }
-        every { categories.getAllCategories() } returns flowOf(listOf(CategoryEntity(name = "Dining", color = "#fff"), CategoryEntity(name = "Travel", color = "#fff")))
+        every { categories.getAllCategories() } returns flowOf(listOf(CategoryEntity(name = "Dining", color = "#fff"), CategoryEntity(name = "Travel", color = "#fff"), CategoryEntity(name = "Salary", color = "#fff", isIncome = true), CategoryEntity(name = "Old", color = "#fff", isHidden = true)))
         coEvery { transactions.getTransactionById(7) } returns coffee
         coEvery { transactions.getTransactionById(404) } returns null
         coEvery { transactions.getTransactionById(8) } returns deleted
@@ -73,6 +75,7 @@ class AiToolsUpdateTransactionsTest {
         coEvery { transactions.hasSplits(9) } returns true
         coEvery { tags.getTagNamesForTransaction(any()) } returns emptyList()
         every { tags.observeTransactionTagNames() } returns flowOf(emptyMap())
+        every { tags.observeAllTagNames() } returns flowOf(emptyList())
     }
 
     @After
@@ -156,8 +159,8 @@ class AiToolsUpdateTransactionsTest {
     }
 
     @Test
-    fun `more than 200 updates is refused as a whole`() {
-        val many = (1..201).joinToString(",") { """{"id":"7","category":"Dining"}""" }
+    fun `more than 100 updates is refused as a whole`() {
+        val many = (1..101).joinToString(",") { """{"id":"7","category":"Dining"}""" }
         val (err, _) = call("update_transactions", """{"updates":[$many]}""")
         assertTrue(err)
         coVerify(exactly = 0) { transactions.updateCategory(any(), any()) }
@@ -178,5 +181,63 @@ class AiToolsUpdateTransactionsTest {
         val r = results("""{"updates":[{"category":"Dining"},{"id":7,"category":"Dining"},{"id":"7","tags":"a"},{"id":"7","excluded_from_analytics":"yes"},{"id":"7"}]}""")
         assertTrue(r.all { it.first == "refused" })
         coVerify(exactly = 0) { transactions.updateCategory(any(), any()) }
+    }
+
+    @Test
+    fun `switch turned off mid batch stops the remaining rows`() {
+        coEvery { transactions.updateCategory(7, any()) } coAnswers { writeAllowed.value = false }
+        coEvery { transactions.getTransactionById(10) } returns coffee.copy(id = 10, transactionHash = "h10")
+        val r = results("""{"updates":[{"id":"7","category":"Dining"},{"id":"10","category":"Dining"}]}""")
+        assertEquals(listOf("updated", "refused"), r.map { it.first })
+        assertTrue(r[1].second!!.contains("turned off"))
+        coVerify(exactly = 1) { transactions.updateCategory(any(), any()) }
+    }
+
+    @Test
+    fun `only canonical ids resolve`() {
+        val r = results("""{"updates":[{"id":"07","category":"Dining"},{"id":"+7","category":"Dining"},{"id":"7","category":"Dining"},{"id":"7 ","category":"Dining"}]}""")
+        assertEquals(listOf("refused", "refused", "updated", "refused"), r.map { it.first })
+        assertEquals("not found", r[0].second)
+        assertEquals("not found", r[1].second)
+        assertEquals("duplicate id in this call", r[3].second)
+        coVerify(exactly = 1) { transactions.updateCategory(any(), any()) }
+    }
+
+    @Test
+    fun `a category must fit the row's type and be visible`() {
+        coEvery { transactions.getTransactionById(11) } returns coffee.copy(id = 11, transactionHash = "h11", transactionType = TransactionType.INCOME)
+        coEvery { transactions.getTransactionById(12) } returns coffee.copy(id = 12, transactionHash = "h12", transactionType = TransactionType.TRANSFER)
+        coEvery { transactions.getTransactionById(13) } returns coffee.copy(id = 13, transactionHash = "h13", transactionType = TransactionType.TRANSFER)
+        coEvery { transactions.getTransactionById(14) } returns coffee.copy(id = 14, transactionHash = "h14", transactionType = TransactionType.INCOME)
+        coEvery { transactions.getTransactionById(15) } returns coffee.copy(id = 15, transactionHash = "h15")
+        val r = results(
+            """{"updates":[{"id":"7","category":"Salary"},{"id":"11","category":"Dining"},{"id":"14","category":"Salary"},
+            {"id":"12","category":"Salary"},{"id":"13","category":"Travel"},{"id":"15","category":"Old"}]}"""
+        )
+        assertEquals(listOf("refused", "refused", "updated", "refused", "updated", "refused"), r.map { it.first })
+        coVerify(exactly = 1) { transactions.updateCategory(13, "Travel") }
+        coVerify(exactly = 1) { transactions.updateCategory(14, "Salary") }
+        coVerify(exactly = 2) { transactions.updateCategory(any(), any()) }
+    }
+
+    @Test
+    fun `tag names with control or invisible characters are refused`() {
+        val r = results("""{"updates":[{"id":"7","tags":["a\u200bb"]},{"id":"10","tags":["x\u202ey"]},{"id":"11","tags":["\ufeffz"]},{"id":"12","tags":["t\u0007"]}]}""")
+        assertTrue(r.all { it.first == "refused" })
+        coVerify(exactly = 0) { tags.setTagsForTransaction(any(), any()) }
+    }
+
+    @Test
+    fun `a call can create at most 20 new tags`() {
+        every { tags.observeAllTagNames() } returns flowOf(listOf("Known"))
+        val rows = (1..5).map { i -> coffee.copy(id = 20L + i, transactionHash = "t$i") }
+        rows.forEach { coEvery { transactions.getTransactionById(it.id) } returns it }
+        val updates = rows.mapIndexed { i, t ->
+            val names = (1..8).joinToString(",") { "\"n${if (i == 4) 0 else i}_$it\"" }
+            """{"id":"${t.id}","tags":["known",$names]}"""
+        }
+        val r = results("""{"updates":[${updates.joinToString(",")}]}""")
+        // 8 + 8 new tags fit in 20; the third and fourth would make 24; the fifth reuses the first's, which are no longer new.
+        assertEquals(listOf("updated", "updated", "refused", "refused", "updated"), r.map { it.first })
     }
 }

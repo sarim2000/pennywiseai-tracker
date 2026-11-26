@@ -176,7 +176,7 @@ export const TOOLS = [
 			properties: {
 				updates: {
 					type: "array",
-					maxItems: 200,
+					maxItems: 100,
 					items: {
 						type: "object",
 						properties: {

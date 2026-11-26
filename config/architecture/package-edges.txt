@@ -30,6 +30,7 @@
 (root) -> worker
 aiaccess -> (root)
 aiaccess -> billing
+aiaccess -> core
 aiaccess -> data
 aiaccess -> domain
 aiaccess -> utils

@@ -66,7 +66,7 @@ class ChatTabReactionsTest {
     }
 
     @Test
-    fun `three saves in a burst make one reaction that never extends`() {
+    fun `in a burst the latest save takes over, with a hold of its own, and nothing queues`() {
         val job = start()
         val seen = mutableListOf<MascotReaction?>()
         save(TransactionType.EXPENSE)
@@ -77,29 +77,44 @@ class ChatTabReactionsTest {
         save(TransactionType.INVESTMENT)
         runCurrent()
         seen += shown
-        // The hold still ends where the first save started it.
-        advanceTimeBy(REACTION_HOLD_MS - 1_000 + 1)
+        // Its hold runs from when it took over: still up past where the first save's ends.
+        advanceTimeBy(REACTION_HOLD_MS - 1)
+        seen += shown
+        advanceTimeBy(2)
         seen += shown
         // And nothing was queued behind it.
         advanceTimeBy(REACTION_HOLD_MS * 3)
         seen += shown
-        assertEquals(listOf(reactionFor(TransactionType.EXPENSE), reactionFor(TransactionType.EXPENSE), null, null), seen)
+        assertEquals(
+            listOf(
+                reactionFor(TransactionType.EXPENSE),
+                reactionFor(TransactionType.INVESTMENT),
+                reactionFor(TransactionType.INVESTMENT),
+                null,
+                null,
+            ),
+            seen,
+        )
         job.cancel()
     }
 
     @Test
-    fun `a save's amount rides its reaction, and a burst keeps the first`() {
+    fun `a save's amount rides its reaction, and a save right after shows its own`() {
         val job = start()
-        val spent = Money(BigDecimal("12.50"), "EUR")
+        val spent = Money(BigDecimal("111"), "EUR")
         save(TransactionType.EXPENSE, spent)
         runCurrent()
-        val expected = reactionFor(TransactionType.EXPENSE).copy(chip = ReactionAmount(spent, TransactionType.EXPENSE))
-        assertEquals(expected, shown)
+        assertEquals(reactionFor(TransactionType.EXPENSE).copy(chip = ReactionAmount(spent, TransactionType.EXPENSE)), shown)
 
-        save(TransactionType.INCOME, Money(BigDecimal.TEN, "EUR"))
+        advanceTimeBy(300)
+        val earned = Money(BigDecimal.TEN, "EUR")
+        save(TransactionType.INCOME, earned)
         runCurrent()
-        assertEquals(expected, shown)
-        advanceTimeBy(REACTION_HOLD_MS + 1)
+        val income = reactionFor(TransactionType.INCOME).copy(chip = ReactionAmount(earned, TransactionType.INCOME))
+        assertEquals(income, shown)
+        advanceTimeBy(REACTION_HOLD_MS - 1)
+        assertEquals(income, shown)
+        advanceTimeBy(2)
         assertNull(shown)
         job.cancel()
     }

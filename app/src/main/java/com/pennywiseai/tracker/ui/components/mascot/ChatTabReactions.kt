@@ -161,12 +161,11 @@ private const val GOAL_FILL = 0.55f
 
 /**
  * The Chat tab's reactions: one shape for its hold per save or moment, the bubble while an
- * inbox scan runs, then the owl again. A burst folds into the reaction already showing,
- * which keeps its first chip: nothing queues behind it and its hold never extends. Only a
- * reaction of a higher rank takes over, with a hold of its own: a goal reached over the
- * save that reached it, the owl covering its eyes over anything (and a later toggle over
- * an earlier one). A scan takes over from a
- * reaction, and the scan's bubble carries no chip.
+ * inbox scan runs, then the owl again. Nothing queues: the latest reaction of the same or
+ * a higher rank takes over, with a hold of its own, so a second save shows itself rather
+ * than the first one's amount; a lower one folds into what's showing. So a goal reached
+ * stays over a save that follows it, and the owl covering its eyes over anything. A scan
+ * takes over from a reaction, and the scan's bubble carries no chip.
  *
  * Saves and moments come in through [onSave] and [onMoment] while the Chat tab is
  * visible, for as long as [scope] lives (the Chat tab's ViewModel), so one made on a screen
@@ -257,11 +256,10 @@ internal class ChatTabReactions(
     }
 
     private fun react(reaction: MascotReaction, waitsForBar: Boolean = true) {
+        // The latest says what just happened: a later save shows its own amount, and a later
+        // toggle answers for the switch as it is now.
         val showing = flash
-        // The latest toggle answers for the switch as it is now.
-        val takesOver = showing == null || reaction.rank > showing.rank ||
-            (reaction.rank == RANK_TOGGLE && showing.rank == RANK_TOGGLE)
-        if (!takesOver) return
+        if (showing != null && reaction.rank < showing.rank) return
         flash = reaction
         publish()
         if (barShown || !waitsForBar) {

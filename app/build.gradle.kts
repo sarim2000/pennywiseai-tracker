@@ -397,6 +397,10 @@ dependencies {
     // FdroidBillingGateway stub and does not need the dep.
     "standardImplementation"(libs.billing.ktx)
 
+    // Receipt scan OCR — STANDARD FLAVOR ONLY. ML Kit is proprietary, so F-Droid
+    // binds a stub and hides "Scan receipt". The bundled model works offline.
+    "standardImplementation"(libs.mlkit.text.recognition)
+
     testImplementation(kotlin("test"))
 }
 

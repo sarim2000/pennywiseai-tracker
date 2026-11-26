@@ -50,6 +50,8 @@ material3 = "1.5.0"
 haze = "2.1.0"
 composeCharts = "1.0.0"
 billingKtx = "9.1.0"
+# ML Kit Text Recognition v2, Latin model bundled in the APK (receipt scan, standard flavor only).
+mlkitTextRecognition = "16.0.1"
 leakcanary = "3.0-alpha-9"
 spotless = "8.11.0"
 dependencyAnalysis = "3.20.2"
@@ -126,6 +128,7 @@ haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version.ref = "haze" }
 compose-charts = { module = "io.github.ehsannarmani:compose-charts", version.ref = "composeCharts" }
 billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
+mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "mlkitTextRecognition" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

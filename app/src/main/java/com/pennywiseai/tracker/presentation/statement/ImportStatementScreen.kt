@@ -800,6 +800,13 @@ private fun SuccessContent(
                 value = "${result.totalParsed}"
             )
 
+            if (result.blockedByRules > 0) {
+                ResultRow(
+                    label = stringResource(R.string.import_statement_result_blocked),
+                    value = "${result.blockedByRules}"
+                )
+            }
+
             if (result.skippedDuplicates > 0) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
 

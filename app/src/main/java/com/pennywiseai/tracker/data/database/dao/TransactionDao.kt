@@ -229,7 +229,7 @@ interface TransactionDao {
     suspend fun insertTransaction(transaction: TransactionEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertTransactions(transactions: List<TransactionEntity>)
+    suspend fun insertTransactions(transactions: List<TransactionEntity>): List<Long>
 
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)

@@ -2,16 +2,17 @@ package com.pennywiseai.tracker.data.statement
 
 import android.content.Context
 import android.net.Uri
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.ResText
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.core.ResText
+import com.pennywiseai.tracker.domain.model.rule.RuleApplication
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,7 @@ class ImportStatementUseCase @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val preferences: UserPreferencesRepository,
     private val database: PennyWiseDatabase,
+    private val importRules: ImportRulesSource,
     @ApplicationContext private val context: Context
 ) {
     sealed interface PdfRead {
@@ -112,22 +114,25 @@ class ImportStatementUseCase @Inject constructor(
      * the user left ticked). Matching runs again inside one database
      * transaction — the protection SMS writes use — so an SMS saved or edited
      * while the preview was open is matched as it is now, never overwritten
-     * with the preview's copy or duplicated. A manual account's balance
-     * follows its new rows.
+     * with the preview's copy or duplicated. New rows get the learned
+     * merchant categories and the user's rules, as an SMS would. A manual
+     * account's balance follows its new rows.
      */
     suspend fun commit(parsed: List<ParsedTransaction>, keep: Set<Int>): StatementImportResult.Success =
         withContext(Dispatchers.IO) {
             database.withTransaction {
-                val processor = StatementImportProcessor(repositoryStore())
+                // The accounts the new rows land in; the store adds any a rule moves a row to.
+                val accounts = LinkedHashSet<Pair<String, String>>()
+                val processor = StatementImportProcessor(repositoryStore(accounts), importRules.load())
                 val plan = processor.plan(parsed)
                 val excluded = plan.rows.indices.toSet() - keep
-                val accounts = plan.newIndices.filter { it !in excluded }
+                plan.newIndices.filter { it !in excluded }
                     .map { plan.rows[it].parsed }
                     .mapNotNull { row -> row.accountLast4?.let { row.bankName to it } }
-                    .distinct()
-                // Pin a legacy manual account's opening before the rows land, so the
-                // recompute below adds them instead of absorbing them into the opening.
-                accounts.forEach { (bank, last4) -> accountBalanceRepository.ensureManualOpening(bank, last4) }
+                    .filter(accounts::add)
+                    // Pin a legacy manual account's opening before the rows land, so the
+                    // recompute below adds them instead of absorbing them into the opening.
+                    .forEach { (bank, last4) -> accountBalanceRepository.ensureManualOpening(bank, last4) }
                 val result = processor.apply(plan, excluded)
                 accounts.forEach { (bank, last4) -> accountBalanceRepository.recomputeManualBalance(bank, last4) }
                 result
@@ -203,7 +208,10 @@ class ImportStatementUseCase @Inject constructor(
             }
         }
 
-    private fun repositoryStore() = object : StatementImportProcessor.TransactionStore {
+    /** [accounts] collects the accounts rows are added to, each opening pinned first. */
+    private fun repositoryStore(
+        accounts: MutableSet<Pair<String, String>> = HashSet()
+    ) = object : StatementImportProcessor.TransactionStore {
         override suspend fun getTransactionsByHashes(hashes: List<String>): List<TransactionEntity> =
             transactionRepository.getTransactionsByHashes(hashes)
 
@@ -214,8 +222,16 @@ class ImportStatementUseCase @Inject constructor(
             transactionRepository.updateTransaction(transaction)
         }
 
-        override suspend fun insertTransactions(transactions: List<TransactionEntity>) {
-            transactionRepository.insertTransactions(transactions)
+        override suspend fun insertTransactions(transactions: List<TransactionEntity>): List<Long> {
+            // A rule can move a row to another account: pin that one's opening too.
+            transactions.mapNotNull { row -> row.bankName?.let { bank -> row.accountNumber?.let { bank to it } } }
+                .filter(accounts::add)
+                .forEach { (bank, last4) -> accountBalanceRepository.ensureManualOpening(bank, last4) }
+            return transactionRepository.insertTransactions(transactions)
+        }
+
+        override suspend fun recordRuleApplications(transactionId: Long, applications: List<RuleApplication>) {
+            importRules.record(transactionId, applications)
         }
     }
 

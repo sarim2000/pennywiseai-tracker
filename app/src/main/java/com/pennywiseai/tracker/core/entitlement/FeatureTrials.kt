@@ -59,6 +59,11 @@ data class FeatureAccess(val isPro: Boolean?, val trial: TrialStatus) {
  * Once a trial is seen ended it stays ended, and a clock behind the start or behind
  * the latest time that trial saw reads as expired, so winding the date back doesn't
  * reopen one. Each feature keeps its own start and latest time seen.
+ *
+ * Known limits of an offline trial on the wall clock: a deadline that passes while
+ * the app is closed and the clock is set back before it opens again isn't noticed,
+ * and a clock change while a screen stays open is only seen when it next resumes
+ * (screens call [recheck] then).
  */
 @Singleton
 class FeatureTrials internal constructor(

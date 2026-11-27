@@ -63,9 +63,10 @@ object ReceiptExtractor {
     )
     private val TOTAL = Regex("""\b(?:total|net)\b|المجموع""")
 
-    // Lines that name a part of the bill, or what was handed over, rather than the bill.
+    // Lines that name a part of the bill, what was handed over, or a count or weight
+    // ("Total items 12"), rather than the bill.
     private val NOT_TOTAL = Regex(
-        """\b(?:sub\s*-?\s*total|tax|vat|gst|tip|change|cash|tendered|discount|savings?|round(?:ing)?)\b|الفرعي|ضريبة"""
+        """\b(?:sub\s*-?\s*total|tax|vat|gst|tip|change|cash|tendered|discount|savings?|round(?:ing)?|items?|qty|quantity|count|pcs|pieces|units?|weight|kgs?)\b|الفرعي|ضريبة"""
     )
 
     // A date or a time would otherwise read as amounts ("12.05", "10:45").

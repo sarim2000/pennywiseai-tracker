@@ -215,6 +215,12 @@ class ReceiptExtractorTest {
     }
 
     @Test
+    fun `a count or weight by a total label isn't the bill`() {
+        assertEquals(BigDecimal("9.45"), amount("TOTAL ITEMS 12", "TOTAL 9.45"))
+        assertEquals(BigDecimal("4.20"), amount("Total qty 25", "Total weight 1.25 kg", "TOTAL 4.20"))
+    }
+
+    @Test
     fun `a shared mark only says which currencies it could be`() {
         assertEquals(setOf("INR", "PKR", "LKR", "NPR"), scan("Net payable Rs. 450.00").currencies)
         assertTrue("USD" in scan("Total $12.00").currencies)

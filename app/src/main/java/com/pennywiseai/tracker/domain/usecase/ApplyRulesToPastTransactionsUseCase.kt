@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.repository.editMovesBalances
 import com.pennywiseai.tracker.domain.loan.LoanMath
 import com.pennywiseai.tracker.domain.loan.SplitRules
 import com.pennywiseai.tracker.domain.model.rule.RuleApplication
@@ -86,7 +87,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
     ): BatchApplyResult = applyPaged(ruleRepository.getActiveRules(), onlyNeedingCategory = false, onProgress)
 
     /** A row waiting for its write; [write] returns true when the row (and its history) changed. */
-    private class PendingWrite(val id: Long, val isDelete: Boolean, val write: suspend () -> Boolean)
+    private class PendingWrite(val id: Long, val isDelete: Boolean, val write: suspend () -> Boolean, val movesBalances: Boolean = false)
 
     /**
      * Walks the ledger a page at a time by id, so only one page is in memory. Rows that
@@ -95,7 +96,8 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
      * rolled back and is replayed row by row, each row with its rule-history rows in one
      * transaction: a failed history insert rolls that row back and it isn't counted. If
      * the cause is a rule deleted mid-run, the run stops there rather than failing every
-     * remaining row.
+     * remaining row. A row whose edit moves a balance is written alone, after flushing the
+     * chunk before it: the balance recompute needs a thread the chunk's transaction would hold.
      */
     private suspend fun applyPaged(
         rules: List<TransactionRule>,
@@ -119,6 +121,21 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
 
         suspend fun ruleDeleted() = rules.any { ruleRepository.getRuleById(it.id) == null }
 
+        // Writes one row in its own transaction. Returns true when the run must stop (a rule was deleted).
+        suspend fun writeAlone(item: PendingWrite): Boolean {
+            try {
+                if (database.withTransaction { item.write() }) count(item)
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                if (ruleDeleted()) {
+                    errors.add("A rule was deleted while it was being applied. The run stopped there.")
+                    return true
+                }
+                errors.add("Error processing transaction ${item.id}: ${e.message}")
+            }
+            return false
+        }
+
         // Commits the pending rows. Returns true when the run must stop (a rule was deleted).
         suspend fun flush(): Boolean {
             if (pending.isEmpty()) return false
@@ -133,18 +150,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 // The chunk rolled back; find the row at fault by writing them one by one.
             }
-            for (item in chunk) {
-                try {
-                    if (database.withTransaction { item.write() }) count(item)
-                } catch (e: Exception) {
-                    if (e is kotlinx.coroutines.CancellationException) throw e
-                    if (ruleDeleted()) {
-                        errors.add("A rule was deleted while it was being applied. The run stopped there.")
-                        return true
-                    }
-                    errors.add("Error processing transaction ${item.id}: ${e.message}")
-                }
-            }
+            for (item in chunk) if (writeAlone(item)) return true
             return false
         }
 
@@ -164,14 +170,19 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                 if (onlyNeedingCategory && !transaction.awaitsCategoryForRules()) continue
                 totalProcessed++
 
+                var solo: PendingWrite? = null
                 try {
                     val smsBody = transaction.smsBody
                     if (ruleEngine.shouldBlockTransaction(transaction, smsBody, rules) != null) {
                         pending.add(
-                            PendingWrite(transaction.id, isDelete = true) {
-                                transactionRepository.updateTransaction(transaction.copy(isDeleted = true))
-                                true
-                            }
+                            PendingWrite(
+                                transaction.id,
+                                isDelete = true,
+                                write = {
+                                    transactionRepository.updateTransaction(transaction.copy(isDeleted = true))
+                                    true
+                                }
+                            )
                         )
                     } else {
                         val (ruleResult, rawApplications) = ruleEngine.evaluateRules(transaction, smsBody, rules)
@@ -189,15 +200,19 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                         val newTags = ruleApplications.applyTagActions(existingTags)
                         val tagsWouldChange = newTags !== existingTags && newTags.toSet() != existingTags.toSet()
                         if (entityChanged || tagsWouldChange) {
-                            pending.add(
-                                PendingWrite(transaction.id, isDelete = false) {
+                            val item = PendingWrite(
+                                transaction.id,
+                                isDelete = false,
+                                write = {
                                     if (entityChanged) updateWithBalances(transaction, updatedTransaction)
                                     val tagsChanged = persistTagActions(transaction.id, ruleApplications)
                                     (entityChanged || tagsChanged).also {
                                         if (it) ruleRepository.saveRuleApplications(ruleApplications)
                                     }
-                                }
+                                },
+                                movesBalances = entityChanged && editMovesBalances(transaction, updatedTransaction)
                             )
+                            if (item.movesBalances) solo = item else pending.add(item)
                         }
                     }
                 } catch (e: Exception) {
@@ -207,6 +222,8 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     }
                     errors.add("Error processing transaction ${transaction.id}: ${e.message}")
                 }
+                // Flushing first keeps id order, so an interrupted run leaves an unbroken prefix.
+                if (solo != null && (flush() || writeAlone(solo))) break@pages
                 if (pending.size >= WRITE_CHUNK && flush()) break@pages
             }
             if (flush()) break@pages

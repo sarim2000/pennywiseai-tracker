@@ -232,6 +232,32 @@ class ApplyRulesPagingSafetyTest {
         assertTrue(result.errors.single().contains("transaction 3"))
     }
 
+    @Test
+    fun aTypeChangeIsWrittenAloneAfterTheChunkBeforeIt() = runBlocking {
+        serve((1L..5L).map { txn(it) })
+        every { engine.evaluateRules(any(), any(), any()) } answers {
+            val t = firstArg<TransactionEntity>()
+            if (t.id == 4L) {
+                t.copy(transactionType = TransactionType.INCOME) to listOf(application(t, TransactionField.TYPE, "EXPENSE", "INCOME"))
+            } else {
+                t.copy(category = "Food") to listOf(application(t, TransactionField.CATEGORY, "Others", "Food"))
+            }
+        }
+        val written = mutableListOf<Long>()
+        val commits = mutableListOf<List<Long>>()
+        coEvery { transactions.updateTransaction(any()) } answers { written.add(firstArg<TransactionEntity>().id) }
+        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
+            val start = written.size
+            secondArg<suspend () -> Any?>().invoke().also { commits.add(written.subList(start, written.size).toList()) }
+        }
+
+        val result = useCase.applyRuleToAllTransactions(rule)
+
+        // The balance-moving row never shares a transaction (its recompute needs a free thread), and earlier rows commit first.
+        assertEquals(listOf(listOf(1L, 2L, 3L), listOf(4L), listOf(5L)), commits)
+        assertEquals(5, result.totalUpdated)
+    }
+
     private fun pairedLeg() = txn(1, "Transfer", TransactionType.TRANSFER).copy(transferPairId = "pair-1")
 
     @Test

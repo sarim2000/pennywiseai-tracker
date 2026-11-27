@@ -65,6 +65,7 @@ class BudgetConversionPromptTest {
             moneyAlertChecker = mockk(relaxed = true),
             budgetGroupRepository = budgets,
             currencyConversionService = conversion,
+            mascotMoments = mockk(relaxed = true),
             entitlementGate = mockk(relaxed = true),
         )
     }

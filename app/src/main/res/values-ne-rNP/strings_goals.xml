@@ -53,6 +53,7 @@
     <string name="goal_detail_history_empty">अहिलेसम्म केही थपिएको छैन। पैसा छुट्याउँदा \"पैसा थप्नुहोस्\" प्रयोग गर्नुहोस्।</string>
     <string name="goal_add_money">पैसा थप्नुहोस्</string>
     <string name="goal_take_out">झिक्नुहोस्</string>
+    <!-- Snackbar when Add money takes a goal past 25 / 50 / 75% of its target -->
     <string name="goal_more">थप विकल्पहरू</string>
     <string name="goal_menu_edit">सम्पादन गर्नुहोस्</string>
     <string name="goal_menu_repeat">अर्को वर्षको लागि दोहोर्याउनुहोस्</string>

@@ -629,6 +629,21 @@ object PennyWiseMigrations {
     }
 
     /**
+     * Reimbursable expenses (#1389). Plain ADD COLUMNs that SQLite 3.18 runs;
+     * existing rows aren't reimbursable and link to nothing.
+     */
+    val MIGRATION_71_72 = object : Migration(71, 72) {
+        override suspend fun migrate(db: SQLiteConnection) {
+            if (!db.hasColumn("transactions", "reimbursement_status")) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN reimbursement_status TEXT DEFAULT NULL")
+            }
+            if (!db.hasColumn("transactions", "reimbursed_by_id")) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN reimbursed_by_id INTEGER DEFAULT NULL")
+            }
+        }
+    }
+
+    /**
      * Single source of truth for the migration list, used by the Hilt-built
      * database (DatabaseModule.providePennyWiseDatabase). A separate,
      * hand-kept list previously caused a v47→v48 boot crash because the
@@ -665,6 +680,7 @@ object PennyWiseMigrations {
         MIGRATION_68_69,
         MIGRATION_69_70,
         MIGRATION_70_71,
+        MIGRATION_71_72,
     )
 }
 

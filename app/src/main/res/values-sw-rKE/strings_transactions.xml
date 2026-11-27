@@ -67,6 +67,8 @@
     <string name="txn_detail_more_actions">Vitendo zaidi</string>
     <string name="txn_detail_menu_add_to_group">Ongeza kwenye kikundi</string>
     <string name="txn_detail_menu_duplicate">Nakili</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_delete_title">Futa Muamala</string>
     <string name="txn_detail_delete_message">Una uhakika unataka kufuta muamala huu? Hatua hii haiwezi kutenduliwa.</string>
     <string name="txn_detail_unmark_loan_title">Ondoa alama ya mkopo?</string>
@@ -188,6 +190,7 @@
     <string name="txn_list_budget_split_notice">Jumla zinaweza kutofautiana na bajeti kwa sababu ya miamala iliyogawanywa</string>
     <string name="txn_list_group_today">Leo</string>
     <string name="txn_list_group_yesterday">Jana</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">Mpya Kwanza</string>
     <string name="txn_list_sort_oldest">Za Zamani Kwanza</string>
     <string name="txn_list_sort_amount_highest">Kiasi Kikubwa Zaidi</string>
@@ -366,6 +369,7 @@
     <string name="share_banner_dismiss">Ondoa</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Badilisha kategoria</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">Si matumizi</string>
     <string name="quick_category_not_income">Si mapato</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

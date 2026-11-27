@@ -26,6 +26,11 @@ class AppLockRepository @Inject constructor(
      */
     val isAppLockEnabled: Flow<Boolean> = userPreferencesRepository.isAppLockEnabled
 
+    /** See [PrivacyPreferences.hideWidgetAmountsWhileLocked]. */
+    val hideWidgetAmounts: Flow<Boolean> = userPreferencesRepository.hideWidgetAmountsWhileLocked
+
+    suspend fun setHideWidgetAmounts(hide: Boolean) = userPreferencesRepository.setHideWidgetAmountsWhileLocked(hide)
+
     /**
      * Flow indicating timeout duration in minutes
      */

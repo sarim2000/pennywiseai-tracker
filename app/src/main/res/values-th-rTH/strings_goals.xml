@@ -52,6 +52,7 @@
     <string name="goal_detail_history_empty">ยังไม่มีการเพิ่มเงิน กด เพิ่มเงิน เมื่อคุณเก็บเงินไว้</string>
     <string name="goal_add_money">เพิ่มเงิน</string>
     <string name="goal_take_out">ถอนออก</string>
+    <!-- Snackbar when Add money takes a goal past 25 / 50 / 75% of its target -->
     <string name="goal_more">ตัวเลือกเพิ่มเติม</string>
     <string name="goal_menu_edit">แก้ไข</string>
     <string name="goal_menu_repeat">ทำซ้ำสำหรับปีหน้า</string>

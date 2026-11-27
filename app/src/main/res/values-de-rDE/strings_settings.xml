@@ -2,6 +2,7 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">Einstellungen</string>
+    <!-- Other words people type for these settings; search only, never shown. -->
     <string name="settings_back">Zurück</string>
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Abbrechen</string>
@@ -82,6 +83,7 @@
     <string name="settings_transaction_groups_subtitle">Transaktionen unter einem Thema organisieren</string>
     <string name="settings_export_data_title">Daten exportieren</string>
     <string name="settings_export_data_subtitle">Alle Daten in eine Datei sichern</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Automatische Ordnersicherung</string>
     <string name="settings_folder_backup_subtitle_enabled">Tägliches Backup um 2:00 Uhr in den ausgewählten Ordner</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Backup jeden Tag um 2:00 Uhr in einem Ordner speichern</string>
@@ -232,6 +234,7 @@
     <string name="settings_app_version">PennyWise v%1$s</string>
     <!-- Settings hub: section headers -->
     <!-- Settings hub: the profile block and shortcut tiles -->
+    <!-- %1$d = position of the color in the picker, e.g. 3 -->
     <!-- Settings hub: what each page holds. Keep to one line. -->
     <!-- Settings pages: the short explanation at the top of each page -->
     <!-- Settings pages: groups and rows -->

@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.domain.loan
 
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
@@ -51,6 +53,18 @@ object LoanMath {
     /** Still owed: never below zero, an overpayment's extra counts as ordinary money (#831). */
     fun remaining(originalAmount: BigDecimal, repaid: BigDecimal): BigDecimal =
         (originalAmount - repaid).coerceAtLeast(BigDecimal.ZERO)
+
+    /**
+     * Whether a repayment paid the loan off: [before] it the loan was open with something
+     * owed, [after] it the same loan, the same way round, is settled with nothing left. A
+     * payment that overshot and turned the loan around ([LoanOverflow.FLIP_DEBT]) leaves a
+     * debt the other way, so it isn't paid off; nor is a loan that had nothing left to pay.
+     */
+    fun paidOff(before: LoanEntity?, after: LoanEntity?): Boolean =
+        before != null && after != null && before.id == after.id &&
+            before.status == LoanStatus.ACTIVE && before.remainingAmount.signum() > 0 &&
+            after.status == LoanStatus.SETTLED && after.direction == before.direction &&
+            after.remainingAmount.signum() == 0
 
     // Each row counts only its loan part (#681), and never once deleted.
     private fun loanPart(linked: List<TransactionEntity>, keep: (TransactionEntity) -> Boolean): BigDecimal =

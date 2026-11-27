@@ -52,6 +52,7 @@
     <string name="goal_detail_history_empty">Rien d\'ajouté pour l\'instant. Utilisez Ajouter de l\'argent quand vous mettez de l\'argent de côté.</string>
     <string name="goal_add_money">Ajouter de l\'argent</string>
     <string name="goal_take_out">Retirer</string>
+    <!-- Snackbar when Add money takes a goal past 25 / 50 / 75% of its target -->
     <string name="goal_more">Plus d\'options</string>
     <string name="goal_menu_edit">Modifier</string>
     <string name="goal_menu_repeat">Répéter l\'année prochaine</string>

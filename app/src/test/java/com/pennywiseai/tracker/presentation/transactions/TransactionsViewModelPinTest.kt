@@ -165,6 +165,24 @@ class TransactionsViewModelPinTest {
     }
 
     @Test
+    fun `a related list keeps to its row's profile only while one profile is selected`() = runTest(dispatcher) {
+        // Personal selected, a Business row's "More from": the Business row must be listed.
+        homeProfile.value = ProfileEntity.PERSONAL_ID
+        viewModel.keepRowProfile(ProfileEntity.BUSINESS_ID)
+        assertEquals(ProfileEntity.BUSINESS_ID, viewModel.selectedProfileId.value)
+        homeProfile.value = null
+        assertEquals(ProfileEntity.BUSINESS_ID, viewModel.selectedProfileId.value)
+    }
+
+    @Test
+    fun `a related list stays on every profile when Home shows them all`() = runTest(dispatcher) {
+        viewModel.keepRowProfile(ProfileEntity.BUSINESS_ID)
+        assertEquals(null, viewModel.selectedProfileId.value)
+        homeProfile.value = ProfileEntity.PERSONAL_ID
+        assertEquals(null, viewModel.selectedProfileId.value)
+    }
+
+    @Test
     fun `any other list still drops a category the period no longer has`() = runTest(dispatcher) {
         openTravelInOctober()
         filtersSet.value = true

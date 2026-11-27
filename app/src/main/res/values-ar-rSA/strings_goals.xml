@@ -58,6 +58,7 @@
     <string name="goal_detail_history_empty">لم تُضف أي أموال بعد. استخدم \"إضافة أموال\" عندما تدّخر مبلغًا.</string>
     <string name="goal_add_money">إضافة أموال</string>
     <string name="goal_take_out">سحب</string>
+    <!-- Snackbar when Add money takes a goal past 25 / 50 / 75% of its target -->
     <string name="goal_more">خيارات إضافية</string>
     <string name="goal_menu_edit">تعديل</string>
     <string name="goal_menu_repeat">تكرار للسنة القادمة</string>

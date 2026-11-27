@@ -2,6 +2,7 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">Налады</string>
+    <!-- Other words people type for these settings; search only, never shown. -->
     <string name="settings_back">Назад</string>
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Скасаваць</string>
@@ -84,6 +85,7 @@
     <string name="settings_transaction_groups_subtitle">Аб\'ядноўвайце транзакцыі па тэмах</string>
     <string name="settings_export_data_title">Экспарт даных</string>
     <string name="settings_export_data_subtitle">Захаваць рэзервовую копію ўсіх даных у файл</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Аўтаматычная копія ў папку</string>
     <string name="settings_folder_backup_subtitle_enabled">Штодня ў 2:00 у абраную папку</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Захоўваць рэзервовую копію ў папку штодня ў 2:00</string>
@@ -248,6 +250,7 @@
     <!-- %1$s = app version, e.g. 2.18.0 -->
     <!-- Settings hub: section headers -->
     <!-- Settings hub: the profile block and shortcut tiles -->
+    <!-- %1$d = position of the color in the picker, e.g. 3 -->
     <!-- Settings hub: what each page holds. Keep to one line. -->
     <!-- Settings pages: the short explanation at the top of each page -->
     <!-- Settings pages: groups and rows -->

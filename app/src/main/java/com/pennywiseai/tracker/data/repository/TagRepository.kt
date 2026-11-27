@@ -68,6 +68,10 @@ class TagRepository @Inject constructor(
             pairs.groupBy({ it.transactionId }, { it.name })
         }
 
+    /** Tag names of the transactions [ids] (a page of rows, under SQLite's variable limit), in one query. */
+    suspend fun getTagNamesFor(ids: List<Long>): Map<Long, List<String>> =
+        tagDao.getTagPairsFor(ids).groupBy({ it.transactionId }, { it.name })
+
     suspend fun getTagNamesForTransaction(transactionId: Long): List<String> =
         tagDao.getTagsForTransactionSync(transactionId).map { it.name }
 

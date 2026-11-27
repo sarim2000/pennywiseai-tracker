@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.core.entitlement.FreeTierLimits
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
@@ -34,6 +36,7 @@ class RulesViewModel @Inject constructor(
     private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val mascotMoments: MascotMoments,
     entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
@@ -338,6 +341,7 @@ class RulesViewModel @Inject constructor(
                     )
                 }
                 _batchApplyResult.value = result
+                rulesAppliedMoment(result)?.let(mascotMoments::announce)
             } catch (e: Exception) {
                 e.printStackTrace()
                 _batchApplyResult.value = BatchApplyResult(
@@ -382,3 +386,11 @@ class RulesViewModel @Inject constructor(
         val accountType: String?
     )
 }
+
+/**
+ * The Chat tab's moment for rules the user applied to past transactions: how many rows they
+ * changed, or null when they changed none or any row failed. Rows a blocking rule removed
+ * aren't counted, as the chip says "updated".
+ */
+internal fun rulesAppliedMoment(result: BatchApplyResult): MascotMoment.RulesApplied? =
+    if (result.errors.isEmpty() && result.totalUpdated > 0) MascotMoment.RulesApplied(result.totalUpdated) else null

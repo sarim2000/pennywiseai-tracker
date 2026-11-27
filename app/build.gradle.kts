@@ -341,6 +341,9 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.junit)
+    testImplementation(libs.androidx.room.testing)
+    // A real SQLite for DAO queries on the JVM (MerchantSuggestionsTest); test-only, so the APK stays free of it.
+    testImplementation(libs.androidx.sqlite.bundled.jvm)
     // Architecture guardrails (ArchitectureTest): parses app sources, test-only.
     testImplementation(libs.konsist)
     androidTestImplementation(libs.androidx.room.testing)

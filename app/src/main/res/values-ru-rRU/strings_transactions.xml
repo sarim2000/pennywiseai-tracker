@@ -72,6 +72,8 @@
     <string name="txn_detail_more_actions">Другие действия</string>
     <string name="txn_detail_menu_add_to_group">Добавить в группу</string>
     <string name="txn_detail_menu_duplicate">Дублировать</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_delete_title">Удалить транзакцию</string>
     <string name="txn_detail_delete_message">Вы уверены, что хотите удалить эту транзакцию? Это действие нельзя отменить.</string>
     <string name="txn_detail_unmark_loan_title">Снять отметку займа?</string>
@@ -199,6 +201,7 @@
     <string name="txn_list_budget_split_notice">Суммы могут отличаться от бюджета в связи с дробными операциями</string>
     <string name="txn_list_group_today">Сегодня</string>
     <string name="txn_list_group_yesterday">Вчера</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">Сначала новые</string>
     <string name="txn_list_sort_oldest">Сначала старые</string>
     <string name="txn_list_sort_amount_highest">Самая высокая сумма</string>
@@ -387,6 +390,7 @@
     <string name="share_banner_dismiss">Закрыть</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Изменить категорию</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">Не расход</string>
     <string name="quick_category_not_income">Не доход</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

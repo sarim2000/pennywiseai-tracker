@@ -32,7 +32,6 @@
     <string name="home_resync_scan_again">सबै सन्देश फेरि स्क्यान गर्नुहोस्</string>
     <string name="home_resync_scan_again_desc">छुटेका जति थपिन्छन्। तपाईंका सम्पादन र भइरहेका सबै लेनदेन जस्ताको तस्तै रहन्छन्।</string>
     <string name="home_resync_rebuild">सुरुदेखि फेरि बनाउनुहोस्</string>
-    <string name="home_resync_rebuild_desc">पार्सर सुधारहरू लागू गर्न SMS लेनदेन फेरि पढिन्छ। SMS लेनदेनमा गरिएका सम्पादन रिसेट हुन्छन्। म्यानुअल, आयात गरिएका, ऋण र समूहमा राखिएका लेनदेन जोगाइन्छन्।</string>
     <!-- More options sheet -->
     <string name="home_menu_title">थप विकल्पहरू</string>
     <string name="home_menu_edit_home">होम स्क्रिन सम्पादन गर्नुहोस्</string>
@@ -348,4 +347,9 @@
     <string name="safe_to_spend_choose_accounts">खाता छान्नुहोस्</string>
     <string name="safe_to_spend_done">समाप्त</string>
     <string name="safe_to_spend_footnote">बिलहरू तपाईंका सक्रिय सदस्यताबाट लिइन्छन्। क्रेडिट कार्ड र ऋणलाई खर्च गर्न मिल्ने पैसामा गनिँदैन।</string>
+    <!-- Weekly guess: a Home card and its sheet. %1$s is a category name, %2$s a currency code. -->
+    <!-- %1$s is the setting's name, "Count card spend as expense". -->
+    <!-- %1$s is the guessed amount. -->
+    <!-- %1$d is a whole percent. -->
+    <!-- %1$s is an amount, %2$d a whole percent. -->
 </resources>

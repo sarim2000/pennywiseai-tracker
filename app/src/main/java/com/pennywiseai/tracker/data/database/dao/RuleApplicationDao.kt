@@ -4,6 +4,7 @@ import androidx.room3.*
 import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
 import kotlinx.coroutines.flow.Flow
 
+/** Reads that can outgrow one CursorWindow are @Transaction: see [TransactionDao] (#1500). */
 @Dao
 interface RuleApplicationDao {
 
@@ -22,6 +23,7 @@ interface RuleApplicationDao {
     @Query("DELETE FROM rule_applications")
     suspend fun deleteAllApplications()
 
+    @Transaction
     @Query("SELECT * FROM rule_applications ORDER BY applied_at DESC")
     fun getAllApplications(): Flow<List<RuleApplicationEntity>>
 }

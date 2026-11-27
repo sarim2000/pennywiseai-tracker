@@ -46,12 +46,13 @@ class ChatSuggestions @Inject constructor(
 
         /**
          * Over its limit or under [LOW_LEFT] of it left, like a bill that's due: a budget with
-         * plenty left, or with no rate to show its limit, isn't "what needs doing now".
+         * plenty left, or with no rate to show its limit, isn't "what needs doing now". Nothing
+         * left counts even when rollover carried the limit down to 0.
          */
         internal fun BudgetStatus.needsAttention(): Boolean {
             val left = remaining ?: return false
             val limit = limit ?: return false
-            return left < limit * LOW_LEFT
+            return left.signum() <= 0 || left < limit * LOW_LEFT
         }
 
         /** More than this and they compete instead of suggesting. */

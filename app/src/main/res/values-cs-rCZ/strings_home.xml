@@ -32,7 +32,6 @@
     <string name="home_resync_scan_again">Znovu naskenovat všechny zprávy</string>
     <string name="home_resync_scan_again_desc">Doplní vše, co chybělo. Vaše úpravy i všechny stávající transakce zůstanou beze změny.</string>
     <string name="home_resync_rebuild">Sestavit znovu od začátku</string>
-    <string name="home_resync_rebuild_desc">Znovu načte transakce ze SMS, aby se projevily opravy parserů. Úpravy SMS transakcí se zruší. Ruční, importované, úvěrové a seskupené transakce zůstanou zachovány.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Další možnosti</string>
     <string name="home_menu_edit_home">Upravit domácí obrazovku</string>
@@ -383,4 +382,9 @@
     <string name="safe_to_spend_choose_accounts">Vybrat účty</string>
     <string name="safe_to_spend_done">Hotovo</string>
     <string name="safe_to_spend_footnote">Platby vycházejí z vašich aktivních předplatných. Kreditní karty a půjčky se nepočítají jako peníze k utracení.</string>
+    <!-- Weekly guess: a Home card and its sheet. %1$s is a category name, %2$s a currency code. -->
+    <!-- %1$s is the setting's name, "Count card spend as expense". -->
+    <!-- %1$s is the guessed amount. -->
+    <!-- %1$d is a whole percent. -->
+    <!-- %1$s is an amount, %2$d a whole percent. -->
 </resources>

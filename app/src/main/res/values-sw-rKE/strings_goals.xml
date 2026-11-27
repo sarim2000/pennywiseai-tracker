@@ -53,6 +53,7 @@
     <string name="goal_detail_history_empty">Bado hujaongeza chochote. Tumia Ongeza pesa unapoweka kando.</string>
     <string name="goal_add_money">Ongeza pesa</string>
     <string name="goal_take_out">Toa</string>
+    <!-- Snackbar when Add money takes a goal past 25 / 50 / 75% of its target -->
     <string name="goal_more">Chaguo zaidi</string>
     <string name="goal_menu_edit">Hariri</string>
     <string name="goal_menu_repeat">Rudia mwaka ujao</string>

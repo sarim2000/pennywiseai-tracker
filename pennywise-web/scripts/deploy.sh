@@ -119,6 +119,17 @@ cp "$PARSER_SRC/build.docker.gradle.kts"    "$PARSER_STAGE/build.gradle.kts"
 cp "$PARSER_SRC/settings.docker.gradle.kts" "$PARSER_STAGE/settings.gradle.kts"
 cp -R "$PARSER_SRC/src"                      "$PARSER_STAGE/src"
 
+# --- Stage /static/* for Workers Static Assets -----------------------------
+# The Ktor resources stay the single source (local `:server:run` serves them);
+# a copy in public/static lets Cloudflare's edge serve them without ever
+# waking the container. Re-staged fresh so a deleted file can't linger.
+STATIC_SRC="server/src/main/resources/static"
+STATIC_STAGE="public/static"
+echo
+echo "==> Staging $STATIC_SRC into $STATIC_STAGE (served from the edge)"
+rm -rf "$STATIC_STAGE"
+cp -R "$STATIC_SRC" "$STATIC_STAGE"
+
 echo
 echo "==> Deploying Worker (secrets above are left untouched)"
 wrangler deploy "$@"

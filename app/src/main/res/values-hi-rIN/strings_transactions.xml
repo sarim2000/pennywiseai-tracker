@@ -67,6 +67,8 @@
     <string name="txn_detail_more_actions">और विकल्प</string>
     <string name="txn_detail_menu_add_to_group">ग्रुप में जोड़ें</string>
     <string name="txn_detail_menu_duplicate">कॉपी बनाएँ</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_delete_title">लेन-देन हटा दें</string>
     <string name="txn_detail_delete_message">क्या आप वाकई इस लेन-देन को हटाना चाहते हैं? इस क्रिया को पूर्ववत नहीं किया जा सकता।</string>
     <string name="txn_detail_unmark_loan_title">ऋण के रूप में चिह्न हटाएँ?</string>
@@ -188,6 +190,7 @@
     <string name="txn_list_budget_split_notice">बँटे हुए लेन-देन की वजह से टोटल बजट से अलग हो सकता है</string>
     <string name="txn_list_group_today">आज</string>
     <string name="txn_list_group_yesterday">कल</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">नवीनतम पहले</string>
     <string name="txn_list_sort_oldest">सबसे पुराना पहले</string>
     <string name="txn_list_sort_amount_highest">सबसे उच्च राशि</string>
@@ -366,6 +369,7 @@
     <string name="share_banner_dismiss">नामंजूर करें</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">श्रेणी बदलें</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">खर्च नहीं है</string>
     <string name="quick_category_not_income">आय नहीं है</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

@@ -26,6 +26,8 @@ object BudgetWidgetDataStore {
     private val SAVINGS_RATE = floatPreferencesKey("savings_rate")
     private val SAVINGS_DELTA = stringPreferencesKey("savings_delta")
     private val CURRENCY = stringPreferencesKey("currency")
+    /** Absent when no limit is running: the owl stays Calm. */
+    private val OVER_PACE = booleanPreferencesKey("over_pace")
 
     fun getData(context: Context): Flow<BudgetWidgetData> {
         return context.widgetDataStore.data.map { prefs ->
@@ -41,7 +43,8 @@ object BudgetWidgetDataStore {
                 netSavings = prefs[NET_SAVINGS]?.toBigDecimalOrNull() ?: BigDecimal.ZERO,
                 savingsRate = prefs[SAVINGS_RATE] ?: 0f,
                 savingsDelta = prefs[SAVINGS_DELTA]?.takeIf { it.isNotBlank() }?.toBigDecimalOrNull(),
-                currency = prefs[CURRENCY] ?: "INR"
+                currency = prefs[CURRENCY] ?: "INR",
+                overPace = prefs[OVER_PACE]
             )
         }
             // A failed read (corrupt file, unknown enum) shows the empty widget
@@ -62,6 +65,7 @@ object BudgetWidgetDataStore {
             prefs[SAVINGS_RATE] = data.savingsRate
             prefs[SAVINGS_DELTA] = data.savingsDelta?.toPlainString() ?: ""
             prefs[CURRENCY] = data.currency
+            data.overPace?.let { prefs[OVER_PACE] = it } ?: prefs.remove(OVER_PACE)
         }
     }
 }

@@ -53,6 +53,7 @@
     <string name="goal_detail_history_empty">अभी तक कुछ नहीं जोड़ा गया। जब भी पैसे अलग रखें, पैसे जोड़ें इस्तेमाल करें।</string>
     <string name="goal_add_money">पैसे जोड़ें</string>
     <string name="goal_take_out">पैसे निकालें</string>
+    <!-- Snackbar when Add money takes a goal past 25 / 50 / 75% of its target -->
     <string name="goal_more">अधिक विकल्प</string>
     <string name="goal_menu_edit">संपादित करें</string>
     <string name="goal_menu_repeat">अगले साल के लिए दोहराएँ</string>

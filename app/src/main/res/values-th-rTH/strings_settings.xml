@@ -2,6 +2,7 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">การตั้งค่า</string>
+    <!-- Other words people type for these settings; search only, never shown. -->
     <string name="settings_back">กลับ</string>
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">ยกเลิก</string>
@@ -79,6 +80,7 @@
     <string name="settings_transaction_groups_subtitle">จัดธุรกรรมไว้ภายใต้หัวข้อเดียวกัน</string>
     <string name="settings_export_data_title">ส่งออกข้อมูล</string>
     <string name="settings_export_data_subtitle">สำรองข้อมูลทั้งหมดเป็นไฟล์</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">สำรองข้อมูลลงโฟลเดอร์อัตโนมัติ</string>
     <string name="settings_folder_backup_subtitle_enabled">สำรองข้อมูลทุกวันตอน 2:00 น. ลงโฟลเดอร์ที่คุณเลือก</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · บันทึกข้อมูลสำรองลงโฟลเดอร์ทุกวันตอน 2:00 น.</string>
@@ -221,6 +223,7 @@
     <!-- %1$s = app version, e.g. 2.18.0 -->
     <!-- Settings hub: section headers -->
     <!-- Settings hub: the profile block and shortcut tiles -->
+    <!-- %1$d = position of the color in the picker, e.g. 3 -->
     <!-- Settings hub: what each page holds. Keep to one line. -->
     <!-- Settings pages: the short explanation at the top of each page -->
     <!-- Settings pages: groups and rows -->

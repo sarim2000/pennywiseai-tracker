@@ -6,13 +6,19 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
+import com.pennywiseai.tracker.data.events.MascotMoments
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalRepository
+import com.pennywiseai.tracker.ui.components.celebration.CelebrationKeys
+import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -44,6 +50,8 @@ class GoalDetailViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val conversionService: CurrencyConversionService,
     private val entitlementGate: EntitlementGate,
+    private val preferences: UserPreferencesRepository,
+    private val mascotMoments: MascotMoments,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -62,6 +70,31 @@ class GoalDetailViewModel @Inject constructor(
 
     private val saved: BigDecimal
         get() = (state.value as? GoalDetailState.Loaded)?.detail?.progress?.saved ?: BigDecimal.ZERO
+
+    private val _celebrate = MutableStateFlow(false)
+
+    /** True while a goal's first-ever "Reached" is being celebrated. */
+    val celebrate: StateFlow<Boolean> = _celebrate.asStateFlow()
+
+    // The first goal opened on this device, or since a restore, records every goal already
+    // reached without confetti, as Achievements does: an upgrade or a restore is history, not news.
+    private val seeded = viewModelScope.async {
+        preferences.seedCelebrations(CelebrationKeys.GOALS_SEEDED) {
+            goalRepository.observeGoals().first()
+                .filter { it.saved >= it.goal.targetAmount }
+                .map { CelebrationKeys.goalReached(it.goal.uid) }
+        }
+    }
+
+    /** The screen shows this goal as reached: cheer, the first time only. */
+    fun onShownReached(goalUid: String) {
+        viewModelScope.launch {
+            seeded.await()
+            if (preferences.celebrateOnce(CelebrationKeys.goalReached(goalUid))) _celebrate.value = true
+        }
+    }
+
+    fun onCelebrated() { _celebrate.value = false }
 
     fun resetSheet() { _sheet.value = MoneySheetState() }
 
@@ -93,14 +126,20 @@ class GoalDetailViewModel @Inject constructor(
             }
             if (converted == null) { _sheet.value = MoneySheetState(error = MoneyError.NO_RATE); return@launch }
             validateMovement(converted, isWithdrawal, saved)?.let { _sheet.value = MoneySheetState(error = it); return@launch }
+            // A deposit comes back with the goal's progress around it, for the Chat tab; a withdrawal with none.
             val result = runCatching {
                 val original = if (foreign) amount else null
                 val originalCurrency = if (foreign) currency else null
-                if (isWithdrawal) goalRepository.addWithdrawal(goalId, converted, date, note, original, originalCurrency)
-                else goalRepository.addContribution(goalId, converted, date, note, original, originalCurrency)
+                if (isWithdrawal) {
+                    goalRepository.addWithdrawal(goalId, converted, date, note, original, originalCurrency)
+                    null
+                } else {
+                    goalRepository.addContribution(goalId, converted, date, note, original, originalCurrency)
+                }
             }
             _sheet.value = if (result.isSuccess) MoneySheetState(done = true, addedFrom = before.takeUnless { isWithdrawal })
             else MoneySheetState(error = MoneyError.FAILED)
+            result.getOrNull()?.let { goalDepositMoment(it.before, it.after, Money(amount, currency)) }?.let(mascotMoments::announce)
         }
     }
 

@@ -840,28 +840,6 @@
     <issue
         id="LocalContextGetResourceValueCall"
         message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
-        errorLine1="                                        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.txn_export_share_subject))"
-        errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/pennywiseai/tracker/presentation/transactions/ExportTransactionsDialog.kt"
-            line="370"
-            column="72"/>
-    </issue>
-
-    <issue
-        id="LocalContextGetResourceValueCall"
-        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
-        errorLine1="                                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.txn_export_share_chooser_title)))"
-        errorLine2="                                                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/pennywiseai/tracker/presentation/transactions/ExportTransactionsDialog.kt"
-            line="373"
-            column="93"/>
-    </issue>
-
-    <issue
-        id="LocalContextGetResourceValueCall"
-        message="Querying resource values using LocalContext.current is not configuration-aware and may return stale values if the Configuration changes"
         errorLine1="                                contentDescription = context.getString(R.string.home_fab_sync)"
         errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location

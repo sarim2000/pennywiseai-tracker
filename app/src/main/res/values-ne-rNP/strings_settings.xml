@@ -2,6 +2,7 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">सेटिङ्स</string>
+    <!-- Other words people type for these settings; search only, never shown. -->
     <string name="settings_back">पछाडि</string>
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">रद्द गर्नुहोस्</string>
@@ -81,6 +82,7 @@
     <string name="settings_transaction_groups_subtitle">लेनदेनलाई एउटा विषयअन्तर्गत मिलाउनुहोस्</string>
     <string name="settings_export_data_title">डेटा निर्यात गर्नुहोस्</string>
     <string name="settings_export_data_subtitle">सबै डेटा फाइलमा ब्याकअप गर्नुहोस्</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">स्वचालित फोल्डर ब्याकअप</string>
     <string name="settings_folder_backup_subtitle_enabled">तपाईंले छानेको फोल्डरमा हरेक दिन बिहान 2:00 बजे ब्याकअप</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · हरेक दिन बिहान 2:00 बजे फोल्डरमा ब्याकअप सुरक्षित गर्नुहोस्</string>
@@ -230,6 +232,7 @@
     <!-- %1$s = app version, e.g. 2.18.0 -->
     <!-- Settings hub: section headers -->
     <!-- Settings hub: the profile block and shortcut tiles -->
+    <!-- %1$d = position of the color in the picker, e.g. 3 -->
     <!-- Settings hub: what each page holds. Keep to one line. -->
     <!-- Settings pages: the short explanation at the top of each page -->
     <!-- Settings pages: groups and rows -->

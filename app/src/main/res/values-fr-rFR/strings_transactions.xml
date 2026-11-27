@@ -67,6 +67,8 @@
     <string name="txn_detail_more_actions">Plus d\'actions</string>
     <string name="txn_detail_menu_add_to_group">Ajouter au groupe</string>
     <string name="txn_detail_menu_duplicate">Dupliquer</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_delete_title">Supprimer la transaction</string>
     <string name="txn_detail_delete_message">Êtes-vous sûr de vouloir supprimer cette opération ? Cette action ne peut pas être annulée.</string>
     <string name="txn_detail_unmark_loan_title">Retirer le marquage comme prêt ?</string>
@@ -188,6 +190,7 @@
     <string name="txn_list_budget_split_notice">Les totaux peuvent différer du budget en raison de transactions fractionnées</string>
     <string name="txn_list_group_today">Aujourd\'hui</string>
     <string name="txn_list_group_yesterday">Hier</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">Les plus récents d\'abord</string>
     <string name="txn_list_sort_oldest">Les plus anciens d\'abord</string>
     <string name="txn_list_sort_amount_highest">Montant le plus élevé</string>
@@ -366,6 +369,7 @@
     <string name="share_banner_dismiss">Refuser</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Changer de catégorie</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">Pas une dépense</string>
     <string name="quick_category_not_income">Pas un revenu</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

@@ -54,6 +54,7 @@
     <string name="goal_detail_history_empty">Пока ничего не добавлено. Нажмите «Добавить деньги», когда отложите сумму.</string>
     <string name="goal_add_money">Добавить деньги</string>
     <string name="goal_take_out">Снять</string>
+    <!-- Snackbar when Add money takes a goal past 25 / 50 / 75% of its target -->
     <string name="goal_more">Больше опций</string>
     <string name="goal_menu_edit">Изменить</string>
     <string name="goal_menu_repeat">Повторить на следующий год</string>

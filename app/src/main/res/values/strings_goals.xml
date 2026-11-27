@@ -58,6 +58,10 @@
     <string name="goal_detail_history_empty">Nothing added yet. Use Add money when you set some aside.</string>
     <string name="goal_add_money">Add money</string>
     <string name="goal_take_out">Take out</string>
+    <!-- Snackbar when Add money takes a goal past 25 / 50 / 75% of its target -->
+    <string name="goal_milestone_quarter">A quarter of the way there</string>
+    <string name="goal_milestone_half">Halfway there</string>
+    <string name="goal_milestone_three_quarters">Three quarters of the way there</string>
     <string name="goal_more">More options</string>
     <string name="goal_menu_edit">Edit</string>
     <string name="goal_menu_repeat">Repeat for next year</string>

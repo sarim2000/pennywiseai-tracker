@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.widget
 
 import android.content.Context
+import android.content.res.Configuration
 import android.content.res.Resources
+import android.view.View
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.repository.GoalProgress
@@ -10,6 +12,7 @@ import com.pennywiseai.tracker.domain.goals.GoalTone
 import com.pennywiseai.tracker.domain.goals.tone
 import com.pennywiseai.tracker.ui.components.shortLine
 import com.pennywiseai.tracker.ui.components.statusLine
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import io.mockk.every
 import io.mockk.mockk
@@ -51,6 +54,10 @@ class GoalWidgetDataTest {
             every { getQuantityString(any(), any(), *anyVararg()) } answers {
                 @Suppress("UNCHECKED_CAST")
                 localDigits(templates.getValue(firstArg()).format(*(args[2] as Array<Any?>)))
+            }
+            // Left to right, for widgetMoney.
+            every { configuration } returns mockk<Configuration> {
+                every { layoutDirection } returns View.LAYOUT_DIRECTION_LTR
             }
         }
         every { resources } returns res
@@ -143,5 +150,24 @@ class GoalWidgetDataTest {
         assertEquals(items, GoalWidgetDataStore.decode(GoalWidgetDataStore.encode(items)))
         assertEquals(emptyList<GoalWidgetItem>(), GoalWidgetDataStore.decode("{not json"))
         assertEquals(emptyList<GoalWidgetItem>(), GoalWidgetDataStore.decode(null))
+    }
+
+    @Test
+    fun `while amounts are hidden a goal shows neither its status nor its tone`() {
+        val goals = listOf(
+            progress("24000", "0", today.plusMonths(12)),
+            progress("12000", "0", today.plusMonths(6), created = today.minusMonths(6)),
+            progress("1000", "1000", today.plusMonths(3)),
+            progress("1000", "400", today.minusDays(1), created = today.minusMonths(2)),
+        ).map { it.toWidgetItem(context) }
+        assertEquals(listOf(GoalTone.NEUTRAL, GoalTone.WARNING, GoalTone.SUCCESS, GoalTone.ERROR), goals.map { it.shownTone(hidden = false) })
+
+        for (goal in goals) {
+            assertEquals(AmountPrivacy.MASK, goal.shownLine(short = false, hidden = true))
+            assertEquals(AmountPrivacy.MASK, goal.shownLine(short = true, hidden = true))
+            assertEquals(GoalTone.NEUTRAL, goal.shownTone(hidden = true))
+            assertEquals(goal.line, goal.shownLine(short = false, hidden = false))
+            assertEquals(goal.shortLine, goal.shownLine(short = true, hidden = false))
+        }
     }
 }

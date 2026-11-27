@@ -64,6 +64,7 @@
     <string name="budgets_title">Presupuestos</string>
     <string name="budgets_back">Atrás</string>
     <string name="budgets_add">Agregar presupuesto</string>
+    <!-- Budgets card the week after a budget cycle ends: %1$s is the month's name ("October ended under budget"), or the cycle's dates when it starts on another day than the 1st ("Sep 25 - Oct 24 ended under budget") -->
     <string name="budgets_action_cancel">Cancelar</string>
     <string name="budgets_action_delete">Eliminar</string>
     <string name="budgets_action_ok">Aceptar</string>

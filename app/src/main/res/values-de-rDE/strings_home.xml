@@ -32,7 +32,6 @@
     <string name="home_resync_scan_again">Alle Nachrichten erneut scannen</string>
     <string name="home_resync_scan_again_desc">Fügt alles hinzu, was übersehen wurde. Ihre Änderungen und alle vorhandenen Transaktionen bleiben unverändert.</string>
     <string name="home_resync_rebuild">Komplett neu aufbauen</string>
-    <string name="home_resync_rebuild_desc">Liest SMS-Transaktionen neu ein, um Verbesserungen der Erkennung zu übernehmen. Änderungen an SMS-Transaktionen werden zurückgesetzt. Manuelle, importierte, Darlehens- und gruppierte Transaktionen bleiben erhalten.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Weitere Optionen</string>
     <string name="home_menu_edit_home">Homescreen bearbeiten</string>
@@ -350,4 +349,9 @@
     <string name="safe_to_spend_choose_accounts">Konten auswählen</string>
     <string name="safe_to_spend_done">Fertig</string>
     <string name="safe_to_spend_footnote">Die Rechnungen stammen aus Ihren aktiven Abonnements. Kreditkarten und Darlehen zählen nicht als verfügbares Geld.</string>
+    <!-- Weekly guess: a Home card and its sheet. %1$s is a category name, %2$s a currency code. -->
+    <!-- %1$s is the setting's name, "Count card spend as expense". -->
+    <!-- %1$s is the guessed amount. -->
+    <!-- %1$d is a whole percent. -->
+    <!-- %1$s is an amount, %2$d a whole percent. -->
 </resources>

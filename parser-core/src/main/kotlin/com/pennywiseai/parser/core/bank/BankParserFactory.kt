@@ -83,6 +83,8 @@ object BankParserFactory {
         // mention Transfer365, and Agricola claims the shared "Transfer365" sender (it gates its own parse()
         // on an "AGRICOLA" body marker, so a Transfer365-sender SMS from another bank falls through).
         BancoAgricolaParser(),  // Banco Agricola (El Salvador) — senders "Agricola" and "Transfer365"
+        MashreqEgyptParser(),  // Mashreq Egypt / Mashreq NEO (Egypt) — sender "Mashreq NEO"; must precede
+        // MashreqBankParser, which claims every "SHREQ" sender and would read these EGP messages as UAE ones.
         MashreqBankParser(),  // Mashreq Bank (UAE)
         CharlesSchwabParser(),  // Charles Schwab (USA)
         NavyFederalParser(),  // Navy Federal Credit Union (USA)

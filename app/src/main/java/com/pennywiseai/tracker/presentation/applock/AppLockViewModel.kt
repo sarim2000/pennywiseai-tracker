@@ -22,6 +22,10 @@ class AppLockViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(AppLockUiState())
     val uiState: StateFlow<AppLockUiState> = _uiState.asStateFlow()
 
+    /** Settings → Security: whether the widgets mask amounts while the lock is on. */
+    val hideWidgetAmounts: StateFlow<Boolean> = appLockRepository.hideWidgetAmounts
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
     init {
         observeAppLockState()
         checkBiometricCapability()
@@ -107,6 +111,12 @@ class AppLockViewModel @Inject constructor(
     fun setAppLockEnabled(enabled: Boolean) {
         viewModelScope.launch {
             appLockRepository.setAppLockEnabled(enabled)
+        }
+    }
+
+    fun setHideWidgetAmounts(hide: Boolean) {
+        viewModelScope.launch {
+            appLockRepository.setHideWidgetAmounts(hide)
         }
     }
 

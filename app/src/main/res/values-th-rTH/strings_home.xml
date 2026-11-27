@@ -32,7 +32,6 @@
     <string name="home_resync_scan_again">สแกนข้อความทั้งหมดอีกครั้ง</string>
     <string name="home_resync_scan_again_desc">เพิ่มรายการที่ตกหล่น สิ่งที่คุณแก้ไขและธุรกรรมที่มีอยู่ทั้งหมดจะยังเหมือนเดิม</string>
     <string name="home_resync_rebuild">สร้างใหม่ตั้งแต่ต้น</string>
-    <string name="home_resync_rebuild_desc">อ่านธุรกรรมจาก SMS ใหม่เพื่อใช้การแก้ไขตัวแยกข้อมูลล่าสุด สิ่งที่คุณแก้ไขในธุรกรรมจาก SMS จะถูกรีเซ็ต ส่วนธุรกรรมที่เพิ่มเอง นำเข้า เงินกู้ และที่จัดกลุ่มไว้จะยังอยู่</string>
     <!-- More options sheet -->
     <string name="home_menu_title">ตัวเลือกเพิ่มเติม</string>
     <string name="home_menu_edit_home">แก้ไขหน้าแรก</string>
@@ -332,4 +331,9 @@
     <string name="safe_to_spend_choose_accounts">เลือกบัญชี</string>
     <string name="safe_to_spend_done">เสร็จสิ้น</string>
     <string name="safe_to_spend_footnote">บิลมาจากการสมัครสมาชิกที่ใช้งานอยู่ บัตรเครดิตและเงินกู้ไม่นับเป็นเงินที่ใช้ได้</string>
+    <!-- Weekly guess: a Home card and its sheet. %1$s is a category name, %2$s a currency code. -->
+    <!-- %1$s is the setting's name, "Count card spend as expense". -->
+    <!-- %1$s is the guessed amount. -->
+    <!-- %1$d is a whole percent. -->
+    <!-- %1$s is an amount, %2$d a whole percent. -->
 </resources>

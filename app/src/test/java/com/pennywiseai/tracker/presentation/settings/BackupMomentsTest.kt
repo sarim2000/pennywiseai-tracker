@@ -148,7 +148,7 @@ class BackupMomentsTest {
         assertEquals(emptyList<MascotMoment>(), heard)
 
         viewModel.clearImportExportMessage()
-        viewModel.saveBackupToFile(mockk())
+        viewModel.saveBackupToFile(mockk(), backupFile.path)
         awaitSaveResult()
 
         assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
@@ -160,7 +160,7 @@ class BackupMomentsTest {
         viewModel.exportBackup()
 
         viewModel.clearImportExportMessage()
-        viewModel.saveBackupToFile(mockk())
+        viewModel.saveBackupToFile(mockk(), backupFile.path)
         awaitSaveResult()
 
         assertEquals(emptyList<MascotMoment>(), heard)

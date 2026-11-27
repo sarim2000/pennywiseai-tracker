@@ -160,13 +160,15 @@ internal fun DataPage(
         }
     )
 
-    // File saver for export
+    // File saver for export. Saves the export whose dialog the user picked "Save" in.
+    var saveExportPath by rememberSaveable { mutableStateOf<String?>(null) }
     val exportSaveLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
         onResult = { uri ->
             uri?.let {
-                settingsViewModel.saveBackupToFile(it)
+                settingsViewModel.saveBackupToFile(it, saveExportPath)
             }
+            saveExportPath = null
         }
     )
 
@@ -451,6 +453,7 @@ internal fun DataPage(
                 Row {
                     TextButton(
                         onClick = {
+                            saveExportPath = exportedBackupFile?.path
                             exportSaveLauncher.launch(fileName)
                             showExportOptionsDialog = false
                             settingsViewModel.clearImportExportMessage()
@@ -464,7 +467,7 @@ internal fun DataPage(
 
                     TextButton(
                         onClick = {
-                            settingsViewModel.shareBackup()
+                            settingsViewModel.shareBackup(exportedBackupFile?.path)
                             showExportOptionsDialog = false
                             settingsViewModel.clearImportExportMessage()
                         },

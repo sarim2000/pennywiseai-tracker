@@ -45,6 +45,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -120,6 +121,7 @@ class SettingsViewModel @Inject constructor(
 
     private val _exportedBackupFile = MutableStateFlow<File?>(null)
     val exportedBackupFile: StateFlow<File?> = _exportedBackupFile.asStateFlow()
+    private var exportJob: Job? = null
 
     // Receipts too large for the backup just created; the Save/Share dialog says so.
     private val _exportSkippedReceipts = MutableStateFlow(0)
@@ -589,9 +591,16 @@ class SettingsViewModel @Inject constructor(
         null
     }
 
-    /** With a [passphrase] the backup is encrypted; the array is cleared once it's used. */
+    /**
+     * With a [passphrase] the backup is encrypted; the array is cleared once it's used.
+     * Ignored while another export runs, so one can't replace the file the other offers.
+     */
     fun exportBackup(passphrase: CharArray? = null) {
-        viewModelScope.launch {
+        if (exportJob?.isActive == true) {
+            passphrase?.fill('\u0000')
+            return
+        }
+        exportJob = viewModelScope.launch {
             try {
                 val result = try {
                     backupExporter.exportBackup(
@@ -621,13 +630,14 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun saveBackupToFile(uri: android.net.Uri) {
+    /** Saves the export the user chose to save, [exportedPath]; not one made since. */
+    fun saveBackupToFile(uri: android.net.Uri, exportedPath: String?) {
         // Copying a backup with receipts can take a while; keep it off the main thread.
         viewModelScope.launch(Dispatchers.IO) {
             var opened = false
             try {
-                // Gone when the app was killed while the picker was open.
-                val file = _exportedBackupFile.value
+                // Gone when the app was killed while the picker was open, or replaced by a newer export.
+                val file = _exportedBackupFile.value?.takeIf { it.path == exportedPath }
                     ?: throw IOException("The backup is no longer available. Export it again")
                 // A provider can hand back no stream at all: nothing was written then.
                 val outputStream = context.contentResolver.openOutputStream(uri)
@@ -661,8 +671,9 @@ class SettingsViewModel @Inject constructor(
         } ?: false
     }.getOrDefault(false)
 
-    fun shareBackup() {
-        _exportedBackupFile.value?.let { file ->
+    /** Shares the export the user is looking at, [exportedPath]; not one made since. */
+    fun shareBackup(exportedPath: String?) {
+        _exportedBackupFile.value?.takeIf { it.path == exportedPath }?.let { file ->
             shareBackupFile(file)
         }
     }

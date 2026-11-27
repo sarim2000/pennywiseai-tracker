@@ -55,9 +55,10 @@ object ReceiptExtractor {
 
     // ── Total ──
 
-    // Strongest first: a line naming what was actually paid beats a bare "Total".
+    // Strongest first: the whole bill or what was paid beats what's still due, which beats a bare "Total".
+    private val PAID_TOTAL = listOf("grand total", "amount paid", "total paid")
     private val STRONG_TOTAL = listOf(
-        "grand total", "amount paid", "amount due", "balance due", "total due", "total payable",
+        "amount due", "balance due", "total due", "total payable",
         "net payable", "net amount", "net total", "to pay", "الإجمالي", "الاجمالي", "कुल",
     )
     private val TOTAL = Regex("""\b(?:total|net)\b|المجموع""")
@@ -96,6 +97,7 @@ object ReceiptExtractor {
         lines.forEachIndexed { i, line ->
             val lower = line.lowercase()
             val rank = when {
+                PAID_TOTAL.any { it in lower } -> 3
                 STRONG_TOTAL.any { it in lower } -> 2
                 TOTAL.containsMatchIn(lower) && !NOT_TOTAL.containsMatchIn(lower) -> 1
                 else -> 0
@@ -106,9 +108,11 @@ object ReceiptExtractor {
             else lines.getOrNull(i + 1)?.takeIf { isFigureLine(it) }
             found += rank to figureLine?.let { read(if (it == line) line else "$line $it", it, unnamed, formCurrency) }
         }
-        val top = found.maxOfOrNull { it.first }
-            ?: return read(lines.filterNot { NOT_TOTAL.containsMatchIn(it.lowercase()) }, unnamed, formCurrency)
-        val best = found.filter { it.first == top }.map { it.second ?: return null }
+        if (found.isEmpty()) return read(lines.filterNot { NOT_TOTAL.containsMatchIn(it.lowercase()) }, unnamed, formCurrency)
+        // Nothing left to pay ("Balance due 0.00") isn't what the bill came to.
+        val candidates = found.filterNot { it.second?.first?.signum() == 0 }
+        val top = candidates.maxOfOrNull { it.first } ?: return null
+        val best = candidates.filter { it.first == top }.map { it.second ?: return null }
         // Totals in two currencies (a dual-currency receipt): which was paid isn't clear.
         if (best.map { it.second }.distinct().size > 1) return null
         return best.maxBy { it.first }
@@ -155,7 +159,7 @@ object ReceiptExtractor {
         }
         val tokens = NUMBER.findAll(text).map { it.value }.toList()
         val values = tokens.map { amount(it, digits, centsOnly = false) ?: return null }
-        return values.filter { it.signum() > 0 && it < BigDecimal(MAX_AMOUNT) }
+        return values.filter { it < BigDecimal(MAX_AMOUNT) }
     }
 
     /** Whether a currency mark or code ends [text] just before [index]. */

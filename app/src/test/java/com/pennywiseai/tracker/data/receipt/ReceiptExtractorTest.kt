@@ -39,6 +39,13 @@ class ReceiptExtractorTest {
     }
 
     @Test
+    fun `the whole bill or what was paid beats what's still due, and nothing due isn't a total`() {
+        assertEquals(BigDecimal("75.00"), amount("Grand Total AED 75.00", "Balance Due AED 0.00"))
+        assertEquals(BigDecimal("60.00"), amount("Amount paid 60.00", "Balance due 40.00"))
+        assertNull(amount("TOTAL 0.00", "Bread 3.20"))
+    }
+
+    @Test
     fun `figure on the line under its label`() {
         assertEquals(BigDecimal("27.30"), amount("Subtotal", "26.00", "TOTAL", "27.30"))
     }

@@ -157,6 +157,9 @@
     <string name="settings_change_backup_folder_subtitle">Pick a different folder for automatic backups</string>
     <string name="settings_import_data_title">Import Data</string>
     <string name="settings_import_data_subtitle">Restore data from backup</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
+    <string name="settings_import_running_subtitle">Restoring backup…</string>
+    <string name="settings_import_already_running">A backup is already being restored. Wait for it to finish, then try again.</string>
     <string name="settings_import_csv_title">Import Transactions (CSV)</string>
     <string name="settings_import_csv_subtitle">Import from a PennyWise CSV export</string>
     <string name="settings_import_statement_title">Import Statement</string>

@@ -238,9 +238,15 @@ internal fun DataPage(
         SettingsNavItem(
             icon = Icons.Default.Download,
             title = stringResource(R.string.settings_import_data_title),
-            subtitle = stringResource(R.string.settings_import_data_subtitle),
+            subtitle = if (isRestoringBackup) {
+                stringResource(R.string.settings_import_running_subtitle)
+            } else {
+                stringResource(R.string.settings_import_data_subtitle)
+            },
             onClick = { importLauncher.launch("*/*") },
-            position = ListItemPosition.Bottom
+            position = ListItemPosition.Bottom,
+            // One restore at a time: an older one finishing late would replace a newer pick's prompt.
+            enabled = !isRestoringBackup
         )
     }
 

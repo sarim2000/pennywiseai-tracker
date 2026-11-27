@@ -726,8 +726,17 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /** An encrypted backup asks for its [passphrase] first; the array is cleared once it's used. */
+    /**
+     * An encrypted backup asks for its [passphrase] first; the array is cleared once it's used.
+     * Refused while another restore runs, so an older one can't replace a newer pick's prompt.
+     */
     fun importBackup(uri: android.net.Uri, passphrase: CharArray? = null) {
+        if (restoreJob?.isActive == true) {
+            passphrase?.fill('\u0000')
+            // Import Data is disabled meanwhile; a pick that slips through is told, not dropped.
+            _importExportMessage.value = UiText.Res(R.string.settings_import_already_running)
+            return
+        }
         _backupPassphrasePrompt.value = null
         _isRestoringBackup.value = true
         val job = viewModelScope.launch {

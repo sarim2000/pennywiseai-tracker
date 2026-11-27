@@ -192,6 +192,26 @@ class BackupExportSessionTest {
     }
 
     @Test
+    fun `a restore picked while another runs is refused out loud and its passphrase cleared`() {
+        val running = CompletableDeferred<ImportResult>()
+        coEvery { importer.importBackup(any(), any(), any()) } coAnswers { running.await() }
+        val older = mockk<Uri>()
+        val newer = mockk<Uri>()
+        val passphrase = "synthetic".toCharArray()
+
+        viewModel.importBackup(older)
+        viewModel.importBackup(newer, passphrase)
+
+        assertEquals(UiText.Res(R.string.settings_import_already_running), viewModel.importExportMessage.value)
+        assertArrayEquals(CharArray(passphrase.size), passphrase)
+        running.complete(ImportResult.PassphraseRequired)
+
+        coVerify(exactly = 1) { importer.importBackup(any(), any(), any()) }
+        assertEquals(older, viewModel.backupPassphrasePrompt.value?.uri)
+        assertFalse(viewModel.isRestoringBackup.value)
+    }
+
+    @Test
     fun `the restore passphrase is cleared once the import is done`() {
         coEvery { importer.importBackup(any(), any(), any()) } returns ImportResult.WrongPassphrase
         val passphrase = "synthetic".toCharArray()

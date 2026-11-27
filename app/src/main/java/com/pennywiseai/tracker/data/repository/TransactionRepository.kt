@@ -648,13 +648,12 @@ open class TransactionRepository @Inject constructor(
         return transactionDao.getTransactionsBetweenDatesList(startDate, endDate)
     }
 
-    suspend fun getUncategorizedTransactions(): List<TransactionEntity> {
-        // Without a category, or in "Others" under whatever name the user gave it.
-        val others = com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current("Others")
-        return getAllTransactionsList().filter { transaction ->
-            transaction.category.isNullOrBlank() || transaction.category == others
-        }
-    }
+    suspend fun getTransactionsPageAfter(after: Long, upTo: Long, limit: Int): List<TransactionEntity> =
+        transactionDao.getTransactionsPageAfter(after, upTo, limit)
+
+    suspend fun maxLiveTransactionId(): Long? = transactionDao.maxLiveTransactionId()
+
+    suspend fun countLiveTransactions(): Int = transactionDao.countLiveTransactions()
 
     // ========== Transaction Split Methods ==========
 

@@ -928,30 +928,13 @@ open class AccountBalanceRepository @Inject constructor(
      * manual account(s), whose balance [applyTransactionBalanceShift] skips.
      */
     suspend fun reflectTransactionEdit(original: TransactionEntity?, updated: TransactionEntity) {
+        if (!editMovesBalances(original, updated)) return
         val oldBank = original?.bankName
         val oldAccount = original?.accountNumber
         val newBank = updated.bankName
         val newAccount = updated.accountNumber
         val accountChanged = oldBank != newBank || oldAccount != newAccount
-        val balanceRelevantChange = original != null && (
-            accountChanged ||
-                original.transactionType != updated.transactionType ||
-                original.amount.compareTo(updated.amount) != 0 ||
-                original.fromBankName != updated.fromBankName ||
-                original.toBankName != updated.toBankName ||
-                original.fromAccount != updated.fromAccount ||
-                original.toAccount != updated.toAccount
-            )
-        // A merchant/category-only edit moves no balance; skipping the recompute keeps a
-        // batch rule run from re-summing an account once per row.
-        if (original != null && !balanceRelevantChange &&
-            original.currency == updated.currency &&
-            original.isDeleted == updated.isDeleted &&
-            original.dateTime == updated.dateTime &&
-            original.transferPairId == updated.transferPairId
-        ) {
-            return
-        }
+        val balanceRelevantChange = original != null && balanceRelevantChange(original, updated)
         if (balanceRelevantChange) applyTransactionBalanceShift(original, updated)
         // Also covers amount/date edits on an unchanged manual account.
         if (newBank != null && newAccount != null) recomputeManualBalance(newBank, newAccount)
@@ -1087,3 +1070,28 @@ open class AccountBalanceRepository @Inject constructor(
         }
     }
 }
+
+private fun balanceRelevantChange(original: TransactionEntity, updated: TransactionEntity) =
+    original.bankName != updated.bankName ||
+        original.accountNumber != updated.accountNumber ||
+        original.transactionType != updated.transactionType ||
+        original.amount.compareTo(updated.amount) != 0 ||
+        original.fromBankName != updated.fromBankName ||
+        original.toBankName != updated.toBankName ||
+        original.fromAccount != updated.fromAccount ||
+        original.toAccount != updated.toAccount
+
+/**
+ * True when [AccountBalanceRepository.reflectTransactionEdit] would shift or re-derive a
+ * balance for this edit (it also reaches DataStore through the low-balance alert, so a
+ * caller batching writes in one transaction must keep such an edit out of it). A
+ * merchant/category-only edit moves no balance. Conservative: a new row ([original] null)
+ * counts.
+ */
+fun editMovesBalances(original: TransactionEntity?, updated: TransactionEntity): Boolean =
+    original == null ||
+        balanceRelevantChange(original, updated) ||
+        original.currency != updated.currency ||
+        original.isDeleted != updated.isDeleted ||
+        original.dateTime != updated.dateTime ||
+        original.transferPairId != updated.transferPairId

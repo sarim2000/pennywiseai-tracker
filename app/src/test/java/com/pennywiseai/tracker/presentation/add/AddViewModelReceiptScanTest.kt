@@ -10,8 +10,10 @@ import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.receipt.ReceiptTextRecognizer
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.ui.UiText
 import io.mockk.coEvery
+import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -24,6 +26,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 
@@ -31,6 +34,7 @@ import java.time.LocalDate
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddViewModelReceiptScanTest {
     private val receipt = listOf("COFFEE HUT", "Date 2026-01-02", "Subtotal 9.00", "Tax 0.45", "TOTAL 9.45")
+    private val addTransactionUseCase: AddTransactionUseCase = mockk(relaxed = true)
 
     private fun withForm(lines: List<String>?, block: (AddViewModel) -> Unit) = withForm({ lines }, block = block)
 
@@ -53,7 +57,7 @@ class AddViewModelReceiptScanTest {
             }
             val viewModel = AddViewModel(
                 appContext = mockk(relaxed = true),
-                addTransactionUseCase = mockk(relaxed = true),
+                addTransactionUseCase = addTransactionUseCase,
                 addSubscriptionUseCase = mockk(relaxed = true),
                 getCategoriesUseCase = mockk { every { execute() } returns flowOf(emptyList()) },
                 categoryRepository = mockk(relaxed = true),
@@ -163,6 +167,32 @@ class AddViewModelReceiptScanTest {
             val state = vm.transactionUiState.value
             assertEquals("", state.amount)
             assertEquals("Corner Shop", state.merchant)
+        }
+    }
+
+    @Test
+    fun `a second photo clears the first one's reading as soon as it's attached`() {
+        val ocr = CompletableDeferred<List<String>?>()
+        withForm({ uri -> if (uri == photo) receipt else ocr.await() }) { vm ->
+            vm.scanReceipt(photo)
+            vm.scanReceipt(otherPhoto)
+            val state = vm.transactionUiState.value
+            assertEquals(otherPhoto, state.receiptUri)
+            assertTrue(state.scanningReceipt)
+            assertEquals("", state.amount)
+            assertEquals("", state.merchant)
+        }
+    }
+
+    @Test
+    fun `Save waits while the photo is read`() {
+        val ocr = CompletableDeferred<List<String>?>()
+        withForm({ ocr.await() }) { vm ->
+            vm.updateTransactionAmount("12")
+            vm.updateTransactionMerchant("Corner Shop")
+            vm.scanReceipt(photo)
+            vm.saveTransaction {}
+            confirmVerified(addTransactionUseCase)
         }
     }
 

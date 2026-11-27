@@ -41,6 +41,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -621,7 +622,16 @@ class AddViewModel @Inject constructor(
             state.copy(scanningReceipt = true, scanMessage = null, edited = state.edited - blank)
         }
         receiptScan = viewModelScope.launch {
-            val lines = receiptTextRecognizer.recognize(uri)
+            val lines = async { receiptTextRecognizer.recognize(uri) }
+            // Only the photo the form holds speaks for it: one that failed its check doesn't.
+            check?.join()
+            if (_transactionUiState.value.receiptUri != uri) {
+                lines.cancel()
+                _transactionUiState.update { it.copy(scanningReceipt = false) }
+                return@launch
+            }
+            // The form holds this photo now: what the last scan read off another one goes at once.
+            _transactionUiState.update { it.withoutScan(beforeScan) }
             // From the profile in view, like the suggestions under the field.
             val known = try {
                 transactionRepository.getMerchantsInProfile(profilePreferences.selectedProfileId.first())
@@ -632,13 +642,7 @@ class AddViewModel @Inject constructor(
                 Log.w("AddViewModel", "Merchants for the receipt scan failed", e)
                 emptyList()
             }
-            // Only the photo the form holds speaks for it: one that failed its check doesn't.
-            check?.join()
-            if (_transactionUiState.value.receiptUri != uri) {
-                _transactionUiState.update { it.copy(scanningReceipt = false) }
-                return@launch
-            }
-            applyReceiptScan(lines, known)
+            applyReceiptScan(lines.await(), known)
         }
     }
 
@@ -723,7 +727,8 @@ class AddViewModel @Inject constructor(
 
     fun saveTransaction(onSuccess: () -> Unit) {
         val state = _transactionUiState.value
-        if (state.checkingReceipt) return
+        // A receipt still being checked or read isn't the one the form's figures belong to yet.
+        if (state.checkingReceipt || state.scanningReceipt) return
         val isTransfer = state.transactionType == TransactionType.TRANSFER
 
         val amountError = validateAmount(state.amount)

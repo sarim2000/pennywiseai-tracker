@@ -521,7 +521,8 @@ fun TransactionTabContent(
             SaveBar(
                 error = uiState.error?.asString() ?: uiState.receiptError?.takeUnless { moreExpanded }?.asString(),
                 // "120+" counts as 120 for the form, but booking it would drop the rest of the sum.
-                enabled = uiState.isValid && !uiState.isLoading && !uiState.checkingReceipt && !amountEntry.isUnfinished,
+                enabled = uiState.isValid && !uiState.isLoading && !uiState.checkingReceipt && !uiState.scanningReceipt &&
+                    !amountEntry.isUnfinished,
                 loading = uiState.isLoading,
                 // Checked again here: an operator typed in the same frame as the tap isn't drawn yet.
                 onClick = withCommittedText {

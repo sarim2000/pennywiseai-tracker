@@ -390,6 +390,22 @@ class StatementImportProcessorTest {
         assertEquals("Swiggy", store.updated.single().merchantName)
     }
 
+    @Test
+    fun `a row the database ignores is neither counted nor given rule history`() = runBlocking {
+        val store = FakeTransactionStore()
+        val rule = merchantRule("Coffee", RuleAction(TransactionField.CATEGORY, ActionType.SET, "Cafes"))
+
+        // Two identical lines in one file: one hash, so the second insert is ignored.
+        val line = parsedTransaction(merchant = "Coffee Hut", reference = null, transactionHash = "same")
+        val result = StatementImportProcessor(store, importRules(rules = arrayOf(rule))).process(
+            listOf(line, line.copy(timestamp = line.timestamp + 60_000))
+        )
+
+        assertEquals(1, result.imported)
+        assertEquals(1, store.inserted.size)
+        assertEquals(listOf(100L), store.recorded.map { it.first })
+    }
+
     private class FakeTransactionStore(
         vararg stored: TransactionEntity
     ) : StatementImportProcessor.TransactionStore {
@@ -411,10 +427,16 @@ class StatementImportProcessorTest {
             updated += transaction
         }
 
-        override suspend fun insertTransactions(transactions: List<TransactionEntity>): List<Long> {
-            inserted += transactions
-            return transactions.indices.map { 100L + inserted.size - transactions.size + it }
-        }
+        /** Like Room's IGNORE conflict: a row whose hash is already stored gets -1. */
+        override suspend fun insertTransactions(transactions: List<TransactionEntity>): List<Long> =
+            transactions.map { row ->
+                if (row.transactionHash in stored.map { it.transactionHash } + inserted.map { it.transactionHash }) {
+                    -1L
+                } else {
+                    inserted += row
+                    100L + inserted.size - 1
+                }
+            }
 
         override suspend fun recordRuleApplications(transactionId: Long, applications: List<RuleApplication>) {
             recorded += transactionId to applications

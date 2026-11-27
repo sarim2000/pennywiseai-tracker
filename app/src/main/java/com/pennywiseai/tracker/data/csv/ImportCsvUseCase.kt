@@ -85,15 +85,15 @@ class ImportCsvUseCase @Inject constructor(
             }
 
             val (kept, blocked) = applyRules(toInsert, importRules.load())
-            if (kept.isNotEmpty()) {
-                database.withTransaction {
-                    val ids = transactionRepository.insertTransactions(kept.map { it.entity })
-                    ids.zip(kept).forEach { (id, row) -> importRules.record(id, row.applications) }
-                }
+            // A row the database ignored (-1: its hash is already there) wasn't imported.
+            val imported = if (kept.isEmpty()) 0 else database.withTransaction {
+                val ids = transactionRepository.insertTransactions(kept.map { it.entity })
+                ids.zip(kept).forEach { (id, row) -> importRules.record(id, row.applications) }
+                ids.count { it != -1L }
             }
 
             Result.Success(
-                imported = kept.size,
+                imported = imported,
                 skippedDuplicate = skippedDuplicate,
                 failed = parseResult.failedCount,
                 blockedByRules = blocked

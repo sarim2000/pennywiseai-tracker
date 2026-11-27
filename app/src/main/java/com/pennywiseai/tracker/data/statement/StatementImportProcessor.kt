@@ -201,10 +201,14 @@ internal class StatementImportProcessor(
                 is ImportRules.Outcome.Kept -> outcome
             }
         }
+        // A row the database ignored (-1: its hash is already there) wasn't imported.
+        var imported = 0
         if (toInsert.isNotEmpty()) {
             val ids = transactionStore.insertTransactions(toInsert.map { it.entity })
             ids.zip(toInsert).forEach { (id, row) ->
-                if (id != -1L && row.applications.isNotEmpty()) transactionStore.recordRuleApplications(id, row.applications)
+                if (id == -1L) return@forEach
+                imported++
+                if (row.applications.isNotEmpty()) transactionStore.recordRuleApplications(id, row.applications)
             }
         }
 
@@ -213,7 +217,7 @@ internal class StatementImportProcessor(
         val skippedByAmountDate = plan.count(StatementRowDecision.SkipReason.AMOUNT_DATE)
 
         return StatementImportResult.Success(
-            imported = toInsert.size,
+            imported = imported,
             skippedDuplicates = skippedByHash + skippedByReference + skippedByAmountDate,
             skippedByReference = skippedByReference,
             skippedByAmountDate = skippedByAmountDate,

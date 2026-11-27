@@ -1042,14 +1042,18 @@ class TransactionDetailViewModel @Inject constructor(
         // a transaction linked to a loan would silently mix currencies in the
         // loan's totals, so require unlinking it first.
         val original = _transaction.value
-        if (blocksLoanCurrencyChange(original, toSave.currency)) {
+        // Only what this edit changed is checked against the stored row: an untouched field
+        // keeps the stored value on save, even if it was changed elsewhere meanwhile (#1484).
+        val opened = editStart ?: original
+        if (toSave.currency != opened?.currency && blocksLoanCurrencyChange(original, toSave.currency)) {
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_currency_locked)
             return
         }
 
         // Likewise its money direction: retyping a linked row between income and
         // money out would turn the loan's principal into a repayment, or back (#876).
-        if (original != null && com.pennywiseai.tracker.domain.loan.LoanMath.blocksTypeChange(
+        if (original != null && toSave.transactionType != opened?.transactionType &&
+            com.pennywiseai.tracker.domain.loan.LoanMath.blocksTypeChange(
                 original.loanId, original.transactionType, toSave.transactionType
             )
         ) {

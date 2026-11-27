@@ -9,12 +9,13 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.core.DeviceSecretBox
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.retryWhen
 import java.io.IOException
 import java.security.GeneralSecurityException
 import java.util.UUID
@@ -36,7 +37,8 @@ private val Context.folderBackupEncryptionStore: DataStore<Preferences> by prefe
  */
 @Singleton
 class FolderBackupPassphrase internal constructor(
-    private val store: DataStore<Preferences>
+    private val store: DataStore<Preferences>,
+    private val statusRetryDelayMs: Long = STATUS_RETRY_DELAY_MS
 ) {
     // Production always takes the delegate: a second DataStore on the same file throws.
     @Inject
@@ -66,7 +68,12 @@ class FolderBackupPassphrase internal constructor(
                 prefs[KEY_SEALED] == null || prefs[KEY_ALIAS] == null -> Status.LOCKED
                 else -> Status.ON
             }
-        }.catch { emit(Status.LOCKED) },
+        }.retryWhen { _, _ ->
+            // An unreadable setting shows as locked meanwhile; a read that works again shows it.
+            emit(Status.LOCKED)
+            delay(statusRetryDelayMs)
+            true
+        },
         unlockFailed
     ) { stored, failed -> if (stored == Status.ON && failed) Status.LOCKED else stored }
 
@@ -138,6 +145,7 @@ class FolderBackupPassphrase internal constructor(
     internal companion object {
         /** Each passphrase gets its own key: this plus a random suffix, stored beside it. */
         const val ALIAS_PREFIX = "pennywise_folder_backup_passphrase_"
+        const val STATUS_RETRY_DELAY_MS = 2_000L
         val KEY_ENCRYPT = booleanPreferencesKey("encrypt")
         val KEY_SEALED = stringPreferencesKey("passphrase_sealed")
         val KEY_ALIAS = stringPreferencesKey("passphrase_key_alias")

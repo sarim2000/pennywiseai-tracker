@@ -13,9 +13,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -110,6 +114,29 @@ class FolderBackupPassphraseTest {
 
         assertThrows<IOException> { store.load() }
         assertEquals(FolderBackupPassphrase.Status.LOCKED, store.status.first())
+    }
+
+    @Test
+    fun `the status shows locked while the setting can't be read, then the stored setting`() = runBlocking {
+        FolderBackupPassphrase(disk).save("synthetic phrase".toCharArray())
+        var failedReads = 0
+        val flaky = object : DataStore<Preferences> {
+            override val data: Flow<Preferences> = flow {
+                if (failedReads < 2) {
+                    failedReads++
+                    throw IOException("busy")
+                }
+                emitAll(disk.data)
+            }
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences) = disk.updateData(transform)
+        }
+        val store = FolderBackupPassphrase(flaky, statusRetryDelayMs = 1)
+
+        val shown = withTimeout(5_000) { store.status.takeWhile { it != FolderBackupPassphrase.Status.ON }.toList() }
+
+        assertTrue(shown.isNotEmpty() && shown.all { it == FolderBackupPassphrase.Status.LOCKED })
+        assertEquals(2, failedReads)
+        assertEquals(FolderBackupPassphrase.Status.ON, store.status.first())
     }
 
     @Test

@@ -19,6 +19,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.job
@@ -197,5 +198,20 @@ class BackupExportSessionTest {
         viewModel.importBackup(mockk(), passphrase)
 
         assertArrayEquals(CharArray(passphrase.size), passphrase)
+    }
+
+    @Test
+    fun `a passphrase is cleared even when its job is cancelled before it starts`() {
+        viewModel.viewModelScope.cancel()
+        val exportPassphrase = "synthetic".toCharArray()
+        val restorePassphrase = "synthetic".toCharArray()
+
+        viewModel.exportBackup(exportPassphrase)
+        viewModel.importBackup(mockk(), restorePassphrase)
+
+        assertArrayEquals(CharArray(exportPassphrase.size), exportPassphrase)
+        assertArrayEquals(CharArray(restorePassphrase.size), restorePassphrase)
+        assertFalse(viewModel.isExportingBackup.value)
+        assertFalse(viewModel.isRestoringBackup.value)
     }
 }

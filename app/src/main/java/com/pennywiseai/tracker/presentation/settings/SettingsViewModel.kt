@@ -640,12 +640,14 @@ class SettingsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _importExportMessage.value = UiText.Res(R.string.settings_export_error, listOf("${e.message}"))
                 Log.e("SettingsViewModel", "Export error", e)
-            } finally {
-                passphrase?.fill('\u0000')
             }
         }
         exportJob = job
-        job.invokeOnCompletion { if (exportJob === job) _isExportingBackup.value = false }
+        // On completion, not in a finally: a job cancelled before it starts never runs its body.
+        job.invokeOnCompletion {
+            passphrase?.fill('\u0000')
+            if (exportJob === job) _isExportingBackup.value = false
+        }
     }
 
     /** Saves the export the user chose to save, [exportedPath]; not one made since. */
@@ -775,12 +777,14 @@ class SettingsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _importExportMessage.value = UiText.Res(R.string.settings_import_error, listOf("${e.message}"))
                 Log.e("SettingsViewModel", "Import error", e)
-            } finally {
-                passphrase?.fill('\u0000')
             }
         }
         restoreJob = job
-        job.invokeOnCompletion { if (restoreJob === job) _isRestoringBackup.value = false }
+        // On completion, not in a finally: a job cancelled before it starts never runs its body.
+        job.invokeOnCompletion {
+            passphrase?.fill('\u0000')
+            if (restoreJob === job) _isRestoringBackup.value = false
+        }
     }
 
     fun cancelBackupPassphrase() {

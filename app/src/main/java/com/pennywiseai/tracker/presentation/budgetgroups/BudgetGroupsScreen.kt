@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -36,7 +37,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
@@ -69,6 +69,7 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RolloverLine
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.needsExchangeRate
+import com.pennywiseai.tracker.ui.components.celebration.Celebration
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -81,6 +82,7 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.widget.WidgetPinning
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import ir.ehsannarmani.compose_charts.LineChart
@@ -118,11 +120,12 @@ fun BudgetGroupsScreen(
     focusBudgetId: Long? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // A new day moves days left on, as Home does.
-    LifecycleResumeEffect(Unit) {
-        viewModel.refreshDate()
-        onPauseOrDispose { }
-    }
+    val underBudgetState by viewModel.underBudget.collectAsStateWithLifecycle()
+    val celebrate by viewModel.celebrate.collectAsStateWithLifecycle()
+    // A new day (on resume, or at midnight while open) moves days left on, as Home does,
+    // and ends the under-budget card's week on time.
+    val day = rememberToday()
+    LaunchedEffect(day) { viewModel.refreshDate() }
     val goalsSection: (@Composable () -> Unit)? = if (planTab != null) null else {
         {
             com.pennywiseai.tracker.presentation.goals.GoalsSection(
@@ -163,6 +166,7 @@ fun BudgetGroupsScreen(
                     title = stringResource(if (planTab != null) R.string.nav_plan else R.string.budgets_title),
                     overline = if (planTab != null) planOverline() else null,
                     hasBackButton = planTab == null,
+                    actionContent = { if (uiState.hasGroups) PinBudgetWidgetMenu() },
                     navigationContent = {
                         IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
@@ -237,6 +241,10 @@ fun BudgetGroupsScreen(
                 bottomPadding = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance +
                     if (planTab != null) Dimensions.Component.bottomBarHeight else Spacing.none,
                 uiState = uiState,
+                underBudget = underBudgetState.win,
+                underBudgetReady = underBudgetState.ready,
+                onUnderBudgetShown = viewModel::onUnderBudgetShown,
+                onDismissUnderBudget = viewModel::dismissUnderBudget,
                 goalsSection = goalsSection,
                 focusBudgetId = focusBudgetId,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },
@@ -255,6 +263,28 @@ fun BudgetGroupsScreen(
                     )
                 },
                 onAddRate = onNavigateToExchangeRates
+            )
+        }
+        // Scaffold content stacks like a Box: this draws over the list.
+        Celebration(play = celebrate, onFinished = viewModel::onCelebrated)
+    }
+}
+
+/** "Add to home screen" for the Budget Overview widget, where the launcher can pin one. */
+@Composable
+private fun PinBudgetWidgetMenu() {
+    val context = LocalContext.current
+    if (!remember { WidgetPinning.isSupported(context) }) return
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { open = true }, shapes = IconButtonDefaults.shapes()) {
+            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.budgets_more_options))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, shape = MaterialTheme.shapes.large) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.widget_add_to_home_screen)) },
+                leadingIcon = { Icon(Icons.Default.Widgets, contentDescription = null) },
+                onClick = { open = false; WidgetPinning.pinBudgetWidget(context) },
             )
         }
     }
@@ -325,6 +355,10 @@ private fun BudgetGroupsContent(
     topPadding: Dp,
     bottomPadding: Dp,
     uiState: BudgetGroupsUiState,
+    underBudget: MonthUnderBudget?,
+    underBudgetReady: Boolean,
+    onUnderBudgetShown: (MonthUnderBudget) -> Unit,
+    onDismissUnderBudget: (MonthUnderBudget) -> Unit,
     goalsSection: (@Composable () -> Unit)?,
     focusBudgetId: Long? = null,
     onPreviousMonth: () -> Unit,
@@ -347,6 +381,8 @@ private fun BudgetGroupsContent(
     } else null
     val hero = summary.groups.firstOrNull { it.group.budget.id == heroId }
     val otherGroups = if (summaryReady) summary.groups.filterNot { it.group.budget.id == heroId } else emptyList()
+    // Last month's win belongs to this month's page only.
+    val win = underBudget?.takeIf { isCurrentMonth }
     var deleteGroupId by remember { mutableStateOf<Long?>(null) }
     var deleteGroupName by remember { mutableStateOf("") }
 
@@ -358,16 +394,26 @@ private fun BudgetGroupsContent(
     // so a rotation or a refreshed list doesn't do it again after the user has moved on.
     var focusPending by rememberSaveable { mutableStateOf(focusBudgetId != null) }
     var expandBudgetId by remember { mutableStateOf<Long?>(null) }
-    LaunchedEffect(summaryReady) {
-        if (!focusPending || !summaryReady) return@LaunchedEffect
-        // Budgets follow the month selector and, on the standalone page, Goals.
-        val firstBudgetIndex = if (goalsSection == null) 1 else 2
-        val index = when (focusBudgetId) {
-            hero?.group?.budget?.id -> firstBudgetIndex
-            else -> otherGroups.indexOfFirst { it.group.budget.id == focusBudgetId }
-                .takeIf { it >= 0 }
-                ?.let { firstBudgetIndex + it + if (hero != null) 1 else 0 }
-        } ?: run {
+    // The win card loads after the list, and a lazy list keeps its first item in place, so the
+    // card would land above the top, half hidden. A list still at its top scrolls up to show it.
+    LaunchedEffect(win != null) {
+        val cardIndex = if (goalsSection == null) 0 else 1
+        if (win != null && !focusPending && lazyListState.firstVisibleItemIndex <= cardIndex + 1) {
+            lazyListState.scrollToItem(0)
+        }
+    }
+    // The win card is an optional header. Wait until its decision is in, then find the budget
+    // by the same key the list uses, so a late card can't scroll the deep link to the row above.
+    val headerSettled = !isCurrentMonth || underBudgetReady
+    LaunchedEffect(summaryReady, headerSettled, win != null) {
+        if (!focusPending || !summaryReady || !headerSettled || focusBudgetId == null) return@LaunchedEffect
+        val index = budgetFocusIndex(
+            focusBudgetId = focusBudgetId,
+            hasGoals = goalsSection != null,
+            hasWin = win != null,
+            heroId = hero?.group?.budget?.id,
+            otherIds = otherGroups.map { it.group.budget.id },
+        ) ?: run {
             focusPending = false
             return@LaunchedEffect
         }
@@ -403,8 +449,21 @@ private fun BudgetGroupsContent(
         // Goals (#914) sit above the spending budgets; they aren't month-based.
         goalsSection?.let { item(key = "goals") { it() } }
 
+        win?.let { w ->
+            item(key = "under-budget") {
+                LaunchedEffect(w.key) { onUnderBudgetShown(w) }
+                MonthUnderBudgetCard(
+                    win = w,
+                    onDismiss = { onDismissUnderBudget(w) },
+                    modifier = Modifier
+                        .animateItem()
+                        .padding(top = if (goalsSection != null) BlockGap else Spacing.none),
+                )
+            }
+        }
+
         item(key = "month") {
-            Box(Modifier.padding(top = if (goalsSection != null) BlockGap else Spacing.none)) {
+            Box(Modifier.padding(top = if (goalsSection != null || win != null) BlockGap else Spacing.none)) {
                 MonthSelector(
                     year = uiState.selectedYear,
                     month = uiState.selectedMonth,
@@ -895,6 +954,8 @@ private fun SpendingPaceChart(
  * The rows behind a budget's category line: [category] over the days its spend was counted, in
  * every profile, as a budget isn't kept per profile. With [currencyOnly] only rows written in
  * [currency], as a budget counts outside unified mode; without it every currency, converted.
+ * [without]: the budget's other lines, left out of [category]'s sub-categories, as a
+ * sub-category with its own line doesn't count toward its parent's (#1425).
  */
 data class BudgetCategoryRows(
     val category: String,
@@ -902,6 +963,7 @@ data class BudgetCategoryRows(
     val end: LocalDate,
     val currency: String,
     val currencyOnly: Boolean,
+    val without: List<String> = emptyList(),
 )
 
 /**
@@ -914,4 +976,5 @@ internal fun BudgetGroupSpending.categoryRows(category: String, currency: String
     end = minOf(windowEnd, displayedCapDate).coerceAtLeast(windowStart),
     currency = currency,
     currencyOnly = !unified,
+    without = group.categories.filter { it.matchType == null && it.categoryName != category }.map { it.categoryName },
 )

@@ -37,7 +37,7 @@ fun PennyWiseScaffold(
         modifier = modifier,
         topBar = customTopBar ?: {
             TopAppBar(
-                title = { if (title.isNotEmpty()) Text(title) },
+                title = { if (title.isNotEmpty()) Text(title, style = barTitleStyle()) },
                 navigationIcon = navigationIcon ?: {},
                 actions = {
                     if (revealAmountsAction) RevealAmountsAction()

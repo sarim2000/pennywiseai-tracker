@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.widget
 import android.content.Context
 import android.content.res.Configuration
 import android.content.res.Resources
+import android.view.View
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.repository.GoalProgress
@@ -15,7 +16,6 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -49,11 +49,14 @@ class GoalWidgetDataTest {
                 @Suppress("UNCHECKED_CAST")
                 templates.getValue(firstArg()).format(*(args[1] as Array<Any?>))
             }
-            every { configuration } returns mockk<Configuration> { every { layoutDirection } returns 0 }
             every { getQuantityString(any(), any()) } answers { templates.getValue(firstArg()) }
             every { getQuantityString(any(), any(), *anyVararg()) } answers {
                 @Suppress("UNCHECKED_CAST")
                 localDigits(templates.getValue(firstArg()).format(*(args[2] as Array<Any?>)))
+            }
+            // Left to right, for widgetMoney.
+            every { configuration } returns mockk<Configuration> {
+                every { layoutDirection } returns View.LAYOUT_DIRECTION_LTR
             }
         }
         every { resources } returns res
@@ -124,27 +127,6 @@ class GoalWidgetDataTest {
         assertEquals("INR 24000 left · 12 mo", p.shortLine(arabicDigits, money, latinDigits = true))
     }
 
-    @Test
-    fun `the widget item carries amount-free lines for when the eye is closed`() {
-        val onPace = progress("24000", "0", today.plusMonths(12)).toWidgetItem(context)
-        assertEquals("$HIDDEN_AMOUNT/mo · 12 months left", onPace.hiddenLine)
-        assertEquals("$HIDDEN_AMOUNT left · 12 mo", onPace.hiddenShortLine)
-        assertTrue(onPace.line.contains("2,000"))
-
-        val missed = progress("1000", "400", today.minusDays(1), created = today.minusMonths(2)).toWidgetItem(context)
-        assertEquals("Missed by $HIDDEN_AMOUNT", missed.hiddenLine)
-        assertEquals("Missed by $HIDDEN_AMOUNT", missed.hiddenShortLine)
-        assertFalse(missed.hiddenLine.contains("600"))
-    }
-
-    @Test
-    fun `a snapshot written before the hidden lines decodes hidden, never as the amounts`() {
-        val old = """[{"id":1,"name":"Trip","color":"#1565C0","percent":10,"fraction":0.1,"line":"JD 9/mo","shortLine":"JD 90 left"}]"""
-        val item = GoalWidgetDataStore.decode(old).single()
-        assertEquals(HIDDEN_AMOUNT, item.hiddenLine)
-        assertEquals(HIDDEN_AMOUNT, item.hiddenShortLine)
-    }
-
     private fun item(id: Long) = GoalWidgetItem(id, "Goal $id", "#1565C0", 10, 0.1f, "line", "short")
 
     @Test
@@ -167,5 +149,24 @@ class GoalWidgetDataTest {
         assertEquals(items, GoalWidgetDataStore.decode(GoalWidgetDataStore.encode(items)))
         assertEquals(emptyList<GoalWidgetItem>(), GoalWidgetDataStore.decode("{not json"))
         assertEquals(emptyList<GoalWidgetItem>(), GoalWidgetDataStore.decode(null))
+    }
+
+    @Test
+    fun `while amounts are hidden a goal shows neither its status nor its tone`() {
+        val goals = listOf(
+            progress("24000", "0", today.plusMonths(12)),
+            progress("12000", "0", today.plusMonths(6), created = today.minusMonths(6)),
+            progress("1000", "1000", today.plusMonths(3)),
+            progress("1000", "400", today.minusDays(1), created = today.minusMonths(2)),
+        ).map { it.toWidgetItem(context) }
+        assertEquals(listOf(GoalTone.NEUTRAL, GoalTone.WARNING, GoalTone.SUCCESS, GoalTone.ERROR), goals.map { it.shownTone(hidden = false) })
+
+        for (goal in goals) {
+            assertEquals(HIDDEN_AMOUNT, goal.shownLine(short = false, hidden = true))
+            assertEquals(HIDDEN_AMOUNT, goal.shownLine(short = true, hidden = true))
+            assertEquals(GoalTone.NEUTRAL, goal.shownTone(hidden = true))
+            assertEquals(goal.line, goal.shownLine(short = false, hidden = false))
+            assertEquals(goal.shortLine, goal.shownLine(short = true, hidden = false))
+        }
     }
 }

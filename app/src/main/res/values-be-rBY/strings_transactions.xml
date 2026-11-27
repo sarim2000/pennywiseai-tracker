@@ -71,6 +71,8 @@
     <string name="txn_detail_more_actions">Іншыя дзеянні</string>
     <string name="txn_detail_menu_add_to_group">Дадаць у групу</string>
     <string name="txn_detail_menu_duplicate">Дубляваць</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">Паведаміць пра праблему</string>
     <string name="txn_detail_delete_title">Выдаліць транзакцыю</string>
     <string name="txn_detail_delete_message">Сапраўды выдаліць гэтую транзакцыю? Гэта дзеянне нельга адрабіць.</string>
@@ -209,6 +211,7 @@
     <string name="txn_list_group_yesterday">Учора</string>
     <string name="txn_list_group_this_week">На гэтым тыдні</string>
     <string name="txn_list_group_earlier">Раней</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">Спачатку новыя</string>
     <string name="txn_list_sort_oldest">Спачатку старыя</string>
     <string name="txn_list_sort_amount_highest">Найбольшая сума</string>
@@ -401,6 +404,7 @@
     <string name="share_banner_dismiss">Схаваць</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Змяніць катэгорыю</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">Не выдатак</string>
     <string name="quick_category_not_income">Не даход</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

@@ -9,6 +9,7 @@
     <string name="widget_budget_empty_title">Pas encore de budget</string>
     <string name="widget_budget_empty_hint">Définissez une limite mensuelle pour voir ce qui reste.</string>
     <string name="widget_budget_create">Créer un budget</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
     <string name="widget_budget_preview_meta">sur 3 600 · 120/jour</string>
     <string name="widget_cash_label">Espèces</string>
     <string name="widget_cash_spend">Dépense en espèces</string>

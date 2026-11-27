@@ -5,12 +5,14 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import kotlinx.coroutines.flow.Flow
 
+/** Reads that can outgrow one CursorWindow are @Transaction: see [TransactionDao] (#1500). */
 @Dao
 interface TransactionSplitDao {
 
     @Query("SELECT * FROM transaction_splits WHERE transaction_id = :transactionId ORDER BY id ASC")
     fun getSplitsForTransaction(transactionId: Long): Flow<List<TransactionSplitEntity>>
 
+    @Transaction
     @Query("SELECT * FROM transaction_splits ORDER BY id ASC")
     fun getAllSplits(): Flow<List<TransactionSplitEntity>>
 
@@ -23,6 +25,7 @@ interface TransactionSplitDao {
      * `IN (:ids)` binds one variable per id, and SQLite before 3.32 (Android 11 and
      * older) throws "too many SQL variables" past 999.
      */
+    @Transaction
     @Query("""
         SELECT s.* FROM transaction_splits s
         INNER JOIN transactions t ON t.id = s.transaction_id

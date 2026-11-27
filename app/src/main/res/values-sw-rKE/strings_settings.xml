@@ -2,6 +2,7 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">Mipangilio</string>
+    <!-- Other words people type for these settings; search only, never shown. -->
     <string name="settings_back">Rudi</string>
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Ghairi</string>
@@ -90,6 +91,7 @@
     <string name="settings_transaction_groups_subtitle">Panga miamala chini ya mada moja</string>
     <string name="settings_export_data_title">Hamisha Data</string>
     <string name="settings_export_data_subtitle">Hifadhi nakala ya data yote kwenye faili</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Nakala ya Akiba ya Folda Kiotomatiki</string>
     <string name="settings_folder_backup_subtitle_enabled">Nakala ya kila siku saa 8 usiku (2:00 AM) kwenye folda uliyochagua</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Hifadhi nakala kwenye folda kila siku saa 8 usiku (2:00 AM)</string>
@@ -245,6 +247,7 @@
     <string name="settings_app_version">PennyWise toleo %1$s</string>
     <!-- Settings hub: section headers -->
     <!-- Settings hub: the profile block and shortcut tiles -->
+    <!-- %1$d = position of the color in the picker, e.g. 3 -->
     <!-- Settings hub: what each page holds. Keep to one line. -->
     <!-- Settings pages: the short explanation at the top of each page -->
     <!-- Settings pages: groups and rows -->

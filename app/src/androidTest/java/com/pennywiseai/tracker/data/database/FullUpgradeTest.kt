@@ -167,5 +167,26 @@ class FullUpgradeTest {
         } finally { db.close() }
     }
 
+    @Test fun upgradeFrom71LeavesTransactionsNotReimbursable() = runBlocking {
+        helper.createDatabase(71).apply {
+            execSQL("""INSERT INTO transactions (id, amount, merchant_name, category, transaction_type, date_time,
+                transaction_hash, is_recurring, created_at, updated_at) VALUES
+                (1, '1200.00', 'Synthetic hotel', 'Travel', 'EXPENSE', '2026-01-01T10:00:00', 'synthetic-1', 0,
+                '2026-01-01T10:00:00', '2026-01-01T10:00:00')""")
+            close()
+        }
+
+        val db = Room.databaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java, NAME)
+            .addMigrations(*PennyWiseMigrations.ALL_MIGRATIONS)
+            .setDriver(AndroidSQLiteDriver())
+            .build()
+        try {
+            val txn = db.transactionDao().getTransactionById(1)!!
+            assertEquals("Synthetic hotel", txn.merchantName)
+            assertNull(txn.reimbursementStatus)
+            assertNull(txn.reimbursedById)
+        } finally { db.close() }
+    }
+
     private companion object { const val NAME = "full-upgrade-test" }
 }

@@ -9,6 +9,7 @@
     <string name="widget_budget_empty_title">Бюджэту пакуль няма</string>
     <string name="widget_budget_empty_hint">Задайце месячны ліміт, каб бачыць рэшту.</string>
     <string name="widget_budget_create">Стварыць бюджэт</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
     <string name="widget_budget_preview_meta">з 3,600 · 120/дзень</string>
     <string name="widget_cash_label">Наяўныя</string>
     <string name="widget_cash_spend">Выдатак наяўнымі</string>

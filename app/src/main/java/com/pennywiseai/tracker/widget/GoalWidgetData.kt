@@ -36,11 +36,20 @@ data class GoalWidgetItem(
     /** 2×2: "JD 9,600 left · 5 mo", or Reached / Missed by. */
     val shortLine: String,
     val tone: GoalTone = GoalTone.NEUTRAL,
-    /** [line] with every amount as [HIDDEN_AMOUNT], shown while the eye is closed. */
-    val hiddenLine: String = HIDDEN_AMOUNT,
-    /** [shortLine] with every amount as [HIDDEN_AMOUNT]. */
-    val hiddenShortLine: String = HIDDEN_AMOUNT,
 )
+
+/**
+ * [GoalWidgetItem.line] (or [short]: its shortLine) as a widget shows it: [HIDDEN_AMOUNT] while
+ * amounts are hidden, since "Reached", "Behind" or "Missed" gives the hidden progress away.
+ */
+fun GoalWidgetItem.shownLine(short: Boolean, hidden: Boolean): String = when {
+    hidden -> HIDDEN_AMOUNT
+    short -> shortLine
+    else -> line
+}
+
+/** [GoalWidgetItem.tone], neutral while amounts are hidden, for the same reason as [shownLine]. */
+fun GoalWidgetItem.shownTone(hidden: Boolean): GoalTone = if (hidden) GoalTone.NEUTRAL else tone
 
 /**
  * [context] is in the app's language ([inAppLanguage]): amounts are isolated
@@ -48,7 +57,6 @@ data class GoalWidgetItem(
  */
 fun GoalProgress.toWidgetItem(context: Context): GoalWidgetItem {
     val money = { amount: BigDecimal, currency: String -> widgetMoney(context, amount, currency) }
-    val hidden = { _: BigDecimal, _: String -> HIDDEN_AMOUNT }
     return GoalWidgetItem(
         id = goal.id,
         name = goal.name,
@@ -58,8 +66,6 @@ fun GoalProgress.toWidgetItem(context: Context): GoalWidgetItem {
         line = statusLine(context, money, latinDigits = true),
         shortLine = shortLine(context, money, latinDigits = true),
         tone = tone(),
-        hiddenLine = statusLine(context, hidden, latinDigits = true),
-        hiddenShortLine = shortLine(context, hidden, latinDigits = true),
     )
 }
 

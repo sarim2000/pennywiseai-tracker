@@ -17,19 +17,17 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
+import com.pennywiseai.tracker.utils.ProfilePhotos
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import com.pennywiseai.tracker.worker.SmsScanManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
 import java.math.BigDecimal
 import java.util.Currency
 import java.util.Locale
@@ -97,24 +95,7 @@ class OnBoardingViewModel @Inject constructor(
 
     val avatarDrawables = AvatarHelper.avatarDrawables
 
-    val backgroundColors = listOf(
-        0xFFDC8A78.toInt(), // Rosewater
-        0xFFDD7878.toInt(), // Flamingo
-        0xFFEA76CB.toInt(), // Pink
-        0xFF8839EF.toInt(), // Mauve
-        0xFFD20F39.toInt(), // Red
-        0xFFFE640B.toInt(), // Peach
-        0xFFDF8E1D.toInt(), // Yellow
-        0xFF40A02B.toInt(), // Green
-        0xFF179299.toInt(), // Teal
-        0xFF04A5E5.toInt(), // Sky
-        0xFF209FB5.toInt(), // Sapphire
-        0xFF1E66F5.toInt(), // Blue
-        0xFF7287FD.toInt(), // Lavender
-        0xFF6C6F85.toInt(), // Subtext0
-        0xFF8C8FA1.toInt(), // Overlay1
-        0xFFACB0BE.toInt()  // Overlay2
-    )
+    val backgroundColors = AvatarHelper.backgroundColors
 
     fun updateUserName(name: String) {
         _uiState.update { it.copy(userName = name) }
@@ -126,19 +107,9 @@ class OnBoardingViewModel @Inject constructor(
 
     fun selectProfileImage(uri: Uri) {
         viewModelScope.launch {
-            val savedUri = saveImageToInternalStorage(uri)
-            _uiState.update { it.copy(profileImageUri = savedUri ?: uri, selectedAvatarIndex = -1) }
-        }
-    }
-
-    private suspend fun saveImageToInternalStorage(sourceUri: Uri): Uri? = withContext(Dispatchers.IO) {
-        try {
-            val inputStream = context.contentResolver.openInputStream(sourceUri) ?: return@withContext null
-            val file = File(context.filesDir, "profile_image.jpg")
-            file.outputStream().use { output -> inputStream.use { input -> input.copyTo(output) } }
-            file.toUri()
-        } catch (_: Exception) {
-            null
+            // A photo that can't be used keeps the previous pick; the import says why.
+            val savedUri = ProfilePhotos.import(context, uri) ?: return@launch
+            _uiState.update { it.copy(profileImageUri = savedUri.toUri(), selectedAvatarIndex = -1) }
         }
     }
 

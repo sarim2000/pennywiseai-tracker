@@ -39,8 +39,14 @@ class BudgetSummaryProvider @Inject constructor(
      * [BudgetGroupSpending.hasUnconvertedSpend] for spending in other currencies,
      * which the base-currency figures leave out. It costs a second, all-currency
      * query, so only a caller that shows the flag asks for it.
+     *
+     * [today]: the day the page is read as of (see [BudgetGroupRepository.getGroupSpending]).
      */
-    fun summary(yearMonth: YearMonth, flagUncounted: Boolean = false): Flow<BudgetOverallSummary> =
+    fun summary(
+        yearMonth: YearMonth,
+        flagUncounted: Boolean = false,
+        today: LocalDate = LocalDate.now(),
+    ): Flow<BudgetOverallSummary> =
         combine(
             userPreferencesRepository.baseCurrency,
             userPreferencesRepository.unifiedCurrencyMode,
@@ -52,14 +58,14 @@ class BudgetSummaryProvider @Inject constructor(
                 // Recounted when a rate changes too: a rate added from a budget's missing-rate
                 // link shows on return, its carry included.
                 combine(
-                    budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue),
+                    budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue, today),
                     currencyConversionService.getAllRatesFlow()
                 ) { raw, _ -> raw }
                     .map { raw -> convertRawToSummary(raw, displayCurrency, baseCurrency) }
             } else if (flagUncounted) {
                 combine(
-                    budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency),
-                    budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue)
+                    budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency, today),
+                    budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue, today)
                 ) { summary, raw ->
                     val windowedByBudget = raw.windowedSpend.groupBy { it.budgetId }
                     // The base-currency figures credit a sub-category's spend to its parent too.
@@ -77,7 +83,7 @@ class BudgetSummaryProvider @Inject constructor(
                     )
                 }
             } else {
-                budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency)
+                budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency, today)
             }
         }
 

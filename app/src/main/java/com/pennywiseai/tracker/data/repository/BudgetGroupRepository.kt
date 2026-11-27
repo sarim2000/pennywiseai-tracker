@@ -376,6 +376,10 @@ class BudgetGroupRepository @Inject constructor(
         )
     }
 
+    /**
+     * Reordering leaves `updatedAt` alone: it's display only, and the under-budget card
+     * reads `updatedAt` as "the limit may have changed since the cycle ended".
+     */
     suspend fun moveGroupUp(budgetId: Long) {
         val groups = budgetDao.getActiveBudgets().first()
             .sortedBy { it.displayOrder }
@@ -383,11 +387,12 @@ class BudgetGroupRepository @Inject constructor(
         if (index > 0) {
             val current = groups[index]
             val above = groups[index - 1]
-            budgetDao.updateBudget(current.copy(displayOrder = above.displayOrder, updatedAt = LocalDateTime.now()))
-            budgetDao.updateBudget(above.copy(displayOrder = current.displayOrder, updatedAt = LocalDateTime.now()))
+            budgetDao.updateBudget(current.copy(displayOrder = above.displayOrder))
+            budgetDao.updateBudget(above.copy(displayOrder = current.displayOrder))
         }
     }
 
+    /** As [moveGroupUp]: `updatedAt` stays. */
     suspend fun moveGroupDown(budgetId: Long) {
         val groups = budgetDao.getActiveBudgets().first()
             .sortedBy { it.displayOrder }
@@ -395,8 +400,8 @@ class BudgetGroupRepository @Inject constructor(
         if (index >= 0 && index < groups.size - 1) {
             val current = groups[index]
             val below = groups[index + 1]
-            budgetDao.updateBudget(current.copy(displayOrder = below.displayOrder, updatedAt = LocalDateTime.now()))
-            budgetDao.updateBudget(below.copy(displayOrder = current.displayOrder, updatedAt = LocalDateTime.now()))
+            budgetDao.updateBudget(current.copy(displayOrder = below.displayOrder))
+            budgetDao.updateBudget(below.copy(displayOrder = current.displayOrder))
         }
     }
 
@@ -447,9 +452,16 @@ class BudgetGroupRepository @Inject constructor(
      * the displayed window is the one in the list that contains the most
      * recent day in the month, and the older windows go into
      * [BudgetGroupSpending.previousWindows] for the per-week sub-list.
+     *
+     * [today] is the day the page is read as of: a past day reads the page as it
+     * stood then, e.g. a cycle's last day for the cycle that just ended.
      */
-    fun getGroupSpending(year: Int, month: Int, currency: String): Flow<BudgetOverallSummary> {
-        val today = LocalDate.now()
+    fun getGroupSpending(
+        year: Int,
+        month: Int,
+        currency: String,
+        today: LocalDate = LocalDate.now(),
+    ): Flow<BudgetOverallSummary> {
         val ym = YearMonth.of(year, month)
         val monthStart = ym.atDay(1)
         val monthEnd = ym.atEndOfMonth()
@@ -636,8 +648,12 @@ class BudgetGroupRepository @Inject constructor(
         }
     }
 
-    fun getGroupSpendingAllCurrencies(year: Int, month: Int): Flow<BudgetGroupSpendingRaw> {
-        val today = LocalDate.now()
+    /** [today]: as [getGroupSpending]. */
+    fun getGroupSpendingAllCurrencies(
+        year: Int,
+        month: Int,
+        today: LocalDate = LocalDate.now(),
+    ): Flow<BudgetGroupSpendingRaw> {
         val ym = YearMonth.of(year, month)
         val monthStart = ym.atDay(1)
         val monthEnd = ym.atEndOfMonth()

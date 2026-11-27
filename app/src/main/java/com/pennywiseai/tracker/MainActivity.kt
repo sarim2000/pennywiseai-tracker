@@ -19,6 +19,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.navigation.PlanSection
+import com.pennywiseai.tracker.presentation.add.AddAutomation
 import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
 import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.hilt.android.AndroidEntryPoint
@@ -73,7 +74,8 @@ class MainActivity : FragmentActivity() {
          * Deep link that jumps straight to Add Transaction: `pennywise://add`.
          * The single entry point every quick-add surface routes through — the
          * QS tile, the launcher shortcut, and anything the user wires up
-         * themselves (Tasker, an OEM gesture, a Pixel Quick Tap macro).
+         * themselves (Tasker, an OEM gesture, a Pixel Quick Tap macro). It takes
+         * the [AddAutomation] keys as query parameters (docs/automation.md).
          */
         const val DEEP_LINK_SCHEME = "pennywise"
         const val DEEP_LINK_HOST_ADD = "add"
@@ -132,8 +134,7 @@ class MainActivity : FragmentActivity() {
         // A request still waiting (e.g. behind the lock screen) is read again, since it
         // lived only in this activity's fields.
         if (savedInstanceState == null || savedInstanceState.getBoolean(KEY_LAUNCH_PENDING)) {
-            handleEditIntent(intent)
-            handleWidgetIntent(intent)
+            handleLaunchIntent(intent)
         }
 
         val editCompleteCallback = { editTransactionId = null }
@@ -200,6 +201,21 @@ class MainActivity : FragmentActivity() {
         // The intent a recreation reads again if its request is still pending.
         setIntent(intent)
         // Handle intent when activity is already running
+        handleLaunchIntent(intent)
+    }
+
+    /**
+     * An automation's Add (the action or `pennywise://add`) opens only the checked form.
+     * Before Android 13 another app can name this class directly, skipping
+     * [com.pennywiseai.tracker.presentation.add.AddAutomationActivity], so its chat or
+     * widget extras must not be read, and a malformed bundle must not crash the read.
+     */
+    private fun handleLaunchIntent(intent: Intent?) {
+        intent ?: return
+        if (intent.action == AddAutomation.ACTION_ADD_TRANSACTION || intent.isAddDeepLink()) {
+            openAddTransaction = AddAutomation.prefill { key -> intent.automationValue(key) }
+            return
+        }
         handleEditIntent(intent)
         handleWidgetIntent(intent)
     }
@@ -270,7 +286,7 @@ class MainActivity : FragmentActivity() {
             chatDrafts.put(it)
             openChat = android.os.SystemClock.elapsedRealtime()
         }
-        if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true || intent.isAddDeepLink()) {
+        if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true) {
             openAddTransaction = com.pennywiseai.tracker.navigation.AddTransaction(
                 amount = intent?.getStringExtra(EXTRA_ADD_AMOUNT),
                 merchant = intent?.getStringExtra(EXTRA_ADD_MERCHANT),
@@ -302,6 +318,17 @@ class MainActivity : FragmentActivity() {
             .setIntent(Intent(Intent.ACTION_VIEW, addDeepLink(), this, MainActivity::class.java))
             .build()
         ShortcutManagerCompat.setDynamicShortcuts(this, listOf(shortcut))
+    }
+
+    /**
+     * An extra (Tasker may send a number) or a `pennywise://add?key=…` parameter; null if
+     * unreadable. Each read is caught on its own, as in AddAutomationActivity: on Android 12
+     * one malformed extra (BadParcelableException) makes every read of the bundle throw.
+     */
+    private fun Intent.automationValue(key: String): Any? {
+        @Suppress("DEPRECATION")
+        return runCatching { extras?.get(key) }.getOrNull()
+            ?: runCatching { data?.takeIf { it.isHierarchical }?.getQueryParameter(key) }.getOrNull()
     }
 
     private fun Intent?.isAddDeepLink(): Boolean {

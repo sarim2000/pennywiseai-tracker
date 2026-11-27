@@ -56,6 +56,7 @@ import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.home.HomeFigureRows
 import com.pennywiseai.tracker.presentation.home.HomeScreen
+import com.pennywiseai.tracker.presentation.plan.PlanChallengesScreen
 import com.pennywiseai.tracker.presentation.plan.PlanGoalsScreen
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
@@ -266,7 +267,7 @@ fun MainScreen(
 
     // What a Settings row opens lives either in this tab's graph or above the tabs.
     fun openFromSettings(tab: BottomNavItem, key: NavKey) = when (key) {
-        Rules, Loans, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess, BackgroundAccess, SmsCheckup, LearnedCategories,
+        Rules, Loans, Reimbursements, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess, BackgroundAccess, SmsCheckup, LearnedCategories,
         is BudgetGroups -> openRoot(key)
         else -> open(tab, key)
     }
@@ -419,6 +420,9 @@ fun MainScreen(
                 },
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
+                },
+                onNavigateToWeekReview = { weekStart ->
+                    openRoot(com.pennywiseai.tracker.navigation.Review(com.pennywiseai.tracker.domain.review.ReviewKind.WEEK.name, weekStart.toString()))
                 },
                 onNavigateToInsights = {
                     openRoot(Insights)
@@ -585,6 +589,11 @@ fun MainScreen(
                                 host = host,
                                 onOpenGoal = { openRoot(GoalDetail(it)) },
                                 onCreateGoal = { openRoot(GoalEdit(-1L)) },
+                            )
+                            PlanSection.CHALLENGES -> PlanChallengesScreen(
+                                host = host,
+                                onOpenTransaction = { openRoot(TransactionDetail(it)) },
+                                onOpenBackgroundAccess = { openRoot(BackgroundAccess) },
                             )
                         }
                     }
@@ -806,22 +815,25 @@ fun MainScreen(
             val lastTabRoute = remember { arrayOf(baseRoute) }
             if (onTabScreen) lastTabRoute[0] = baseRoute
             if (!themeState.isLoading) {
-                // The ViewModel hears saves even while a pushed screen (Add) covers the
-                // tabs, so one made there is still showing when the bar comes back. A
-                // hidden Chat tab shows nothing and doesn't follow the scan.
+                // Step aside while typing (Transactions search, Chat) rather
+                // than sit under the keyboard with the docked action.
+                // The mascot playground keeps it up too: its reactions play on the real tab.
+                val barVisible = (onTabScreen || topKey == MascotPlayground) && !WindowInsets.isImeVisible && !hideNavBar.value
+                // The ViewModel hears saves and moments even while a pushed screen covers
+                // the tabs, and holds one made there until the bar is back and past its
+                // entrance. A hidden Chat tab shows nothing and doesn't follow the scan.
+                var barSettled by remember { mutableStateOf(false) }
                 val chatReaction = if (BottomNavItem.Chat.route !in hiddenTabs) {
-                    rememberChatTabReaction(chatTabViewModel.reactions, chatTabViewModel.scan)
+                    rememberChatTabReaction(chatTabViewModel.reactions, chatTabViewModel.scan, barSettled, barVisible)
                 } else null
                 PennyWiseBottomNavigation(
                     selectedRoute = lastTabRoute[0],
                     onTabSelected = ::onTabClick,
                     navBarStyle = themeState.navBarStyle,
-                    // Step aside while typing (Transactions search, Chat) rather
-                    // than sit under the keyboard with the docked action.
-                    // The mascot playground keeps it up too: its reactions play on the real tab.
-                    visible = (onTabScreen || topKey == MascotPlayground) && !WindowInsets.isImeVisible && !hideNavBar.value,
+                    visible = barVisible,
                     hiddenTabs = hiddenTabs,
                     chatReaction = chatReaction,
+                    onSettledChange = { barSettled = it },
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,
                     dock = dockForTabs,

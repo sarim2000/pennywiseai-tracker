@@ -23,7 +23,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
+import com.pennywiseai.tracker.presentation.common.ExportTransactionsDialog
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.ShakeToHideViewModel
 import com.pennywiseai.tracker.ui.UiText
@@ -36,6 +38,7 @@ import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
+import kotlinx.coroutines.launch
 
 // ── Security ──
 
@@ -46,6 +49,7 @@ internal fun SecurityPage(
 ) {
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
     val shakeToHideEnabled by shakeToHideViewModel.enabled.collectAsStateWithLifecycle()
+    val hideWidgetAmounts by appLockViewModel.hideWidgetAmounts.collectAsStateWithLifecycle()
     var showTimeoutSheet by remember { mutableStateOf(false) }
 
     SettingsGroup {
@@ -64,20 +68,30 @@ internal fun SecurityPage(
             position = ListItemPosition.Top
         )
         AnimatedVisibility(visible = appLockUiState.isLockEnabled, enter = pwExpand(), exit = pwCollapse()) {
-            SettingsNavItem(
-                icon = Icons.Default.Timer,
-                title = stringResource(R.string.settings_lock_timeout_title),
-                subtitle = when (appLockUiState.timeoutMinutes) {
-                    0 -> stringResource(R.string.settings_lock_timeout_immediately_subtitle)
-                    else -> pluralStringResource(
-                        R.plurals.settings_lock_timeout_after_minutes,
-                        appLockUiState.timeoutMinutes,
-                        appLockUiState.timeoutMinutes
-                    )
-                },
-                onClick = { showTimeoutSheet = true },
-                position = ListItemPosition.Middle
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)) {
+                SettingsNavItem(
+                    icon = Icons.Default.Timer,
+                    title = stringResource(R.string.settings_lock_timeout_title),
+                    subtitle = when (appLockUiState.timeoutMinutes) {
+                        0 -> stringResource(R.string.settings_lock_timeout_immediately_subtitle)
+                        else -> pluralStringResource(
+                            R.plurals.settings_lock_timeout_after_minutes,
+                            appLockUiState.timeoutMinutes,
+                            appLockUiState.timeoutMinutes
+                        )
+                    },
+                    onClick = { showTimeoutSheet = true },
+                    position = ListItemPosition.Middle
+                )
+                SettingsSwitchRow(
+                    icon = Icons.Default.Widgets,
+                    title = stringResource(R.string.settings_hide_widget_amounts_title),
+                    subtitle = stringResource(R.string.settings_hide_widget_amounts_subtitle),
+                    checked = hideWidgetAmounts,
+                    onCheckedChange = { appLockViewModel.setHideWidgetAmounts(it) },
+                    position = ListItemPosition.Middle
+                )
+            }
         }
         SettingsSwitchRow(
             icon = Icons.Default.Vibration,
@@ -112,6 +126,9 @@ internal fun DataPage(
     onNavigate: (NavKey) -> Unit,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
+    val csvScope = rememberCoroutineScope()
+    var csvExportRows by remember { mutableStateOf<List<TransactionEntity>?>(null) }
+    csvExportRows?.let { ExportTransactionsDialog(transactions = it, onDismiss = { csvExportRows = null }) }
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
@@ -187,6 +204,13 @@ internal fun DataPage(
             subtitle = stringResource(R.string.settings_export_include_receipts_subtitle),
             checked = exportIncludeReceipts,
             onCheckedChange = { settingsViewModel.setExportIncludeReceipts(it) },
+            position = ListItemPosition.Middle
+        )
+        SettingsNavItem(
+            icon = Icons.Default.TableChart,
+            title = stringResource(R.string.settings_export_csv_title),
+            subtitle = stringResource(R.string.settings_export_csv_subtitle),
+            onClick = { csvScope.launch { csvExportRows = settingsViewModel.loadAllTransactionsForCsv() } },
             position = ListItemPosition.Middle
         )
         SettingsNavItem(

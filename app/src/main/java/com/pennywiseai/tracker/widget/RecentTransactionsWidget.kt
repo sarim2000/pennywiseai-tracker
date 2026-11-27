@@ -145,7 +145,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
             }
             item { Spacer(GlanceModifier.width(Spacing.sm)) }
             item {
-                val hidden = rowAmountsHidden()
+                val hidden = everyAmountHidden()
                 val amount = exactText(item.amount, item.currency)
                 Text(
                     // No "+" or income/expense color on the mask: either would still say which way money went.

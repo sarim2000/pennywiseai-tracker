@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
+/** Reads that can outgrow one CursorWindow are @Transaction: see [TransactionDao] (#1500). */
 @Dao
 interface AccountBalanceDao {
 
@@ -130,6 +131,7 @@ interface AccountBalanceDao {
     @Query("DELETE FROM account_balances WHERE transaction_id IS NOT NULL AND sms_source IS NULL")
     suspend fun deleteTransactionDerivedBalances(): Int
 
+    @Transaction
     @Query("SELECT * FROM account_balances ORDER BY timestamp DESC")
     fun getAllBalances(): Flow<List<AccountBalanceEntity>>
 
@@ -137,7 +139,7 @@ interface AccountBalanceDao {
     suspend fun deleteAllBalances()
 
     /**
-     * Resync companion to [TransactionDao.deleteRebuildableSmsTransactions].
+     * Resync companion to [TransactionDao.getRebuildableSmsTransactions].
      * Wipes balance entries the SMS re-parse will regenerate, while
      * preserving:
      *
@@ -201,6 +203,7 @@ interface AccountBalanceDao {
     """)
     fun getTotalBalance(): Flow<BigDecimal?>
 
+    @Transaction
     @Query("""
         SELECT * FROM account_balances
         WHERE bank_name = :bankName AND account_last4 = :accountLast4
@@ -231,6 +234,7 @@ interface AccountBalanceDao {
     @Delete
     suspend fun deleteBalance(balance: AccountBalanceEntity)
 
+    @Transaction
     @Query("""SELECT * FROM account_balances 
         WHERE bank_name = :bankName AND account_last4 = :accountLast4
         ORDER BY timestamp DESC""")
@@ -252,6 +256,7 @@ interface AccountBalanceDao {
         WHERE bank_name = :bankName AND account_last4 = :accountLast4""")
     suspend fun getBalanceCountForAccount(bankName: String, accountLast4: String): Int
 
+    @Transaction
     @Query("""
         SELECT * FROM account_balances
         WHERE timestamp >= :startDate

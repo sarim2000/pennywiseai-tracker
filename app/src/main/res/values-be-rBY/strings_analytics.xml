@@ -71,6 +71,7 @@
     <string name="budgets_title">Бюджэты</string>
     <string name="budgets_back">Назад</string>
     <string name="budgets_add">Дадаць бюджэт</string>
+    <!-- Budgets card the week after a budget cycle ends: %1$s is the month's name ("October ended under budget"), or the cycle's dates when it starts on another day than the 1st ("Sep 25 - Oct 24 ended under budget") -->
     <string name="budgets_action_cancel">Скасаваць</string>
     <string name="budgets_action_delete">Выдаліць</string>
     <string name="budgets_setup_title">Наладзьце бюджэт</string>

@@ -37,6 +37,15 @@ class BudgetWidgetMoodTest {
     }
 
     @Test
+    fun `the figure reads over or left as shown, and neither while amounts are hidden`() {
+        assertEquals(true, budgetOver(BigDecimal("-1"), hidden = false))
+        assertEquals(false, budgetOver(BigDecimal("-0.3"), hidden = false))
+        assertEquals(false, budgetOver(BigDecimal("120"), hidden = false))
+        assertNull(budgetOver(BigDecimal("-1"), hidden = true))
+        assertNull(budgetOver(BigDecimal("120"), hidden = true))
+    }
+
+    @Test
     fun `an over-budget snapshot without a pace is still worried`() {
         assertEquals(MascotMood.Worried, mood("3001", overPace = null))
     }

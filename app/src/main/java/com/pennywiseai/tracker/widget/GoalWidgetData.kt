@@ -39,6 +39,19 @@ data class GoalWidgetItem(
 )
 
 /**
+ * [GoalWidgetItem.line] (or [short]: its shortLine) as a widget shows it: [HIDDEN_AMOUNT] while
+ * amounts are hidden, since "Reached", "Behind" or "Missed" gives the hidden progress away.
+ */
+fun GoalWidgetItem.shownLine(short: Boolean, hidden: Boolean): String = when {
+    hidden -> HIDDEN_AMOUNT
+    short -> shortLine
+    else -> line
+}
+
+/** [GoalWidgetItem.tone], neutral while amounts are hidden, for the same reason as [shownLine]. */
+fun GoalWidgetItem.shownTone(hidden: Boolean): GoalTone = if (hidden) GoalTone.NEUTRAL else tone
+
+/**
  * [context] is in the app's language ([inAppLanguage]): amounts are isolated
  * for Arabic and digits Latin, so "JD 40/شهر · تبقى 12 شهرًا" reads in order.
  */

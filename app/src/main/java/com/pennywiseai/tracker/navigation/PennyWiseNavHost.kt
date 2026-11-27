@@ -62,12 +62,18 @@ fun NavBackStack<NavKey>.pop(key: NavKey) {
 
 /**
  * Opens [key] from the screen [from]: back to it when it's the entry right under [from], so a
- * link from a row a list showed doesn't stack that list again; otherwise [navigate]. Only the
+ * link from a row a list showed doesn't stack that list again; otherwise on top of [from]. Only the
  * direct parent counts, so no other screen deeper in the stack is ever dropped.
  */
 fun NavBackStack<NavKey>.openFrom(from: NavKey, key: NavKey) {
     val under = getOrNull(lastIndex - 1)
-    if (lastOrNull() == from && under != null && sameScreen(under, key)) removeAt(lastIndex) else navigate(key)
+    when {
+        lastOrNull() != from -> navigate(key)
+        under != null && sameScreen(under, key) -> removeAt(lastIndex)
+        // Stacks even when [key] is the same kind of screen (a payment's detail over its
+        // expense's), where [navigate] would replace [from] and back would skip it.
+        else -> add(key)
+    }
 }
 
 /**
@@ -254,6 +260,13 @@ fun PennyWiseNavHost(
                                 onCreateGoal = {
                                     backStack.navigate(GoalEdit())
                                 },
+                                // A linked payment or expense stacks on top, so back returns here.
+                                onNavigateToTransaction = { id ->
+                                    backStack.openFrom(key, TransactionDetail(id))
+                                },
+                                onNavigateToReimbursements = {
+                                    backStack.navigate(Reimbursements)
+                                },
                                 onOpenRelated = { merchant, category, currency, profileId ->
                                     backStack.openFrom(key, relatedTransactions(merchant, category, currency, profileId))
                                 }
@@ -410,6 +423,13 @@ fun PennyWiseNavHost(
                             onNavigateToLoanDetail = { loanId ->
                                 backStack.navigate(LoanDetail(loanId))
                             }
+                        )
+                    }
+
+                    entry<Reimbursements> { key ->
+                        com.pennywiseai.tracker.presentation.reimbursements.ReimbursementsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onOpenTransaction = { id -> backStack.navigate(TransactionDetail(id)) }
                         )
                     }
 

@@ -19,8 +19,11 @@ interface PrivacyPreferences {
      */
     suspend fun toggleBalanceHidden(hiddenWhenUnset: Boolean = true): Boolean
 
-    /** Saves the choice outright: the top bars' "Show amounts" eye, where a toggle would re-hide on a double tap. */
-    suspend fun setBalanceHidden(hidden: Boolean)
+    /**
+     * Saves the choice outright: the top bars' "Show amounts" eye, where a toggle would re-hide on a double tap.
+     * Returns whether the saved choice changed, read in the same edit, so a double tap is one change.
+     */
+    suspend fun setBalanceHidden(hidden: Boolean): Boolean
 
     val shakeToHideAmounts: Flow<Boolean>
 
@@ -35,6 +38,14 @@ interface PrivacyPreferences {
 
     /** Saves the switch and, when enabling, the auth time in one edit, so no reader sees enabled with no auth time. */
     suspend fun setAppLockEnabledWithTimestamp(enabled: Boolean)
+
+    /**
+     * Whether the home-screen widgets mask every amount while App Lock is on, so they
+     * don't show what the lock keeps out. On until the user turns it off.
+     */
+    val hideWidgetAmountsWhileLocked: Flow<Boolean>
+
+    suspend fun setHideWidgetAmountsWhileLocked(hide: Boolean)
 
     val appLockTimeoutMinutes: Flow<Int>
 

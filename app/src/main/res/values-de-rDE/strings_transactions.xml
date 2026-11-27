@@ -69,6 +69,8 @@
     <string name="txn_detail_more_actions">Weitere Aktionen</string>
     <string name="txn_detail_menu_add_to_group">Zur Gruppe hinzufügen</string>
     <string name="txn_detail_menu_duplicate">Duplizieren</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">Problem melden</string>
     <string name="txn_detail_delete_title">Transaktion löschen</string>
     <string name="txn_detail_delete_message">Sind Sie sicher, dass Sie diese Transaktion löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.</string>
@@ -201,6 +203,7 @@
     <string name="txn_list_group_yesterday">Gestern</string>
     <string name="txn_list_group_this_week">Diese Woche</string>
     <string name="txn_list_group_earlier">Früher</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">Neueste zuerst</string>
     <string name="txn_list_sort_oldest">Älteste zuerst</string>
     <string name="txn_list_sort_amount_highest">Höchster Betrag</string>
@@ -384,6 +387,7 @@
     <string name="share_banner_dismiss">Verwerfen</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Kategorie ändern</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">Keine Ausgabe</string>
     <string name="quick_category_not_income">Keine Einnahme</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

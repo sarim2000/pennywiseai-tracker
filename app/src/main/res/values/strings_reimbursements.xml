@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reimbursable expenses (#1389): money you paid that someone (often an employer) pays back -->
+    <string name="reimburse_menu_mark">Mark as reimbursable</string>
+
+    <!-- Transaction detail -->
+    <string name="reimburse_section_title">Reimbursement</string>
+    <string name="reimburse_see_all">See all</string>
+    <string name="reimburse_pending_title">Waiting to be paid back</string>
+    <string name="reimburse_pending_subtitle">Tap once the money comes back</string>
+    <string name="reimburse_remove">Not reimbursable</string>
+    <string name="reimburse_done_title">Reimbursed</string>
+    <!-- %1$s is the incoming payment's merchant, %2$s its amount, %3$s its date -->
+    <string name="reimburse_done_by">By %1$s · %2$s · %3$s</string>
+    <string name="reimburse_done_unlinked">No payment linked</string>
+    <string name="reimburse_undo">Mark as still waiting</string>
+    <!-- On an incoming payment: the expenses it paid back -->
+    <string name="reimburse_paid_back_title">Pays back</string>
+
+    <!-- "Paid back by" sheet -->
+    <string name="reimburse_sheet_title">What paid it back?</string>
+    <!-- %1$s is a currency code, %2$s the expense's date -->
+    <string name="reimburse_sheet_hint">Money received in %1$s since %2$s</string>
+    <string name="reimburse_sheet_unlinked">No linked payment</string>
+    <string name="reimburse_sheet_unlinked_hint">Cash, or a payment PennyWise didn\'t record</string>
+    <string name="reimburse_sheet_empty">No money received in this currency since then.</string>
+
+    <!-- Reimbursements screen -->
+    <string name="reimburse_screen_title">Reimbursements</string>
+    <string name="reimburse_waiting_label">Waiting to be paid back</string>
+    <plurals name="reimburse_pending_count">
+        <item quantity="one">%d expense</item>
+        <item quantity="other">%d expenses</item>
+    </plurals>
+    <string name="reimburse_section_pending">Pending</string>
+    <string name="reimburse_section_done">Reimbursed</string>
+    <string name="reimburse_counts_note">Reimbursable expenses still count as spending. To leave one out, open it and turn on Exclude from analytics.</string>
+    <string name="reimburse_empty_title">Nothing to claim back</string>
+    <string name="reimburse_empty_description">Open an expense you\'ll be paid back for, then pick Mark as reimbursable from its menu.</string>
+
+    <!-- Settings → Planning -->
+    <string name="settings_reimbursements_subtitle">Expenses waiting to be paid back</string>
+</resources>

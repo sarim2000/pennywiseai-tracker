@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -572,8 +573,8 @@ private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -
             TextButton(
                 onClick = {
                     val passphrase = passphraseState.toCharArray()
-                    passphraseState.clearText()
-                    confirmState.clearText()
+                    passphraseState.wipe()
+                    confirmState.wipe()
                     onExport(passphrase)
                 },
                 enabled = passphraseState.text.isNotEmpty() && matches,
@@ -618,7 +619,7 @@ private fun BackupPassphraseDialog(wrongPassphrase: Boolean, onRestore: (CharArr
             TextButton(
                 onClick = {
                     val passphrase = passphraseState.toCharArray()
-                    passphraseState.clearText()
+                    passphraseState.wipe()
                     onRestore(passphrase)
                 },
                 enabled = passphraseState.text.isNotEmpty(),
@@ -639,8 +640,15 @@ private fun TextFieldState.toCharArray(): CharArray = text.let { text -> CharArr
 @Composable
 private fun ClearOnDispose(vararg states: TextFieldState) {
     DisposableEffect(Unit) {
-        onDispose { states.forEach { it.clearText() } }
+        onDispose { states.forEach { it.wipe() } }
     }
+}
+
+/** Empties the field and its undo history, which would otherwise still hold the old text. */
+@OptIn(ExperimentalFoundationApi::class)
+internal fun TextFieldState.wipe() {
+    clearText()
+    undoState.clearHistory()
 }
 
 @Composable

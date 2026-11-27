@@ -263,8 +263,9 @@ internal fun DataPage(
         (if (scheduledFolderBackupEnabled) 3 else 0) +
         (if (showFolderEncryption) 1 else 0) +
         (if (folderPassphraseLocked) 1 else 0)
-    var autoBackupRow = 0
     SettingsGroup {
+        // Counted from zero each time the group composes: it can recompose without the page.
+        var autoBackupRow = 0
         SettingsSwitchRow(
             icon = Icons.Default.Backup,
             title = stringResource(R.string.settings_folder_backup_title),

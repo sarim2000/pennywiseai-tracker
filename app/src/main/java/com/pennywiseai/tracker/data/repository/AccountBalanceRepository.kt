@@ -38,6 +38,8 @@ open class AccountBalanceRepository @Inject constructor(
         const val SOURCE_MANUAL = "MANUAL"
     }
 
+    private val pendingRearm = java.util.concurrent.ConcurrentHashMap.newKeySet<Pair<String, String>>()
+
     /** Runs [block] as one database transaction; the repositories it calls join it, and a throw rolls it all back. */
     suspend fun <T> inTransaction(block: suspend () -> T): T = database.withTransaction { block() }
 
@@ -390,9 +392,9 @@ open class AccountBalanceRepository @Inject constructor(
      * Above the threshold, or with none: the next dip is news again. Done at the
      * write, not in MoneyAlertWorker, which only sees the newest figure and doesn't
      * run after an edit. Never fails the write around it; worst case is one missed alert.
-     * Fire-and-forget so a caller inside a database transaction is never held up by it;
-     * the launched job re-checks the stored balance when it runs, so a stale or rolled-back
-     * re-arm does nothing.
+     * Fire-and-forget so a caller inside a database transaction is never held up by it.
+     * The job reads the committed balance after that transaction ends (a stale or rolled-back
+     * re-arm does nothing), and at most one job per account is queued.
      */
     private fun rearmLowBalanceAlert(
         bankName: String,
@@ -401,13 +403,23 @@ open class AccountBalanceRepository @Inject constructor(
         threshold: BigDecimal?
     ) {
         if (threshold != null && balance <= threshold) return
+        val key = bankName to accountLast4
+        if (!pendingRearm.add(key)) return
         scope.launch {
-            runCatching {
-                val stored = accountBalanceDao.getLatestBalance(bankName, accountLast4)
-                val limit = stored?.lowBalanceThreshold
-                if (stored != null && (limit == null || stored.balance > limit)) {
-                    userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false)
+            try {
+                runCatching {
+                    // Own transaction: queues behind the caller's open write, so it reads committed state.
+                    val stored = database.withTransaction {
+                        pendingRearm.remove(key)
+                        accountBalanceDao.getLatestBalance(bankName, accountLast4)
+                    }
+                    val limit = stored?.lowBalanceThreshold
+                    if (stored != null && (limit == null || stored.balance > limit)) {
+                        userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false)
+                    }
                 }
+            } finally {
+                pendingRearm.remove(key)
             }
         }
     }

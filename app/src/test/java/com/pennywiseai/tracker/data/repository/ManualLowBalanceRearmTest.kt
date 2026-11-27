@@ -115,6 +115,23 @@ class ManualLowBalanceRearmTest {
     }
 
     @Test
+    fun `re-arms queued for one account read once, and a later one queues anew`() = runTest {
+        val queued = AccountBalanceRepository(balanceDao, transactionDao, database, preferences, CoroutineScope(StandardTestDispatcher(testScheduler)))
+        openingWithThreshold("500")
+        storedLatest("500", "900")
+        queued.setManualCurrentBalance(BANK, ACCT, BigDecimal("900"))
+        queued.setManualCurrentBalance(BANK, ACCT, BigDecimal("950"))
+        advanceUntilIdle()
+        coVerify(exactly = 1) { balanceDao.getLatestBalance(BANK, ACCT) }
+        verifyRearms(1)
+
+        queued.setManualCurrentBalance(BANK, ACCT, BigDecimal("960"))
+        advanceUntilIdle()
+        coVerify(exactly = 2) { balanceDao.getLatestBalance(BANK, ACCT) }
+        verifyRearms(2)
+    }
+
+    @Test
     fun `a balance at or under the threshold stays told`() = runBlocking {
         openingWithThreshold("500")
         repo.setManualCurrentBalance(BANK, ACCT, BigDecimal("500"))

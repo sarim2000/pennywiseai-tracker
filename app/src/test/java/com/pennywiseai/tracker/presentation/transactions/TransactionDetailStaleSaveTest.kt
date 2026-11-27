@@ -164,4 +164,39 @@ class TransactionDetailStaleSaveTest {
         vm.saveChanges()
         assertTrue(written.single().excludedFromAnalytics)
     }
+
+    @Test
+    fun `a loan linked after the early read blocks a type change`() {
+        val vm = viewModel()
+        vm.enterEditMode()
+        beforeTransaction = { stored = stored.copy(loanId = 3) }
+        vm.updateTransactionType(TransactionType.INCOME)
+        vm.saveChanges()
+        assertTrue(written.isEmpty())
+        assertEquals(UiText.Res(R.string.txn_detail_error_loan_type_locked), vm.errorMessage.value)
+    }
+
+    @Test
+    fun `an inferred bank does not override an account changed elsewhere`() {
+        stored = stored.copy(accountNumber = "1234", bankName = null)
+        val vm = viewModel()
+        vm.enterEditMode()
+        stored = stored.copy(accountNumber = "5678", bankName = "Bank B")
+        vm.updateDescription("new note")
+        vm.saveChanges()
+        assertEquals("5678", written.single().accountNumber)
+        assertEquals("Bank B", written.single().bankName)
+    }
+
+    @Test
+    fun `a row removed meanwhile writes nothing and closes the edit`() {
+        val vm = viewModel()
+        vm.enterEditMode()
+        coEvery { transactions.getTransactionById(1) } returns null
+        vm.updateDescription("new note")
+        vm.saveChanges()
+        assertTrue(written.isEmpty())
+        assertEquals(false, vm.isEditMode.value)
+        io.mockk.coVerify(exactly = 0) { balances.reflectTransactionEdit(any(), any()) }
+    }
 }

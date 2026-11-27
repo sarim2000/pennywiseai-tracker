@@ -40,7 +40,6 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
-import java.math.BigDecimal
 
 /**
  * The main widget: "am I OK?" and a + for the cash spend no SMS will ever
@@ -124,14 +123,18 @@ class SpendingSummaryWidget : GlanceAppWidget() {
     @Composable
     private fun BudgetFigure(budget: BudgetWidgetData, height: Dp, hero: Boolean, modifier: GlanceModifier) {
         val context = LocalContext.current
-        // On the shown figure: 0.3 over reads "Left · JD 0", not "Over · JD 0".
-        val over = wholeUnits(budget.remaining) < BigDecimal.ZERO
+        val over = budgetOver(budget.remaining, amountsHidden())
+        val label = when (over) {
+            null -> R.string.widget_budget_title
+            true -> R.string.widget_summary_over
+            false -> R.string.widget_summary_left
+        }
         Column(modifier = modifier, horizontalAlignment = startAlignment()) {
             Figure(
-                label = context.getString(if (over) R.string.widget_summary_over else R.string.widget_summary_left),
+                label = context.getString(label),
                 value = totalText(budget.remaining.abs(), budget.currency),
                 fontSize = if (hero) Typography.headlineLarge.fontSize else Typography.headlineSmall.fontSize,
-                color = if (over) PennyWiseWidgetTheme.savingsColor(false) else null
+                color = if (over == true) PennyWiseWidgetTheme.savingsColor(false) else null
             )
             if (height >= NARROW.withBar().height) {
                 Spacer(GlanceModifier.height(Spacing.xs))

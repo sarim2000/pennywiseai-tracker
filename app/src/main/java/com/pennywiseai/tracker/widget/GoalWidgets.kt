@@ -127,8 +127,10 @@ private fun openGoals(context: Context, createGoal: Boolean = false) =
 @Composable
 private fun GoalRingImage(item: GoalWidgetItem, size: Dp, stroke: Dp) {
     val context = LocalContext.current
+    // While amounts are hidden the ring is only its track: how full it is gives the figure away.
+    val hidden = everyAmountHidden()
     val color = item.color.toColorOr(GlanceTheme.colors.primary.getColor(context)).toArgb()
-    val fraction = item.fraction.coerceIn(0f, 1f)
+    val fraction = shownFraction(item.fraction, hidden).coerceIn(0f, 1f)
     // The gap, as an angle: a stroke's width (the two round caps) plus half of it as air.
     val gap = if (fraction in 0.001f..0.999f) Math.toDegrees(1.5 * stroke.value / ((size.value - stroke.value) / 2)).toFloat() / 360f else 0f
     Box(modifier = GlanceModifier.size(size)) {
@@ -140,11 +142,20 @@ private fun GoalRingImage(item: GoalWidgetItem, size: Dp, stroke: Dp) {
         )
         Image(
             provider = ImageProvider(renderArc(context, 0f, fraction, color, size, stroke)),
-            contentDescription = context.latinString(R.string.goals_ring_description, item.percent),
+            contentDescription = if (hidden) {
+                context.getString(R.string.widget_goal_progress_hidden)
+            } else {
+                context.latinString(R.string.goals_ring_description, item.percent)
+            },
             modifier = GlanceModifier.size(size),
         )
     }
 }
+
+/** The goal's "40%", or [HIDDEN_AMOUNT] while amounts are hidden. */
+@Composable
+private fun goalPercent(item: GoalWidgetItem): String =
+    if (everyAmountHidden()) HIDDEN_AMOUNT else LocalContext.current.latinString(R.string.budgets_percent, item.percent)
 
 /** An arc of a ring from [from] to [to] (fractions of a turn from 12 o'clock), on a transparent bitmap. */
 private fun renderArc(context: Context, from: Float, to: Float, color: Int, size: Dp, stroke: Dp): Bitmap {
@@ -215,7 +226,6 @@ class GoalWidget : GlanceAppWidget() {
 
     @Composable
     private fun Goal(item: GoalWidgetItem) {
-        val context = LocalContext.current
         val size = LocalSize.current
         val ring = minOf(size.width, size.height - GOAL_TEXT * textGrowth()) - WidgetDefaults.padding * 2
         val big = ring >= BIG_RING
@@ -229,7 +239,7 @@ class GoalWidget : GlanceAppWidget() {
             Box(contentAlignment = Alignment.Center) {
                 GoalRingImage(item, ringSize, if (big) Dimensions.Component.goalRingLargeStroke else Dimensions.Component.goalRingStroke)
                 Text(
-                    text = context.latinString(R.string.budgets_percent, item.percent),
+                    text = goalPercent(item),
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurface,
                         fontSize = if (big) Typography.headlineSmall.fontSize else Typography.labelMedium.fontSize,
@@ -244,9 +254,9 @@ class GoalWidget : GlanceAppWidget() {
                 style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.titleMedium.fontSize, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
             )
             Text(
-                text = inAppDirection(item.shortLine),
+                text = inAppDirection(item.shownLine(short = true, hidden = everyAmountHidden())),
                 maxLines = 1,
-                style = TextStyle(color = PennyWiseWidgetTheme.goalToneColor(item.tone), fontSize = Typography.bodySmall.fontSize, textAlign = TextAlign.Center),
+                style = TextStyle(color = PennyWiseWidgetTheme.goalToneColor(item.shownTone(everyAmountHidden())), fontSize = Typography.bodySmall.fontSize, textAlign = TextAlign.Center),
             )
         }
     }
@@ -347,7 +357,7 @@ class GoalsListWidget : GlanceAppWidget() {
                     )
                     if (roomy) {
                         Text(
-                            text = context.latinString(R.string.budgets_percent, item.percent),
+                            text = goalPercent(item),
                             style = TextStyle(
                                 color = GlanceTheme.colors.onSurface,
                                 fontSize = if (hero) Typography.headlineSmall.fontSize else Typography.labelLarge.fontSize,
@@ -374,14 +384,17 @@ class GoalsListWidget : GlanceAppWidget() {
                             textAlign = startTextAlign(),
                         ),
                     )
-                    WidgetLabel(item.line, color = PennyWiseWidgetTheme.goalToneColor(item.tone))
+                    WidgetLabel(
+                        item.shownLine(short = false, hidden = everyAmountHidden()),
+                        color = PennyWiseWidgetTheme.goalToneColor(item.shownTone(everyAmountHidden()))
+                    )
                 }
             }
             if (!roomy) {
                 item { Spacer(GlanceModifier.width(Spacing.sm)) }
                 item {
                     Text(
-                        text = context.latinString(R.string.budgets_percent, item.percent),
+                        text = goalPercent(item),
                         style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.labelLarge.fontSize, fontWeight = FontWeight.Bold),
                     )
                 }

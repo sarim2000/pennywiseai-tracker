@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +49,7 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.celebration.Celebration
 import com.pennywiseai.tracker.ui.components.progressLabel
 import com.pennywiseai.tracker.ui.components.tierLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -70,72 +72,77 @@ fun AchievementsScreen(
     val list = result?.getOrNull()
     val earned = list.orEmpty().filter { it.earned }
     val locked = list.orEmpty().filterNot { it.earned }
+    val celebrate by viewModel.celebrate.collectAsStateWithLifecycle()
+    LaunchedEffect(list) { list?.let(viewModel::onShown) }
 
-    PennyWiseScaffold(
-        revealAmountsAction = false, // shows no amounts
-        title = stringResource(R.string.achievements_title),
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.achievements_back))
-            }
-        },
-        bottomBar = {
-            if (earned.isNotEmpty()) {
-                Surface(color = MaterialTheme.colorScheme.surface) {
-                    Button(
-                        onClick = { onShare(null) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.smd),
-                        shapes = ButtonDefaults.shapes(),
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = null)
-                        Text(stringResource(R.string.achievements_share_all), modifier = Modifier.padding(start = Spacing.sm))
+    Box(Modifier.fillMaxSize()) {
+        PennyWiseScaffold(
+            revealAmountsAction = false, // shows no amounts
+            title = stringResource(R.string.achievements_title),
+            navigationIcon = {
+                IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.achievements_back))
+                }
+            },
+            bottomBar = {
+                if (earned.isNotEmpty()) {
+                    Surface(color = MaterialTheme.colorScheme.surface) {
+                        Button(
+                            onClick = { onShare(null) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                                .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.smd),
+                            shapes = ButtonDefaults.shapes(),
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null)
+                            Text(stringResource(R.string.achievements_share_all), modifier = Modifier.padding(start = Spacing.sm))
+                        }
                     }
                 }
+            },
+        ) { padding ->
+            if (result?.isFailure == true) {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    ErrorState(message = stringResource(R.string.achievements_load_failed), onRetry = viewModel::retry)
+                }
+                return@PennyWiseScaffold
             }
-        },
-    ) { padding ->
-        if (result?.isFailure == true) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                ErrorState(message = stringResource(R.string.achievements_load_failed), onRetry = viewModel::retry)
+            if (list == null) {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                return@PennyWiseScaffold
             }
-            return@PennyWiseScaffold
-        }
-        if (list == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingIndicator() }
-            return@PennyWiseScaffold
-        }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(
-                start = Dimensions.Padding.content,
-                end = Dimensions.Padding.content,
-                bottom = Spacing.Layout.scrollBottomPadding,
-            ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent),
-        ) {
-            item { Summary(list) }
-            if (earned.isNotEmpty()) {
-                item { SectionHeaderV2(title = stringResource(R.string.achievements_section_earned)) }
-                item {
-                    GroupedList {
-                        earned.forEachIndexed { i, a ->
-                            AchievementRow(a, ListItemPosition.from(i, earned.size), onShare = { onShare(a.id.key) })
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentPadding = PaddingValues(
+                    start = Dimensions.Padding.content,
+                    end = Dimensions.Padding.content,
+                    bottom = Spacing.Layout.scrollBottomPadding,
+                ),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent),
+            ) {
+                item { Summary(list) }
+                if (earned.isNotEmpty()) {
+                    item { SectionHeaderV2(title = stringResource(R.string.achievements_section_earned)) }
+                    item {
+                        GroupedList {
+                            earned.forEachIndexed { i, a ->
+                                AchievementRow(a, ListItemPosition.from(i, earned.size), onShare = { onShare(a.id.key) })
+                            }
+                        }
+                    }
+                }
+                if (locked.isNotEmpty()) {
+                    item { SectionHeaderV2(title = stringResource(R.string.achievements_section_locked)) }
+                    item {
+                        GroupedList {
+                            locked.forEachIndexed { i, a -> AchievementRow(a, ListItemPosition.from(i, locked.size), onShare = null) }
                         }
                     }
                 }
             }
-            if (locked.isNotEmpty()) {
-                item { SectionHeaderV2(title = stringResource(R.string.achievements_section_locked)) }
-                item {
-                    GroupedList {
-                        locked.forEachIndexed { i, a -> AchievementRow(a, ListItemPosition.from(i, locked.size), onShare = null) }
-                    }
-                }
-            }
         }
+        Celebration(play = celebrate, onFinished = viewModel::onCelebrated)
     }
 }
 

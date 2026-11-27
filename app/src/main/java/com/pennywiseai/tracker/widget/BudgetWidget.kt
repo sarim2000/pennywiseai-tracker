@@ -146,30 +146,35 @@ class BudgetWidget : GlanceAppWidget() {
     private fun Hero(data: BudgetWidgetData, owl: Boolean, tall: Boolean, large: Boolean, huge: Boolean) {
         val context = LocalContext.current
         val statusColor = PennyWiseWidgetTheme.budgetStatusColor(data.percentageUsed)
-        // On the shown figure: 0.3 over reads "Left · JD 0", not "Over · JD 0".
-        val over = wholeUnits(data.remaining) < BigDecimal.ZERO
+        val over = budgetOver(data.remaining, amountsHidden())
         val owlSize = when {
             huge -> Dimensions.Icon.extraLarge
             tall -> Dimensions.Icon.hero
             else -> Dimensions.Icon.list
         }
+        // The percent gives the figure away, so it goes while amounts are hidden.
+        val showPercent = !amountsHidden()
         Column(modifier = GlanceModifier.fillMaxSize(), horizontalAlignment = startAlignment()) {
             WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 item { WidgetTitle(context.getString(R.string.widget_budget_title), GlanceModifier.defaultWeight()) }
-                item { Spacer(GlanceModifier.width(Spacing.sm)) }
-                item { PercentUsed(data, statusColor) }
+                if (showPercent) {
+                    item { Spacer(GlanceModifier.width(Spacing.sm)) }
+                    item { PercentUsed(data, statusColor) }
+                }
             }
             Spacer(GlanceModifier.defaultWeight())
             WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 item {
                     Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
-                        WidgetLabel(context.getString(if (over) R.string.widget_budget_over_label else R.string.widget_budget_left_label))
+                        if (over != null) {
+                            WidgetLabel(context.getString(if (over) R.string.widget_budget_over_label else R.string.widget_budget_left_label))
+                        }
                         val figure = totalText(data.remaining.abs(), data.currency)
                         Text(
                             text = figure,
                             maxLines = 1,
                             style = TextStyle(
-                                color = if (over) PennyWiseWidgetTheme.savingsColor(false) else GlanceTheme.colors.onSurface,
+                                color = if (over == true) PennyWiseWidgetTheme.savingsColor(false) else GlanceTheme.colors.onSurface,
                                 fontSize = fitFontSize(
                                     figure,
                                     LocalSize.current.width - WidgetDefaults.padding * 2 - if (owl) Spacing.md + owlSize else 0.dp,
@@ -219,23 +224,26 @@ class BudgetWidget : GlanceAppWidget() {
     private fun Overview(data: BudgetWidgetData) {
         val context = LocalContext.current
         val statusColor = PennyWiseWidgetTheme.budgetStatusColor(data.percentageUsed)
-        // On the shown figure: 0.3 over reads "Left · JD 0", not "Over · JD 0".
-        val over = wholeUnits(data.remaining) < BigDecimal.ZERO
+        val over = budgetOver(data.remaining, amountsHidden())
+        val label = when (over) {
+            null -> R.string.widget_budget_title
+            true -> R.string.widget_summary_over
+            false -> R.string.widget_summary_left
+        }
+        // The percent gives the figure away, so it goes while amounts are hidden.
+        val showPercent = !amountsHidden()
         WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            item {
-                WidgetLabel(
-                    context.getString(if (over) R.string.widget_summary_over else R.string.widget_summary_left),
-                    GlanceModifier.defaultWeight()
-                )
+            item { WidgetLabel(context.getString(label), GlanceModifier.defaultWeight()) }
+            if (showPercent) {
+                item { Spacer(GlanceModifier.width(Spacing.sm)) }
+                item { PercentUsed(data, statusColor) }
             }
-            item { Spacer(GlanceModifier.width(Spacing.sm)) }
-            item { PercentUsed(data, statusColor) }
         }
         Text(
             text = totalText(data.remaining.abs(), data.currency),
             maxLines = 1,
             style = TextStyle(
-                color = if (over) PennyWiseWidgetTheme.savingsColor(false) else GlanceTheme.colors.onSurface,
+                color = if (over == true) PennyWiseWidgetTheme.savingsColor(false) else GlanceTheme.colors.onSurface,
                 fontSize = Typography.headlineSmall.fontSize,
                 fontWeight = FontWeight.Bold,
                 textAlign = startTextAlign()
@@ -306,6 +314,14 @@ class BudgetWidget : GlanceAppWidget() {
         val HUGE = DpSize(440.dp, 240.dp)
     }
 }
+
+/**
+ * Whether a budget figure reads "Over", or null while amounts are hidden: "Over" or
+ * "Left", and Over's red, would tell which side of the limit the hidden figure is.
+ * On the shown figure, so 0.3 over reads "Left · JD 0", not "Over · JD 0".
+ */
+internal fun budgetOver(remaining: BigDecimal, hidden: Boolean): Boolean? =
+    if (hidden) null else wholeUnits(remaining) < BigDecimal.ZERO
 
 /** "of JD 360 · JD 18/day": the limit and, while there's any left, the per-day pace. */
 @Composable

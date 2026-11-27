@@ -16,7 +16,6 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetCarry
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
@@ -29,6 +28,7 @@ import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.data.repository.budgetSpend
 import com.pennywiseai.tracker.data.repository.heroBudgetGroup
 import com.pennywiseai.tracker.data.repository.homeBudgetSummary
+import com.pennywiseai.tracker.data.repository.lineParents
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.spending.budgetPace
 import dagger.assisted.Assisted
@@ -154,29 +154,25 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 val totalLimitSpent = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
 
                 // Previous month savings for delta — same aggregator, same currency
-                // converters, so the delta isn't skewed by stale logic on either side.
-                val (prevCategoryAmounts, _, prevTypeAmounts) = aggregateBudgetCategorySpending(
-                    transactions = raw.prevCycleTransactions,
-                    convertSplit = convertSplit,
-                    convertIncome = { tx ->
-                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                // converters, and each LIMIT budget's lines counted as the current side
+                // counts them (a parent's line takes in its sub-categories, #1425), so the
+                // delta isn't skewed by different logic on either side. Type buckets come
+                // from prevTypeAmounts, not prevCategoryAmounts.
+                var prevLimitSpent = BigDecimal.ZERO
+                for (group in raw.budgetsWithCategories) {
+                    if (group.budget.groupType != BudgetGroupType.LIMIT) continue
+                    val (prevCategoryAmounts, _, prevTypeAmounts) = aggregateBudgetCategorySpending(
+                        transactions = raw.prevCycleTransactions,
+                        convertSplit = convertSplit,
+                        convertIncome = { tx ->
+                            currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                        },
+                        parentOf = group.lineParents(raw.parentOf)
+                    )
+                    for (cat in group.categories) {
+                        prevLimitSpent += (if (cat.matchType != null) prevTypeAmounts[cat.matchType]
+                        else prevCategoryAmounts[cat.categoryName]) ?: BigDecimal.ZERO
                     }
-                )
-
-                // Split LIMIT-group buckets into category vs type buckets so the
-                // previous-month spend picks up type-bucket amounts too (they live
-                // in prevTypeAmounts, not prevCategoryAmounts).
-                val limitBuckets = raw.budgetsWithCategories
-                    .filter { it.budget.groupType == BudgetGroupType.LIMIT }
-                    .flatMap { it.categories }
-                val limitCategoryNames = limitBuckets.filter { it.matchType == null }
-                    .map { it.categoryName }.toSet()
-                val limitMatchTypes = limitBuckets.mapNotNull { it.matchType }.toSet()
-
-                val prevLimitSpent = limitCategoryNames.fold(BigDecimal.ZERO) { acc, catName ->
-                    acc + (prevCategoryAmounts[catName] ?: BigDecimal.ZERO)
-                } + limitMatchTypes.fold(BigDecimal.ZERO) { acc, t ->
-                    acc + (prevTypeAmounts[t] ?: BigDecimal.ZERO)
                 }
 
                 var prevIncome = BigDecimal.ZERO
@@ -353,21 +349,21 @@ internal suspend fun unifiedGroupSpending(
     convertLimit: suspend (BigDecimal) -> BigDecimal,
     ownWindows: Boolean
 ): List<BudgetGroupSpending> {
-    suspend fun aggregate(transactions: List<TransactionWithSplits>) = aggregateBudgetCategorySpending(
-        transactions = transactions,
-        convertSplit = convertSplit,
-        convertIncome = { tx -> convertSplit(tx.currency, tx.amount) }
-    )
-    val page = if (ownWindows) null else aggregate(raw.allTransactions)
     return raw.budgetsWithCategories.map { group ->
         val isTrackingAll = group.categories.isEmpty()
         val window = raw.currentWindows[group.budget.id]
         val windowTransactions = raw.currentWindowTransactions(group.budget.id).orEmpty()
-        val counted = if (page == null) windowTransactions else raw.allTransactions
+        val counted = if (ownWindows) windowTransactions else raw.allTransactions
         val rolloverSpend = if (group.budget.rolloverEnabled) {
             budgetSpend(group, windowTransactions, raw.parentOf, convertSplit)
         } else null
-        val (categoryAmounts, categoryLimitBoosts, typeAmounts) = page ?: aggregate(windowTransactions)
+        // A parent row counts its sub-categories but for one with its own row (#1425).
+        val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
+            transactions = counted,
+            convertSplit = convertSplit,
+            convertIncome = { tx -> convertSplit(tx.currency, tx.amount) },
+            parentOf = group.lineParents(raw.parentOf)
+        )
         val catSpending = group.categories.map { cat ->
             val actual = if (cat.matchType != null) {
                 typeAmounts[cat.matchType] ?: BigDecimal.ZERO

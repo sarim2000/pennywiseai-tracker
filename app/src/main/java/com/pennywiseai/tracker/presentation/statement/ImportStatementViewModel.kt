@@ -2,13 +2,14 @@ package com.pennywiseai.tracker.presentation.statement
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
-import com.pennywiseai.tracker.BuildConfig
-import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.ui.UiText
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.preferences.BillingPreferences
 import com.pennywiseai.tracker.data.statement.ImportStatementUseCase
 import com.pennywiseai.tracker.data.statement.StatementAccount
@@ -17,9 +18,14 @@ import com.pennywiseai.tracker.data.statement.StatementColumnMapping
 import com.pennywiseai.tracker.data.statement.StatementImportPlan
 import com.pennywiseai.tracker.data.statement.StatementImportResult
 import com.pennywiseai.tracker.data.statement.StatementTableParser
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,11 +33,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -79,6 +81,7 @@ class ImportStatementViewModel @Inject constructor(
     private val preferences: BillingPreferences,
     entitlementGate: EntitlementGate,
     @ApplicationContext private val appContext: android.content.Context,
+    private val mascotMoments: MascotMoments,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ImportStatementUiState>(ImportStatementUiState.Idle)
@@ -263,6 +266,7 @@ class ImportStatementViewModel @Inject constructor(
                 }
                 val check = importStatementUseCase.balanceCheck(p.parsed, p.account)
                 _uiState.value = ImportStatementUiState.Success(result, check)
+                statementImportedMoment(result)?.let(mascotMoments::announce)
             } catch (e: Exception) {
                 _uiState.value = ImportStatementUiState.Error(e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.import_statement_error_failed))
             }
@@ -373,3 +377,10 @@ class ImportStatementViewModel @Inject constructor(
         const val UNLINKED_BANK = "Statement"
     }
 }
+
+/**
+ * The Chat tab's moment for a statement the user imported: the rows it added or filled in,
+ * or null when it held nothing new.
+ */
+internal fun statementImportedMoment(result: StatementImportResult.Success): MascotMoment.StatementImported? =
+    (result.imported + result.enriched).takeIf { it > 0 }?.let(MascotMoment::StatementImported)

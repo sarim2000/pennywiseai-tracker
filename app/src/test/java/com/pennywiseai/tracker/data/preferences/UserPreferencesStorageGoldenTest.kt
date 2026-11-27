@@ -11,6 +11,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.pennywiseai.tracker.core.DateFormatStyle
 import com.pennywiseai.tracker.core.NumberFormatStyle
+import com.pennywiseai.tracker.domain.conscience.ConscienceFrequency
+import com.pennywiseai.tracker.domain.conscience.ConscienceKind
+import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +42,8 @@ import java.time.LocalDate
  * Runs on its own store per test, because the app's `Context.dataStore` delegate is a
  * process-wide singleton that other unit tests write to. Skips the setters that refresh
  * widgets (updateBudgetCycleStartDay, setBalanceHidden, toggleBalanceHidden,
- * updateSelectedProfileId); PreferenceWidgetRefreshTest covers those.
+ * updateSelectedProfileId); PreferenceWidgetRefreshTest covers those, and the refresh
+ * the App Lock setters also make.
  */
 class UserPreferencesStorageGoldenTest {
 
@@ -134,6 +138,7 @@ class UserPreferencesStorageGoldenTest {
         assertFalse(repository.isAmountHiddenEverywhere.first())
         assertFalse(repository.shakeToHideAmounts.first())
         assertFalse(repository.isAppLockEnabled.first())
+        assertTrue(repository.hideWidgetAmountsWhileLocked.first())
         assertEquals(1, repository.appLockTimeoutMinutes.first())
         assertEquals(1, repository.getAppLockTimeoutMinutes())
         assertEquals(0L, repository.getLastAuthTimestamp())
@@ -242,6 +247,7 @@ class UserPreferencesStorageGoldenTest {
             it[bool("balance_hidden")] = false
             it[bool("shake_to_hide_amounts")] = true
             it[bool("app_lock_enabled")] = true
+            it[bool("hide_widget_amounts_while_locked")] = false
             it[int("app_lock_timeout_minutes")] = 5
             it[long("last_auth_timestamp")] = 3_000L
 
@@ -342,6 +348,7 @@ class UserPreferencesStorageGoldenTest {
         assertFalse(repository.isAmountHiddenEverywhere.first())
         assertTrue(repository.shakeToHideAmounts.first())
         assertTrue(repository.isAppLockEnabled.first())
+        assertFalse(repository.hideWidgetAmountsWhileLocked.first())
         assertEquals(5, repository.appLockTimeoutMinutes.first())
         assertEquals(5, repository.getAppLockTimeoutMinutes())
         assertEquals(3_000L, repository.getLastAuthTimestamp())
@@ -521,13 +528,21 @@ class UserPreferencesStorageGoldenTest {
         assertEquals(true, stored()[bool("budget_alerts_enabled")])
         repository.setConscienceEnabled(true)
         assertEquals(true, stored()[bool("conscience_enabled")])
-        repository.retireConscienceLine("line-1")
+        repository.reactToConscience(1L, "line-1", ConscienceReaction.RETIRED)
         assertEquals(setOf("line-1"), stored()[stringSet("conscience_retired_lines")])
+        repository.reactToConscience(2L, "line-2", ConscienceReaction.LIKED)
+        assertEquals(setOf("line-2"), stored()[stringSet("conscience_liked_lines")])
+        repository.setConscienceKindEnabled(ConscienceKind.HELLO, false)
+        assertEquals(setOf("HELLO"), stored()[stringSet("conscience_muted_kinds")])
+        repository.setConscienceFrequency(ConscienceFrequency.LESS)
+        assertEquals("LESS", stored()[string("conscience_frequency")])
 
         repository.setShakeToHideAmounts(true)
         assertEquals(true, stored()[bool("shake_to_hide_amounts")])
         repository.setAppLockEnabled(true)
         assertEquals(true, stored()[bool("app_lock_enabled")])
+        repository.setHideWidgetAmountsWhileLocked(false)
+        assertEquals(false, stored()[bool("hide_widget_amounts_while_locked")])
         repository.setAppLockTimeoutWithTimestamp(10)
         assertEquals(10, stored()[int("app_lock_timeout_minutes")])
         repository.setLastAuthTimestamp(3_500L)

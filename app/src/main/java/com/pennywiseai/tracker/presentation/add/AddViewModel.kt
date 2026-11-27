@@ -7,11 +7,13 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.parser.core.GenericTransactionExtractor
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.model.MerchantSuggestion
 import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
@@ -28,6 +30,7 @@ import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
+import com.pennywiseai.tracker.presentation.subscriptions.billTrackedMoment
 import com.pennywiseai.tracker.presentation.transactions.normalizeReference
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.pickerDefault
@@ -64,6 +67,7 @@ class AddViewModel @Inject constructor(
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val learnedSendersStore: LearnedSendersStore,
     private val profilePreferences: UserPreferencesRepository,
+    private val mascotMoments: MascotMoments,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -93,6 +97,7 @@ class AddViewModel @Inject constructor(
     private val draftDateTime: LocalDateTime? = savedStateHandle.get<String>("dateTime")
         ?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
     private val unrecognizedSmsId: Long? = savedStateHandle.get<Long>("unrecognizedSmsId")
+    private val draftNote: String? = savedStateHandle.get<String>("note")
 
     // General UI State
     private val _uiState = MutableStateFlow(AddUiState())
@@ -292,11 +297,12 @@ class AddViewModel @Inject constructor(
             draftType?.let { updateTransactionType(it) }
             _transactionUiState.update {
                 it.copy(
-                    amount = draftAmount ?: it.amount,
+                    amount = draftAmountIn(draftCurrency ?: it.currency) ?: it.amount,
                     merchant = draftMerchant ?: it.merchant,
                     category = draftCategory ?: it.category,
                     currency = draftCurrency ?: it.currency,
-                    date = draftDateTime ?: it.date
+                    date = draftDateTime ?: it.date,
+                    notes = draftNote ?: it.notes
                 )
             }
             // The same draft starts the Subscription form, so switching forms keeps what was
@@ -306,10 +312,11 @@ class AddViewModel @Inject constructor(
             }
             _subscriptionUiState.update {
                 it.copy(
-                    amount = draftAmount ?: it.amount,
+                    amount = draftAmountIn(draftCurrency ?: it.currency) ?: it.amount,
                     serviceName = draftMerchant ?: it.serviceName,
                     category = draftCategory ?: it.category,
-                    currency = draftCurrency ?: it.currency
+                    currency = draftCurrency ?: it.currency,
+                    notes = draftNote ?: it.notes
                 )
             }
             selectAccount(draftBankName, draftAccountLast4)
@@ -879,7 +886,10 @@ class AddViewModel @Inject constructor(
                 )
             }
             when (outcome) {
-                SaveOutcome.Saved -> onSuccess()
+                SaveOutcome.Saved -> {
+                    billTrackedMoment(state.direction)?.let(mascotMoments::announce)
+                    onSuccess()
+                }
                 SaveOutcome.Busy -> Unit
                 else -> {
                     (outcome as? SaveOutcome.Failed)?.let { Log.e("AddViewModel", "Error saving subscription", it.error) }
@@ -889,6 +899,14 @@ class AddViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * The draft's amount, unless it's finer than [currency]'s minor units (0.004 USD, from
+     * an automation app): neither the form nor a saved row could hold it exactly.
+     */
+    private fun draftAmountIn(currency: String): String? = draftAmount?.takeIf { amount ->
+        amount.toBigDecimalOrNull()?.let { it.stripTrailingZeros().scale() <= MinorUnits.digits(currency) } ?: true
     }
 
     // Validation helpers

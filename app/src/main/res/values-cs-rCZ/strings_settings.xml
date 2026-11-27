@@ -2,6 +2,7 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">Nastavení</string>
+    <!-- Other words people type for these settings; search only, never shown. -->
     <string name="settings_back">Zpět</string>
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Zrušit</string>
@@ -95,6 +96,7 @@
     <string name="settings_transaction_groups_subtitle">Spravovat transakce v rámci tématu</string>
     <string name="settings_export_data_title">Exportovat data</string>
     <string name="settings_export_data_subtitle">Zálohovat všechna data do souboru</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Automatická záloha složky</string>
     <string name="settings_folder_backup_subtitle_enabled">Denní záloha ve 2:00 do vybrané složky</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Uložit zálohu do složky každý den ve 2:00</string>

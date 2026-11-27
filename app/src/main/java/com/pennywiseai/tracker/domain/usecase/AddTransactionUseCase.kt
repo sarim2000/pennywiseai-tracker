@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
+import com.pennywiseai.tracker.utils.Money
 import java.math.BigDecimal
 import java.security.MessageDigest
 import java.time.LocalDateTime
@@ -42,7 +43,9 @@ class AddTransactionUseCase @Inject constructor(
         currency: String = "INR",
         receiptPath: String? = null,
         budgetCategory: String? = null,
-        budgetImpactType: BudgetImpactType? = null
+        budgetImpactType: BudgetImpactType? = null,
+        /** False when the caller shows the amount itself, where the Chat tab's chip would sit. */
+        echoAmount: Boolean = true
     ): Long = insert(
         amount = amount,
         merchant = merchant,
@@ -59,7 +62,9 @@ class AddTransactionUseCase @Inject constructor(
         receiptPath = receiptPath,
         budgetCategory = budgetCategory,
         budgetImpactType = budgetImpactType
-    ).also { if (it != -1L) transactionEvents.onSaved(type, TransactionOrigin.MANUAL) }
+    ).also {
+        if (it != -1L) transactionEvents.onSaved(type, TransactionOrigin.MANUAL, money = Money(amount, currency).takeIf { echoAmount })
+    }
 
     /** [execute] without the announcement, for [executeAll], whose caller announces the card once it commits. */
     private suspend fun insert(
@@ -251,7 +256,9 @@ class AddTransactionUseCase @Inject constructor(
             }
             transactionId
         }
-        if (transactionId != -1L) transactionEvents.onSaved(TransactionType.TRANSFER, TransactionOrigin.MANUAL)
+        if (transactionId != -1L) {
+            transactionEvents.onSaved(TransactionType.TRANSFER, TransactionOrigin.MANUAL, money = Money(amount, currency))
+        }
         return transactionId
     }
 

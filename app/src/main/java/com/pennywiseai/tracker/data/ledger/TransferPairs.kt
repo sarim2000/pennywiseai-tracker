@@ -13,6 +13,14 @@ import java.time.Duration
 val TransactionEntity.isPairedTransferLeg: Boolean
     get() = transactionType == TransactionType.TRANSFER && transferPairId != null
 
+/** [updated] as a rule may write it over [persisted]: one leg of a linked pair stays a transfer, or the pair splits. */
+fun keepTransferLeg(persisted: TransactionEntity, updated: TransactionEntity): TransactionEntity =
+    if (persisted.isPairedTransferLeg && updated.transactionType != persisted.transactionType) {
+        updated.copy(transactionType = persisted.transactionType)
+    } else {
+        updated
+    }
+
 /** EXPENSE if this row is the transfer's source, INCOME if its destination, else TRANSFER. */
 private fun TransactionEntity.ownLegType(): TransactionType {
     val isFrom = accountNumber == fromAccount && (fromBankName == null || bankName == fromBankName)

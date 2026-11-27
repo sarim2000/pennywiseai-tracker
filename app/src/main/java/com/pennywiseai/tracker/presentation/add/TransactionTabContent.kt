@@ -740,7 +740,7 @@ fun ReceiptPickerSection(
                     shapes = ButtonDefaults.shapes()
                 ) {
                     if (scanning) {
-                        CircularProgressIndicator(modifier = Modifier.size(Dimensions.Icon.small), strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.size(Dimensions.Icon.small), strokeWidth = Spacing.xxs)
                     } else {
                         Icon(Icons.Default.DocumentScanner, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     }

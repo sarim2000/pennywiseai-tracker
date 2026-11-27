@@ -52,7 +52,7 @@ interface RuleApplicationDao {
 
     @Query("DELETE FROM rule_applications")
     suspend fun deleteAllApplications()
-    
+
     @Transaction
     @Query("SELECT * FROM rule_applications ORDER BY applied_at DESC")
     fun getAllApplications(): Flow<List<RuleApplicationEntity>>

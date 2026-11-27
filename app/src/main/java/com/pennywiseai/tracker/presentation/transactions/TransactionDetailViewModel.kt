@@ -1189,11 +1189,14 @@ class TransactionDetailViewModel @Inject constructor(
                             throw SaveRefusedException(UiText.Res(R.string.txn_detail_error_same_accounts))
                         }
                         val before = freshRow ?: _transaction.value
-                        accountBalanceRepository.pinManualOpenings(before, normalizedTransaction)
+                        // A row deleted meanwhile already gave its effect back to the account:
+                        // the edit is kept on it for a restore, and moves no balance.
+                        val live = freshRow?.isDeleted != true
+                        if (live) accountBalanceRepository.pinManualOpenings(before, normalizedTransaction)
                         transactionRepository.updateTransaction(normalizedTransaction)
                         // Reflect the edit on account balances (#636): SMS-account shifts and
                         // manual-account recomputes, owned by the repository.
-                        accountBalanceRepository.reflectTransactionEdit(before, normalizedTransaction)
+                        if (live) accountBalanceRepository.reflectTransactionEdit(before, normalizedTransaction)
                     }
                 }
 

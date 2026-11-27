@@ -34,6 +34,9 @@ open class AccountBalanceRepository @Inject constructor(
         const val SOURCE_MANUAL = "MANUAL"
     }
 
+    /** Runs [block] as one database transaction; the repositories it calls join it, and a throw rolls it all back. */
+    suspend fun <T> inTransaction(block: suspend () -> T): T = database.withTransaction { block() }
+
     suspend fun insertBalance(balance: AccountBalanceEntity): Long {
         return accountBalanceDao.insertBalance(balance)
     }

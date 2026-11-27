@@ -302,7 +302,7 @@ object ReceiptExtractor {
     // (an expiry, a return window) is never the purchase date.
     private val PURCHASE_DATE = Regex("""\b(?:date|dated|purchased?|sale|sold|txn|transaction|invoice|bill|issued)\b""")
     private val NOT_PURCHASE_DATE = Regex(
-        """\b(?:exp(?:iry|ires?|iration)?|valid|until|till|thru|through|return(?:s|ed)?|refund|exchange|best|use\s+by|due)\b"""
+        """\b(?:exp(?:iry|ires?|iration)?|valid|until|till|thru|through|return(?:s|ed)?|refund|exchange|best\s+(?:before|by)|use\s+by|due)\b"""
     )
 
     /**
@@ -311,9 +311,40 @@ object ReceiptExtractor {
      * two ways ("03/04/2026" as March 4th or April 3rd, both past).
      */
     private fun purchaseDate(lines: List<String>, today: LocalDate): LocalDate? {
-        val usable = lines.filterNot { NOT_PURCHASE_DATE.containsMatchIn(it.lowercase()) }
+        val usable = withDateLabels(lines).filterNot { NOT_PURCHASE_DATE.containsMatchIn(it.lowercase()) }
         val (labeled, others) = usable.partition { PURCHASE_DATE.containsMatchIn(it.lowercase()) }
         return (labeled + others).firstNotNullOfOrNull { dateOn(it, today) }?.date
+    }
+
+    // Everything a date-only line may hold: its date, maybe a time.
+    private val DATE_TEXT = Regex(
+        listOf(YEAR_FIRST, NUMERIC, DAY_MONTH, MONTH_DAY).joinToString("|") { it.pattern } +
+            """|\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\.?)?""",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * [lines] with a date-only line joined to the label line above it ("Expiry" over
+     * "2026-03-30"), so the date is read with what it is.
+     */
+    private fun withDateLabels(lines: List<String>): List<String> {
+        val joined = mutableListOf<String>()
+        var i = 0
+        while (i < lines.size) {
+            val line = lines[i]
+            val next = lines.getOrNull(i + 1)
+            val lower = line.lowercase()
+            val isLabel = line.none(Char::isDigit) &&
+                (PURCHASE_DATE.containsMatchIn(lower) || NOT_PURCHASE_DATE.containsMatchIn(lower))
+            if (isLabel && next != null && DATE_TEXT.containsMatchIn(next) && DATE_TEXT.replace(next, " ").none(Char::isLetterOrDigit)) {
+                joined += "$line $next"
+                i += 2
+            } else {
+                joined += line
+                i++
+            }
+        }
+        return joined
     }
 
     /** A date found on a line: [date] is null when it reads as two different past days. */

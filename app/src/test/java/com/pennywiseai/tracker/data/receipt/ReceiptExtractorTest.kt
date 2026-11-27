@@ -157,6 +157,14 @@ class ReceiptExtractorTest {
     }
 
     @Test
+    fun `a date on the line under its label is read with that label`() {
+        assertEquals(LocalDate.of(2026, 3, 1), scan("Valid until", "2026-03-15", "2026-03-01").date)
+        assertEquals(LocalDate.of(2026, 3, 2), scan("Printed 2026-01-10", "Date:", "02 Mar 2026 14:05").date)
+        // A shop's name isn't a label that keeps its date out.
+        assertEquals(LocalDate.of(2026, 3, 1), scan("BEST BUY", "2026-03-01").date)
+    }
+
+    @Test
     fun `month name dates`() {
         assertEquals(LocalDate.of(2026, 3, 5), scan("05 Mar 2026").date)
         assertEquals(LocalDate.of(2026, 2, 14), scan("February 14, 2026").date)

@@ -130,6 +130,7 @@ internal fun DataPage(
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
+    val exportChoicePending by settingsViewModel.exportChoicePending.collectAsStateWithLifecycle()
     val exportSkippedReceipts by settingsViewModel.exportSkippedReceipts.collectAsStateWithLifecycle()
     val exportedBackupEncrypted by settingsViewModel.exportedBackupEncrypted.collectAsStateWithLifecycle()
     val isExportingBackup by settingsViewModel.isExportingBackup.collectAsStateWithLifecycle()
@@ -144,7 +145,6 @@ internal fun DataPage(
     val folderBackupIncludeReceipts by settingsViewModel.folderBackupIncludeReceipts.collectAsStateWithLifecycle(initialValue = false)
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
-    var showExportOptionsDialog by remember { mutableStateOf(false) }
     var showEncryptedExportDialog by remember { mutableStateOf(false) }
     val backupPassphrasePrompt by settingsViewModel.backupPassphrasePrompt.collectAsStateWithLifecycle()
 
@@ -439,29 +439,25 @@ internal fun DataPage(
 
     // Show import/export message
     importExportMessage?.let { message ->
-        if (exportedBackupFile != null && message == UiText.Res(R.string.settings_backup_created_choose)) {
-            showExportOptionsDialog = true
-        } else {
-            LaunchedEffect(message) {
-                kotlinx.coroutines.delay(5000)
-                settingsViewModel.clearImportExportMessage()
-            }
-
-            AlertDialog(
-                onDismissRequest = { settingsViewModel.clearImportExportMessage() },
-                title = { Text(stringResource(R.string.settings_backup_status_title)) },
-                text = { Text(message.asString()) },
-                confirmButton = {
-                    TextButton(onClick = { settingsViewModel.clearImportExportMessage() }, shapes = ButtonDefaults.shapes()) {
-                        Text(stringResource(R.string.settings_action_ok))
-                    }
-                }
-            )
+        LaunchedEffect(message) {
+            kotlinx.coroutines.delay(5000)
+            settingsViewModel.clearImportExportMessage()
         }
+
+        AlertDialog(
+            onDismissRequest = { settingsViewModel.clearImportExportMessage() },
+            title = { Text(stringResource(R.string.settings_backup_status_title)) },
+            text = { Text(message.asString()) },
+            confirmButton = {
+                TextButton(onClick = { settingsViewModel.clearImportExportMessage() }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.settings_action_ok))
+                }
+            }
+        )
     }
 
-    // Export options dialog
-    if (showExportOptionsDialog && exportedBackupFile != null) {
+    // Export options dialog: stays pending until Save, Share or Cancel, whatever status shows meanwhile.
+    if (exportChoicePending && exportedBackupFile != null) {
         val timestamp = java.time.LocalDateTime.now().format(
             java.time.format.DateTimeFormatter.ofPattern("yyyy_MM_dd_HHmmss")
         )
@@ -469,8 +465,7 @@ internal fun DataPage(
 
         AlertDialog(
             onDismissRequest = {
-                showExportOptionsDialog = false
-                settingsViewModel.clearImportExportMessage()
+                settingsViewModel.dismissExportChoice()
             },
             title = {
                 Text(
@@ -504,8 +499,7 @@ internal fun DataPage(
                         onClick = {
                             saveExportPath = exportedBackupFile?.path
                             exportSaveLauncher.launch(fileName)
-                            showExportOptionsDialog = false
-                            settingsViewModel.clearImportExportMessage()
+                            settingsViewModel.dismissExportChoice()
                         },
                         shapes = ButtonDefaults.shapes()
                     ) {
@@ -517,8 +511,7 @@ internal fun DataPage(
                     TextButton(
                         onClick = {
                             settingsViewModel.shareBackup(exportedBackupFile?.path)
-                            showExportOptionsDialog = false
-                            settingsViewModel.clearImportExportMessage()
+                            settingsViewModel.dismissExportChoice()
                         },
                         shapes = ButtonDefaults.shapes()
                     ) {
@@ -531,8 +524,7 @@ internal fun DataPage(
             dismissButton = {
                 TextButton(
                     onClick = {
-                        showExportOptionsDialog = false
-                        settingsViewModel.clearImportExportMessage()
+                        settingsViewModel.dismissExportChoice()
                     },
                     shapes = ButtonDefaults.shapes()
                 ) {

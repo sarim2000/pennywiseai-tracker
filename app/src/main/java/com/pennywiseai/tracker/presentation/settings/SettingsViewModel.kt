@@ -127,6 +127,11 @@ class SettingsViewModel @Inject constructor(
     val exportedBackupEncrypted: StateFlow<Boolean> = _exportedBackupEncrypted.asStateFlow()
     private var exportJob: Job? = null
 
+    // True from a finished export until its Save/Share dialog is acted on or dismissed. Kept
+    // apart from [importExportMessage], which another backup action could replace meanwhile.
+    private val _exportChoicePending = MutableStateFlow(false)
+    val exportChoicePending: StateFlow<Boolean> = _exportChoicePending.asStateFlow()
+
     // True while an export runs; both export rows are disabled until it's done.
     private val _isExportingBackup = MutableStateFlow(false)
     val isExportingBackup: StateFlow<Boolean> = _isExportingBackup.asStateFlow()
@@ -630,8 +635,8 @@ class SettingsViewModel @Inject constructor(
                         _exportedBackupFile.value = result.file
                         _exportedBackupEncrypted.value = passphrase != null
                         _exportSkippedReceipts.value = result.skippedReceipts
-                        // Always this message: it opens the Save/Share dialog, which names skipped receipts.
-                        _importExportMessage.value = UiText.Res(R.string.settings_backup_created_choose)
+                        // Opens the Save/Share dialog, which names skipped receipts.
+                        _exportChoicePending.value = true
                     }
                     is ExportResult.Error -> {
                         _importExportMessage.value = UiText.Res(R.string.settings_export_failed, listOf("${result.message}"))
@@ -649,6 +654,11 @@ class SettingsViewModel @Inject constructor(
             passphrase?.fill('\u0000')
             if (exportJob === job) _isExportingBackup.value = false
         }
+    }
+
+    /** The Save/Share dialog was acted on or dismissed. */
+    fun dismissExportChoice() {
+        _exportChoicePending.value = false
     }
 
     /** Saves the export the user chose to save, [exportedPath]; not one made since. */

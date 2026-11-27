@@ -174,7 +174,21 @@ class BackupExportSessionTest {
         runBlocking { withTimeout(5_000) { save.join() } }
 
         assertEquals(encryptedFile, viewModel.exportedBackupFile.value)
-        assertEquals(UiText.Res(R.string.settings_backup_created_choose), viewModel.importExportMessage.value)
+        assertTrue(viewModel.exportChoicePending.value)
+    }
+
+    @Test
+    fun `a restore asking for its passphrase leaves a finished export's Save and Share pending`() {
+        coEvery { exporter.exportBackup(any(), any(), null) } returns ExportResult.Success(plainFile)
+        coEvery { importer.importBackup(any(), any(), any()) } returns ImportResult.PassphraseRequired
+
+        viewModel.exportBackup()
+        viewModel.importBackup(mockk())
+
+        assertTrue(viewModel.exportChoicePending.value)
+        assertEquals(plainFile, viewModel.exportedBackupFile.value)
+        viewModel.dismissExportChoice()
+        assertFalse(viewModel.exportChoicePending.value)
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
+import com.pennywiseai.tracker.data.database.dao.deleteRebuildableSmsTransactions
 import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
@@ -49,6 +50,9 @@ open class TransactionRepository @Inject constructor(
 
     fun getAllTransactions(): Flow<List<TransactionEntity>> =
         transactionDao.getAllTransactions()
+
+    open fun observeTransaction(id: Long): Flow<TransactionEntity?> =
+        transactionDao.observeTransaction(id)
 
     open suspend fun getTransactionById(id: Long): TransactionEntity? =
         transactionDao.getTransactionById(id)
@@ -251,11 +255,12 @@ open class TransactionRepository @Inject constructor(
     suspend fun countAllTransactions(): Int =
         transactionDao.countAllTransactions()
 
-    /** See [TransactionDao.deleteRebuildableSmsTransactions]. */
-    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime) =
+    /** See [deleteRebuildableSmsTransactions]; run inside one database transaction. */
+    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime, inboxMessages: Map<Pair<String, String>, Int>) =
         transactionDao.deleteRebuildableSmsTransactions(
             BankNotificationConfig.notificationAliases.toList(),
-            from
+            from,
+            inboxMessages
         )
 
     /** See [TransactionDao.getTransactionByAmountAndDateIncludingDeleted]. */
@@ -643,13 +648,12 @@ open class TransactionRepository @Inject constructor(
         return transactionDao.getTransactionsBetweenDatesList(startDate, endDate)
     }
 
-    suspend fun getUncategorizedTransactions(): List<TransactionEntity> {
-        // Without a category, or in "Others" under whatever name the user gave it.
-        val others = com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current("Others")
-        return getAllTransactionsList().filter { transaction ->
-            transaction.category.isNullOrBlank() || transaction.category == others
-        }
-    }
+    suspend fun getTransactionsPageAfter(after: Long, upTo: Long, limit: Int): List<TransactionEntity> =
+        transactionDao.getTransactionsPageAfter(after, upTo, limit)
+
+    suspend fun maxLiveTransactionId(): Long? = transactionDao.maxLiveTransactionId()
+
+    suspend fun countLiveTransactions(): Int = transactionDao.countLiveTransactions()
 
     // ========== Transaction Split Methods ==========
 

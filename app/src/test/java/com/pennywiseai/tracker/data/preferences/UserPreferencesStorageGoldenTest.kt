@@ -42,7 +42,8 @@ import java.time.LocalDate
  * Runs on its own store per test, because the app's `Context.dataStore` delegate is a
  * process-wide singleton that other unit tests write to. Skips the setters that refresh
  * widgets (updateBudgetCycleStartDay, setBalanceHidden, toggleBalanceHidden,
- * updateSelectedProfileId); PreferenceWidgetRefreshTest covers those.
+ * updateSelectedProfileId); PreferenceWidgetRefreshTest covers those, and the refresh
+ * the App Lock setters also make.
  */
 class UserPreferencesStorageGoldenTest {
 
@@ -137,6 +138,7 @@ class UserPreferencesStorageGoldenTest {
         assertFalse(repository.isAmountHiddenEverywhere.first())
         assertFalse(repository.shakeToHideAmounts.first())
         assertFalse(repository.isAppLockEnabled.first())
+        assertTrue(repository.hideWidgetAmountsWhileLocked.first())
         assertEquals(1, repository.appLockTimeoutMinutes.first())
         assertEquals(1, repository.getAppLockTimeoutMinutes())
         assertEquals(0L, repository.getLastAuthTimestamp())
@@ -245,6 +247,7 @@ class UserPreferencesStorageGoldenTest {
             it[bool("balance_hidden")] = false
             it[bool("shake_to_hide_amounts")] = true
             it[bool("app_lock_enabled")] = true
+            it[bool("hide_widget_amounts_while_locked")] = false
             it[int("app_lock_timeout_minutes")] = 5
             it[long("last_auth_timestamp")] = 3_000L
 
@@ -345,6 +348,7 @@ class UserPreferencesStorageGoldenTest {
         assertFalse(repository.isAmountHiddenEverywhere.first())
         assertTrue(repository.shakeToHideAmounts.first())
         assertTrue(repository.isAppLockEnabled.first())
+        assertFalse(repository.hideWidgetAmountsWhileLocked.first())
         assertEquals(5, repository.appLockTimeoutMinutes.first())
         assertEquals(5, repository.getAppLockTimeoutMinutes())
         assertEquals(3_000L, repository.getLastAuthTimestamp())
@@ -537,6 +541,8 @@ class UserPreferencesStorageGoldenTest {
         assertEquals(true, stored()[bool("shake_to_hide_amounts")])
         repository.setAppLockEnabled(true)
         assertEquals(true, stored()[bool("app_lock_enabled")])
+        repository.setHideWidgetAmountsWhileLocked(false)
+        assertEquals(false, stored()[bool("hide_widget_amounts_while_locked")])
         repository.setAppLockTimeoutWithTimestamp(10)
         assertEquals(10, stored()[int("app_lock_timeout_minutes")])
         repository.setLastAuthTimestamp(3_500L)

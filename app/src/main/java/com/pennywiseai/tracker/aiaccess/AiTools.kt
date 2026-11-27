@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
+import com.pennywiseai.tracker.domain.usecase.awaitsCategoryForRules
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -382,8 +383,7 @@ class AiTools @Inject constructor(
         // ponytail: "uncategorized" keeps every matching row in memory to count the ones in Others; give
         // the use case a count-only mode if large ledgers on low-memory phones make this a problem.
         val preview = applyRulesToPast.previewRuleApplication(rule, maxSamples = if (mode == "all") 0 else Int.MAX_VALUE)
-        val others = BuiltinCategoryNames.current("Others")
-        val count = if (mode == "all") preview.totalWouldUpdate else preview.samples.count { !it.isBlock && (it.original.category.isNullOrBlank() || it.original.category == others) }
+        val count = if (mode == "all") preview.totalWouldUpdate else preview.samples.count { !it.isBlock && it.original.awaitsCategoryForRules() }
         return buildJsonObject {
             put("rule", rule.name)
             put("past_transactions_would_update", count)

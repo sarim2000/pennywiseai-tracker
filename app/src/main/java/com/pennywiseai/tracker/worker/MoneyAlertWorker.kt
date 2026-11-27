@@ -63,6 +63,8 @@ class MoneyAlertChecker @Inject constructor(
      */
     // ponytail: an account already under its threshold gets one true alert on its next transaction; seed it if that annoys.
     suspend fun checkManualBalances() {
+        // Worker context, never inside a database transaction, so waiting here can't deadlock.
+        accountBalanceRepository.awaitLowBalanceRearms()
         val ignored = ignoredAccountsStore.keys()
         for (account in accountBalanceRepository.getAllLatestBalancesOnce()) {
             val threshold = account.lowBalanceThreshold ?: continue

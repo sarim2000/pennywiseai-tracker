@@ -1139,6 +1139,8 @@ class TransactionDetailViewModel @Inject constructor(
                 // still count the txn but the txn would show "Mark as loan" again
                 // (#688). Carry the current persisted values through the save.
                 // Also owned by the split sheet (#346): lentSharesTotal.
+                // Untouched, the receipt stays as stored now: it may have been replaced elsewhere.
+                val receiptChanged = pendingUri != null || _receiptRemoved.value
                 fun build(fresh: TransactionEntity?): TransactionEntity {
                     val merged = if (fresh != null) {
                         mergeEditOntoFresh(editStart ?: original ?: fresh, edited, fresh)
@@ -1150,7 +1152,7 @@ class TransactionDetailViewModel @Inject constructor(
                         // Keep the user's casing: "IRCTC" stays "IRCTC" (#876).
                         merchantName = merged.merchantName.trim(),
                         reference = normalizeReference(merged.reference),
-                        receiptPath = newReceiptPath,
+                        receiptPath = if (receiptChanged || fresh == null) newReceiptPath else fresh.receiptPath,
                         loanId = if (currentPersisted != null) currentPersisted.loanId else toSave.loanId,
                         loanContribution = if (currentPersisted != null) currentPersisted.loanContribution else toSave.loanContribution,
                         lentSharesTotal = if (fresh != null) fresh.lentSharesTotal else toSave.lentSharesTotal
@@ -1182,15 +1184,17 @@ class TransactionDetailViewModel @Inject constructor(
                     transactionRepository.updateTransaction(normalizedTransaction)
                 }
 
+                // Reflect the edit on account balances (#636): SMS-account shifts and
+                // manual-account recomputes, owned by the repository. Right after the row
+                // write, so a failing tag write can't leave the row new and the balance old
+                // (a retry would then see no difference to reflect).
+                accountBalanceRepository.reflectTransactionEdit(freshRow ?: _transaction.value, normalizedTransaction)
+
                 // Persist the edited tag set (create-or-select handled in repo).
                 // Only if this session changed them: otherwise tags set elsewhere stay.
                 if (editStartTags != null && _editableTags.value != editStartTags) {
                     tagRepository.setTagsForTransaction(normalizedTransaction.id, _editableTags.value)
                 }
-
-                // Reflect the edit on account balances (#636): SMS-account shifts and
-                // manual-account recomputes, owned by the repository.
-                accountBalanceRepository.reflectTransactionEdit(freshRow ?: _transaction.value, normalizedTransaction)
 
                 // Save or remove splits
                 val currentSplits = _splits.value
@@ -1266,7 +1270,11 @@ class TransactionDetailViewModel @Inject constructor(
 
                 // Only now: a step above that failed leaves the edit open on the old
                 // receipt, and a cancel would show a deleted file.
-                discardReplacedReceipt(toSave.receiptPath, newReceiptPath, receiptManager::deleteReceipt)
+                discardReplacedReceipt(
+                    if (receiptChanged) freshRow?.receiptPath ?: toSave.receiptPath else newReceiptPath,
+                    newReceiptPath,
+                    receiptManager::deleteReceipt
+                )
                 // The repository kept or dropped the reimbursement columns (#1389); show what it wrote.
                 _transaction.value = keepReimbursement(freshRow, normalizedTransaction)
                 loadReceiptUri(normalizedTransaction)
@@ -1843,6 +1851,12 @@ private class SplitTotalChangedException : Exception()
  */
 internal fun mergeEditOntoFresh(start: TransactionEntity, edited: TransactionEntity, fresh: TransactionEntity): TransactionEntity {
     fun <T> pick(s: T, e: T, f: T) = if (e != s) e else f
+    // An account and its bank, and a budget type and its category, only make sense together:
+    // if the edit changed either half it supplies both, otherwise both stay as stored.
+    val accountEdited = edited.accountNumber != start.accountNumber || edited.bankName != start.bankName
+    val fromEdited = edited.fromAccount != start.fromAccount || edited.fromBankName != start.fromBankName
+    val toEdited = edited.toAccount != start.toAccount || edited.toBankName != start.toBankName
+    val budgetEdited = edited.budgetImpactType != start.budgetImpactType || edited.budgetCategory != start.budgetCategory
     return fresh.copy(
         merchantName = pick(start.merchantName, edited.merchantName, fresh.merchantName),
         amount = if (edited.amount.compareTo(start.amount) != 0) edited.amount else fresh.amount,
@@ -1850,17 +1864,17 @@ internal fun mergeEditOntoFresh(start: TransactionEntity, edited: TransactionEnt
         category = pick(start.category, edited.category, fresh.category),
         dateTime = pick(start.dateTime, edited.dateTime, fresh.dateTime),
         description = pick(start.description, edited.description, fresh.description),
-        accountNumber = pick(start.accountNumber, edited.accountNumber, fresh.accountNumber),
-        bankName = pick(start.bankName, edited.bankName, fresh.bankName),
-        fromAccount = pick(start.fromAccount, edited.fromAccount, fresh.fromAccount),
-        toAccount = pick(start.toAccount, edited.toAccount, fresh.toAccount),
-        fromBankName = pick(start.fromBankName, edited.fromBankName, fresh.fromBankName),
-        toBankName = pick(start.toBankName, edited.toBankName, fresh.toBankName),
+        accountNumber = if (accountEdited) edited.accountNumber else fresh.accountNumber,
+        bankName = if (accountEdited) edited.bankName else fresh.bankName,
+        fromAccount = if (fromEdited) edited.fromAccount else fresh.fromAccount,
+        fromBankName = if (fromEdited) edited.fromBankName else fresh.fromBankName,
+        toAccount = if (toEdited) edited.toAccount else fresh.toAccount,
+        toBankName = if (toEdited) edited.toBankName else fresh.toBankName,
         reference = pick(start.reference, edited.reference, fresh.reference),
         isRecurring = pick(start.isRecurring, edited.isRecurring, fresh.isRecurring),
         profileId = pick(start.profileId, edited.profileId, fresh.profileId),
-        budgetImpactType = pick(start.budgetImpactType, edited.budgetImpactType, fresh.budgetImpactType),
-        budgetCategory = pick(start.budgetCategory, edited.budgetCategory, fresh.budgetCategory),
+        budgetImpactType = if (budgetEdited) edited.budgetImpactType else fresh.budgetImpactType,
+        budgetCategory = if (budgetEdited) edited.budgetCategory else fresh.budgetCategory,
         currency = pick(start.currency, edited.currency, fresh.currency),
     )
 }

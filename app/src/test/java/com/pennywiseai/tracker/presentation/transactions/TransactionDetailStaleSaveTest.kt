@@ -121,6 +121,19 @@ class TransactionDetailStaleSaveTest {
     }
 
     @Test
+    fun `an account picked in the edit is merged with its bank, not with the stored number`() {
+        val start = stored.copy(accountNumber = "1234", bankName = "Bank A")
+        val edited = start.copy(bankName = "Bank B")
+        val fresh = start.copy(accountNumber = "5678", bankName = "Bank C")
+        val merged = mergeEditOntoFresh(start, edited, fresh)
+        assertEquals("1234", merged.accountNumber)
+        assertEquals("Bank B", merged.bankName)
+        val untouched = mergeEditOntoFresh(start, start, fresh)
+        assertEquals("5678", untouched.accountNumber)
+        assertEquals("Bank C", untouched.bankName)
+    }
+
+    @Test
     fun `exclusion changed elsewhere survives a save that did not touch it`() {
         val vm = viewModel()
         vm.enterEditMode()

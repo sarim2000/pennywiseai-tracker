@@ -204,7 +204,7 @@ class SettingsViewModel @Inject constructor(
     fun setFolderBackupPassphrase(passphrase: CharArray) {
         viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) { folderBackupPassphrase.save(passphrase) }
+                withContext(Dispatchers.IO) { folderBackupRunner.saveEncryption(passphrase) }
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Failed to save the folder backup passphrase", e)
                 _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_passphrase_save_failed)
@@ -219,7 +219,7 @@ class SettingsViewModel @Inject constructor(
     fun turnOffFolderBackupEncryption() {
         viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) { folderBackupPassphrase.clear() }
+                withContext(Dispatchers.IO) { folderBackupRunner.clearEncryption() }
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Failed to turn off folder backup encryption", e)
                 _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_encryption_off_failed)

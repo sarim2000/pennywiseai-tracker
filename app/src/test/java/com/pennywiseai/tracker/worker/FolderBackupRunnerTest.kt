@@ -11,6 +11,10 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -92,6 +96,41 @@ class FolderBackupRunnerTest {
 
         assertEquals(FolderBackupRunner.Result.PassphraseUnavailable, result)
         verify(exactly = 0) { writer.writeBackup(any(), any()) }
+    }
+
+    @Test
+    fun `a backup in flight finishes before encryption turns on, so the encrypted one lands last`() = runBlocking {
+        // A tiny settings store: on once save() is called.
+        var saved: String? = null
+        every { passphrase.load() } answers { saved?.toCharArray() }
+        every { passphrase.save(any()) } answers { saved = String(firstArg<CharArray>()) }
+        val exporting = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val writes = mutableListOf<Boolean>()
+        every { writer.writeBackup(treeUri, any()) } answers {
+            writes += BackupCrypto.isEncrypted(secondArg<File>().readBytes().copyOf(BackupCrypto.MAGIC_SIZE))
+            FolderBackupWriter.Result.Success
+        }
+        coEvery { exporter.exportBackup(any(), any(), null) } coAnswers {
+            exporting.complete(Unit)
+            release.await()
+            ExportResult.Success(File(temp.root, "plain.pennywisebackup").apply { writeText("{}") })
+        }
+
+        // The nightly run read "plain" and is still exporting when the user turns encryption on.
+        val nightly = async(Dispatchers.Default) { runner.run(treeUri) }
+        exporting.await()
+        val enable = async(Dispatchers.Default) {
+            runner.saveEncryption(storedPassphrase.toCharArray())
+            runner.run(treeUri)
+        }
+        delay(100)
+        assertNull("encryption waits for the backup in flight", saved)
+        release.complete(Unit)
+
+        assertEquals(FolderBackupRunner.Result.Success(skippedReceipts = 0), nightly.await())
+        assertEquals(FolderBackupRunner.Result.Success(skippedReceipts = 0), enable.await())
+        assertEquals("plain first, then encrypted: the folder ends encrypted", listOf(false, true), writes)
     }
 
     @Test

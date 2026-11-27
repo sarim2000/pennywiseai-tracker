@@ -406,7 +406,7 @@ class StatementImportProcessorTest {
     }
 
     @Test
-    fun `a row the database ignores is neither counted nor given rule history`() = runBlocking {
+    fun `a row the database ignores is a duplicate, not an import, and gets no rule history`() = runBlocking {
         val store = FakeTransactionStore()
         val rule = merchantRule("Coffee", RuleAction(TransactionField.CATEGORY, ActionType.SET, "Cafes"))
 
@@ -417,6 +417,8 @@ class StatementImportProcessorTest {
         )
 
         assertEquals(1, result.imported)
+        assertEquals(1, result.skippedByHash)
+        assertEquals(1, result.skippedDuplicates)
         assertEquals(1, store.inserted.size)
         assertEquals(listOf(100L), store.recorded.map { it.first })
     }

@@ -89,7 +89,7 @@ class ImportCsvUseCase @Inject constructor(
 
             // Rules are read inside the write: one deleted meanwhile can't be
             // recorded against the new rows (its history row would break the batch).
-            val (imported, blocked) = if (toInsert.isEmpty()) 0 to 0 else database.withTransaction {
+            val (imported, ignored, blocked) = if (toInsert.isEmpty()) Triple(0, 0, 0) else database.withTransaction {
                 val (kept, blockedCount) = applyRules(toInsert, importRules.load())
                 val rows = kept.map { it.entity }
                 // A manual account's opening is pinned before its rows land, so the
@@ -97,15 +97,15 @@ class ImportCsvUseCase @Inject constructor(
                 accountBalanceRepository.pinManualOpenings(*rows.toTypedArray())
                 val ids = if (rows.isEmpty()) emptyList() else transactionRepository.insertTransactions(rows)
                 ids.zip(kept).forEach { (id, row) -> importRules.record(id, row.applications) }
-                // A row the database ignored (-1: its hash is already there) wasn't imported.
+                // A row the database ignored (-1: its hash is already there) is a duplicate.
                 val inserted = ids.zip(rows).filter { (id, _) -> id != -1L }.map { (_, row) -> row }
                 accountBalanceRepository.recomputeManualBalances(inserted)
-                inserted.size to blockedCount
+                Triple(inserted.size, ids.count { it == -1L }, blockedCount)
             }
 
             Result.Success(
                 imported = imported,
-                skippedDuplicate = skippedDuplicate,
+                skippedDuplicate = skippedDuplicate + ignored,
                 failed = parseResult.failedCount,
                 blockedByRules = blocked
             )

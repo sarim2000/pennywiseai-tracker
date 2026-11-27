@@ -208,18 +208,23 @@ internal class StatementImportProcessor(
                 is ImportRules.Outcome.Kept -> outcome
             }
         }
-        // A row the database ignored (-1: its hash is already there) wasn't imported.
+        // A row the database ignored (-1: its hash is already there, e.g. the same
+        // line twice in one file) wasn't imported: it's a duplicate by hash.
         var imported = 0
+        var ignored = 0
         if (toInsert.isNotEmpty()) {
             val ids = transactionStore.insertTransactions(toInsert.map { it.entity })
             ids.zip(toInsert).forEach { (id, row) ->
-                if (id == -1L) return@forEach
+                if (id == -1L) {
+                    ignored++
+                    return@forEach
+                }
                 imported++
                 if (row.applications.isNotEmpty()) transactionStore.recordRuleApplications(id, row.applications)
             }
         }
 
-        val skippedByHash = plan.count(StatementRowDecision.SkipReason.HASH)
+        val skippedByHash = plan.count(StatementRowDecision.SkipReason.HASH) + ignored
         val skippedByReference = plan.count(StatementRowDecision.SkipReason.REFERENCE)
         val skippedByAmountDate = plan.count(StatementRowDecision.SkipReason.AMOUNT_DATE)
 

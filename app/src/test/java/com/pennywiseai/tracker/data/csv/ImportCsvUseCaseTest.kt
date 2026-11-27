@@ -70,12 +70,13 @@ class ImportCsvUseCaseTest {
     fun tearDown() = unmockkStatic(ROOM_COMPAT)
 
     @Test
-    fun `a row the database ignores isn't counted as imported`() = runBlocking {
+    fun `a row the database ignores is a duplicate, not an import`() = runBlocking {
         coEvery { transactions.insertTransactions(any()) } returns listOf(7L, -1L)
 
         val result = useCase.execute(uri) as ImportCsvUseCase.Result.Success
 
         assertEquals(1, result.imported)
+        assertEquals(1, result.skippedDuplicate)
         coVerify { importRules.record(7L, any()) }
     }
 

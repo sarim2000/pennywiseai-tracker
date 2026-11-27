@@ -32,15 +32,16 @@ class ExportViewModel @Inject constructor(
      * cap from this, and [rowsToExport] re-checks it when the export starts.
      */
     val csvAccess: StateFlow<FeatureAccess> = featureTrials
-        .access(TrialFeature.CSV_EXPORT, entitlementGate.isProEntitled)
+        .access(TrialFeature.CSV_EXPORT, entitlementGate.resolvedProEntitlement)
         .stateIn(
             viewModelScope,
             SharingStarted.Eagerly,
-            FeatureAccess(entitlementGate.isProEntitled.value, featureTrials.status(TrialFeature.CSV_EXPORT)),
+            FeatureAccess(entitlementGate.resolvedProEntitlement.value, featureTrials.status(TrialFeature.CSV_EXPORT)),
         )
 
-    /** Starts the CSV export's one trial, from the upgrade sheet. */
-    fun startCsvTrial() = featureTrials.start(TrialFeature.CSV_EXPORT)
+    /** Starts the CSV export's one trial, from the upgrade sheet, if the user is known to be free. */
+    fun startCsvTrial() =
+        featureTrials.start(TrialFeature.CSV_EXPORT, entitlementGate.resolvedProEntitlement.value)
 
     /** The rows an export started now writes: all of them while unlocked, else the first ones up to the cap. */
     fun <T> rowsToExport(rows: List<T>): List<T> {

@@ -28,15 +28,21 @@ sealed interface TrialStatus {
     data object Expired : TrialStatus
 }
 
-/** Whether a gated feature is open: Pro, or its trial running. */
-data class FeatureAccess(val isPro: Boolean, val trial: TrialStatus) {
-    val unlocked: Boolean get() = isPro || trial is TrialStatus.Active
+/**
+ * Whether a gated feature is open: Pro, or its trial running. [isPro] is
+ * `ProEntitlement.resolvedProEntitlement`: null while Pro is still loading.
+ */
+data class FeatureAccess(val isPro: Boolean?, val trial: TrialStatus) {
+    val unlocked: Boolean get() = isPro == true || trial is TrialStatus.Active
 
-    /** The gate offers "Try free" only to a free user who never tried this feature. */
-    val canStartTrial: Boolean get() = !isPro && trial == TrialStatus.NotStarted
+    /**
+     * The gate offers "Try free" only to a user known to be free who never tried this
+     * feature, never while Pro is loading (a Pro user would burn the trial).
+     */
+    val canStartTrial: Boolean get() = isPro == false && trial == TrialStatus.NotStarted
 
     /** Days left to show, or null when there's no trial to show (Pro, or none running). */
-    val trialDaysLeft: Int? get() = if (isPro) null else (trial as? TrialStatus.Active)?.daysLeft
+    val trialDaysLeft: Int? get() = if (isPro == true) null else (trial as? TrialStatus.Active)?.daysLeft
 }
 
 /**
@@ -78,16 +84,19 @@ class FeatureTrials internal constructor(
 
     fun isActive(feature: TrialFeature): Boolean = status(feature) is TrialStatus.Active
 
-    /** Starts [feature]'s trial unless one was ever started. */
+    /**
+     * Starts [feature]'s trial unless one was ever started, or [isPro] (the resolved
+     * entitlement, null while loading) isn't known to be `false`.
+     */
     @Synchronized
-    fun start(feature: TrialFeature) {
-        if (prefs.contains(feature.name)) return
+    fun start(feature: TrialFeature, isPro: Boolean?) {
+        if (isPro != false || prefs.contains(feature.name)) return
         prefs.edit().putLong(feature.name, now()).apply()
         version.value++
     }
 
-    /** [feature]'s access, re-read whenever [isPro] changes or a trial starts. */
-    fun access(feature: TrialFeature, isPro: Flow<Boolean>): Flow<FeatureAccess> =
+    /** [feature]'s access, re-read whenever [isPro] (the resolved entitlement) changes or a trial starts. */
+    fun access(feature: TrialFeature, isPro: Flow<Boolean?>): Flow<FeatureAccess> =
         combine(isPro, version) { pro, _ -> FeatureAccess(pro, status(feature)) }
 
     companion object {

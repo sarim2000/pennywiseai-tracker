@@ -106,11 +106,14 @@ class AnalyticsViewModel @Inject constructor(
     // The tag and day-of-week groupings are Pro (#422), or open while their trial
     // runs; basic tagging (create / apply / filter-by-tag) stays free.
     val groupingAccess: StateFlow<FeatureAccess> = featureTrials
-        .access(TrialFeature.ANALYTICS_GROUPING, entitlementGate.isProEntitled)
+        .access(TrialFeature.ANALYTICS_GROUPING, entitlementGate.resolvedProEntitlement)
         .stateIn(
             viewModelScope,
             SharingStarted.Eagerly,
-            FeatureAccess(entitlementGate.isProEntitled.value, featureTrials.status(TrialFeature.ANALYTICS_GROUPING))
+            FeatureAccess(
+                entitlementGate.resolvedProEntitlement.value,
+                featureTrials.status(TrialFeature.ANALYTICS_GROUPING)
+            )
         )
 
     /** Read now, not from [groupingAccess]: a trial can end while the screen is open. */
@@ -198,9 +201,12 @@ class AnalyticsViewModel @Inject constructor(
         viewModelScope.launch { userPreferencesRepository.saveAnalyticsGroupBy(groupBy.name) }
     }
 
-    /** Starts the groupings' one trial from the upgrade sheet, then shows [groupBy]. */
+    /**
+     * Starts the groupings' one trial from the upgrade sheet, if the user is known to be
+     * free, then shows [groupBy].
+     */
     fun startGroupingTrial(groupBy: AnalyticsGroupBy) {
-        featureTrials.start(TrialFeature.ANALYTICS_GROUPING)
+        featureTrials.start(TrialFeature.ANALYTICS_GROUPING, entitlementGate.resolvedProEntitlement.value)
         setGroupBy(groupBy)
     }
 

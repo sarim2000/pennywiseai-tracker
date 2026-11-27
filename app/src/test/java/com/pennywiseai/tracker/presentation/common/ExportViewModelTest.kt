@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.common
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.core.entitlement.FreeTierLimits
 import com.pennywiseai.tracker.core.entitlement.TrialFeature
+import com.pennywiseai.tracker.core.entitlement.TrialStatus
 import com.pennywiseai.tracker.core.entitlement.testFeatureTrials
 import io.mockk.every
 import io.mockk.mockk
@@ -32,10 +33,13 @@ class ExportViewModelTest {
 
     @After fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(pro: Boolean) = ExportViewModel(
+    private fun viewModel(pro: Boolean?) = ExportViewModel(
         csvExporter = mockk(),
         userPreferencesRepository = mockk(),
-        entitlementGate = mockk<EntitlementGate> { every { isProEntitled } returns MutableStateFlow(pro) },
+        entitlementGate = mockk<EntitlementGate> {
+            every { resolvedProEntitlement } returns MutableStateFlow(pro)
+            every { isProEntitled } returns MutableStateFlow(pro == true)
+        },
         featureTrials = trials,
     )
 
@@ -62,10 +66,18 @@ class ExportViewModelTest {
 
     @Test
     fun `the analytics trial does not open CSV export`() {
-        trials.start(TrialFeature.ANALYTICS_GROUPING)
+        trials.start(TrialFeature.ANALYTICS_GROUPING, isPro = false)
         val vm = viewModel(pro = false)
         assertEquals(FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH, vm.rowsToExport(rows).size)
         assertTrue(vm.csvAccess.value.canStartTrial)
+    }
+
+    @Test
+    fun `while Pro is still loading no CSV trial is offered or started`() {
+        val vm = viewModel(pro = null)
+        assertFalse(vm.csvAccess.value.canStartTrial)
+        vm.startCsvTrial()
+        assertEquals(TrialStatus.NotStarted, trials.status(TrialFeature.CSV_EXPORT))
     }
 
     @Test

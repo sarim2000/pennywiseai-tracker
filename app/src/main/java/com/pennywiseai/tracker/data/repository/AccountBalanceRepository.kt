@@ -914,11 +914,18 @@ open class AccountBalanceRepository @Inject constructor(
     /**
      * After [transactions] are inserted (pin with [pinManualOpenings] before):
      * re-derives every manual account they land on, own account and both
-     * transfer legs, once each.
+     * transfer legs, once each. An account one of them reaches in another
+     * currency is left as it is: the sum doesn't convert, so it would take a
+     * $10 row off a ₹ balance as ₹10.
      */
     suspend fun recomputeManualBalances(transactions: Collection<TransactionEntity>) {
-        transactions.flatMap(::accountsOf).distinct()
-            .forEach { (bank, acct) -> recomputeManualBalance(bank, acct) }
+        transactions.flatMap { t -> accountsOf(t).map { it to t.currency } }
+            .groupBy({ it.first }, { it.second })
+            .forEach { (account, currencies) ->
+                val (bank, acct) = account
+                val currency = accountBalanceDao.getLatestBalance(bank, acct)?.currency ?: return@forEach
+                if (currencies.all { it == currency }) recomputeManualBalance(bank, acct)
+            }
     }
 
     /** The accounts [t] moves: its own and both transfer legs, where named. */

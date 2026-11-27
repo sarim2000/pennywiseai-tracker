@@ -15,7 +15,7 @@ import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
-/** Rows an import adds re-derive every manual account they land on. */
+/** Rows an import adds re-derive every manual account they land on, in that account's currency only. */
 class RecomputeManualBalancesTest {
     private val time = LocalDateTime.of(2026, 1, 15, 12, 0)
     private val balanceDao = mockk<AccountBalanceDao>(relaxed = true) {
@@ -56,5 +56,14 @@ class RecomputeManualBalancesTest {
         coVerify(exactly = 1) { repo.recomputeManualBalance("Wallet", "1111") }
         coVerify(exactly = 1) { repo.recomputeManualBalance("Bank", "2222") }
         coVerify(exactly = 1) { repo.recomputeManualBalance("Cash", "3333") }
+    }
+
+    @Test
+    fun `an account a row reaches in another currency is left alone`() = runBlocking {
+        coEvery { repo.recomputeManualBalance(any(), any()) } just Runs
+
+        repo.recomputeManualBalances(listOf(row(1, "Wallet", "1111"), row(2, "Wallet", "1111", currency = "USD")))
+
+        coVerify(exactly = 0) { repo.recomputeManualBalance(any(), any()) }
     }
 }

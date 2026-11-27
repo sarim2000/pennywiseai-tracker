@@ -339,7 +339,7 @@ class AddViewModel @Inject constructor(
             val currency = account?.let {
                 CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, it.bankName)
             } ?: currentState.currency
-            currentState.copy(
+            currentState.withoutScannedAmountIn(currency).copy(
                 selectedAccount = account,
                 currency = currency,
                 toAccount = currentState.toAccount?.takeIf { it.currency == currency && it.id != account?.id }
@@ -365,6 +365,8 @@ class AddViewModel @Inject constructor(
                 amount = validAmount,
                 amountError = validateAmount(validAmount)
             ).userSet(ScanField.AMOUNT)
+                // Typed in the currency a scan picked: the user keeps that currency with it.
+                .let { if (ScanField.CURRENCY in it.scanned) it.userSet(ScanField.CURRENCY) else it }
         }
     }
 
@@ -544,7 +546,7 @@ class AddViewModel @Inject constructor(
     fun updateTransactionCurrency(currency: String) {
         _transactionUiState.update { currentState ->
             // An account in another currency can't take this amount: drop it rather than mix.
-            currentState.copy(
+            currentState.withoutScannedAmountIn(currency).copy(
                 currency = currency,
                 selectedAccount = currentState.selectedAccount?.takeIf { it.currency == currency },
                 toAccount = currentState.toAccount?.takeIf { it.currency == currency }
@@ -1198,6 +1200,14 @@ enum class ScanField { AMOUNT, MERCHANT, CURRENCY, DATE }
 /** [field] set by the user: no scan replaces it, and it no longer holds a scan's reading. */
 private fun TransactionUiState.userSet(field: ScanField): TransactionUiState =
     copy(edited = edited + field, scanned = scanned - field)
+
+/** The form about to be in [newCurrency]: a scanned amount was read in another one, so it goes. */
+private fun TransactionUiState.withoutScannedAmountIn(newCurrency: String): TransactionUiState =
+    if (ScanField.AMOUNT in scanned && newCurrency != currency) {
+        copy(amount = "", amountError = null, scanned = scanned - ScanField.AMOUNT)
+    } else {
+        this
+    }
 
 /** The form without what the last scan filled in, its currency and date back to [before] it. */
 private fun TransactionUiState.withoutScan(before: Pair<String, LocalDateTime>?): TransactionUiState {

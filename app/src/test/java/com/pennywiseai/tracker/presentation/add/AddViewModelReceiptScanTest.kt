@@ -240,6 +240,28 @@ class AddViewModelReceiptScanTest {
     }
 
     @Test
+    fun `an amount typed over a scanned one keeps the scan's currency on the next scan`() {
+        withForm({ uri -> if (uri == photo) listOf("TOTAL ₹450.00") else listOf("TOTAL 12.00") }) { vm ->
+            vm.scanReceipt(photo)
+            vm.updateTransactionAmount("460")
+            vm.scanReceipt(otherPhoto)
+            val state = vm.transactionUiState.value
+            assertEquals("460", state.amount)
+            assertEquals("INR", state.currency)
+        }
+    }
+
+    @Test
+    fun `switching away from the scanned currency clears the scanned amount`() =
+        withForm(listOf("TOTAL ₹450.00")) { vm ->
+            vm.scanReceipt(photo)
+            vm.updateTransactionCurrency("EUR")
+            val state = vm.transactionUiState.value
+            assertEquals("EUR", state.currency)
+            assertEquals("", state.amount)
+        }
+
+    @Test
     fun `the quick sheet's untouched base currency still lets the receipt's own one in`() =
         withDraft(listOf("TOTAL JOD 12.500"), mapOf("currency" to "USD")) { vm ->
             vm.scanReceipt(photo)

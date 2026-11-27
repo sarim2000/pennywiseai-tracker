@@ -1,0 +1,102 @@
+package com.pennywiseai.tracker.presentation.transactions
+
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.TagRepository
+import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.widget.WidgetRefresher
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.runs
+import io.mockk.unmockkObject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import java.math.BigDecimal
+import java.time.LocalDateTime
+
+/** #1484: a save writes only what this edit changed, over the row as stored now. */
+@OptIn(ExperimentalCoroutinesApi::class)
+class TransactionDetailStaleSaveTest {
+    private var stored = TransactionEntity(
+        id = 1, amount = BigDecimal("40"), merchantName = "Store A", category = "Others",
+        transactionType = TransactionType.EXPENSE, dateTime = LocalDateTime.of(2026, 1, 1, 10, 0),
+        transactionHash = "h", description = "old note"
+    )
+    private val written = mutableListOf<TransactionEntity>()
+    private val transactions = mockk<TransactionRepository>(relaxed = true) {
+        coEvery { getTransactionById(1) } answers { stored }
+        coEvery { hasSplits(1) } returns false
+        coEvery { updateTransaction(any()) } answers {
+            written += firstArg<TransactionEntity>()
+            stored = firstArg()
+        }
+    }
+    private val tags = mockk<TagRepository>(relaxed = true) {
+        coEvery { getTagNamesForTransaction(1) } returns emptyList()
+    }
+    private val prefs = mockk<com.pennywiseai.tracker.data.preferences.UserPreferencesRepository>(relaxed = true) {
+        every { unifiedCurrencyMode } returns flowOf(false)
+    }
+
+    private fun viewModel() = TransactionDetailViewModel(
+        transactions, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
+        mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
+        tags, mockk(relaxed = true), prefs, mockk(relaxed = true),
+        mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
+        mockk(relaxed = true), mockk(relaxed = true)
+    ).apply { loadTransaction(1) }
+
+    @Before fun setUp() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        mockkObject(WidgetRefresher)
+        every { WidgetRefresher.refreshTransactionWidgets(any()) } just runs
+    }
+
+    @After fun tearDown() {
+        unmockkObject(WidgetRefresher)
+        Dispatchers.resetMain()
+    }
+
+    @Test
+    fun `editing only the note keeps a category changed elsewhere`() {
+        val vm = viewModel()
+        vm.enterEditMode()
+        stored = stored.copy(category = "Food")
+        vm.updateDescription("new note")
+        vm.saveChanges()
+        assertEquals("Food", written.single().category)
+        assertEquals("new note", written.single().description)
+    }
+
+    @Test
+    fun `an edited category wins over one changed elsewhere`() {
+        val vm = viewModel()
+        vm.enterEditMode()
+        stored = stored.copy(category = "Food")
+        vm.updateCategory("Travel")
+        vm.saveChanges()
+        assertEquals("Travel", written.single().category)
+    }
+
+    @Test
+    fun `exclusion changed elsewhere survives a save that did not touch it`() {
+        val vm = viewModel()
+        vm.enterEditMode()
+        stored = stored.copy(excludedFromAnalytics = true)
+        vm.updateDescription("new note")
+        vm.saveChanges()
+        assertTrue(written.single().excludedFromAnalytics)
+    }
+}

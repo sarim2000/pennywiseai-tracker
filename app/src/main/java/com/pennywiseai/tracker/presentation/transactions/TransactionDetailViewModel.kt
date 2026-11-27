@@ -433,6 +433,14 @@ class TransactionDetailViewModel @Inject constructor(
                 // its loan chip came back as "Mark as loan" (#1032).
                 splitsJob?.cancel()
                 splitsJob = viewModelScope.launch { loadSplits(transactionId) }
+                // Follow the row so changes made elsewhere show up (#1484). A deleted
+                // row emits null and is ignored, as before. An open edit has its own copy.
+                rowJob?.cancel()
+                rowJob = viewModelScope.launch {
+                    transactionRepository.observeTransaction(transactionId).collect { row ->
+                        if (row != null) _transaction.value = row
+                    }
+                }
                 loadReceiptUri(it)
                 // Clear stale loan state when the (re)loaded transaction has no
                 // loan — e.g. the loan was deleted elsewhere and we reload on
@@ -503,6 +511,7 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     private var splitsJob: kotlinx.coroutines.Job? = null
+    private var rowJob: kotlinx.coroutines.Job? = null
 
     private suspend fun loadSplits(transactionId: Long) {
         val hasSplits = transactionRepository.hasSplits(transactionId)
@@ -561,8 +570,14 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    /** The row and tags as they were when the edit opened: only what differs from them is the user's change. */
+    private var editStart: TransactionEntity? = null
+    private var editStartTags: List<String>? = null
+
     fun enterEditMode() {
         _editableTransaction.value = _transaction.value?.copy()
+        editStart = _transaction.value
+        editStartTags = null
         // A cancelled edit can leave these on an unsaved pick (e.g. the Refund answer).
         _budgetImpactType.value = _transaction.value?.budgetImpactType
         _budgetCategory.value = _transaction.value?.budgetCategory
@@ -576,7 +591,9 @@ class TransactionDetailViewModel @Inject constructor(
         // Seed the editable tag list from the persisted tags.
         _transaction.value?.let { txn ->
             viewModelScope.launch {
-                _editableTags.value = tagRepository.getTagNamesForTransaction(txn.id)
+                val tags = tagRepository.getTagNamesForTransaction(txn.id)
+                _editableTags.value = tags
+                editStartTags = tags
             }
         }
 
@@ -599,6 +616,8 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun exitEditMode() {
         _editableTransaction.value = null
+        editStart = null
+        editStartTags = null
         _isEditMode.value = false
         _editableTags.value = emptyList()
         _errorMessage.value = null
@@ -1096,6 +1115,14 @@ class TransactionDetailViewModel @Inject constructor(
                 // the existing bank untouched. Belt-and-braces with the picker's
                 // selectAccount so no edit path can desync (#566, #570).
                 val resolvedBankName = resolvedBankName(toSave)
+                val edited = toSave.copy(bankName = resolvedBankName)
+                // Fields this session didn't change keep what the database holds now (#1484):
+                // the row may have been edited elsewhere while the screen was open.
+                val merged = if (persisted != null) {
+                    mergeEditOntoFresh(editStart ?: original ?: persisted, edited, persisted)
+                } else {
+                    edited
+                }
 
                 // Loan linkage (loanId / loanContribution) is owned by mark-as-loan
                 // and unmark, never the edit form. The editable copy was snapshotted
@@ -1104,11 +1131,10 @@ class TransactionDetailViewModel @Inject constructor(
                 // still count the txn but the txn would show "Mark as loan" again
                 // (#688). Carry the current persisted values through the save.
                 val currentPersisted = _transaction.value
-                val normalizedTransaction = toSave.copy(
+                val normalizedTransaction = merged.copy(
                     // Keep the user's casing: "IRCTC" stays "IRCTC" (#876).
-                    merchantName = toSave.merchantName.trim(),
-                    reference = normalizeReference(toSave.reference),
-                    bankName = resolvedBankName,
+                    merchantName = merged.merchantName.trim(),
+                    reference = normalizeReference(merged.reference),
                     receiptPath = newReceiptPath,
                     loanId = if (currentPersisted != null) currentPersisted.loanId else toSave.loanId,
                     loanContribution = if (currentPersisted != null) currentPersisted.loanContribution else toSave.loanContribution,
@@ -1121,17 +1147,20 @@ class TransactionDetailViewModel @Inject constructor(
                     newPath = newReceiptPath,
                     deleteReceipt = receiptManager::deleteReceipt
                 ) {
-                    accountBalanceRepository.pinManualOpenings(_transaction.value, normalizedTransaction)
+                    accountBalanceRepository.pinManualOpenings(persisted ?: _transaction.value, normalizedTransaction)
 
                     transactionRepository.updateTransaction(normalizedTransaction)
                 }
 
                 // Persist the edited tag set (create-or-select handled in repo).
-                tagRepository.setTagsForTransaction(normalizedTransaction.id, _editableTags.value)
+                // Only if this session changed them: otherwise tags set elsewhere stay.
+                if (editStartTags != null && _editableTags.value != editStartTags) {
+                    tagRepository.setTagsForTransaction(normalizedTransaction.id, _editableTags.value)
+                }
 
                 // Reflect the edit on account balances (#636): SMS-account shifts and
                 // manual-account recomputes, owned by the repository.
-                accountBalanceRepository.reflectTransactionEdit(_transaction.value, normalizedTransaction)
+                accountBalanceRepository.reflectTransactionEdit(persisted ?: _transaction.value, normalizedTransaction)
 
                 // Save or remove splits
                 val currentSplits = _splits.value
@@ -1217,6 +1246,8 @@ class TransactionDetailViewModel @Inject constructor(
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 _isEditMode.value = false
                 _editableTransaction.value = null
+                editStart = null
+                editStartTags = null
                 // Surfaces the partial failure (#752) instead of a clean "updated".
                 _errorMessage.value = ruleError
                 _applyToAllFromMerchant.value = false
@@ -1768,6 +1799,35 @@ internal fun TransactionEntity.withKnownTransferLeg(before: TransactionEntity?):
     } else {
         copy(fromAccount = account, fromBankName = before.bankName)
     }
+}
+
+/**
+ * [edited] laid over [fresh], the row as stored now (#1484): a field takes the edited
+ * value only when it differs from [start], the row as the edit opened; every other field
+ * keeps [fresh]'s, so a change made elsewhere meanwhile isn't written back over.
+ */
+internal fun mergeEditOntoFresh(start: TransactionEntity, edited: TransactionEntity, fresh: TransactionEntity): TransactionEntity {
+    fun <T> pick(s: T, e: T, f: T) = if (e != s) e else f
+    return fresh.copy(
+        merchantName = pick(start.merchantName, edited.merchantName, fresh.merchantName),
+        amount = if (edited.amount.compareTo(start.amount) != 0) edited.amount else fresh.amount,
+        transactionType = pick(start.transactionType, edited.transactionType, fresh.transactionType),
+        category = pick(start.category, edited.category, fresh.category),
+        dateTime = pick(start.dateTime, edited.dateTime, fresh.dateTime),
+        description = pick(start.description, edited.description, fresh.description),
+        accountNumber = pick(start.accountNumber, edited.accountNumber, fresh.accountNumber),
+        bankName = pick(start.bankName, edited.bankName, fresh.bankName),
+        fromAccount = pick(start.fromAccount, edited.fromAccount, fresh.fromAccount),
+        toAccount = pick(start.toAccount, edited.toAccount, fresh.toAccount),
+        fromBankName = pick(start.fromBankName, edited.fromBankName, fresh.fromBankName),
+        toBankName = pick(start.toBankName, edited.toBankName, fresh.toBankName),
+        reference = pick(start.reference, edited.reference, fresh.reference),
+        isRecurring = pick(start.isRecurring, edited.isRecurring, fresh.isRecurring),
+        profileId = pick(start.profileId, edited.profileId, fresh.profileId),
+        budgetImpactType = pick(start.budgetImpactType, edited.budgetImpactType, fresh.budgetImpactType),
+        budgetCategory = pick(start.budgetCategory, edited.budgetCategory, fresh.budgetCategory),
+        currency = pick(start.currency, edited.currency, fresh.currency),
+    )
 }
 
 /** [updated] turned [original] into a standalone transfer that moves no account. */

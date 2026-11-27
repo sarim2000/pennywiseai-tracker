@@ -116,7 +116,8 @@ class DeleteTransactionUseCaseTest {
             acctDao,
             transactionDao,
             TestDb(),
-            io.mockk.mockk(relaxed = true)
+            io.mockk.mockk(relaxed = true),
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
         ) {
             override suspend fun applyDeleteBalanceShift(transaction: TransactionEntity) {
                 balanceShiftTransactions.add(transaction)

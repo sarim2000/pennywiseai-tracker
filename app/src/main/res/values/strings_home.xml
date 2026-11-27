@@ -118,7 +118,7 @@
     <string name="type_filter_all">All</string>
     <string name="type_filter_income">Income</string>
     <string name="type_filter_expense">Expense</string>
-    <string name="type_filter_credit">Credit</string>
+    <string name="type_filter_credit">Card spend</string>
     <string name="type_filter_spending">Spending</string>
     <string name="type_filter_transfer">Transfer</string>
     <string name="type_filter_investment">Invest</string>
@@ -259,12 +259,12 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">Money in motion</string>
     <string name="cash_flow_subtitle">Channels outside your net cash flow this month</string>
-    <string name="cash_flow_credit">Credit</string>
+    <string name="cash_flow_credit">Card spend</string>
     <string name="cash_flow_invested">Invested</string>
     <string name="cash_flow_transferred">Transferred</string>
 
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">Credit</string>
+    <string name="txn_item_tag_credit">Card spend</string>
     <string name="txn_item_tag_transfer">Transfer</string>
     <string name="txn_item_tag_investment">Investment</string>
     <string name="txn_item_tag_recurring">Recurring</string>

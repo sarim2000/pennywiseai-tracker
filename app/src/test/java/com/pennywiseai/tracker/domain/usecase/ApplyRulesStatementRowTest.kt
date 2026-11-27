@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.domain.usecase
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
@@ -16,9 +18,12 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.flow.flowOf
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -30,14 +35,35 @@ import java.time.LocalDateTime
 class ApplyRulesStatementRowTest {
     private val transactions = mockk<TransactionRepository>(relaxed = true)
     private val rules = mockk<RuleRepository>(relaxed = true)
+    private val tags = mockk<TagRepository>(relaxed = true)
+    private val database = mockk<PennyWiseDatabase>()
     private val useCase = ApplyRulesToPastTransactionsUseCase(
         transactions,
         rules,
         RuleEngine(),
-        mockk(relaxed = true) { every { observeTransactionTagNames() } returns flowOf(emptyMap()) },
+        tags,
         mockk(relaxed = true),
-        mockk<PennyWiseDatabase>()
+        database
     )
+
+    @Before
+    fun setUp() {
+        mockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
+        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers { secondArg<suspend () -> Any?>().invoke() }
+        coEvery { tags.getTagNamesFor(any()) } returns emptyMap()
+    }
+
+    @After
+    fun tearDown() = unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
+
+    /** Serves the ledger through the paged reads the use case walks. */
+    private fun serve(rows: List<TransactionEntity>) {
+        coEvery { transactions.countLiveTransactions() } returns rows.size
+        coEvery { transactions.maxLiveTransactionId() } returns rows.maxOf { it.id }
+        coEvery { transactions.getTransactionsPageAfter(any(), any(), any()) } answers {
+            rows.filter { it.id > firstArg<Long>() && it.id <= secondArg<Long>() }.take(thirdArg<Int>())
+        }
+    }
 
     private val blockWithoutKeyword = TransactionRule(
         name = "Block without keyword",
@@ -64,7 +90,7 @@ class ApplyRulesStatementRowTest {
     @Test
     fun `an SMS text rule leaves statement rows alone when run on past transactions`() = runBlocking {
         coEvery { rules.getActiveRules() } returns listOf(blockWithoutKeyword)
-        coEvery { transactions.getAllTransactionsList() } returns listOf(statementRow, pdfRow, smsRow)
+        serve(listOf(statementRow, pdfRow, smsRow))
 
         val result = useCase.applyAllActiveRulesToTransactions()
 
@@ -75,7 +101,7 @@ class ApplyRulesStatementRowTest {
 
     @Test
     fun `the preview of an SMS text rule counts no statement rows`() = runBlocking {
-        coEvery { transactions.getAllTransactionsList() } returns listOf(statementRow, pdfRow, smsRow)
+        serve(listOf(statementRow, pdfRow, smsRow))
 
         val preview = useCase.previewRuleApplication(blockWithoutKeyword)
 
@@ -85,7 +111,7 @@ class ApplyRulesStatementRowTest {
 
     @Test
     fun `applying one SMS text rule leaves statement rows alone`() = runBlocking {
-        coEvery { transactions.getAllTransactionsList() } returns listOf(statementRow, pdfRow, smsRow)
+        serve(listOf(statementRow, pdfRow, smsRow))
 
         val result = useCase.applyRuleToAllTransactions(blockWithoutKeyword)
 

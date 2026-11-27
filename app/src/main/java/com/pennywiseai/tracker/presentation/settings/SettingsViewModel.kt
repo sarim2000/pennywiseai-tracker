@@ -121,7 +121,15 @@ class SettingsViewModel @Inject constructor(
 
     private val _exportedBackupFile = MutableStateFlow<File?>(null)
     val exportedBackupFile: StateFlow<File?> = _exportedBackupFile.asStateFlow()
+
+    // Whether [exportedBackupFile] is passphrase-encrypted; the Save/Share dialog says so.
+    private val _exportedBackupEncrypted = MutableStateFlow(false)
+    val exportedBackupEncrypted: StateFlow<Boolean> = _exportedBackupEncrypted.asStateFlow()
     private var exportJob: Job? = null
+
+    // True while an export runs; both export rows are disabled until it's done.
+    private val _isExportingBackup = MutableStateFlow(false)
+    val isExportingBackup: StateFlow<Boolean> = _isExportingBackup.asStateFlow()
 
     // Receipts too large for the backup just created; the Save/Share dialog says so.
     private val _exportSkippedReceipts = MutableStateFlow(0)
@@ -593,14 +601,17 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * With a [passphrase] the backup is encrypted; the array is cleared once it's used.
-     * Ignored while another export runs, so one can't replace the file the other offers.
+     * Refused while another export runs, so one can't replace the file the other offers.
      */
     fun exportBackup(passphrase: CharArray? = null) {
         if (exportJob?.isActive == true) {
             passphrase?.fill('\u0000')
+            // The export rows are disabled meanwhile; one that slips through is told, not dropped.
+            _importExportMessage.value = UiText.Res(R.string.settings_export_already_running)
             return
         }
-        exportJob = viewModelScope.launch {
+        _isExportingBackup.value = true
+        val job = viewModelScope.launch {
             try {
                 val result = backupExporter.exportBackup(
                     includeReceipts = userPreferencesRepository.exportIncludeReceipts.first(),
@@ -610,6 +621,7 @@ class SettingsViewModel @Inject constructor(
                     is ExportResult.Success -> {
                         // Store the file for later saving
                         _exportedBackupFile.value = result.file
+                        _exportedBackupEncrypted.value = passphrase != null
                         _exportSkippedReceipts.value = result.skippedReceipts
                         // Always this message: it opens the Save/Share dialog, which names skipped receipts.
                         _importExportMessage.value = UiText.Res(R.string.settings_backup_created_choose)
@@ -626,6 +638,8 @@ class SettingsViewModel @Inject constructor(
                 passphrase?.fill('\u0000')
             }
         }
+        exportJob = job
+        job.invokeOnCompletion { if (exportJob === job) _isExportingBackup.value = false }
     }
 
     /** Saves the export the user chose to save, [exportedPath]; not one made since. */

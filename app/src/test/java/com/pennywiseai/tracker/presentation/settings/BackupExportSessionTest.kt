@@ -28,6 +28,8 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayOutputStream
@@ -83,7 +85,7 @@ class BackupExportSessionTest {
     }
 
     @Test
-    fun `an export started while another runs is ignored and its passphrase cleared`() {
+    fun `an export started while another runs is refused out loud and its passphrase cleared`() {
         val running = CompletableDeferred<ExportResult>()
         coEvery { exporter.exportBackup(any(), any(), any()) } coAnswers {
             if (thirdArg<CharArray?>() == null) running.await() else ExportResult.Success(encryptedFile)
@@ -91,12 +93,28 @@ class BackupExportSessionTest {
         val passphrase = "synthetic".toCharArray()
 
         viewModel.exportBackup()
+        assertTrue(viewModel.isExportingBackup.value)
         viewModel.exportBackup(passphrase)
+
+        assertEquals(UiText.Res(R.string.settings_export_already_running), viewModel.importExportMessage.value)
+        assertArrayEquals(CharArray(passphrase.size), passphrase)
         running.complete(ExportResult.Success(plainFile))
 
         coVerify(exactly = 1) { exporter.exportBackup(any(), any(), any()) }
+        assertFalse(viewModel.isExportingBackup.value)
         assertEquals(plainFile, viewModel.exportedBackupFile.value)
-        assertArrayEquals(CharArray(passphrase.size), passphrase)
+        assertFalse(viewModel.exportedBackupEncrypted.value)
+    }
+
+    @Test
+    fun `an encrypted export is marked encrypted, and a plain one after it is not`() {
+        coEvery { exporter.exportBackup(any(), any(), any<CharArray>()) } returns ExportResult.Success(encryptedFile)
+        coEvery { exporter.exportBackup(any(), any(), null) } returns ExportResult.Success(plainFile)
+
+        viewModel.exportBackup("synthetic".toCharArray())
+        assertTrue(viewModel.exportedBackupEncrypted.value)
+        viewModel.exportBackup()
+        assertFalse(viewModel.exportedBackupEncrypted.value)
     }
 
     @Test

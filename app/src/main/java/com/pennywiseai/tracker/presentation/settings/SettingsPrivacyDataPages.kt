@@ -129,6 +129,8 @@ internal fun DataPage(
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
     val exportSkippedReceipts by settingsViewModel.exportSkippedReceipts.collectAsStateWithLifecycle()
+    val exportedBackupEncrypted by settingsViewModel.exportedBackupEncrypted.collectAsStateWithLifecycle()
+    val isExportingBackup by settingsViewModel.isExportingBackup.collectAsStateWithLifecycle()
     val deleteAllTransactionsCount by settingsViewModel.deleteAllTransactionsCount.collectAsStateWithLifecycle()
     val isDeletingAllTransactions by settingsViewModel.isDeletingAllTransactions.collectAsStateWithLifecycle()
     val deleteAllTransactionsResult by settingsViewModel.deleteAllTransactionsResult.collectAsStateWithLifecycle()
@@ -194,16 +196,27 @@ internal fun DataPage(
         SettingsNavItem(
             icon = Icons.Default.Upload,
             title = stringResource(R.string.settings_export_data_title),
-            subtitle = stringResource(R.string.settings_export_data_subtitle),
+            subtitle = if (isExportingBackup) {
+                stringResource(R.string.settings_export_running_subtitle)
+            } else {
+                stringResource(R.string.settings_export_data_subtitle)
+            },
             onClick = { settingsViewModel.exportBackup() },
-            position = ListItemPosition.Top
+            position = ListItemPosition.Top,
+            // One export at a time, plain or encrypted: a second would replace the file the first offers.
+            enabled = !isExportingBackup
         )
         SettingsNavItem(
             icon = Icons.Default.Lock,
             title = stringResource(R.string.settings_export_encrypted_title),
-            subtitle = stringResource(R.string.settings_export_encrypted_subtitle),
+            subtitle = if (isExportingBackup) {
+                stringResource(R.string.settings_export_running_subtitle)
+            } else {
+                stringResource(R.string.settings_export_encrypted_subtitle)
+            },
             onClick = { showEncryptedExportDialog = true },
-            position = ListItemPosition.Middle
+            position = ListItemPosition.Middle,
+            enabled = !isExportingBackup
         )
         SettingsSwitchRow(
             icon = Icons.Default.Receipt,
@@ -437,7 +450,15 @@ internal fun DataPage(
                 showExportOptionsDialog = false
                 settingsViewModel.clearImportExportMessage()
             },
-            title = { Text(stringResource(R.string.settings_save_backup_title)) },
+            title = {
+                Text(
+                    if (exportedBackupEncrypted) {
+                        stringResource(R.string.settings_save_backup_title_encrypted)
+                    } else {
+                        stringResource(R.string.settings_save_backup_title)
+                    }
+                )
+            },
             text = {
                 Column {
                     Text(

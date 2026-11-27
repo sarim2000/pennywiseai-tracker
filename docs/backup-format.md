@@ -200,6 +200,48 @@ The one deliberate exception is `importProfilesAndBuildMap`: its inserts build
 the profile id-remap map that transactions/balances depend on, so it stays
 strict (a profile failure should surface, not be silently swallowed).
 
+## Encrypted backups
+
+*Export Data (Encrypted)* (Settings → Data) wraps the same JSON in a
+passphrase envelope (`data/backup/BackupCrypto.kt`). The file keeps the
+`.pennywisebackup` extension; the JSON inside is unchanged, so everything
+above still applies once it's decrypted. The passphrase is never stored. The passphrase is normalized to Unicode NFC before key derivation.
+
+| Bytes | Field |
+|-------|-------|
+| 5 | magic `PWENC` (ASCII) |
+| 1 | envelope version, `1` |
+| 1 | KDF id, `1` = PBKDF2WithHmacSHA256, 256-bit key |
+| 4 | iterations, big-endian int (310 000 when written; readers accept 100 000–2 000 000 and reject the rest before deriving) |
+| 16 | random salt |
+| 8 | random nonce prefix |
+
+Then frames until the one marked last:
+
+| Bytes | Field |
+|-------|-------|
+| 1 | `isLast`: `1` on the final frame, else `0` |
+| 4 | ciphertext length, big-endian int (16 to 64 KiB + 16) |
+| n | AES/GCM/NoPadding ciphertext + 128-bit tag of up to 64 KiB plaintext |
+
+- Nonce = nonce prefix ‖ frame index (4 bytes, big-endian, from 0).
+- AAD = the 35 header bytes ‖ frame index ‖ `isLast`. A changed header,
+  reordered or dropped frames, a moved `isLast` flag, a missing last frame or
+  bytes after it all fail.
+- The writer always ends with a frame marked last (empty for an empty input).
+- **Export** streams the JSON straight into the encryptor, frame by frame, so
+  no plain copy is written. A write that fails leaves no last frame.
+- **Import** sniffs the first 5 bytes. A plain backup takes the usual path,
+  unless a passphrase was given: then the file must be encrypted. An encrypted
+  one asks for the passphrase, is decrypted in full to a temp file in
+  `cacheDir/backup_restore/` and parsed **before the database is touched**, so a
+  wrong passphrase (the first frame fails) or a damaged file changes nothing.
+  The temp file is deleted whatever happens, and that folder is swept at the
+  start of every import and export (`DecryptedBackupFiles`). A decrypted backup
+  that won't parse gives a fixed error: parser messages quote the plaintext.
+- A new KDF or cipher needs a new envelope version; readers reject versions
+  they don't know.
+
 ## How to change the format safely
 
 ### Adding a column to an existing entity

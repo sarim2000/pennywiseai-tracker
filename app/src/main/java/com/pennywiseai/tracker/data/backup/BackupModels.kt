@@ -501,6 +501,12 @@ sealed class ImportResult {
     ) : ImportResult()
 
     data class Error(val message: String) : ImportResult()
+
+    /** The backup is encrypted: ask for its passphrase and import again. Nothing was changed. */
+    data object PassphraseRequired : ImportResult()
+
+    /** The passphrase didn't open the backup. Nothing was changed. */
+    data object WrongPassphrase : ImportResult()
 }
 
 /**

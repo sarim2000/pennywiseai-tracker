@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.data.backup
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.annotation.StringRes
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.entitlement.LicenseRestorer
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
@@ -22,6 +24,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.decodeFromStream
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -41,15 +46,20 @@ class BackupImporter @Inject constructor(
 ) {
 
     /**
-     * Import backup from a file URI
+     * Import backup from a file URI. An encrypted backup needs its [passphrase]
+     * (the caller clears the array afterwards); it's decrypted and parsed in full
+     * before the database is touched.
      */
     suspend fun importBackup(
         uri: Uri,
-        strategy: ImportStrategy = ImportStrategy.MERGE
+        strategy: ImportStrategy = ImportStrategy.MERGE,
+        passphrase: CharArray? = null
     ): ImportResult = withContext(Dispatchers.IO) {
         try {
+            // Plaintext an earlier restore left behind when the app died mid-restore.
+            DecryptedBackupFiles.sweep(context.cacheDir)
             // Read and parse the backup file
-            val backup = readBackupFile(uri)
+            val backup = readBackupFile(uri, passphrase)
 
             // Validate backup version
             if (!isCompatibleVersion(backup)) {
@@ -86,28 +96,72 @@ class BackupImporter @Inject constructor(
                 if (restored.skipped > 0) result = result.copy(skippedReceipts = restored.skipped)
             }
             result
+        } catch (e: BackupCrypto.PassphraseRequiredException) {
+            ImportResult.PassphraseRequired
+        } catch (e: BackupCrypto.WrongPassphraseException) {
+            ImportResult.WrongPassphrase
+        } catch (e: BackupReadException) {
+            Log.e("BackupImporter", "Import failed: ${e.message}")
+            ImportResult.Error(context.getString(e.messageRes))
         } catch (e: Exception) {
             Log.e("BackupImporter", "Import failed", e)
-            ImportResult.Error("Import failed: ${e.message}")
+            ImportResult.Error("${e.message}")
         }
     }
 
     /**
      * Read and parse backup file
      */
-    private suspend fun readBackupFile(uri: Uri): PennyWiseBackup {
+    private suspend fun readBackupFile(uri: Uri, passphrase: CharArray?): PennyWiseBackup {
         return withContext(Dispatchers.IO) {
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                // Streamed, so a large backup isn't also held as one big String.
-                // backupJson tolerates missing keys (older backups → Kotlin
-                // defaults) and unknown keys (newer backups → ignored). The
-                // old Gson `normalized()` net is no longer needed because the
-                // `= emptyList()` / field defaults on the models now actually
-                // apply. See BackupSerializers + docs/backup-format.md.
-                backupJson.decodeFromStream<PennyWiseBackup>(inputStream.buffered())
-            } ?: throw Exception("Failed to read backup file")
+            context.contentResolver.openInputStream(uri)?.use { decodeBackup(it, passphrase, context.cacheDir) }
+                ?: throw Exception("Failed to read backup file")
         }
     }
+
+    /**
+     * Parses a plain or encrypted backup. An encrypted one is decrypted in full to a
+     * private temp file under [cacheDir] first, so a wrong passphrase or a damaged file
+     * fails here. With a [passphrase] the file must be encrypted: it was asked for one.
+     */
+    internal fun decodeBackup(input: InputStream, passphrase: CharArray?, cacheDir: File): PennyWiseBackup {
+        val stream = input.buffered()
+        val head = ByteArray(BackupCrypto.MAGIC_SIZE)
+        stream.mark(head.size)
+        var read = 0
+        while (read < head.size) {
+            val n = stream.read(head, read, head.size - read)
+            if (n == -1) break
+            read += n
+        }
+        stream.reset()
+        // Streamed, so a large backup isn't also held as one big String.
+        // backupJson tolerates missing keys (older backups → Kotlin
+        // defaults) and unknown keys (newer backups → ignored). The
+        // old Gson `normalized()` net is no longer needed because the
+        // `= emptyList()` / field defaults on the models now actually
+        // apply. See BackupSerializers + docs/backup-format.md.
+        if (!BackupCrypto.isEncrypted(head)) {
+            // Re-read for the passphrase but no longer encrypted: the file changed under us.
+            if (passphrase != null) {
+                throw BackupReadException(R.string.settings_backup_restore_not_encrypted, "Expected an encrypted backup")
+            }
+            return backupJson.decodeFromStream<PennyWiseBackup>(stream)
+        }
+        if (passphrase == null) throw BackupCrypto.PassphraseRequiredException()
+        return DecryptedBackupFiles.withTempFile(cacheDir) { plain ->
+            plain.outputStream().buffered().use { BackupCrypto.decrypt(stream, it, passphrase) }
+            try {
+                plain.inputStream().buffered().use { backupJson.decodeFromStream<PennyWiseBackup>(it) }
+            } catch (e: Exception) {
+                // Parser messages quote the input, here the decrypted backup: keep them out of logs and dialogs.
+                throw BackupReadException(R.string.settings_backup_restore_unreadable, "Decrypted backup couldn't be parsed")
+            }
+        }
+    }
+
+    /** A failure whose [messageRes] and message carry no backup content, so both are safe to show and log. */
+    internal class BackupReadException(@StringRes val messageRes: Int, reason: String) : IOException(reason)
 
     /**
      * Check if backup version is compatible. Accepts any `v1.x` backup; real

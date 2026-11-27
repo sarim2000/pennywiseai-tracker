@@ -42,18 +42,31 @@ class BackupExporter @Inject constructor(
 ) {
 
     /**
-     * Export complete app data to a backup file
+     * Export complete app data to a backup file. With a [passphrase] the file is
+     * encrypted ([BackupCrypto]); the caller clears the array afterwards.
      */
     suspend fun exportBackup(
         privacy: ExportPrivacy = ExportPrivacy.FULL,
-        includeReceipts: Boolean = false
+        includeReceipts: Boolean = false,
+        passphrase: CharArray? = null
     ): ExportResult {
         return try {
             val (backup, skippedReceipts) = createBackup(privacy, includeReceipts)
             val file = createBackupFile()
             try {
-                // Streamed so the photos aren't held twice more as one big JSON string.
-                withContext(Dispatchers.IO) { file.outputStream().buffered().use { backupJson.encodeToStream(backup, it) } }
+                withContext(Dispatchers.IO) {
+                    // Plaintext a restore left behind when the app died mid-restore.
+                    DecryptedBackupFiles.sweep(context.cacheDir)
+                    // Streamed so the photos aren't held twice more as one big JSON string,
+                    // and an encrypted backup's JSON is never written out in plain.
+                    file.outputStream().buffered().use { out ->
+                        if (passphrase == null) {
+                            backupJson.encodeToStream(backup, out)
+                        } else {
+                            BackupCrypto.encrypt(out, passphrase) { backupJson.encodeToStream(backup, it) }
+                        }
+                    }
+                }
             } catch (e: Throwable) {
                 file.delete() // don't leave a partial backup in cache
                 throw e

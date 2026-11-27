@@ -110,10 +110,17 @@ internal class StatementImportProcessor(
 
         val decisions = arrayOfNulls<StatementRowDecision>(parsedTransactions.size)
 
-        // 1. Exact re-imports.
+        // 1. Exact re-imports. A row an import wrote from this very line has
+        //    nothing to gain from it: what differs is a rule's or the user's
+        //    edit (a merchant a rule cleared), so it's left as it is.
         hashes.forEachIndexed { i, hash ->
             byHash[hash]?.current()?.let { hashMatch ->
-                decisions[i] = matchDecision(hashMatch, entities[i], StatementRowDecision.SkipReason.HASH)
+                decisions[i] = if (hashMatch.smsSender?.let(::isStatementSender) == true) {
+                    claim(hashMatch)
+                    StatementRowDecision.Skip(StatementRowDecision.SkipReason.HASH)
+                } else {
+                    matchDecision(hashMatch, entities[i], StatementRowDecision.SkipReason.HASH)
+                }
             }
         }
 

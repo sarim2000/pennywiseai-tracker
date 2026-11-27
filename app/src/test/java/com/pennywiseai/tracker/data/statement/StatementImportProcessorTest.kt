@@ -391,6 +391,21 @@ class StatementImportProcessorTest {
     }
 
     @Test
+    fun `an exact re-import keeps the merchant a rule cleared`() = runBlocking {
+        val line = parsedTransaction(merchant = "Swiggy", sender = StatementTableParser.STATEMENT_SENDER)
+        // What the first import wrote from this line after a rule cleared its merchant.
+        val imported = line.toEntity().copy(id = 8, merchantName = "")
+        val store = FakeTransactionStore(imported)
+
+        val result = StatementImportProcessor(store).process(listOf(line))
+
+        assertEquals(1, result.skippedByHash)
+        assertEquals(0, result.enriched)
+        assertTrue(store.updated.isEmpty())
+        assertTrue(store.inserted.isEmpty())
+    }
+
+    @Test
     fun `a row the database ignores is neither counted nor given rule history`() = runBlocking {
         val store = FakeTransactionStore()
         val rule = merchantRule("Coffee", RuleAction(TransactionField.CATEGORY, ActionType.SET, "Cafes"))
@@ -450,7 +465,8 @@ class StatementImportProcessorTest {
         reference: String? = "190200588907",
         accountLast4: String = "2468",
         timestamp: Long = baseTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-        transactionHash: String = "statement-hash"
+        transactionHash: String = "statement-hash",
+        sender: String = "GPAY_PDF"
     ): ParsedTransaction = ParsedTransaction(
         amount = amount,
         type = type,
@@ -459,7 +475,7 @@ class StatementImportProcessorTest {
         accountLast4 = accountLast4,
         balance = null,
         smsBody = "Google Pay statement row",
-        sender = "GPAY_PDF",
+        sender = sender,
         timestamp = timestamp,
         bankName = "Google Pay",
         transactionHash = transactionHash,

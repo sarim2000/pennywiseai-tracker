@@ -86,6 +86,23 @@ class AddAutomationTest {
     }
 
     @Test
+    fun `an amount in an unknown currency is dropped, not moved to the base currency`() {
+        val add = prefill("amount" to "12.50", "currency" to "XYZ", "merchant" to "Test Cafe")
+        assertNull(add.amount)
+        assertNull(add.currency)
+        assertEquals("Test Cafe", add.merchant)
+        assertNull(prefill(MainActivity.EXTRA_ADD_AMOUNT to "12.50", MainActivity.EXTRA_ADD_CURRENCY to "XYZ").amount)
+    }
+
+    @Test
+    fun `an amount without a currency is kept for the base currency`() {
+        val add = prefill("amount" to "12.50")
+        assertEquals("12.50", add.amount)
+        assertNull(add.currency)
+        assertEquals("12.50", prefill("amount" to "12.50", "currency" to "usd").amount)
+    }
+
+    @Test
     fun `an unknown type is dropped`() {
         assertNull(prefill("type" to "TRANSFER").type)
         assertNull(prefill("type" to "spend").type)

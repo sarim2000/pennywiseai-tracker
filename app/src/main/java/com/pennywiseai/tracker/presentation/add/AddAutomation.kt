@@ -42,10 +42,13 @@ object AddAutomation {
                 is String, is Number -> value.toString().trim().take(MAX_TEXT).ifEmpty { null }
                 else -> null
             }
+        val givenCurrency = text(KEY_CURRENCY, MainActivity.EXTRA_ADD_CURRENCY)
+        val currency = givenCurrency?.uppercase()?.takeIf { it in CurrencyFormatter.getSupportedCurrencies() }
         return AddTransaction(
-            amount = text(KEY_AMOUNT, MainActivity.EXTRA_ADD_AMOUNT)?.let(::amount),
-            currency = text(KEY_CURRENCY, MainActivity.EXTRA_ADD_CURRENCY)?.uppercase()
-                ?.takeIf { it in CurrencyFormatter.getSupportedCurrencies() },
+            // An amount in a currency we can't use isn't kept: the form would show it in the base currency.
+            amount = text(KEY_AMOUNT, MainActivity.EXTRA_ADD_AMOUNT)?.let(::amount)
+                ?.takeIf { givenCurrency == null || currency != null },
+            currency = currency,
             merchant = text(KEY_MERCHANT, MainActivity.EXTRA_ADD_MERCHANT),
             category = text(KEY_CATEGORY, MainActivity.EXTRA_ADD_CATEGORY),
             type = text(KEY_TYPE, MainActivity.EXTRA_ADD_TYPE)?.uppercase()?.takeIf { it in TYPES },

@@ -46,8 +46,10 @@ when it turns a value such as `0123` into the number `123`.
 Every key is optional. A value PennyWise can't use is skipped and that field is
 left for you to fill in: an amount that isn't a positive number, a currency it
 doesn't know, a type other than `EXPENSE` or `INCOME`. Text is trimmed and cut
-at 200 characters. Without `currency`, the form uses your base currency. An
-account is picked only when one in the form's currency matches.
+at 200 characters. Without `currency`, the form uses your base currency. With a
+`currency` PennyWise doesn't know, the amount is skipped too, so it is never
+shown in the wrong currency. An account is picked only when one in the form's
+currency matches.
 
 ## Examples
 

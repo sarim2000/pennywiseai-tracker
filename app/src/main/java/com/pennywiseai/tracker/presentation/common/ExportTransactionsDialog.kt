@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.BuildConfig
 import com.pennywiseai.tracker.R
@@ -45,6 +46,11 @@ fun ExportTransactionsDialog(
     val scope = rememberCoroutineScope()
     var exportState by remember { mutableStateOf<ExportState>(ExportState.Ready) }
     val csvAccess by viewModel.csvAccess.collectAsStateWithLifecycle()
+    // The CSV trial may have ended while the app was away.
+    LifecycleResumeEffect(Unit) {
+        viewModel.recheckTrial()
+        onPauseOrDispose { }
+    }
     var showUpgradeSheet by remember { mutableStateOf(false) }
     // F-Droid support nudge: on the open build there's no Pro to sell, so a
     // successful export (a Pro-equivalent power feature) is a natural, capped
@@ -182,7 +188,7 @@ fun ExportTransactionsDialog(
                         csvAccess.trialDaysLeft?.let { days ->
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = pluralStringResource(R.plurals.feature_trial_days_left, days, days),
+                                text = com.pennywiseai.tracker.presentation.paywall.trialDaysLeftLabel(days),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.fillMaxWidth(),

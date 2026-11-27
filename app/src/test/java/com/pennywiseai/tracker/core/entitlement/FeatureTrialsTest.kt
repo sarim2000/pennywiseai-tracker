@@ -3,9 +3,14 @@ package com.pennywiseai.tracker.core.entitlement
 import android.content.SharedPreferences
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -13,6 +18,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.TimeUnit
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class FeatureTrialsTest {
 
     private val stored = mutableMapOf<String, Any>()
@@ -108,6 +114,41 @@ class FeatureTrialsTest {
         assertTrue(during.unlocked)
         assertFalse(during.canStartTrial)
         assertEquals(7, during.trialDaysLeft)
+    }
+
+    @Test
+    fun `an open gate counts down and locks the moment its trial ends`() = runTest {
+        val trials = testFeatureTrials { START + testScheduler.currentTime }
+        trials.start(TrialFeature.ANALYTICS_GROUPING, isPro = false)
+        val seen = mutableListOf<FeatureAccess>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            trials.access(TrialFeature.ANALYTICS_GROUPING, MutableStateFlow(false)).collect { seen += it }
+        }
+        assertEquals(7, seen.last().trialDaysLeft)
+
+        advanceTimeBy(days(6) + 1)
+        assertEquals(1, seen.last().trialDaysLeft)
+        assertTrue(seen.last().unlocked)
+
+        advanceTimeBy(days(1))
+        assertEquals(TrialStatus.Expired, seen.last().trial)
+        assertFalse(seen.last().unlocked)
+        assertFalse(seen.last().canStartTrial)
+    }
+
+    @Test
+    fun `a recheck re-reads an open gate after the clock moved on`() = runTest {
+        trials.start(TrialFeature.CSV_EXPORT, isPro = false)
+        val seen = mutableListOf<FeatureAccess>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            trials.access(TrialFeature.CSV_EXPORT, MutableStateFlow(false)).collect { seen += it }
+        }
+        assertTrue(seen.last().unlocked)
+
+        // The device slept through the expiry, so the timed re-check hasn't fired.
+        clock += days(8)
+        trials.recheck()
+        assertFalse(seen.last().unlocked)
     }
 
     @Test

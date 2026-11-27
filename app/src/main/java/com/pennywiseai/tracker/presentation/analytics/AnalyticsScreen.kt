@@ -26,6 +26,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
@@ -90,6 +91,11 @@ fun AnalyticsScreen(
     val budgetCycleStartDay by viewModel.budgetCycleStartDay.collectAsStateWithLifecycle()
     val chartType by viewModel.selectedChartType.collectAsStateWithLifecycle()
     val groupingAccess by viewModel.groupingAccess.collectAsStateWithLifecycle()
+    // The groupings' trial may have ended while the app was away.
+    LifecycleResumeEffect(Unit) {
+        viewModel.recheckTrial()
+        onPauseOrDispose { }
+    }
     val groupBy by viewModel.groupBy.collectAsStateWithLifecycle()
     // The locked grouping that opened the upgrade sheet; its trial shows it once started.
     var lockedPick by remember { mutableStateOf<AnalyticsGroupBy?>(null) }
@@ -383,7 +389,7 @@ private fun BreakdownSection(
         }
         trialDaysLeft?.let { days ->
             Text(
-                text = pluralStringResource(R.plurals.feature_trial_days_left, days, days),
+                text = com.pennywiseai.tracker.presentation.paywall.trialDaysLeftLabel(days),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

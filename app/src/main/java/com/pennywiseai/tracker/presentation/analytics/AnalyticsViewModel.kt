@@ -116,6 +116,9 @@ class AnalyticsViewModel @Inject constructor(
             )
         )
 
+    /** Re-reads [groupingAccess] now, for the screen coming back to the foreground. */
+    fun recheckTrial() = featureTrials.recheck()
+
     /** Read now, not from [groupingAccess]: a trial can end while the screen is open. */
     private fun groupingsUnlocked(): Boolean =
         entitlementGate.isProEntitled.value || featureTrials.isActive(TrialFeature.ANALYTICS_GROUPING)

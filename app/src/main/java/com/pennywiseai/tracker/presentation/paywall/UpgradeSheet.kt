@@ -72,6 +72,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.core.entitlement.FeatureAccess
 import com.pennywiseai.tracker.core.entitlement.FeatureTrials
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -790,3 +791,15 @@ private fun ManageRow(
         }
     }
 }
+
+/**
+ * A gate's "Trial: N days left" line, from [FeatureAccess.trialDaysLeft]. The final
+ * day (24 hours or less, which rounds up to 1) reads as less than a day.
+ */
+@Composable
+fun trialDaysLeftLabel(daysLeft: Int): String =
+    if (daysLeft <= 1) {
+        stringResource(R.string.feature_trial_last_day)
+    } else {
+        pluralStringResource(R.plurals.feature_trial_days_left, daysLeft, daysLeft)
+    }

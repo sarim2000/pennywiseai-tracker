@@ -3,9 +3,13 @@ package com.pennywiseai.tracker.core.entitlement
 import android.content.Context
 import android.content.SharedPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.update
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,7 +26,10 @@ enum class TrialFeature {
 sealed interface TrialStatus {
     data object NotStarted : TrialStatus
 
-    /** [daysLeft] counts a part day as a whole one, so a fresh trial reads 7. */
+    /**
+     * [daysLeft] counts a part day as a whole one, so a fresh trial reads 7 and the
+     * final day (24 hours or less) reads 1, which gates show as less than a day.
+     */
     data class Active(val daysLeft: Int) : TrialStatus
 
     data object Expired : TrialStatus
@@ -61,25 +68,30 @@ class FeatureTrials internal constructor(
     constructor(@ApplicationContext context: Context) :
         this(context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE), System::currentTimeMillis)
 
-    /** Bumped on every start, so open gates re-read. */
+    /** Bumped on every start and [recheck], so open gates re-read. */
     private val version = MutableStateFlow(0)
 
+    fun status(feature: TrialFeature): TrialStatus = evaluate(feature).first
+
+    /** [feature]'s status now, and the ms until it next changes (null: not by itself). */
     @Synchronized
-    fun status(feature: TrialFeature): TrialStatus {
+    private fun evaluate(feature: TrialFeature): Pair<TrialStatus, Long?> {
         val start = prefs.getLong(feature.name, NOT_STARTED)
-        if (start == NOT_STARTED) return TrialStatus.NotStarted
-        if (prefs.getBoolean(expiredKey(feature), false)) return TrialStatus.Expired
+        if (start == NOT_STARTED) return TrialStatus.NotStarted to null
+        if (prefs.getBoolean(expiredKey(feature), false)) return TrialStatus.Expired to null
         val at = now()
         val latestSeen = prefs.getLong(LATEST_SEEN, start)
-        if (at < start || at < latestSeen) return TrialStatus.Expired
+        if (at < start || at < latestSeen) return TrialStatus.Expired to null
         val elapsed = at - start
         if (elapsed >= DURATION_MS) {
             prefs.edit().putBoolean(expiredKey(feature), true).putLong(LATEST_SEEN, at).apply()
-            return TrialStatus.Expired
+            return TrialStatus.Expired to null
         }
         if (at > latestSeen) prefs.edit().putLong(LATEST_SEEN, at).apply()
         val left = DURATION_MS - elapsed
-        return TrialStatus.Active(((left + DAY_MS - 1) / DAY_MS).toInt())
+        // Days left rounds up, so it drops each time [left] reaches a whole day; the last
+        // one is reached at the expiry instant.
+        return TrialStatus.Active(((left + DAY_MS - 1) / DAY_MS).toInt()) to (left - 1) % DAY_MS + 1
     }
 
     fun isActive(feature: TrialFeature): Boolean = status(feature) is TrialStatus.Active
@@ -92,12 +104,29 @@ class FeatureTrials internal constructor(
     fun start(feature: TrialFeature, isPro: Boolean?) {
         if (isPro != false || prefs.contains(feature.name)) return
         prefs.edit().putLong(feature.name, now()).apply()
-        version.value++
+        recheck()
     }
 
-    /** [feature]'s access, re-read whenever [isPro] (the resolved entitlement) changes or a trial starts. */
+    /**
+     * Makes open gates re-read now, for a screen coming back: the timed re-check in
+     * [access] runs on uptime, which stops while the device sleeps.
+     */
+    fun recheck() = version.update { it + 1 }
+
+    /**
+     * [feature]'s access, re-read whenever [isPro] (the resolved entitlement) changes, a
+     * trial starts, [recheck] is called, and, while collected, when the days left drop
+     * and the moment the trial ends, so an open gate locks again on time.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
     fun access(feature: TrialFeature, isPro: Flow<Boolean?>): Flow<FeatureAccess> =
-        combine(isPro, version) { pro, _ -> FeatureAccess(pro, status(feature)) }
+        combine(isPro, version) { pro, _ -> pro }.transformLatest { pro ->
+            while (true) {
+                val (trial, changesIn) = evaluate(feature)
+                emit(FeatureAccess(pro, trial))
+                delay(changesIn ?: break)
+            }
+        }
 
     companion object {
         const val TRIAL_DAYS = 7
@@ -106,10 +135,10 @@ class FeatureTrials internal constructor(
 
         /** The latest clock reading any trial saw; a clock behind it was wound back. */
         private const val LATEST_SEEN = "latest_seen_ms"
+        private val DAY_MS = TimeUnit.DAYS.toMillis(1)
+        private val DURATION_MS = TimeUnit.DAYS.toMillis(TRIAL_DAYS.toLong())
 
         /** Set once [feature]'s trial is seen ended, so no later clock reopens it. */
         private fun expiredKey(feature: TrialFeature) = "${feature.name}_expired"
-        private val DAY_MS = TimeUnit.DAYS.toMillis(1)
-        private val DURATION_MS = TimeUnit.DAYS.toMillis(TRIAL_DAYS.toLong())
     }
 }

@@ -43,6 +43,9 @@ class ExportViewModel @Inject constructor(
     fun startCsvTrial() =
         featureTrials.start(TrialFeature.CSV_EXPORT, entitlementGate.resolvedProEntitlement.value)
 
+    /** Re-reads [csvAccess] now, for the dialog coming back to the foreground. */
+    fun recheckTrial() = featureTrials.recheck()
+
     /** The rows an export started now writes: all of them while unlocked, else the first ones up to the cap. */
     fun <T> rowsToExport(rows: List<T>): List<T> {
         val unlimited = entitlementGate.isProEntitled.value || featureTrials.isActive(TrialFeature.CSV_EXPORT)

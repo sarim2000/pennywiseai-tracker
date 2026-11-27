@@ -25,6 +25,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.io.IOException
+import java.security.GeneralSecurityException
 
 /** A folder backup is encrypted with the saved passphrase, and never written plain when it can't be unlocked. */
 class FolderBackupRunnerTest {
@@ -64,7 +66,7 @@ class FolderBackupRunnerTest {
 
     @Test
     fun `an encrypted folder backup is written encrypted with the saved passphrase`() = runBlocking {
-        every { passphrase.load() } answers { storedPassphrase.toCharArray() }
+        coEvery { passphrase.load() } answers { storedPassphrase.toCharArray() }
 
         val result = runner.run(treeUri)
 
@@ -77,24 +79,25 @@ class FolderBackupRunnerTest {
     }
 
     @Test
-    fun `a passphrase this device can't unlock writes nothing, not a plain backup`() = runBlocking {
-        every { passphrase.load() } throws FolderBackupPassphrase.LostException(IllegalStateException("key gone"))
+    fun `a passphrase that can't be unlocked writes nothing, not a plain backup`() = runBlocking {
+        coEvery { passphrase.load() } throws FolderBackupPassphrase.LockedException(GeneralSecurityException("key gone"))
 
         val result = runner.run(treeUri)
 
-        assertEquals(FolderBackupRunner.Result.PassphraseLost, result)
+        assertEquals(FolderBackupRunner.Result.PassphraseLocked, result)
         coVerify(exactly = 0) { exporter.exportBackup(any(), any(), any()) }
         verify(exactly = 0) { writer.writeBackup(any(), any()) }
         coVerify(exactly = 0) { preferences.recordScheduledFolderBackup(any(), any()) }
     }
 
     @Test
-    fun `a Keystore that fails this time writes nothing and can be retried`() = runBlocking {
-        every { passphrase.load() } throws FolderBackupPassphrase.UnavailableException(IllegalStateException("busy"))
+    fun `an encryption setting that can't be read writes nothing, not a plain backup`() = runBlocking {
+        coEvery { passphrase.load() } throws IOException("corrupt settings file")
 
         val result = runner.run(treeUri)
 
-        assertEquals(FolderBackupRunner.Result.PassphraseUnavailable, result)
+        assertEquals(FolderBackupRunner.Result.SettingUnreadable, result)
+        coVerify(exactly = 0) { exporter.exportBackup(any(), any(), any()) }
         verify(exactly = 0) { writer.writeBackup(any(), any()) }
     }
 
@@ -102,8 +105,8 @@ class FolderBackupRunnerTest {
     fun `a backup in flight finishes before encryption turns on, so the encrypted one lands last`() = runBlocking {
         // A tiny settings store: on once save() is called.
         var saved: String? = null
-        every { passphrase.load() } answers { saved?.toCharArray() }
-        every { passphrase.save(any()) } answers { saved = String(firstArg<CharArray>()) }
+        coEvery { passphrase.load() } answers { saved?.toCharArray() }
+        coEvery { passphrase.save(any()) } answers { saved = String(firstArg<CharArray>()) }
         val exporting = CompletableDeferred<Unit>()
         val release = CompletableDeferred<Unit>()
         val writes = mutableListOf<Boolean>()
@@ -135,7 +138,7 @@ class FolderBackupRunnerTest {
 
     @Test
     fun `without a passphrase the folder backup stays plain`() = runBlocking {
-        every { passphrase.load() } returns null
+        coEvery { passphrase.load() } returns null
 
         val result = runner.run(treeUri)
 
@@ -146,7 +149,7 @@ class FolderBackupRunnerTest {
 
     @Test
     fun `a failed write is reported and not recorded`() = runBlocking {
-        every { passphrase.load() } answers { storedPassphrase.toCharArray() }
+        coEvery { passphrase.load() } answers { storedPassphrase.toCharArray() }
         every { writer.writeBackup(treeUri, any()) } returns FolderBackupWriter.Result.Failure("no space")
 
         val result = runner.run(treeUri)

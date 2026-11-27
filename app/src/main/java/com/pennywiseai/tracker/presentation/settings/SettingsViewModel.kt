@@ -195,7 +195,9 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { userPreferencesRepository.setFolderBackupIncludeReceipts(include) }
     }
 
-    val folderBackupEncryption: StateFlow<FolderBackupPassphrase.Status> = folderBackupPassphrase.status
+    /** Null until the stored setting has been read. */
+    val folderBackupEncryption: StateFlow<FolderBackupPassphrase.Status?> = folderBackupPassphrase.status
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /**
      * Encrypts automatic backups with [passphrase] (cleared once it's saved). When they're on,
@@ -977,12 +979,12 @@ class SettingsViewModel @Inject constructor(
                 }
                 result.skippedReceipts
             }
-            FolderBackupRunner.Result.PassphraseLost -> {
-                _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_passphrase_lost_subtitle)
+            FolderBackupRunner.Result.PassphraseLocked -> {
+                _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_passphrase_locked_subtitle)
                 null
             }
-            FolderBackupRunner.Result.PassphraseUnavailable -> {
-                _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_passphrase_unavailable)
+            FolderBackupRunner.Result.SettingUnreadable -> {
+                _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_encryption_unreadable)
                 null
             }
             is FolderBackupRunner.Result.Failure -> {

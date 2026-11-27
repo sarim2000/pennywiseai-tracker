@@ -239,8 +239,8 @@ class SettingsSearchTest {
             // language, developer mode, a missing notification permission.
             "settings_main_account_title", "settings_budgets_title", "subscriptions_title", "conscience_title",
             "mascot_playground_title", "settings_notifications_permission_title",
-            // Only while this device can't unlock the automatic backup passphrase.
-            "settings_folder_backup_passphrase_lost_title",
+            // Only while the automatic backup passphrase couldn't be unlocked.
+            "settings_folder_backup_passphrase_locked_title",
             // On the hub itself, above the search results' starting point; differs by flavor.
             "support_title",
             // Help links leave the app.

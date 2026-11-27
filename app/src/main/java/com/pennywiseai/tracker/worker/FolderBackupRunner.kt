@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.backup.BackupExporter
 import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.backup.FolderBackupPassphrase
 import com.pennywiseai.tracker.data.preferences.BackupPreferences
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -15,13 +16,14 @@ import javax.inject.Singleton
 
 /**
  * Writes one backup to the backup folder, for the nightly worker and "Back up now" alike.
- * With a saved passphrase the backup is encrypted; when that passphrase can't be unlocked,
- * nothing is written rather than a plain backup.
+ * With a saved passphrase the backup is encrypted. A plain backup is written only when the
+ * stored setting says so: a setting that can't be read, or a passphrase that can't be
+ * unlocked, writes nothing.
  *
  * One backup at a time, and never while encryption is being turned on or off: the nightly
  * worker and Settings share one temp file in the folder, and a backup that read "plain"
  * must not land after the user's first encrypted one. Everything here runs on IO: the
- * Keystore, prefs commits and SAF copies all block.
+ * Keystore and SAF copies block.
  */
 @Singleton
 class FolderBackupRunner @Inject constructor(
@@ -34,11 +36,11 @@ class FolderBackupRunner @Inject constructor(
         /** Written; [skippedReceipts] PDFs were too large to include. */
         data class Success(val skippedReceipts: Int) : Result()
 
-        /** The saved passphrase can't be unlocked: the user has to enter it again. Nothing was written. */
-        data object PassphraseLost : Result()
+        /** The saved passphrase couldn't be unlocked. Nothing was written; a later try, or entering it again, may work. */
+        data object PassphraseLocked : Result()
 
-        /** The Keystore failed this time; nothing was written and a later try may work. */
-        data object PassphraseUnavailable : Result()
+        /** Whether to encrypt couldn't be read, so nothing was written. */
+        data object SettingUnreadable : Result()
 
         data class Failure(val message: String) : Result()
     }
@@ -59,10 +61,13 @@ class FolderBackupRunner @Inject constructor(
         // Read under the lock, so it holds until this backup is in the folder.
         val passphrase = try {
             folderBackupPassphrase.load()
-        } catch (e: FolderBackupPassphrase.LostException) {
-            return Result.PassphraseLost
-        } catch (e: FolderBackupPassphrase.UnavailableException) {
-            return Result.PassphraseUnavailable
+        } catch (e: FolderBackupPassphrase.LockedException) {
+            return Result.PassphraseLocked
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Usually an IOException from DataStore: never read as "plain".
+            return Result.SettingUnreadable
         }
         val exportResult = try {
             backupExporter.exportBackup(

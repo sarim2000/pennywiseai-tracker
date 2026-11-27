@@ -1,174 +1,219 @@
 package com.pennywiseai.tracker.data.backup
 
-import android.content.Context
-import android.content.SharedPreferences
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import com.pennywiseai.tracker.core.DeviceSecretBox
 import io.mockk.every
-import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import java.io.File
 import java.io.IOException
-import java.security.KeyStoreException
-import java.security.ProviderException
-import java.security.UnrecoverableKeyException
-import javax.crypto.AEADBadTagException
+import java.security.GeneralSecurityException
 
-/** The folder backup passphrase setting is only "on" once it's stored, and a missing secret fails closed. */
+/** The folder backup encryption setting is only "on" once it's stored, and anything unreadable fails closed. */
 class FolderBackupPassphraseTest {
-    private val prefs = FakePrefs()
-    private val context = mockk<Context> {
-        every { getSharedPreferences("folder_backup", Context.MODE_PRIVATE) } returns prefs
+    @get:Rule val tmp = TemporaryFolder()
+
+    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val disk by lazy {
+        PreferenceDataStoreFactory.create(scope = scope, produceFile = { File(tmp.root, "folder_backup.preferences_pb") })
     }
+
+    /** A Keystore stand-in: alias -> key, where sealing creates a key and opening never does. */
+    private val keys = mutableMapOf<String, Int>()
+    private var nextKey = 0
 
     @Before
     fun setUp() {
         mockkObject(DeviceSecretBox)
-        every { DeviceSecretBox.seal(any(), any()) } answers { "sealed:" + firstArg<String>() }
-        every { DeviceSecretBox.open(any(), any()) } answers { firstArg<String>().removePrefix("sealed:") }
+        every { DeviceSecretBox.seal(any(), any()) } answers {
+            val key = keys.getOrPut(secondArg()) { nextKey++ }
+            "$key:" + firstArg<String>()
+        }
+        every { DeviceSecretBox.open(any(), any()) } answers {
+            val key = keys[secondArg()] ?: throw GeneralSecurityException("no key")
+            val (sealedWith, plain) = firstArg<String>().split(":", limit = 2)
+            if (sealedWith != key.toString()) throw GeneralSecurityException("tag mismatch")
+            plain
+        }
+        every { DeviceSecretBox.delete(any()) } answers { keys.remove(firstArg()); Unit }
     }
 
     @After
-    fun tearDown() = unmockkObject(DeviceSecretBox)
-
-    @Test
-    fun `a passphrase that couldn't be stored leaves encryption off and says so`() {
-        val store = FolderBackupPassphrase(context)
-        prefs.commitSucceeds = false
-
-        assertThrows(IOException::class.java) { store.save("synthetic phrase".toCharArray()) }
-
-        assertEquals(FolderBackupPassphrase.Status.OFF, store.status.value)
-        assertNull(FolderBackupPassphrase(context).load())
+    fun tearDown() {
+        unmockkObject(DeviceSecretBox)
+        scope.cancel()
     }
 
     @Test
-    fun `a stored passphrase is on after a restart`() {
-        FolderBackupPassphrase(context).save("synthetic phrase".toCharArray())
+    fun `nothing stored means plain backups`() = runBlocking {
+        val store = FolderBackupPassphrase(disk)
 
-        val restarted = FolderBackupPassphrase(context)
+        assertNull(store.load())
+        assertEquals(FolderBackupPassphrase.Status.OFF, store.status.first())
+    }
 
-        assertEquals(FolderBackupPassphrase.Status.ON, restarted.status.value)
+    @Test
+    fun `a stored passphrase is on and opens after a restart`() = runBlocking {
+        FolderBackupPassphrase(disk).save("synthetic phrase".toCharArray())
+
+        val restarted = FolderBackupPassphrase(disk)
+
+        assertEquals(FolderBackupPassphrase.Status.ON, restarted.status.first())
         assertArrayEquals("synthetic phrase".toCharArray(), restarted.load())
     }
 
     @Test
-    fun `a missing secret with encryption on stops backups instead of writing them plain`() {
-        FolderBackupPassphrase(context).save("synthetic phrase".toCharArray())
-        prefs.values.remove(FolderBackupPassphrase.KEY_SEALED)
+    fun `a passphrase that couldn't be stored leaves encryption off and its new key gone`() = runBlocking {
+        val store = FolderBackupPassphrase(failingWrites(disk))
 
-        val restarted = FolderBackupPassphrase(context)
+        assertThrows<IOException> { store.save("synthetic phrase".toCharArray()) }
 
-        assertEquals(FolderBackupPassphrase.Status.LOST, restarted.status.value)
-        assertThrows(FolderBackupPassphrase.LostException::class.java) { restarted.load() }
+        assertNull(store.load())
+        assertTrue("the key made for it is deleted", keys.isEmpty())
     }
 
     @Test
-    fun `turning encryption off that couldn't be stored keeps it on`() {
-        val store = FolderBackupPassphrase(context)
-        store.save("synthetic phrase".toCharArray())
-        prefs.commitSucceeds = false
+    fun `turning encryption off that couldn't be stored keeps it on`() = runBlocking {
+        FolderBackupPassphrase(disk).save("synthetic phrase".toCharArray())
+        val store = FolderBackupPassphrase(failingWrites(disk))
 
-        assertThrows(IOException::class.java) { store.clear() }
+        assertThrows<IOException> { store.clear() }
 
-        assertEquals(FolderBackupPassphrase.Status.ON, store.status.value)
         assertArrayEquals("synthetic phrase".toCharArray(), store.load())
     }
 
     @Test
-    fun `a transient Keystore error retries later and doesn't mark the passphrase lost`() {
-        val store = FolderBackupPassphrase(context)
-        store.save("synthetic phrase".toCharArray())
-        every { DeviceSecretBox.open(any(), any()) } throws ProviderException("keystore busy")
+    fun `a setting that can't be read is an error, never a plain backup`() = runBlocking {
+        val store = FolderBackupPassphrase(unreadable())
 
-        assertThrows(FolderBackupPassphrase.UnavailableException::class.java) { store.load() }
-
-        assertEquals(FolderBackupPassphrase.Status.ON, store.status.value)
-        assertEquals(FolderBackupPassphrase.Status.ON, FolderBackupPassphrase(context).status.value)
+        assertThrows<IOException> { store.load() }
+        assertEquals(FolderBackupPassphrase.Status.LOCKED, store.status.first())
     }
 
     @Test
-    fun `a key that no longer opens the passphrase marks it lost`() {
-        val store = FolderBackupPassphrase(context)
-        store.save("synthetic phrase".toCharArray())
-        every { DeviceSecretBox.open(any(), any()) } throws AEADBadTagException("tag mismatch")
+    fun `encryption on without its sealed passphrase fails closed`() = runBlocking {
+        FolderBackupPassphrase(disk).save("synthetic phrase".toCharArray())
+        disk.edit { it.remove(FolderBackupPassphrase.KEY_SEALED) }
 
-        assertThrows(FolderBackupPassphrase.LostException::class.java) { store.load() }
+        val store = FolderBackupPassphrase(disk)
 
-        assertEquals(FolderBackupPassphrase.Status.LOST, store.status.value)
-        assertEquals(FolderBackupPassphrase.Status.LOST, FolderBackupPassphrase(context).status.value)
+        assertThrows<FolderBackupPassphrase.LockedException> { store.load() }
+        assertEquals(FolderBackupPassphrase.Status.LOCKED, store.status.first())
     }
 
     @Test
-    fun `a passphrase marked lost that opens again clears the warning`() {
-        FolderBackupPassphrase(context).save("synthetic phrase".toCharArray())
-        prefs.values[FolderBackupPassphrase.KEY_LOST] = true
-        val store = FolderBackupPassphrase(context)
-        assertEquals(FolderBackupPassphrase.Status.LOST, store.status.value)
+    fun `a missing key fails that backup without making one or marking anything on disk`() = runBlocking {
+        val store = FolderBackupPassphrase(disk)
+        store.save("synthetic phrase".toCharArray())
+        keys.clear()
+
+        assertThrows<FolderBackupPassphrase.LockedException> { store.load() }
+
+        assertTrue("unlocking never creates a key", keys.isEmpty())
+        assertEquals(FolderBackupPassphrase.Status.LOCKED, store.status.first())
+        // Nothing was written: a fresh start reads the setting as it was saved.
+        assertEquals(FolderBackupPassphrase.Status.ON, FolderBackupPassphrase(disk).status.first())
+    }
+
+    @Test
+    fun `an unlock that works again clears the warning`() = runBlocking {
+        val store = FolderBackupPassphrase(disk)
+        store.save("synthetic phrase".toCharArray())
+        every { DeviceSecretBox.open(any(), any()) } throws GeneralSecurityException("keystore busy")
+        assertThrows<FolderBackupPassphrase.LockedException> { store.load() }
+        assertEquals(FolderBackupPassphrase.Status.LOCKED, store.status.first())
+
+        every { DeviceSecretBox.open(any(), any()) } returns "synthetic phrase"
 
         assertArrayEquals("synthetic phrase".toCharArray(), store.load())
-
-        assertEquals(FolderBackupPassphrase.Status.ON, store.status.value)
-        assertEquals(FolderBackupPassphrase.Status.ON, FolderBackupPassphrase(context).status.value)
+        assertEquals(FolderBackupPassphrase.Status.ON, store.status.first())
     }
 
     @Test
-    fun `only errors retrying can't fix count as permanent`() {
-        assertTrue(FolderBackupPassphrase.isPermanent(AEADBadTagException()))
-        assertTrue(FolderBackupPassphrase.isPermanent(UnrecoverableKeyException()))
-        assertTrue(FolderBackupPassphrase.isPermanent(IllegalArgumentException("bad base64")))
-        assertFalse(FolderBackupPassphrase.isPermanent(ProviderException("keystore busy")))
-        assertFalse(FolderBackupPassphrase.isPermanent(KeyStoreException("not ready")))
+    fun `entering the passphrase again seals it under a fresh key and drops the old one`() = runBlocking {
+        val store = FolderBackupPassphrase(disk)
+        store.save("synthetic phrase".toCharArray())
+        val firstAlias = disk.data.first()[FolderBackupPassphrase.KEY_ALIAS]!!
+        keys[firstAlias] = -1 // replaced, so the old seal no longer opens
+        assertThrows<FolderBackupPassphrase.LockedException> { store.load() }
+
+        store.save("synthetic phrase".toCharArray())
+
+        val secondAlias = disk.data.first()[FolderBackupPassphrase.KEY_ALIAS]!!
+        assertNotEquals(firstAlias, secondAlias)
+        assertEquals(setOf(secondAlias), keys.keys)
+        assertEquals(FolderBackupPassphrase.Status.ON, store.status.first())
+        assertArrayEquals("synthetic phrase".toCharArray(), store.load())
     }
 
-    /** In-memory prefs whose commit can fail, like a full disk. */
-    private class FakePrefs : SharedPreferences {
-        val values = mutableMapOf<String, Any?>()
-        var commitSucceeds = true
+    @Test
+    fun `a failed re-entry keeps the passphrase and key in use`() = runBlocking {
+        FolderBackupPassphrase(disk).save("synthetic phrase".toCharArray())
+        val alias = disk.data.first()[FolderBackupPassphrase.KEY_ALIAS]!!
+        val store = FolderBackupPassphrase(failingWrites(disk))
 
-        override fun getAll(): Map<String, *> = values.toMap()
-        override fun getString(key: String, defValue: String?) = values[key] as String? ?: defValue
-        override fun getStringSet(key: String, defValues: Set<String>?) = defValues
-        override fun getInt(key: String, defValue: Int) = values[key] as Int? ?: defValue
-        override fun getLong(key: String, defValue: Long) = values[key] as Long? ?: defValue
-        override fun getFloat(key: String, defValue: Float) = values[key] as Float? ?: defValue
-        override fun getBoolean(key: String, defValue: Boolean) = values[key] as Boolean? ?: defValue
-        override fun contains(key: String) = key in values
-        override fun edit(): SharedPreferences.Editor = Editor()
-        override fun registerOnSharedPreferenceChangeListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = Unit
-        override fun unregisterOnSharedPreferenceChangeListener(l: SharedPreferences.OnSharedPreferenceChangeListener) = Unit
+        assertThrows<IOException> { store.save("another synthetic phrase".toCharArray()) }
 
-        private inner class Editor : SharedPreferences.Editor {
-            private val puts = mutableMapOf<String, Any?>()
-            private val removes = mutableSetOf<String>()
+        assertEquals(setOf(alias), keys.keys)
+        assertArrayEquals("synthetic phrase".toCharArray(), store.load())
+    }
 
-            override fun putString(key: String, value: String?) = apply { puts[key] = value }
-            override fun putStringSet(key: String, values: Set<String>?) = apply { puts[key] = values }
-            override fun putInt(key: String, value: Int) = apply { puts[key] = value }
-            override fun putLong(key: String, value: Long) = apply { puts[key] = value }
-            override fun putFloat(key: String, value: Float) = apply { puts[key] = value }
-            override fun putBoolean(key: String, value: Boolean) = apply { puts[key] = value }
-            override fun remove(key: String) = apply { removes += key }
-            override fun clear() = apply { removes += values.keys }
+    @Test
+    fun `turning encryption off deletes the key`() = runBlocking {
+        val store = FolderBackupPassphrase(disk)
+        store.save("synthetic phrase".toCharArray())
 
-            override fun commit(): Boolean {
-                if (!commitSucceeds) return false
-                removes.forEach { values.remove(it) }
-                values.putAll(puts)
-                return true
-            }
+        store.clear()
 
-            override fun apply() {
-                commit()
-            }
+        assertNull(store.load())
+        assertTrue(keys.isEmpty())
+        assertEquals(FolderBackupPassphrase.Status.OFF, store.status.first())
+    }
+
+    private suspend inline fun <reified T : Throwable> assertThrows(crossinline block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (e: Throwable) {
+            if (e is T) return
+            throw e
+        }
+        fail("expected ${T::class.simpleName}")
+    }
+
+    /** Reads [real], but every write fails like a full disk. */
+    private fun failingWrites(real: DataStore<Preferences>) = object : DataStore<Preferences> {
+        override val data: Flow<Preferences> = real.data
+        override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+            throw IOException("disk full")
+        }
+    }
+
+    private fun unreadable() = object : DataStore<Preferences> {
+        override val data: Flow<Preferences> = flow { throw IOException("corrupt") }
+        override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+            throw IOException("corrupt")
         }
     }
 }

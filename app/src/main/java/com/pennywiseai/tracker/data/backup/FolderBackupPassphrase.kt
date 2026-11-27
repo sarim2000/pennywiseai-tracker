@@ -1,32 +1,47 @@
 package com.pennywiseai.tracker.data.backup
 
 import android.content.Context
-import android.content.SharedPreferences
-import android.security.keystore.KeyPermanentlyInvalidatedException
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.core.DeviceSecretBox
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.io.IOException
-import java.security.UnrecoverableKeyException
-import javax.crypto.AEADBadTagException
+import java.security.GeneralSecurityException
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private val Context.folderBackupEncryptionStore: DataStore<Preferences> by preferencesDataStore(
+    name = "folder_backup_encryption"
+)
+
 /**
- * The passphrase automatic folder backups are encrypted with, sealed with an Android Keystore
- * key. It lives in app-private prefs, outside PennyWise backups and Android backup
- * (allowBackup=false), so it never travels with a backup file.
+ * Whether automatic folder backups are encrypted, and the passphrase they're encrypted with,
+ * sealed with an Android Keystore key. It lives in its own app-private DataStore, outside
+ * PennyWise backups and Android backup (allowBackup=false), so it never travels with a
+ * backup file.
  *
- * Writes are committed before the status changes, and "encryption is on" is its own flag:
- * a sealed passphrase that's missing or can't be read stops backups, never turns them plain.
- * Call from a background thread.
+ * A DataStore edit is all or nothing: a write that fails throws and leaves the setting as it
+ * was. A setting that can't be read stops backups; it never turns them plain.
  */
 @Singleton
-class FolderBackupPassphrase @Inject constructor(
-    @ApplicationContext context: Context
+class FolderBackupPassphrase internal constructor(
+    private val store: DataStore<Preferences>
 ) {
+    // Production always takes the delegate: a second DataStore on the same file throws.
+    @Inject
+    constructor(@ApplicationContext context: Context) : this(context.folderBackupEncryptionStore)
+
     enum class Status {
         /** Folder backups are written plain. */
         OFF,
@@ -34,36 +49,51 @@ class FolderBackupPassphrase @Inject constructor(
         /** Folder backups are encrypted with the saved passphrase. */
         ON,
 
-        /** A passphrase is saved but this device can no longer unseal it: backups stop until it's entered again. */
-        LOST
+        /** Encryption is on but the passphrase couldn't be unlocked: no backup is written until it is. */
+        LOCKED
     }
 
-    /** The saved passphrase can't be unsealed, now or later. Never fall back to a plain backup. */
-    class LostException(cause: Throwable?) : Exception("Backup passphrase can't be unlocked", cause)
+    /** The saved passphrase couldn't be unlocked. Never fall back to a plain backup. */
+    class LockedException(cause: Throwable?) : Exception("Backup passphrase can't be unlocked", cause)
 
-    /** The Keystore failed this time (busy, locked, a provider error): try again later. */
-    class UnavailableException(cause: Throwable) : Exception("Backup passphrase can't be unlocked right now", cause)
+    // In memory only: a later backup that unlocks it, or a new passphrase, clears it.
+    private val unlockFailed = MutableStateFlow(false)
 
-    private val prefs = context.getSharedPreferences("folder_backup", Context.MODE_PRIVATE)
-
-    private val _status = MutableStateFlow(
-        when {
-            !isRequired() -> Status.OFF
-            prefs.getBoolean(KEY_LOST, false) || !prefs.contains(KEY_SEALED) -> Status.LOST
-            else -> Status.ON
-        }
-    )
-    val status: StateFlow<Status> = _status.asStateFlow()
+    val status: Flow<Status> = combine(
+        store.data.map { prefs ->
+            when {
+                !isRequired(prefs) -> Status.OFF
+                prefs[KEY_SEALED] == null || prefs[KEY_ALIAS] == null -> Status.LOCKED
+                else -> Status.ON
+            }
+        }.catch { emit(Status.LOCKED) },
+        unlockFailed
+    ) { stored, failed -> if (stored == Status.ON && failed) Status.LOCKED else stored }
 
     /**
      * Encrypts folder backups from now on with [passphrase]; the caller clears the array.
+     * It's sealed under a fresh Keystore key, which takes over only once it's stored; the
+     * previous key is deleted after that.
      *
      * @throws IOException when it couldn't be stored; nothing changes then.
      */
-    fun save(passphrase: CharArray) {
-        val sealed = DeviceSecretBox.seal(String(passphrase), ALIAS)
-        commit { putString(KEY_SEALED, sealed).putBoolean(KEY_REQUIRED, true).remove(KEY_LOST) }
-        _status.value = Status.ON
+    suspend fun save(passphrase: CharArray) {
+        val alias = ALIAS_PREFIX + UUID.randomUUID()
+        val sealed = DeviceSecretBox.seal(String(passphrase), alias)
+        var previous: String? = null
+        try {
+            store.edit { prefs ->
+                previous = prefs[KEY_ALIAS]
+                prefs[KEY_ENCRYPT] = true
+                prefs[KEY_SEALED] = sealed
+                prefs[KEY_ALIAS] = alias
+            }
+        } catch (e: IOException) {
+            runCatching { DeviceSecretBox.delete(alias) }
+            throw e
+        }
+        unlockFailed.value = false
+        previous?.takeIf { it != alias }?.let { old -> runCatching { DeviceSecretBox.delete(old) } }
     }
 
     /**
@@ -71,61 +101,48 @@ class FolderBackupPassphrase @Inject constructor(
      *
      * @throws IOException when that couldn't be stored; they stay encrypted then.
      */
-    fun clear() {
-        commit { remove(KEY_SEALED).remove(KEY_REQUIRED).remove(KEY_LOST) }
-        _status.value = Status.OFF
+    suspend fun clear() {
+        var previous: String? = null
+        store.edit { prefs ->
+            previous = prefs[KEY_ALIAS]
+            prefs[KEY_ENCRYPT] = false
+            prefs.remove(KEY_SEALED)
+            prefs.remove(KEY_ALIAS)
+        }
+        unlockFailed.value = false
+        previous?.let { old -> runCatching { DeviceSecretBox.delete(old) } }
     }
 
     /**
      * The passphrase to encrypt the next folder backup with (the caller clears it), or null
-     * when folder backups aren't encrypted.
+     * only when the stored setting says folder backups are plain.
      *
-     * @throws LostException when the saved passphrase is gone or its Keystore key no longer opens it.
-     * @throws UnavailableException when the Keystore failed this time; nothing is marked lost.
+     * @throws IOException when the setting couldn't be read.
+     * @throws LockedException when encryption is on but the passphrase can't be unlocked.
      */
-    fun load(): CharArray? {
-        if (!isRequired()) return null
-        val sealed = prefs.getString(KEY_SEALED, null) ?: throw markLost(null)
+    suspend fun load(): CharArray? {
+        val prefs = store.data.first()
+        if (!isRequired(prefs)) return null
         val passphrase = try {
-            DeviceSecretBox.open(sealed, ALIAS).toCharArray()
+            val sealed = prefs[KEY_SEALED] ?: throw GeneralSecurityException("No saved passphrase")
+            val alias = prefs[KEY_ALIAS] ?: throw GeneralSecurityException("No key for the saved passphrase")
+            DeviceSecretBox.open(sealed, alias).toCharArray()
         } catch (e: Exception) {
-            throw if (isPermanent(e)) markLost(e) else UnavailableException(e)
+            unlockFailed.value = true
+            throw LockedException(e)
         }
-        if (_status.value != Status.ON) {
-            // It opens after all: whatever marked it lost has passed, so backups go on.
-            prefs.edit().remove(KEY_LOST).commit()
-            _status.value = Status.ON
-        }
+        unlockFailed.value = false
         return passphrase
     }
 
-    // Either one means "encrypt": a half-present setting fails closed.
-    private fun isRequired() = prefs.getBoolean(KEY_REQUIRED, false) || prefs.contains(KEY_SEALED)
-
-    private fun markLost(cause: Throwable?): LostException {
-        prefs.edit().putBoolean(KEY_LOST, true).commit()
-        _status.value = Status.LOST
-        return LostException(cause)
-    }
-
-    private fun commit(change: SharedPreferences.Editor.() -> SharedPreferences.Editor) {
-        if (!prefs.edit().change().commit()) throw IOException("Couldn't store the folder backup passphrase setting")
-    }
-
     internal companion object {
-        const val ALIAS = "pennywise_folder_backup_passphrase"
-        const val KEY_SEALED = "passphrase_sealed"
-        const val KEY_REQUIRED = "encryption_required"
-        const val KEY_LOST = "passphrase_lost"
+        /** Each passphrase gets its own key: this plus a random suffix, stored beside it. */
+        const val ALIAS_PREFIX = "pennywise_folder_backup_passphrase_"
+        val KEY_ENCRYPT = booleanPreferencesKey("encrypt")
+        val KEY_SEALED = stringPreferencesKey("passphrase_sealed")
+        val KEY_ALIAS = stringPreferencesKey("passphrase_key_alias")
 
-        /**
-         * Errors that retrying can't fix: the key was invalidated or replaced (a missing key is
-         * recreated, so the old sealed value fails its tag), or the sealed value is malformed.
-         */
-        fun isPermanent(e: Throwable): Boolean = e is KeyPermanentlyInvalidatedException ||
-            e is AEADBadTagException ||
-            e is UnrecoverableKeyException ||
-            e is IllegalArgumentException ||
-            e is IndexOutOfBoundsException
+        // Either one means "encrypt": a half-present setting fails closed.
+        fun isRequired(prefs: Preferences) = prefs[KEY_ENCRYPT] == true || prefs[KEY_SEALED] != null
     }
 }

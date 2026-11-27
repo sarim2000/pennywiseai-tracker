@@ -56,7 +56,7 @@ class BackupMomentsTest {
     private val importer = mockk<BackupImporter>()
     private val writer = mockk<FolderBackupWriter>()
     private val passphrase = mockk<FolderBackupPassphrase> {
-        every { load() } returns null
+        coEvery { load() } returns null
         every { status } returns MutableStateFlow(FolderBackupPassphrase.Status.OFF)
     }
     private val moments = MascotMoments(AppForegroundState { true })
@@ -149,7 +149,7 @@ class BackupMomentsTest {
     fun `back up now unlocks the passphrase and writes off the main thread`() {
         val mainThread = Thread.currentThread()
         val threads = mutableListOf<Thread>()
-        every { passphrase.load() } answers { threads += Thread.currentThread(); null }
+        coEvery { passphrase.load() } answers { threads += Thread.currentThread(); null }
         every { writer.canWriteToFolder(any()) } answers { threads += Thread.currentThread(); true }
         every { writer.writeBackup(any(), any()) } answers {
             threads += Thread.currentThread()
@@ -166,8 +166,8 @@ class BackupMomentsTest {
     @Test
     fun `encryption chosen before automatic backups are on makes their first backup encrypted`() {
         var saved: CharArray? = null
-        every { passphrase.save(any()) } answers { saved = firstArg<CharArray>().copyOf() }
-        every { passphrase.load() } answers { saved?.copyOf() }
+        coEvery { passphrase.save(any()) } answers { saved = firstArg<CharArray>().copyOf() }
+        coEvery { passphrase.load() } answers { saved?.copyOf() }
         var exportedWithPassphrase: Boolean? = null
         coEvery { exporter.exportBackup(any(), any(), any()) } answers {
             exportedWithPassphrase = thirdArg<CharArray?>() != null
@@ -199,14 +199,14 @@ class BackupMomentsTest {
     }
 
     @Test
-    fun `back up now with a passphrase this device can't unlock asks for it again and writes nothing`() {
+    fun `back up now with a passphrase that can't be unlocked asks for it again and writes nothing`() {
         // writeBackup isn't stubbed: a write would fail the test.
-        every { passphrase.load() } throws FolderBackupPassphrase.LostException(IllegalStateException("key gone"))
+        coEvery { passphrase.load() } throws FolderBackupPassphrase.LockedException(IllegalStateException("key gone"))
 
         viewModel.backupToFolderNow()
         awaitMessage()
 
-        assertEquals(UiText.Res(R.string.settings_folder_backup_passphrase_lost_subtitle), viewModel.importExportMessage.value)
+        assertEquals(UiText.Res(R.string.settings_folder_backup_passphrase_locked_subtitle), viewModel.importExportMessage.value)
         assertEquals(emptyList<MascotMoment>(), heard)
     }
 

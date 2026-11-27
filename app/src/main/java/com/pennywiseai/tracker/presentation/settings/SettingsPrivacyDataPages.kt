@@ -257,11 +257,11 @@ internal fun DataPage(
     SectionHeaderV2(title = stringResource(R.string.settings_group_auto_backup))
     // Encryption can be chosen before backups are turned on, so the first one isn't written plain.
     val showFolderEncryption = scheduledFolderBackupEnabled || isProEntitled
-    val folderPassphraseLost = showFolderEncryption && folderBackupEncryption == FolderBackupPassphrase.Status.LOST
+    val folderPassphraseLocked = showFolderEncryption && folderBackupEncryption == FolderBackupPassphrase.Status.LOCKED
     val autoBackupRows = 1 +
         (if (scheduledFolderBackupEnabled) 3 else 0) +
         (if (showFolderEncryption) 1 else 0) +
-        (if (folderPassphraseLost) 1 else 0)
+        (if (folderPassphraseLocked) 1 else 0)
     var autoBackupRow = 0
     SettingsGroup {
         SettingsSwitchRow(
@@ -324,23 +324,25 @@ internal fun DataPage(
                 title = stringResource(R.string.settings_folder_backup_encrypt_title),
                 subtitle = stringResource(
                     when (folderBackupEncryption) {
-                        FolderBackupPassphrase.Status.OFF -> R.string.settings_folder_backup_encrypt_subtitle_off
+                        null, FolderBackupPassphrase.Status.OFF -> R.string.settings_folder_backup_encrypt_subtitle_off
                         FolderBackupPassphrase.Status.ON -> R.string.settings_folder_backup_encrypt_subtitle_on
-                        FolderBackupPassphrase.Status.LOST -> R.string.settings_folder_backup_encrypt_subtitle_lost
+                        FolderBackupPassphrase.Status.LOCKED -> R.string.settings_folder_backup_encrypt_subtitle_locked
                     }
                 ),
-                checked = folderBackupEncryption != FolderBackupPassphrase.Status.OFF,
+                checked = folderBackupEncryption.let { it != null && it != FolderBackupPassphrase.Status.OFF },
                 onCheckedChange = { encrypt ->
                     if (encrypt) showFolderPassphraseDialog = true else settingsViewModel.turnOffFolderBackupEncryption()
                 },
-                position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
+                position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
+                // Not before the stored setting is read: the switch would show a guess.
+                enabled = folderBackupEncryption != null
             )
             // Backups stop rather than go out plain: say so until the passphrase is entered again.
-            if (folderPassphraseLost) {
+            if (folderPassphraseLocked) {
                 SettingsNavItem(
                     icon = Icons.Default.Warning,
-                    title = stringResource(R.string.settings_folder_backup_passphrase_lost_title),
-                    subtitle = stringResource(R.string.settings_folder_backup_passphrase_lost_subtitle),
+                    title = stringResource(R.string.settings_folder_backup_passphrase_locked_title),
+                    subtitle = stringResource(R.string.settings_folder_backup_passphrase_locked_subtitle),
                     onClick = { showFolderPassphraseDialog = true },
                     position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
                     problem = true

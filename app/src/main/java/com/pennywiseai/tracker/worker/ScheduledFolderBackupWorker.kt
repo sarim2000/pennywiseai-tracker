@@ -40,13 +40,13 @@ class ScheduledFolderBackupWorker @AssistedInject constructor(
                 Log.i(TAG, "Scheduled folder backup completed")
                 Result.success()
             }
-            // Retrying can't help, and a plain backup isn't an option: Settings asks for the passphrase again.
-            FolderBackupRunner.Result.PassphraseLost -> {
-                Log.e(TAG, "Scheduled folder backup skipped: the backup passphrase can't be unlocked")
-                Result.failure()
+            // Never a plain backup instead: try again later, and Settings asks for the passphrase meanwhile.
+            FolderBackupRunner.Result.PassphraseLocked -> {
+                Log.w(TAG, "Scheduled folder backup postponed: the backup passphrase couldn't be unlocked")
+                Result.retry()
             }
-            FolderBackupRunner.Result.PassphraseUnavailable -> {
-                Log.w(TAG, "Scheduled folder backup postponed: the Keystore couldn't unlock the passphrase")
+            FolderBackupRunner.Result.SettingUnreadable -> {
+                Log.w(TAG, "Scheduled folder backup postponed: the encryption setting couldn't be read")
                 Result.retry()
             }
             is FolderBackupRunner.Result.Failure -> {

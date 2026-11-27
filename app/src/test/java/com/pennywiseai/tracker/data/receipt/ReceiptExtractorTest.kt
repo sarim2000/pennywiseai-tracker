@@ -221,6 +221,22 @@ class ReceiptExtractorTest {
     }
 
     @Test
+    fun `letter and multi-character marks name their currency`() {
+        scan("TOTAL RM 27.30").let {
+            assertEquals(BigDecimal("27.30"), it.amount)
+            assertEquals("MYR", it.currency)
+        }
+        scan("TOTAL E£ 150.00").let {
+            assertEquals(BigDecimal("150.00"), it.amount)
+            assertEquals("EGP", it.currency)
+        }
+        assertEquals("AED", scan("Total Dhs 25.00").currency)
+        assertEquals("THB", scan("TOTAL ฿ 120.00").currency)
+        // A word that only contains the letters is no mark.
+        assertEquals(setOf<String>(), scan("TOTAL 9.45", "RMA returns within 30 days").currencies)
+    }
+
+    @Test
     fun `a shared mark only says which currencies it could be`() {
         assertEquals(setOf("INR", "PKR", "LKR", "NPR"), scan("Net payable Rs. 450.00").currencies)
         assertTrue("USD" in scan("Total $12.00").currencies)

@@ -226,11 +226,17 @@ object ReceiptExtractor {
 
     // ── Currency ──
 
-    // Marks that name one currency.
+    // Marks that name one currency. Read longest first, so "E£" is pounds of Egypt, not "£".
     private val CURRENCY_MARKS = mapOf(
         "₹" to "INR", "€" to "EUR", "£" to "GBP", "₩" to "KRW", "₱" to "PHP", "₺" to "TRY",
         "₫" to "VND", "₦" to "NGN", "৳" to "BDT", "د.إ" to "AED", "ر.س" to "SAR",
-    )
+        "E£" to "EGP", "฿" to "THB", "₪" to "ILS", "₴" to "UAH", "zł" to "PLN", "Kč" to "CZK",
+    ).entries.sortedByDescending { it.key.length }
+
+    // Letter marks that name one currency, as printed: "RM 27.30", "Dhs 25.00", "Rp 15.000".
+    // Short ones that are also common words or labels ("SR", "QR", "LE") are left out.
+    private val WORD_MARKS = mapOf("RM" to "MYR", "Dhs" to "AED", "DHS" to "AED", "Dh" to "AED", "Rp" to "IDR")
+    private val WORD_MARK = Regex("""(?<![A-Za-z])(?:RM|Dhs|DHS|Dh|Rp)(?![A-Za-z])\.?""")
     private val CURRENCY_CODES = setOf(
         "INR", "USD", "EUR", "GBP", "AED", "SAR", "QAR", "KWD", "BHD", "OMR", "JOD", "EGP",
         "PKR", "BDT", "LKR", "NPR", "SGD", "MYR", "THB", "IDR", "PHP", "VND", "JPY", "CNY",
@@ -255,8 +261,8 @@ object ReceiptExtractor {
     // Everything [currencyOf] reads as a currency, to see past it on a figure's line.
     private val CURRENCY_WORDS = Regex(
         (
-            CURRENCY_MARKS.keys.map { Regex.escape(it) } +
-                listOf(CURRENCY_CODES.joinToString("|", """(?<![A-Za-z])(?:""", """)(?![A-Za-z])"""), DOLLAR.pattern, "(?i:${RUPEES.pattern}|${KRONOR.pattern})", "¥")
+            CURRENCY_MARKS.map { Regex.escape(it.key) } +
+                listOf(WORD_MARK.pattern, CURRENCY_CODES.joinToString("|", """(?<![A-Za-z])(?:""", """)(?![A-Za-z])"""), DOLLAR.pattern, "(?i:${RUPEES.pattern}|${KRONOR.pattern})", "¥")
             ).joinToString("|")
     )
 
@@ -277,15 +283,24 @@ object ReceiptExtractor {
      */
     private fun currencyOf(text: String): Set<String>? {
         val marks = mutableListOf<Set<String>>()
-        CURRENCY_MARKS.forEach { (mark, code) -> if (mark in text) marks += setOf(code) }
-        CODE.findAll(text).map { it.value }.filter { it in CURRENCY_CODES }.forEach { marks += setOf(it) }
-        DOLLAR.findAll(text).forEach { m ->
+        // Each mark read is taken out, so a shorter one inside it ("£" in "E£") isn't read again.
+        var rest = text
+        CURRENCY_MARKS.forEach { (mark, code) ->
+            if (mark in rest) {
+                marks += setOf(code)
+                rest = rest.replace(mark, " ")
+            }
+        }
+        WORD_MARK.findAll(rest).forEach { marks += setOf(WORD_MARKS.getValue(it.value.trimEnd('.'))) }
+        rest = WORD_MARK.replace(rest, " ")
+        CODE.findAll(rest).map { it.value }.filter { it in CURRENCY_CODES }.forEach { marks += setOf(it) }
+        DOLLAR.findAll(rest).forEach { m ->
             val prefix = m.groupValues[1]
             marks += PREFIXED_DOLLARS[prefix]?.let(::setOf) ?: DOLLARS
         }
-        if ("¥" in text) marks += YEN
-        if (RUPEES.containsMatchIn(text)) marks += RUPEE_CODES
-        if (KRONOR.containsMatchIn(text)) marks += KRONA_CODES
+        if ("¥" in rest) marks += YEN
+        if (RUPEES.containsMatchIn(rest)) marks += RUPEE_CODES
+        if (KRONOR.containsMatchIn(rest)) marks += KRONA_CODES
         if (marks.isEmpty()) return emptySet()
         return marks.reduce { a, b -> a intersect b }.ifEmpty { null }
     }

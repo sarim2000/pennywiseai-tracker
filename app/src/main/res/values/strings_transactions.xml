@@ -55,7 +55,7 @@
     <!-- Transaction types -->
     <string name="txn_type_income">Income</string>
     <string name="txn_type_expense">Expense</string>
-    <string name="txn_type_credit">Credit</string>
+    <string name="txn_type_credit">Card spend</string>
     <string name="txn_type_transfer">Transfer</string>
     <string name="txn_type_investment">Investment</string>
 
@@ -210,7 +210,7 @@
     <string name="txn_totals_income">Income</string>
     <string name="txn_totals_expense">Expense</string>
     <string name="txn_totals_expenses">Expenses</string>
-    <string name="txn_totals_credit">Credit</string>
+    <string name="txn_totals_credit">Card spend</string>
     <string name="txn_totals_transfer">Transfer</string>
     <string name="txn_totals_invest">Invest</string>
     <string name="txn_totals_net">Net</string>

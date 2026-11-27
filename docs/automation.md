@@ -81,8 +81,9 @@ Add a **System → Send Intent** action:
 - **Extra:** `note:from tasker`
 - **Target:** Activity
 
-Tasker variables work in the values, e.g. `amount:%amount`. For more keys than
-the action has Extra fields, use the link instead: set **Action** to
+Leave **Class** empty. Tasker variables work in the values, e.g.
+`amount:%amount`. For more keys than the action has Extra fields, use the link
+instead: set **Action** to
 `android.intent.action.VIEW` and **Data** to
 `pennywise://add?amount=12.50&currency=USD&merchant=Test%20Cafe&type=EXPENSE&note=from%20tasker`.
 
@@ -98,6 +99,15 @@ Add an **Applications → Send Intent** action:
 
 MacroDroid's magic text works in the values, e.g. the text of a notification
 that triggered the macro.
+
+## Rules made for an older version
+
+A Tasker, MacroDroid or other rule that names the class
+`com.pennywiseai.tracker.MainActivity` stops opening the form on Android 13 and
+newer. Since Android 13, an intent from another app that names a class must match
+one of that class's intent filters, and the action and the link are now declared
+on a different class. Clear the **Class** field and keep **Package**; Android
+then picks the right class.
 
 ## Older extras
 

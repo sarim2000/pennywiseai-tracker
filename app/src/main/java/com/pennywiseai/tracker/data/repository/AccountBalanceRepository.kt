@@ -977,6 +977,9 @@ open class AccountBalanceRepository @Inject constructor(
         // Also covers amount/date edits on an unchanged manual account.
         if (newBank != null && newAccount != null) recomputeManualBalance(newBank, newAccount)
         if (accountChanged && oldBank != null && oldAccount != null) recomputeManualBalance(oldBank, oldAccount)
+        // A manual account counts only rows in its currency, so a currency change moves a
+        // transfer's legs too, which the shift above only reaches when something else changed.
+        if (original != null && original.currency != updated.currency) recomputeManualBalances(listOf(original, updated))
     }
 
     /**

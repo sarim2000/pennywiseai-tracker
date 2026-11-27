@@ -136,6 +136,20 @@ class ManualBalanceCurrencyTest {
     }
 
     @Test
+    fun `changing only a transfer's currency moves its manual destination`() = runBlocking {
+        val transfer = row(1, "10", "USD").copy(
+            transactionType = TransactionType.TRANSFER, bankName = "Other Bank", accountNumber = "9999",
+            fromBankName = "Other Bank", fromAccount = "9999", toBankName = BANK, toAccount = ACCT
+        )
+        import(transfer)
+        assertBalance("1000")
+
+        edit(transfer, transfer.copy(currency = "INR"))
+
+        assertBalance("1010")
+    }
+
+    @Test
     fun `a legacy transfer leg with no bank is pinned before its edit`() = runBlocking {
         opening = null
         current = balanceRow(AccountBalanceRepository.SOURCE_MANUAL, "900")

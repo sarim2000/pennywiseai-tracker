@@ -205,7 +205,7 @@ strict (a profile failure should surface, not be silently swallowed).
 *Export Data (Encrypted)* (Settings → Data) wraps the same JSON in a
 passphrase envelope (`data/backup/BackupCrypto.kt`). The file keeps the
 `.pennywisebackup` extension; the JSON inside is unchanged, so everything
-above still applies once it's decrypted. The passphrase is never stored.
+above still applies once it's decrypted. The passphrase is never stored. The passphrase is normalized to Unicode NFC before key derivation.
 
 | Bytes | Field |
 |-------|-------|

@@ -7,7 +7,9 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.nio.ByteBuffer
+import java.nio.CharBuffer
 import java.security.SecureRandom
+import java.text.Normalizer
 import javax.crypto.AEADBadTagException
 import javax.crypto.Cipher
 import javax.crypto.SecretKeyFactory
@@ -181,14 +183,23 @@ object BackupCrypto {
         throw IOException("Encrypted backup is incomplete")
     }
 
+    /**
+     * Derives the AES key from the passphrase in Unicode NFC, so "é" typed composed or
+     * decomposed opens the same file; NFC of an ASCII or already-NFC passphrase is itself,
+     * so earlier files still open and the envelope version stays 1. Nothing else is
+     * changed: leading and trailing spaces count.
+     */
     private fun deriveKey(passphrase: CharArray, salt: ByteArray, iterations: Int): SecretKeySpec {
-        val spec = PBEKeySpec(passphrase, salt, iterations, 256)
+        // Normalizer returns a String, which can't be zeroed; that copy is unavoidable.
+        val normalized = Normalizer.normalize(CharBuffer.wrap(passphrase), Normalizer.Form.NFC).toCharArray()
+        val spec = PBEKeySpec(normalized, salt, iterations, 256)
         try {
             val bytes = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(spec).encoded
             // SecretKeySpec keeps its own copy.
             return SecretKeySpec(bytes, "AES").also { bytes.fill(0) }
         } finally {
             spec.clearPassword()
+            normalized.fill('\u0000')
         }
     }
 

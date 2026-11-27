@@ -90,15 +90,19 @@ class FeatureTrialsTest {
     }
 
     @Test
-    fun `a trial started while the clock is behind the latest time seen is not spent at once`() {
+    fun `a clock correction on one trial doesn't spend or delay another`() {
         trials.start(TrialFeature.ANALYTICS_GROUPING, isPro = false)
         clock = START + days(3)
         trials.status(TrialFeature.ANALYTICS_GROUPING)
 
         clock = START + days(1)
         trials.start(TrialFeature.CSV_EXPORT, isPro = false)
-        clock = START + days(3)
+        assertEquals(START + days(1), stored[TrialFeature.CSV_EXPORT.name])
         assertEquals(TrialStatus.Active(7), trials.status(TrialFeature.CSV_EXPORT))
+        assertEquals(TrialStatus.Expired, trials.status(TrialFeature.ANALYTICS_GROUPING))
+
+        clock = START + days(3)
+        assertEquals(TrialStatus.Active(5), trials.status(TrialFeature.CSV_EXPORT))
     }
 
     @Test

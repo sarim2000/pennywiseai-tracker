@@ -57,7 +57,8 @@ data class FeatureAccess(val isPro: Boolean?, val trial: TrialStatus) {
  * The start time lives in its own device-only prefs file: no backup carries it and
  * starting again never restarts it, so each feature has exactly one trial per install.
  * Once a trial is seen ended it stays ended, and a clock behind the start or behind
- * the latest time seen reads as expired, so winding the date back doesn't reopen one.
+ * the latest time that trial saw reads as expired, so winding the date back doesn't
+ * reopen one. Each feature keeps its own start and latest time seen.
  */
 @Singleton
 class FeatureTrials internal constructor(
@@ -80,14 +81,14 @@ class FeatureTrials internal constructor(
         if (start == NOT_STARTED) return TrialStatus.NotStarted to null
         if (prefs.getBoolean(expiredKey(feature), false)) return TrialStatus.Expired to null
         val at = now()
-        val latestSeen = prefs.getLong(LATEST_SEEN, start)
+        val latestSeen = prefs.getLong(latestSeenKey(feature), start)
         if (at < start || at < latestSeen) return TrialStatus.Expired to null
         val elapsed = at - start
         if (elapsed >= DURATION_MS) {
-            prefs.edit().putBoolean(expiredKey(feature), true).putLong(LATEST_SEEN, at).apply()
+            prefs.edit().putBoolean(expiredKey(feature), true).putLong(latestSeenKey(feature), at).apply()
             return TrialStatus.Expired to null
         }
-        if (at > latestSeen) prefs.edit().putLong(LATEST_SEEN, at).apply()
+        if (at > latestSeen) prefs.edit().putLong(latestSeenKey(feature), at).apply()
         val left = DURATION_MS - elapsed
         // Days left rounds up, so it drops each time [left] reaches a whole day; the last
         // one is reached at the expiry instant.
@@ -103,9 +104,7 @@ class FeatureTrials internal constructor(
     @Synchronized
     fun start(feature: TrialFeature, isPro: Boolean?) {
         if (isPro != false || prefs.contains(feature.name)) return
-        // A clock behind the latest time seen starts the trial from that time, not now,
-        // or evaluate() would read the fresh trial as wound back and spend it at once.
-        prefs.edit().putLong(feature.name, maxOf(now(), prefs.getLong(LATEST_SEEN, 0L))).apply()
+        prefs.edit().putLong(feature.name, now()).apply()
         recheck()
     }
 
@@ -135,12 +134,16 @@ class FeatureTrials internal constructor(
         private const val PREFS_NAME = "feature_trials"
         private const val NOT_STARTED = -1L
 
-        /** The latest clock reading any trial saw; a clock behind it was wound back. */
-        private const val LATEST_SEEN = "latest_seen_ms"
         private val DAY_MS = TimeUnit.DAYS.toMillis(1)
         private val DURATION_MS = TimeUnit.DAYS.toMillis(TRIAL_DAYS.toLong())
 
         /** Set once [feature]'s trial is seen ended, so no later clock reopens it. */
         private fun expiredKey(feature: TrialFeature) = "${feature.name}_expired"
+
+        /**
+         * The latest clock reading [feature]'s trial saw; a clock behind it was wound back.
+         * Kept per feature, so one trial's history never moves another's start or end.
+         */
+        private fun latestSeenKey(feature: TrialFeature) = "${feature.name}_latest_seen_ms"
     }
 }

@@ -238,9 +238,9 @@ class GoalWidget : GlanceAppWidget() {
                 style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.titleSmall.fontSize, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center),
             )
             Text(
-                text = inAppDirection(if (everyAmountHidden()) item.maskedShortLine else item.shortLine),
+                text = inAppDirection(item.shownLine(short = true, hidden = everyAmountHidden())),
                 maxLines = 1,
-                style = TextStyle(color = PennyWiseWidgetTheme.goalToneColor(item.tone), fontSize = Typography.bodySmall.fontSize, textAlign = TextAlign.Center),
+                style = TextStyle(color = PennyWiseWidgetTheme.goalToneColor(item.shownTone(everyAmountHidden())), fontSize = Typography.bodySmall.fontSize, textAlign = TextAlign.Center),
             )
         }
     }
@@ -324,7 +324,10 @@ class GoalsListWidget : GlanceAppWidget() {
                             textAlign = startTextAlign(),
                         ),
                     )
-                    WidgetLabel(if (everyAmountHidden()) item.maskedLine else item.line, color = PennyWiseWidgetTheme.goalToneColor(item.tone))
+                    WidgetLabel(
+                        item.shownLine(short = false, hidden = everyAmountHidden()),
+                        color = PennyWiseWidgetTheme.goalToneColor(item.shownTone(everyAmountHidden()))
+                    )
                 }
             }
             item { Spacer(GlanceModifier.width(Spacing.sm)) }

@@ -16,7 +16,6 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -153,26 +152,21 @@ class GoalWidgetDataTest {
     }
 
     @Test
-    fun `the widget item carries its lines with every amount masked`() {
-        val onPace = progress("24000", "0", today.plusMonths(12)).toWidgetItem(context)
-        assertEquals("$HIDDEN_AMOUNT/mo · 12 months left", onPace.maskedLine)
-        assertEquals("$HIDDEN_AMOUNT left · 12 mo", onPace.maskedShortLine)
-        assertFalse(HIDDEN_AMOUNT in onPace.line)
-        assertFalse(HIDDEN_AMOUNT in onPace.shortLine)
+    fun `while amounts are hidden a goal shows neither its status nor its tone`() {
+        val goals = listOf(
+            progress("24000", "0", today.plusMonths(12)),
+            progress("12000", "0", today.plusMonths(6), created = today.minusMonths(6)),
+            progress("1000", "1000", today.plusMonths(3)),
+            progress("1000", "400", today.minusDays(1), created = today.minusMonths(2)),
+        ).map { it.toWidgetItem(context) }
+        assertEquals(listOf(GoalTone.NEUTRAL, GoalTone.WARNING, GoalTone.SUCCESS, GoalTone.ERROR), goals.map { it.shownTone(hidden = false) })
 
-        val behind = progress("12000", "0", today.plusMonths(6), created = today.minusMonths(6)).toWidgetItem(context)
-        assertEquals("Behind $HIDDEN_AMOUNT", behind.maskedLine)
-
-        val reached = progress("1000", "1000", today.plusMonths(3)).toWidgetItem(context)
-        assertEquals("Reached", reached.maskedLine)
-        assertEquals("Reached", reached.maskedShortLine)
-    }
-
-    @Test
-    fun `a snapshot from before masked lines reads them as hidden`() {
-        val old = """[{"id":1,"name":"Goal 1","color":"#1565C0","percent":10,"fraction":0.1,"line":"line","shortLine":"short"}]"""
-        val item = GoalWidgetDataStore.decode(old).single()
-        assertEquals(HIDDEN_AMOUNT, item.maskedLine)
-        assertEquals(HIDDEN_AMOUNT, item.maskedShortLine)
+        for (goal in goals) {
+            assertEquals(HIDDEN_AMOUNT, goal.shownLine(short = false, hidden = true))
+            assertEquals(HIDDEN_AMOUNT, goal.shownLine(short = true, hidden = true))
+            assertEquals(GoalTone.NEUTRAL, goal.shownTone(hidden = true))
+            assertEquals(goal.line, goal.shownLine(short = false, hidden = false))
+            assertEquals(goal.shortLine, goal.shownLine(short = true, hidden = false))
+        }
     }
 }

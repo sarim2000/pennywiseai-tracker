@@ -11,6 +11,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -42,8 +44,13 @@ class BackupImporterEncryptedTest {
         every { cacheDir } answers { temp.root }
         every { contentResolver.openInputStream(uri) } answers { ByteArrayInputStream(fileBytes) }
         every { getString(R.string.settings_backup_restore_not_encrypted) } returns NOT_ENCRYPTED
+        every { getString(R.string.settings_backup_restore_unreadable) } returns UNREADABLE
     }
     private val restoreDir get() = DecryptedBackupFiles.dir(temp.root)
+
+    private fun seal(bytes: ByteArray) = ByteArrayOutputStream().also {
+        BackupCrypto.encrypt(ByteArrayInputStream(bytes), it, passphrase.toCharArray())
+    }.toByteArray()
     private val importer = BackupImporter(context, database, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
 
     @Test
@@ -82,6 +89,20 @@ class BackupImporterEncryptedTest {
     }
 
     @Test
+    fun unparsableDecryptedContentIsNotQuotedInTheError() = runBlocking {
+        val secret = "synthetic-decrypted-content"
+        fileBytes = seal("{\"created\": $secret".toByteArray())
+        assertEquals(ImportResult.Error(UNREADABLE), importer.importBackup(uri, passphrase = passphrase.toCharArray()))
+        val error = assertThrows(BackupImporter.BackupReadException::class.java) {
+            importer.decodeBackup(ByteArrayInputStream(fileBytes), passphrase.toCharArray(), temp.root)
+        }
+        assertFalse(error.message.orEmpty().contains(secret))
+        assertNull("no parser exception, with its quote of the input, is attached", error.cause)
+        confirmVerified(database)
+        assertTrue("decrypted temp file is removed", restoreDir.listFiles().orEmpty().isEmpty())
+    }
+
+    @Test
     fun aDecryptedFileLeftByAnEarlierRestoreIsSwept() = runBlocking {
         restoreDir.mkdirs()
         val stale = File(restoreDir, "decrypted_stale.json").apply { writeText("{}") }
@@ -100,5 +121,6 @@ class BackupImporterEncryptedTest {
 
     private companion object {
         const val NOT_ENCRYPTED = "not encrypted"
+        const val UNREADABLE = "unreadable"
     }
 }

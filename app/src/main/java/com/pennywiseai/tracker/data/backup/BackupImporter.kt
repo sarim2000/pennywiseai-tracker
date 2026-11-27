@@ -151,7 +151,12 @@ class BackupImporter @Inject constructor(
         if (passphrase == null) throw BackupCrypto.PassphraseRequiredException()
         return DecryptedBackupFiles.withTempFile(cacheDir) { plain ->
             plain.outputStream().buffered().use { BackupCrypto.decrypt(stream, it, passphrase) }
-            plain.inputStream().buffered().use { backupJson.decodeFromStream<PennyWiseBackup>(it) }
+            try {
+                plain.inputStream().buffered().use { backupJson.decodeFromStream<PennyWiseBackup>(it) }
+            } catch (e: Exception) {
+                // Parser messages quote the input, here the decrypted backup: keep them out of logs and dialogs.
+                throw BackupReadException(R.string.settings_backup_restore_unreadable, "Decrypted backup couldn't be parsed")
+            }
         }
     }
 

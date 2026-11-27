@@ -217,7 +217,14 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun turnOffFolderBackupEncryption() {
-        folderBackupPassphrase.clear()
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) { folderBackupPassphrase.clear() }
+            } catch (e: Exception) {
+                Log.e("SettingsViewModel", "Failed to turn off folder backup encryption", e)
+                _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_encryption_off_failed)
+            }
+        }
     }
 
     private val _requestFolderPicker = MutableStateFlow(false)

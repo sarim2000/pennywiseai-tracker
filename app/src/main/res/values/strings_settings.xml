@@ -157,6 +157,7 @@
     <string name="settings_folder_backup_passphrase_body">Daily backups will be locked with this passphrase, and you\'ll need it to restore one. It can\'t be recovered if you forget it.</string>
     <string name="settings_folder_backup_passphrase_action">Save</string>
     <string name="settings_folder_backup_passphrase_save_failed">Couldn\'t save the backup passphrase on this device</string>
+    <string name="settings_folder_backup_encryption_off_failed">Couldn\'t turn off encryption, so automatic backups stay locked</string>
     <!-- Shown when this device can no longer unlock the saved passphrase for automatic backups -->
     <string name="settings_folder_backup_passphrase_lost_title">Re-enter Backup Passphrase</string>
     <string name="settings_folder_backup_passphrase_lost_subtitle">This device can\'t unlock your backup passphrase, so automatic backups are paused</string>

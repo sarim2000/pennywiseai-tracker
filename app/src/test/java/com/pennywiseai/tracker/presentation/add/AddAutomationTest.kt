@@ -95,6 +95,14 @@ class AddAutomationTest {
     }
 
     @Test
+    fun `an amount with a blank or wrong-typed currency is dropped, not moved to the base currency`() {
+        listOf<Any>("", "  ", true, listOf("USD")).forEach {
+            assertNull("$it", prefill("amount" to "12.50", "currency" to it).amount)
+        }
+        assertNull(prefill(MainActivity.EXTRA_ADD_AMOUNT to "12.50", MainActivity.EXTRA_ADD_CURRENCY to "").amount)
+    }
+
+    @Test
     fun `an amount without a currency is kept for the base currency`() {
         val add = prefill("amount" to "12.50")
         assertEquals("12.50", add.amount)

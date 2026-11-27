@@ -36,12 +36,14 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -67,7 +69,8 @@ class BackupMomentsTest {
     // Outlives the ViewModel, as the app's scope does.
     private val appScope = CoroutineScope(SupervisorJob())
     private val moments = MascotMoments(AppForegroundState { true })
-    private val heard = mutableListOf<MascotMoment>()
+    private val heardFlow = MutableStateFlow(emptyList<MascotMoment>())
+    private val heard get() = heardFlow.value
     private lateinit var listening: Job
     private lateinit var viewModel: SettingsViewModel
     private lateinit var backupFile: File
@@ -88,7 +91,7 @@ class BackupMomentsTest {
         every { writer.canWriteToFolder(any()) } returns true
         backupFile = File.createTempFile("backup", ".pennywisebackup").apply { writeText("{}") }
         coEvery { exporter.exportBackup(any(), any()) } answers { ExportResult.Success(backupFile) }
-        listening = CoroutineScope(Dispatchers.Unconfined).launch { moments.moments.collect { heard += it } }
+        listening = CoroutineScope(Dispatchers.Unconfined).launch { moments.moments.collect { moment -> heardFlow.update { it + moment } } }
         viewModel = SettingsViewModel(
             context = context,
             modelRepository = mockk(relaxed = true),
@@ -123,6 +126,15 @@ class BackupMomentsTest {
         withTimeout(5_000) { viewModel.importExportMessage.first { it != null } }
     }
 
+    /**
+     * A folder backup resumes on the IO thread inside an unconfined event loop, which queues the
+     * listener's resume until the backup sets its message: wait for the moment as well.
+     */
+    private fun assertHeard(expected: List<MascotMoment>) = runBlocking {
+        withTimeoutOrNull(5_000) { heardFlow.first { it == expected } }
+        assertEquals(expected, heard)
+    }
+
     @After
     fun tearDown() {
         listening.cancel()
@@ -139,7 +151,7 @@ class BackupMomentsTest {
         viewModel.backupToFolderNow()
         awaitMessage()
 
-        assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
+        assertHeard(listOf(MascotMoment.BackupSaved))
     }
 
     @Test
@@ -151,7 +163,7 @@ class BackupMomentsTest {
         awaitMessage()
 
         assertEquals(UiText.Plural(R.plurals.settings_folder_backup_enabled_skipped_receipts, 2), viewModel.importExportMessage.value)
-        assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
+        assertHeard(listOf(MascotMoment.BackupSaved))
     }
 
     @Test
@@ -305,7 +317,7 @@ class BackupMomentsTest {
         viewModel.saveBackupToFile(mockk(), backupFile.path)
         awaitMessage()
 
-        assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
+        assertHeard(listOf(MascotMoment.BackupSaved))
     }
 
     @Test

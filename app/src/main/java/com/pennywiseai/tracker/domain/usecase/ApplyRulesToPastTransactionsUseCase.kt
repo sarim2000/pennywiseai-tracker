@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.statement.isStatementSender
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.RuleApplication
 import com.pennywiseai.tracker.domain.model.rule.TransactionField
@@ -101,8 +102,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     return@forEachIndexed
                 }
 
-                // Get SMS body if available
-                val smsBody = transaction.smsBody
+                val smsBody = transaction.ruleSmsText
 
                 // Check if any rule would block this transaction
                 val blockingRule = ruleEngine.shouldBlockTransaction(
@@ -171,8 +171,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     return@forEachIndexed
                 }
 
-                // Get SMS body if available
-                val smsBody = transaction.smsBody
+                val smsBody = transaction.ruleSmsText
 
                 // Check if this transaction should be blocked
                 val shouldBlock = ruleEngine.shouldBlockTransaction(
@@ -244,7 +243,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
         for (transaction in allTransactions) {
             if (transaction.isDeleted) continue
 
-            val smsBody = transaction.smsBody
+            val smsBody = transaction.ruleSmsText
 
             val wouldBlock = ruleEngine.shouldBlockTransaction(
                 transaction, smsBody, listOf(rule)
@@ -335,3 +334,11 @@ internal fun List<RuleApplication>.landedOn(kept: TransactionEntity, raw: Transa
         if (mods.isEmpty()) null else app.copy(fieldsModified = mods)
     }
 }
+
+/**
+ * The SMS text rules read for a stored row: none for a statement row, whose
+ * smsBody holds the file's line. An import read it as none, so a later run of
+ * the rules must too, or "SMS text doesn't contain X" deletes imported rows.
+ */
+internal val TransactionEntity.ruleSmsText: String?
+    get() = smsBody?.takeUnless { smsSender?.let(::isStatementSender) == true }

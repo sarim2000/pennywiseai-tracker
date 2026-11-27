@@ -213,6 +213,8 @@ open class UserPreferencesRepository internal constructor(
         val LAST_AUTH_TIMESTAMP = longPreferencesKey("last_auth_timestamp")
         // Device-local: whether the "App Lock needs a screen lock" notice was shown.
         val APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN = booleanPreferencesKey("app_lock_no_screen_lock_notice_shown")
+        // Device-local, like App Lock: mask every widget amount while App Lock is on. Unset = on.
+        val HIDE_WIDGET_AMOUNTS_WHILE_LOCKED = booleanPreferencesKey("hide_widget_amounts_while_locked")
 
         // In-App Review preferences
         val FIRST_LAUNCH_TIME = longPreferencesKey("first_launch_time")
@@ -381,7 +383,7 @@ open class UserPreferencesRepository internal constructor(
             K.BUDGET_MONTH_CARD_DISMISSED,
             K.WEEKLY_GUESS_HANDLED_WEEK, K.WEEKLY_GUESS_OFF,
             K.CHALLENGES, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES, K.LAST_AUTH_TIMESTAMP,
-            K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
+            K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HIDE_WIDGET_AMOUNTS_WHILE_LOCKED, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
             K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING,
@@ -422,7 +424,9 @@ open class UserPreferencesRepository internal constructor(
      * read. [profileId] maps the backup's profile id to this device's (null = gone).
      */
     suspend fun restoreSettings(snapshot: SettingsSnapshot, profileId: (Long) -> Long?) {
+        var hiddenChanged = false
         dataStore.edit { prefs ->
+            val hiddenBefore = prefs[PreferencesKeys.BALANCE_HIDDEN]
             fun <T : Any> List<Preferences.Key<T>>.restore(values: Map<String, T?>, accept: (Preferences.Key<T>, T) -> T? = { _, v -> v }) {
                 for (key in this) {
                     if (key.name !in values) continue
@@ -442,7 +446,10 @@ open class UserPreferencesRepository internal constructor(
                 }
             )
             SettingsBackup.STRING_SETS.restore(snapshot.stringSets.mapValues { (_, v) -> v?.toSet() })
+            hiddenChanged = prefs[PreferencesKeys.BALANCE_HIDDEN] != hiddenBefore
         }
+        // A restored eye changes what the widgets mask, which their data rebuild alone may not redraw.
+        if (hiddenChanged) transactionWidgets.redraw()
     }
 
     private companion object {
@@ -1219,6 +1226,8 @@ open class UserPreferencesRepository internal constructor(
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_LOCK_ENABLED] = enabled
         }
+        // The widgets mask their amounts while the lock is on.
+        transactionWidgets.redraw()
     }
 
     /**
@@ -1232,6 +1241,17 @@ open class UserPreferencesRepository internal constructor(
                 preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] = System.currentTimeMillis()
             }
         }
+        transactionWidgets.redraw()
+    }
+
+    override val hideWidgetAmountsWhileLocked: Flow<Boolean> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.HIDE_WIDGET_AMOUNTS_WHILE_LOCKED] ?: true }
+
+    override suspend fun setHideWidgetAmountsWhileLocked(hide: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HIDE_WIDGET_AMOUNTS_WHILE_LOCKED] = hide
+        }
+        transactionWidgets.redraw()
     }
 
     override val appLockTimeoutMinutes: Flow<Int> = dataStore.data
@@ -1530,7 +1550,7 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
         // The widgets' totals follow the same eye.
-        transactionWidgets.refresh()
+        transactionWidgets.redraw()
         return changed
     }
 
@@ -1546,7 +1566,7 @@ open class UserPreferencesRepository internal constructor(
             hidden = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: hiddenWhenUnset)
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
-        transactionWidgets.refresh()
+        transactionWidgets.redraw()
         return hidden
     }
 

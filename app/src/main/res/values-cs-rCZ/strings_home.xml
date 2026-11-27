@@ -32,7 +32,6 @@
     <string name="home_resync_scan_again">Znovu naskenovat všechny zprávy</string>
     <string name="home_resync_scan_again_desc">Doplní vše, co chybělo. Vaše úpravy i všechny stávající transakce zůstanou beze změny.</string>
     <string name="home_resync_rebuild">Sestavit znovu od začátku</string>
-    <string name="home_resync_rebuild_desc">Znovu načte transakce ze SMS, aby se projevily opravy parserů. Úpravy SMS transakcí se zruší. Ruční, importované, úvěrové a seskupené transakce zůstanou zachovány.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Další možnosti</string>
     <string name="home_menu_edit_home">Upravit domácí obrazovku</string>

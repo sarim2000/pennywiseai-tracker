@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
+import android.os.Bundle
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.pennywiseai.tracker.R
@@ -18,7 +19,16 @@ object ConscienceNotifier {
     // Transaction alerts use the transaction id (never negative); the recap is -2, the stack's header -3.
     private const val NOTIFICATION_ID = -4
 
+    // The sample gets a tag of its own, so trying it out never replaces a real remark.
+    private const val SAMPLE_TAG = "sample"
     private const val CONFIRMATION_TIMEOUT_MS = 6_000L
+    private const val EXTRA_REMARK_ID = "conscience_remark_id"
+
+    /** The remark id the screen's sample carries: its reactions are acknowledged and change nothing. */
+    const val SAMPLE_REMARK_ID = -1L
+
+    /** A tap from a remark posted before remarks had ids; it matches a shown remark that has none. */
+    const val NO_REMARK_ID = Long.MIN_VALUE
 
     /** Whether a line would be seen: the app's notifications and this channel are on. */
     fun canPost(context: Context): Boolean {
@@ -26,33 +36,65 @@ object ConscienceNotifier {
         return ensureChannel(context).getNotificationChannel(CHANNEL_ID)?.importance != NotificationManager.IMPORTANCE_NONE
     }
 
-    /** [openTransaction] is the tap on the remark, [retireLine] its "Not this one" action. */
-    fun post(context: Context, text: ConscienceText, line: String, openTransaction: PendingIntent, retireLine: PendingIntent) {
+    /** Posts remark [remarkId], with its "Liked it" and "Not this one" actions. */
+    fun post(
+        context: Context,
+        text: ConscienceText,
+        line: String,
+        remarkId: Long,
+        lineKey: String,
+        contentIntent: PendingIntent,
+        actions: ConscienceNotificationActions,
+    ) = show(context, null, text, line, remarkId, lineKey, contentIntent, actions)
+
+    /** The screen's "Send me one": claims no slot, and its reactions change nothing. */
+    fun postSample(context: Context, text: ConscienceText, line: String, actions: ConscienceNotificationActions) =
+        show(context, SAMPLE_TAG, text, line, SAMPLE_REMARK_ID, "", actions.openApp(), actions)
+
+    /**
+     * Replaces the remark's notification once one of its actions landed, or just
+     * clears it when [message] is null (the reaction changed nothing). Only while
+     * that remark is still the one shown: a late tap must not overwrite a newer one.
+     */
+    fun showConfirmation(context: Context, remarkId: Long, message: Int?) {
+        val text = ConscienceText(context)
+        val manager = ensureChannel(context, text)
+        val shown = manager.activeNotifications.firstOrNull {
+            it.id == NOTIFICATION_ID && it.notification.extras.getLong(EXTRA_REMARK_ID, NO_REMARK_ID) == remarkId
+        } ?: return
+        if (message == null) {
+            manager.cancel(shown.tag, NOTIFICATION_ID)
+            return
+        }
+        manager.notify(
+            shown.tag,
+            NOTIFICATION_ID,
+            baseBuilder(context, text, text.string(message)).setTimeoutAfter(CONFIRMATION_TIMEOUT_MS).build()
+        )
+    }
+
+    private fun show(
+        context: Context,
+        tag: String?,
+        text: ConscienceText,
+        line: String,
+        remarkId: Long,
+        lineKey: String,
+        contentIntent: PendingIntent,
+        actions: ConscienceNotificationActions,
+    ) {
         val builder = baseBuilder(context, text, line)
-            .setContentIntent(openTransaction)
+            .addExtras(Bundle().apply { putLong(EXTRA_REMARK_ID, remarkId) })
+            .setContentIntent(contentIntent)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(
                 baseBuilder(context, text, text.string(R.string.conscience_lock_screen_text))
-                    .setContentIntent(openTransaction)
+                    .setContentIntent(contentIntent)
                     .build()
             )
-            .addAction(
-                0,
-                text.string(R.string.conscience_action_dislike),
-                retireLine
-            )
-        ensureChannel(context, text).notify(NOTIFICATION_ID, builder.build())
-    }
-
-    /** Replaces the remark once "Not this one" landed. At most one remark a day, so it can't be a newer one. */
-    fun showRetired(context: Context) {
-        val text = ConscienceText(context)
-        ensureChannel(context, text).notify(
-            NOTIFICATION_ID,
-            baseBuilder(context, text, text.string(R.string.conscience_confirm_dislike))
-                .setTimeoutAfter(CONFIRMATION_TIMEOUT_MS)
-                .build()
-        )
+        builder.addAction(0, text.string(R.string.conscience_action_like), actions.react(remarkId, lineKey, liked = true))
+        builder.addAction(0, text.string(R.string.conscience_action_dislike), actions.react(remarkId, lineKey, liked = false))
+        ensureChannel(context, text).notify(tag, NOTIFICATION_ID, builder.build())
     }
 
     private fun baseBuilder(context: Context, text: ConscienceText, message: String): NotificationCompat.Builder =

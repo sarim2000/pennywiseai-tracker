@@ -52,7 +52,7 @@ class TransactionDetailRuleOfferTest {
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
         mockk(relaxed = true), mockk(relaxed = true), prefs, mockk(relaxed = true),
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
-        mockk(relaxed = true)
+        mockk(relaxed = true), mockk(relaxed = true)
     ).apply { loadTransaction(1) }
 
     @Before fun setUp() {

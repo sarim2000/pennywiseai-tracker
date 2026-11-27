@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,6 +48,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
@@ -59,6 +64,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -68,6 +75,7 @@ import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalStatus
+import com.pennywiseai.tracker.domain.goals.crossedMilestone
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.AmountBarHost
 import com.pennywiseai.tracker.ui.components.GoalRing
@@ -79,6 +87,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.celebration.Celebration
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
@@ -88,7 +97,9 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.success
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.widget.WidgetPinning
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -113,6 +124,7 @@ fun GoalDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val merchants by viewModel.merchants.collectAsStateWithLifecycle()
     val sheet by viewModel.sheet.collectAsStateWithLifecycle()
+    val celebrate by viewModel.celebrate.collectAsStateWithLifecycle()
     var mode by remember { mutableStateOf<MoneySheetMode?>(null) }
     var showDelete by rememberSaveable { mutableStateOf(false) }
     var showUpgrade by rememberSaveable { mutableStateOf(false) }
@@ -120,6 +132,17 @@ fun GoalDetailScreen(
     LaunchedEffect(state) { if (state is GoalDetailState.Gone) onNavigateBack() }
     // Set only by the user's own Add money; the ring clears it once the new portion settles.
     var addedFrom by remember { mutableStateOf<BigDecimal?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val resources = LocalResources.current
+    // The 25 / 50 / 75% mark an Add just crossed, said once as the sweep lands. Keyed on the
+    // privacy switch too: hiding amounts restarts this, which cancels showSnackbar and so takes
+    // a message already on screen away with the ring, and drops one still waiting.
+    var milestone by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(milestone, AmountPrivacy.hidden) {
+        val m = milestone ?: return@LaunchedEffect
+        if (!AmountPrivacy.hidden) snackbarHostState.showSnackbar(resources.getString(milestoneMessage(m)))
+        milestone = null
+    }
     LaunchedEffect(sheet.done) {
         if (sheet.done) { sheet.addedFrom?.let { addedFrom = it }; mode = null; viewModel.resetSheet() }
     }
@@ -127,46 +150,61 @@ fun GoalDetailScreen(
     val detail = (state as? GoalDetailState.Loaded)?.detail
     val progress = detail?.progress
     fun open(m: MoneySheetMode) { viewModel.resetSheet(); mode = m }
+    // Reached by Add money, or in the background since this device last saw it: the first
+    // sight cheers. Goals already reached when this device first opened one never do.
+    LaunchedEffect(progress?.status) { if (progress?.status == GoalStatus.REACHED) viewModel.onShownReached(progress.goal.uid) }
 
-    PennyWiseScaffold(
-        title = progress?.goal?.name.orEmpty(),
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
-            }
-        },
-        actions = {
-            if (progress != null) {
-                IconButton(onClick = { onShare(progress.goal.id) }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.goal_share))
+    Box(Modifier.fillMaxSize()) {
+        PennyWiseScaffold(
+            title = progress?.goal?.name.orEmpty(),
+            snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(data, shape = MaterialTheme.shapes.large) } },
+            navigationIcon = {
+                IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
                 }
-            }
-        },
-    ) { padding ->
-        if (detail == null || progress == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingIndicator() }
-            return@PennyWiseScaffold
-        }
-        GoalDetailContent(
-            detail = detail,
-            padding = padding,
-            onAdd = { open(MoneySheetMode.Add) },
-            onTakeOut = { open(MoneySheetMode.TakeOut) },
-            addedFrom = addedFrom,
-            onAddedSettled = { addedFrom = null },
-            merchants = merchants,
-            management = {
-                GoalManagement(
-                    progress = progress,
-                    onEdit = { onEdit(progress.goal.id) },
-                    onRepeat = { viewModel.repeatForNextYear(onCreated = onOpenGoal, onBlocked = { showUpgrade = true }) },
-                    onArchive = { viewModel.setArchived(progress.status != GoalStatus.ARCHIVED) },
-                    onDelete = { showDelete = true },
-                )
             },
-            // A row taken from a transaction opens it; the rest open the edit sheet.
-            onContribution = { c -> c.transactionId?.let(onOpenTransaction) ?: open(MoneySheetMode.Edit(c)) },
-        )
+            actions = {
+                if (progress != null) {
+                    IconButton(onClick = { onShare(progress.goal.id) }, shapes = IconButtonDefaults.shapes()) {
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.goal_share))
+                    }
+                }
+            },
+        ) { padding ->
+            if (detail == null || progress == null) {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                return@PennyWiseScaffold
+            }
+            GoalDetailContent(
+                detail = detail,
+                padding = padding,
+                onAdd = { open(MoneySheetMode.Add) },
+                onTakeOut = { open(MoneySheetMode.TakeOut) },
+                addedFrom = addedFrom,
+                onAddedSettled = {
+                    val from = addedFrom
+                    addedFrom = null
+                    // Not while amounts are hidden: the ring, and with it how far along the goal is,
+                    // is hidden then too.
+                    if (from != null && !AmountPrivacy.hidden) {
+                        crossedMilestone(from, progress.saved, progress.goal.targetAmount)?.let { milestone = it }
+                    }
+                },
+                merchants = merchants,
+                management = {
+                    GoalManagement(
+                        progress = progress,
+                        onEdit = { onEdit(progress.goal.id) },
+                        onRepeat = { viewModel.repeatForNextYear(onCreated = onOpenGoal, onBlocked = { showUpgrade = true }) },
+                        onArchive = { viewModel.setArchived(progress.status != GoalStatus.ARCHIVED) },
+                        onDelete = { showDelete = true },
+                    )
+                },
+                // A row taken from a transaction opens it; the rest open the edit sheet.
+                onContribution = { c -> c.transactionId?.let(onOpenTransaction) ?: open(MoneySheetMode.Edit(c)) },
+            )
+        }
+        Celebration(play = celebrate, onFinished = viewModel::onCelebrated)
     }
 
     val goal = progress?.goal
@@ -208,6 +246,14 @@ fun GoalDetailScreen(
     if (showUpgrade) UpgradeSheet(onDismiss = { showUpgrade = false })
 }
 
+/** What the goal screen says when an Add crosses [milestone] (25, 50 or 75). */
+@StringRes
+private fun milestoneMessage(milestone: Int): Int = when (milestone) {
+    25 -> R.string.goal_milestone_quarter
+    50 -> R.string.goal_milestone_half
+    else -> R.string.goal_milestone_three_quarters
+}
+
 @Composable
 private fun GoalManagement(
     progress: GoalProgress,
@@ -217,6 +263,8 @@ private fun GoalManagement(
     onDelete: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val canPin = remember { WidgetPinning.isSupported(context) }
     val archived = progress.status == GoalStatus.ARCHIVED
     // Repeat fits a goal that has run its course: Reached, or Missed.
     val canRepeat = progress.status == GoalStatus.REACHED || progress.status == GoalStatus.MISSED
@@ -237,6 +285,14 @@ private fun GoalManagement(
                         text = { Text(stringResource(R.string.goal_menu_repeat)) },
                         leadingIcon = { Icon(Icons.Default.Repeat, contentDescription = null) },
                         onClick = { open = false; onRepeat() },
+                    )
+                }
+                // The widget shows only goals that aren't archived; an archived one would read "Goal removed".
+                if (canPin && !archived) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.widget_add_to_home_screen)) },
+                        leadingIcon = { Icon(Icons.Default.Widgets, contentDescription = null) },
+                        onClick = { open = false; WidgetPinning.pinGoalWidget(context, progress.goal.id) },
                     )
                 }
                 DropdownMenuItem(
@@ -288,6 +344,7 @@ private fun GoalDetailContent(
                         addedFrom = addedFrom,
                         onAddedSettled = onAddedSettled,
                         announceProgress = false,
+                        milestones = true,
                     ) {}
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         Text(

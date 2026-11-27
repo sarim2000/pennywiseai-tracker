@@ -40,7 +40,9 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.SmsScanRunning
 import com.pennywiseai.tracker.data.preferences.PrivacyPreferences
+import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
@@ -53,6 +55,9 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import java.math.BigDecimal
@@ -60,7 +65,7 @@ import java.math.RoundingMode
 import java.util.Locale
 
 /*
- * What every widget shares, so the seven read as one family: the app's own
+ * What every widget shares, so the eight read as one family: the app's own
  * language and reading direction, the in-app eye, how money reads at a
  * glance, and the few parts (header, + button, progress bar, empty state).
  */
@@ -95,33 +100,74 @@ fun Context.latinString(@StringRes id: Int, vararg args: Any): String =
 @InstallIn(SingletonComponent::class)
 interface WidgetEntryPoint {
     fun userPreferences(): PrivacyPreferences
+    fun scanPreferences(): ScanPreferences
+    fun smsScanRunning(): SmsScanRunning
 }
 
 /**
- * The in-app eye (Home's hide-amounts toggle), read before composing so the
- * first frame is already right, then followed live. Hidden totals stay hidden
- * on the home screen, where anyone near the phone can read them; what the
- * app shows with the eye closed (single transactions, goals) shows here too.
+ * What the widgets mask. [totals] follow Home's eye, hidden until the user
+ * reveals it; [amounts] (a transaction row, a goal's line) follow the saved
+ * choice that masks every other screen, as the app's own lists do. Either
+ * way it's the home screen, where anyone near the phone can read them.
+ * While App Lock is on, both are masked (unless the user turned that off),
+ * so the widgets don't show what the lock keeps out.
  */
-class WidgetPrivacy(val hidden: Flow<Boolean>, val initial: Boolean) {
+data class WidgetMask(val totals: Boolean, val amounts: Boolean) {
+    companion object {
+        val ALL = WidgetMask(totals = true, amounts = true)
+    }
+}
+
+/** [WidgetMask]'s rule, as a function so a test can pin it. */
+internal fun widgetMask(
+    homeHidden: Boolean,
+    hiddenEverywhere: Boolean,
+    appLockOn: Boolean,
+    hideWhileLocked: Boolean
+): WidgetMask {
+    val locked = appLockOn && hideWhileLocked
+    return WidgetMask(totals = homeHidden || locked, amounts = hiddenEverywhere || locked)
+}
+
+/**
+ * [widgetMask] followed live; [WidgetMask.ALL] once reading the preferences fails,
+ * then or later, so a broken read hides the amounts rather than ending the widget.
+ */
+internal fun widgetMaskFlow(prefs: PrivacyPreferences): Flow<WidgetMask> = combine(
+    prefs.isBalanceHidden,
+    prefs.isAmountHiddenEverywhere,
+    prefs.isAppLockEnabled,
+    prefs.hideWidgetAmountsWhileLocked
+) { home, everywhere, lockOn, hideWhileLocked ->
+    widgetMask(home, everywhere, lockOn, hideWhileLocked)
+}.catch { emit(WidgetMask.ALL) }.distinctUntilChanged()
+
+/** The [WidgetMask], read before composing so the first frame is already right, then followed live. */
+class WidgetPrivacy(val hidden: Flow<WidgetMask>, val initial: WidgetMask) {
     companion object {
         suspend fun load(context: Context): WidgetPrivacy = try {
-            val flow = EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
-                .userPreferences().isBalanceHidden
+            val prefs = EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
+                .userPreferences()
+            val flow = widgetMaskFlow(prefs)
             WidgetPrivacy(flow, flow.first())
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            WidgetPrivacy(flowOf(true), true) // can't tell: keep them hidden
+            WidgetPrivacy(flowOf(WidgetMask.ALL), WidgetMask.ALL) // can't tell: keep them hidden
         }
     }
 }
 
 private val LocalAmountsHidden = staticCompositionLocalOf { false }
+private val LocalEveryAmountHidden = staticCompositionLocalOf { false }
 
 /** Whether totals are hidden right now; for a widget that swaps more than the figure. */
 @Composable
 fun amountsHidden(): Boolean = LocalAmountsHidden.current
+
+/** Whether single amounts (transaction rows, goal lines) are hidden too. */
+@Composable
+fun everyAmountHidden(): Boolean = LocalEveryAmountHidden.current
 
 private val LocalMirrored = staticCompositionLocalOf { false }
 
@@ -133,7 +179,7 @@ private val LocalMirrored = staticCompositionLocalOf { false }
 val WidgetLanguageChanges = MutableStateFlow(0)
 
 /**
- * Every widget's root: theme, the app's language, and the eye.
+ * Every widget's root: theme, the app's language, and the [WidgetMask].
  *
  * Glance's views take their direction from the launcher's language, not the
  * app's, so an Arabic app on an English phone got Arabic text laid out left
@@ -152,7 +198,8 @@ fun WidgetRoot(privacy: WidgetPrivacy, content: @Composable () -> Unit) {
     val hidden by privacy.hidden.collectAsState(privacy.initial)
     CompositionLocalProvider(
         LocalContext provides context,
-        LocalAmountsHidden provides hidden,
+        LocalAmountsHidden provides hidden.totals,
+        LocalEveryAmountHidden provides hidden.amounts,
         LocalMirrored provides context.readsAgainstDevice()
     ) {
         GlanceTheme(
@@ -246,11 +293,12 @@ fun wholeUnits(amount: BigDecimal): BigDecimal = amount.setScale(0, RoundingMode
 
 /**
  * One transaction's exact amount ("JD 3.2"). Like the app's transaction list,
- * single rows stay visible while the eye hides the totals.
+ * it stays visible while only Home's eye hides the totals, and is
+ * [HIDDEN_AMOUNT] once amounts are hidden everywhere.
  */
 @Composable
 fun exactText(amount: BigDecimal, currency: String): String =
-    widgetMoney(LocalContext.current, amount, currency)
+    if (everyAmountHidden()) HIDDEN_AMOUNT else widgetMoney(LocalContext.current, amount, currency)
 
 /**
  * [CurrencyFormatter.formatCurrency] for a widget: a space after a lettered
@@ -279,10 +327,10 @@ object WidgetDefaults {
 
 /** Section title: the widget's name, as in its header. */
 @Composable
-fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier) {
+fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier, maxLines: Int = 1) {
     Text(
         text = inAppDirection(text),
-        maxLines = 1,
+        maxLines = maxLines,
         modifier = modifier,
         style = TextStyle(
             color = GlanceTheme.colors.onSurface,
@@ -295,10 +343,15 @@ fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier) {
 
 /** Small supporting text: a figure's label, a row's meta line. */
 @Composable
-fun WidgetLabel(text: String, modifier: GlanceModifier = GlanceModifier, color: ColorProvider? = null) {
+fun WidgetLabel(
+    text: String,
+    modifier: GlanceModifier = GlanceModifier,
+    color: ColorProvider? = null,
+    maxLines: Int = 1
+) {
     Text(
         text = inAppDirection(text),
-        maxLines = 1,
+        maxLines = maxLines,
         modifier = modifier,
         style = TextStyle(
             color = color ?: GlanceTheme.colors.onSurfaceVariant,
@@ -346,11 +399,14 @@ fun AddButton(action: Action, contentDescription: String, size: Dp = WidgetDefau
     }
 }
 
-/** The family's thin progress bar, on the surface-variant track. */
+/** How much of a bar or ring a widget fills: none while [hidden], since its length gives the figure away. */
+internal fun shownFraction(fraction: Float, hidden: Boolean): Float = if (hidden) 0f else fraction
+
+/** The family's thin progress bar, on the surface-variant track; an empty track while totals are hidden. */
 @Composable
 fun WidgetProgressBar(fraction: Float, color: ColorProvider, modifier: GlanceModifier = GlanceModifier) {
     LinearProgressIndicator(
-        progress = fraction.coerceIn(0f, 1f),
+        progress = shownFraction(fraction, amountsHidden()).coerceIn(0f, 1f),
         modifier = modifier.fillMaxWidth().height(WidgetDefaults.barHeight).cornerRadius(WidgetDefaults.barHeight / 2),
         color = color,
         backgroundColor = GlanceTheme.colors.surfaceVariant

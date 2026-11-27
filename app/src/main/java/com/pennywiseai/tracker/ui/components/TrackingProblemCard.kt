@@ -26,12 +26,15 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.TrackingProblem
 
-/** Home warning while something stops SMS tracking. Same layout as [RecurringSuggestionsCard]. */
+/**
+ * Warning while something stops SMS tracking (Home, Plan → Challenges). Same layout as
+ * [RecurringSuggestionsCard]. Without [onDismiss] it can't be hidden.
+ */
 @Composable
 fun TrackingProblemCard(
     problem: TrackingProblem,
     onFix: () -> Unit,
-    onDismiss: () -> Unit,
+    onDismiss: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     /** Opens the SMS check-up, a second action: Fix stays the one tap to the fix itself. */
     onCheckup: (() -> Unit)? = null,
@@ -89,13 +92,15 @@ fun TrackingProblemCard(
             ) {
                 Text(stringResource(R.string.home_tracking_card_fix))
             }
-            IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = stringResource(R.string.home_tracking_card_dismiss),
-                    tint = ink,
-                    modifier = Modifier.size(Dimensions.Icon.small),
-                )
+            if (onDismiss != null) {
+                IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.home_tracking_card_dismiss),
+                        tint = ink,
+                        modifier = Modifier.size(Dimensions.Icon.small),
+                    )
+                }
             }
         }
     }

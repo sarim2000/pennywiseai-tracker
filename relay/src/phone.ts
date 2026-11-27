@@ -86,7 +86,7 @@ export class Phone extends DurableObject<Env> {
 		return new Promise<ToolResult>((resolve) => {
 			const timer = setTimeout(() => {
 				this.pending.delete(id);
-				resolve(textResult("PennyWise didn't answer in time. Check the phone is online and the AI session is still on, then ask again.", true));
+				resolve(textResult("PennyWise didn't answer in time. Check the phone is online and the AI session is still on. A change may still be finishing on the phone, so look at the current state before asking again.", true));
 			}, CALL_TIMEOUT_MS);
 			this.pending.set(id, { resolve, timer });
 			try {

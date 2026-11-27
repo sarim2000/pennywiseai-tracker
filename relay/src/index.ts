@@ -1,6 +1,6 @@
 import { AuthorizationError, CimdFetchError, OAuthProvider, type OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { authorizePage, messagePage } from "./pages";
-import { TOOLS, TOOL_NAMES } from "./tools";
+import { TOOLS, TOOL_NAMES, refuseDryRun, hideNoteConditions, refuseHiddenConditions, requireAppliedToPast, requireFilterEcho } from "./tools";
 
 export { Phone } from "./phone";
 
@@ -60,7 +60,12 @@ const mcpHandler = {
 				return rpcResult(id, {
 					protocolVersion: PROTOCOL_VERSIONS.includes(asked) ? asked : PROTOCOL_VERSIONS[0],
 					capabilities: { tools: { listChanged: false } },
-					serverInfo: { name: "pennywise", title: "PennyWise", version: "1.0.0" },
+					serverInfo: {
+						name: "pennywise",
+						title: "PennyWise",
+						version: "1.0.0",
+						icons: [{ src: `${new URL(request.url).origin}/icon.png`, mimeType: "image/png", sizes: ["512x512"] }],
+					},
 					instructions: INSTRUCTIONS,
 				});
 			}
@@ -71,8 +76,10 @@ const mcpHandler = {
 			case "tools/call": {
 				const name = String(params.name ?? "");
 				if (!TOOL_NAMES.has(name)) return rpcError(id, -32602, `Unknown tool: ${name}`);
+				const refused = refuseDryRun(name, params.arguments) ?? refuseHiddenConditions(name, params.arguments);
+				if (refused) return rpcResult(id, refused);
 				const result = await env.PHONE.getByName(deviceId).callTool(name, params.arguments ?? {});
-				return rpcResult(id, result);
+				return rpcResult(id, hideNoteConditions(name, requireAppliedToPast(name, params.arguments, requireFilterEcho(name, params.arguments, result))));
 			}
 			default:
 				return rpcError(id, -32601, `Method not found: ${method}`);
@@ -129,6 +136,8 @@ const defaultHandler = {
 			}
 		}
 
+		// AI apps show the host's favicon beside the connector; without one they fall back to the parent domain's.
+		if (path === "/favicon.ico" || path === "/icon.png") return env.ASSETS.fetch(request);
 		if (path === "/") return new Response("PennyWise AI relay. Passes questions to your phone; stores none of them.\n");
 		return new Response("Not found", { status: 404 });
 	},

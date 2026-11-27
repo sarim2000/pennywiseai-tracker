@@ -34,9 +34,11 @@ import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
+import com.pennywiseai.tracker.data.ledger.countedAmount
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.components.EmojiGlyph
@@ -106,7 +108,7 @@ fun TransactionItem(
     val description = transaction.description?.takeIf { it.isNotBlank() }
 
     val resources = LocalContext.current.resources
-    val unsorted = isUnsortedCategory(transaction.category)
+    val unsorted = transaction.needsCategory()
     val categoryText = if (unsorted) {
         resources.getString(R.string.home_section_unsorted)
     } else {
@@ -141,6 +143,11 @@ fun TransactionItem(
             // Mark rows the user excluded from analytics so it's visible in the
             // list which ones are skipped by spending stats (#451).
             if (transaction.excludedFromAnalytics) add(resources.getString(R.string.txn_item_tag_excluded))
+            when (transaction.reimbursementStatus) {
+                ReimbursementStatus.PENDING -> add(resources.getString(R.string.txn_item_tag_reimbursable))
+                ReimbursementStatus.REIMBURSED -> add(resources.getString(R.string.txn_item_tag_reimbursed))
+                null -> {}
+            }
             transaction.balanceAfter?.let { balance ->
                 add(resources.getString(R.string.txn_item_balance_after, CurrencyFormatter.formatCurrency(balance, transaction.currency)))
             }
@@ -207,7 +214,8 @@ fun TransactionItem(
                 merchantName = transaction.merchantName,
                 category = transaction.category,
                 modifier = iconModifier,
-                rowFill = containerColor
+                rowFill = containerColor,
+                unsorted = unsorted
             )
         },
         trailingContent = {
@@ -280,6 +288,12 @@ fun isUnsortedCategory(category: String): Boolean =
     !category.isValidCategoryOverride() || category.equals("Others", ignoreCase = true)
 
 /**
+ * [isUnsortedCategory] for a whole row. One that counts for nothing (kept out of totals,
+ * or lent or borrowed in full) isn't asked about, as on Home's "Needs a category" card.
+ */
+fun TransactionEntity.needsCategory(): Boolean = isUnsortedCategory(category) && countedAmount().signum() > 0
+
+/**
  * What marks a row that needs a category: its "?" badge, label and chip. Tertiary is a
  * fill and sits on the surface in some accents (Surface dark: 1.1:1), so it's nudged
  * until it reads on every neutral surface.
@@ -302,13 +316,14 @@ fun TransactionAvatar(
     glyphSize: Dp = Dimensions.Icon.medium,
     shape: Shape = CircleShape,
     rowFill: Color? = null,
+    unsorted: Boolean = isUnsortedCategory(category),
 ) {
     val colorScheme = MaterialTheme.colorScheme
     // Not remembered: it reads the live user category styles, as BrandIcon does.
     val icon = IconProvider.getTransactionIcon(merchantName, category)
     val base = modifier.size(size).clip(shape)
     when {
-        isUnsortedCategory(category) && icon !is IconResource.DrawableResource -> Box(
+        unsorted && icon !is IconResource.DrawableResource -> Box(
             modifier = base.background(colorScheme.unsorted),
             contentAlignment = Alignment.Center
         ) {

@@ -9,6 +9,7 @@
     <string name="widget_budget_empty_title">Bado hakuna bajeti</string>
     <string name="widget_budget_empty_hint">Weka kikomo cha mwezi ili uone kilichobaki.</string>
     <string name="widget_budget_create">Unda bajeti</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
     <string name="widget_budget_preview_meta">kati ya 3,600 · 120/siku</string>
     <string name="widget_cash_label">Pesa taslimu</string>
     <string name="widget_cash_spend">Matumizi ya pesa taslimu</string>

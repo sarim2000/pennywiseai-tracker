@@ -27,9 +27,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.FragmentActivity
-import androidx.glance.appwidget.GlanceAppWidgetManager
-import androidx.glance.appwidget.state.updateAppWidgetState
-import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.MainActivity
@@ -156,12 +153,7 @@ class GoalWidgetConfigActivity : FragmentActivity() {
 
     private fun choose(appWidgetId: Int, goalId: Long) {
         lifecycleScope.launch {
-            val glanceId = GlanceAppWidgetManager(this@GoalWidgetConfigActivity).getGlanceIdBy(appWidgetId)
-            updateAppWidgetState(this@GoalWidgetConfigActivity, PreferencesGlanceStateDefinition, glanceId) { prefs ->
-                prefs.toMutablePreferences().apply { this[GOAL_WIDGET_GOAL_ID] = goalId }
-            }
-            GoalWidget().update(this@GoalWidgetConfigActivity, glanceId)
-            GoalWidgetUpdateWorker.enqueueOneShot(this@GoalWidgetConfigActivity)
+            setGoalWidgetGoal(this@GoalWidgetConfigActivity, appWidgetId, goalId)
             setResult(RESULT_OK, resultIntent(appWidgetId))
             finish()
         }
@@ -174,12 +166,7 @@ class GoalWidgetConfigActivity : FragmentActivity() {
      */
     private fun createGoal(appWidgetId: Int) {
         lifecycleScope.launch {
-            val glanceId = GlanceAppWidgetManager(this@GoalWidgetConfigActivity).getGlanceIdBy(appWidgetId)
-            updateAppWidgetState(this@GoalWidgetConfigActivity, PreferencesGlanceStateDefinition, glanceId) { prefs ->
-                prefs.toMutablePreferences().apply { remove(GOAL_WIDGET_GOAL_ID) }
-            }
-            GoalWidget().update(this@GoalWidgetConfigActivity, glanceId)
-            GoalWidgetUpdateWorker.enqueueOneShot(this@GoalWidgetConfigActivity)
+            setGoalWidgetGoal(this@GoalWidgetConfigActivity, appWidgetId, goalId = null)
             setResult(RESULT_OK, resultIntent(appWidgetId))
             startActivity(
                 Intent(this@GoalWidgetConfigActivity, MainActivity::class.java)

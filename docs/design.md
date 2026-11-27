@@ -186,11 +186,12 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
   with `slnt` 0 and `wdth` 100 pinned: about 600 KB instead of 3.9 MB (main's
   two-axis cut was 300 KB). v4.007 is the last release with `GRAD` (v5.000
   dropped it). Going back a release also redraws a few glyphs at the cut the
-  app used before (`opsz` 18): `6` and `9` have a larger bowl, and at bold
-  weights `¢` is stroked only above and below its bowl and `฿` has a split
-  vertical. Every other digit and currency sign draws the same. Its OFL notice
-  ships in `assets/licenses/fonts-OFL.txt` (SN Pro's too). A new axis costs
-  size: add it only with a role that uses it.
+  app used before (`opsz` 18): the diagonal of `6` and `9` sits slightly
+  further out where it joins the bowl (the bowl, bounds and advance are
+  unchanged), and at bold weights `¢` is stroked only above and below its bowl
+  and `฿` has a split vertical. Every other digit and currency sign draws the
+  same. Its OFL notice ships in `assets/licenses/fonts-OFL.txt` (SN Pro's
+  too). A new axis costs size: add it only with a role that uses it.
 - **Static instances, one per weight.** Each family declares a `Font` for every
   weight 100–900, each pinning `wght`, `ROND`, `opsz` and `GRAD`. Compose picks
   the closest *declared* weight, so without a 700 entry every `*Emphasized`
@@ -214,9 +215,36 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
   than before, including light-on-dark text inside the light theme (snackbars,
   filled buttons), since grade follows the theme, not the surface.
   `typographyFor(appFont, latinScript, darkTheme)` picks it.
-- **Never animate a font axis.** Every axis value is a separate typeface;
-  animating `wght` or `ROND` re-lays out the text every frame. Animate size,
-  colour or alpha instead.
+- **Axis animation only through the quantized cache.** Every axis setting is
+  a separate Android `Typeface`, and Compose caches only 16; building fonts per
+  frame janks and can crash. Animate an axis only with
+  `TextStyle.withFlexAxes(...)` (`GoogleSansFlexAxes.kt`): it snaps `wght` to
+  25, `ROND` and `GRAD` to 10 and `opsz` to the `OPTICAL_SIZES` stops, and
+  serves families and typefaces from bounded process-wide caches. Never build
+  a `Font` or `FontFamily` in a composable. Read the animated value through a
+  quantized `derivedStateOf`, so the text recomposes per grid step, not per
+  frame. Prefer `GRAD` for emphasis: it thickens strokes without changing
+  widths, so nothing reflows; `wght` does reflow. Skip the animation under
+  reduced motion (`rememberAnimationsEnabled()`) and when
+  `LocalGoogleSansFlexActive` is false (system font, SN Pro, non-Latin locale;
+  `withFlexAxes` returns the style unchanged then anyway). Keep one text node
+  per label for TalkBack. The places that animate axes:
+  - NavDock items and chips/toggles: `GRAD` up when selected or pressed;
+  - the collapsing top-app-bar title (`CustomTitleTopAppBar`, `TitleMorph`):
+    both the expanded and the collapsed title go from `ROND` 100 at `opsz` 32
+    (expanded) to `ROND` 40 at `opsz` 22 (collapsed) in six steps of the
+    collapse fraction. Under reduced motion each title holds its resting
+    style (expanded `ROND` 100, collapsed `ROND` 40) without morphing, so the
+    bar looks the same at rest either way. Bars that never expand (fixed
+    bars, `PennyWiseScaffold`'s default bar) take the collapsed cut through
+    `barTitleStyle()`, so every bar title matches at rest;
+  - the onboarding "PennyWise" wordmark (inside the welcome title): once per
+    onboarding, each letter inks in from thin to the title's weight (`wght`,
+    with a passing `GRAD` swell), its line breaks held so nothing re-wraps.
+    It starts once the title has been drawn, the window has focus and frames
+    arrive steadily, not at first composition: on a cold start the splash and
+    the starting window cover the app while Compose already runs frames, and a
+    sweep timed from composition would finish before anything is seen.
 - No wider (`wdth`) cut for the expanded app-bar title: long translated titles
   already wrap, and the axis would add ~120 KB.
 - The picker draws each option in its own family, and its tiles grow with their
@@ -472,16 +500,41 @@ it by `Dimensions.Component.bottomBarHeight`.
   App Lock, an editor sub-page) registers after the hosts, so it gets the
   gesture first; a plain `BackHandler` shows no preview, which is right for
   "undo a mode" backs.
+- **A new look spreads as a circle.** Changing the theme, palette, accent,
+  AMOLED or font in Appearance doesn't snap every colour at once: `ThemeReveal`
+  (around `PennyWiseTheme` in `PennyWiseApp`) takes a still of the old frame and
+  the new look grows over it as a circle from the control just tapped, on
+  `slowSpatialSpec()` (an overshoot past the far corner can't be seen). It clips;
+  nothing scales. Dialogs and sheets are other windows and just swap; with
+  "Remove animations", or while App Lock's cover is up (the still draws above
+  it), the whole theme just swaps. A change with no touch in the last second
+  behind it (a backup restore) spreads from the centre. The still covers the
+  bars too, so the status and navigation bar icons each keep the old light/dark
+  until the circle has passed that bar's two corners.
 - **Lazy list rows animate.** Keyed `items(…, key = …)` rows pass
   `Modifier.animateItem()` on the item's root composable, so rows slide on
   insert, remove and filter instead of jumping. It needs a stable, unique
   key, and must sit on the item root (e.g. the `AnimatedVisibility`, not the
-  card inside it). `AnimatedCurrencyText` swaps instantly when either side is
-  the privacy mask — hiding amounts isn't a value change. Chat rows pass
+  card inside it). Chat rows pass
   `animateItem(fadeInSpec = null, fadeOutSpec = null)`: every chat row swaps
   in place (the streamed reply for its saved message, the Add card for its
   "Added …" line), so a fade would draw one over or under the other; they
   only slide. The typing/streaming reply shares one keyed slot.
+- **Amounts roll like an odometer** (`AnimatedCurrencyText`, planned by
+  `odometerPlan` in `OdometerDiff.kt`): only the digit slots that changed roll,
+  up when the amount grew and down when it shrank, all in one beat (rule 2: no
+  staggered digits, which would show a number neither side has), on
+  `slowEffectsSpec` (no overshoot). It stays one `Text`, so `maxLines`,
+  `autoSize` and TalkBack are the plain text's; the roll is drawn over it from
+  that layout. It swaps instead of rolling on first show, when either side is
+  the privacy mask (hiding amounts isn't a value change), under reduced motion,
+  when the text doesn't fit one line, when `autoSize` picks another size, and
+  when a new amount arrives mid-roll. Pass `decimalSeparator =
+  CurrencyFormatter.decimalSeparator(currency)`: without it `KWD 12.345` →
+  `KWD 13` can't be told from a thousands group and rolls the wrong way. Key
+  it by what the figure is (`key(currency) { … }`, plus anything that turns it
+  into another figure, like the hero's budget and over/left state): another
+  currency or another figure is a first show, not a smaller or larger number.
 - **"Receipt settled"** (`SettledCheck`): only after the user's own save is
   written — never on load, import or a failed save — the item's avatar gives
   way to a check (fade + cookie→circle morph, no scale), with
@@ -492,6 +545,17 @@ it by `Dimensions.Component.bottomBarHeight`.
   stays drawn, settled, under it for the beat, then goes. With "Remove
   animations" every settle skips the beat and the check (the chat's would
   hold Send), but the haptic still lands.
+- **Celebrations** (`ui/components/celebration/Celebration.kt`): a ~1.2 s
+  confetti burst of theme-coloured cookies and sparkles, with
+  `HapticFeedbackType.Confirm`, for a moment the user earned (a goal shown as
+  reached, a new achievement tier, a budget cycle that ended under every
+  monthly limit, a weekly guess within 15%). Each moment has a key claimed once
+  in DataStore (`celebrateOnce` / `claimCelebrations`, device-only), so it never
+  repeats; the first Achievements visit and the first goal opened on a device
+  (or since a restore) record what was already earned without confetti. It draws
+  over the screen and takes no touches; with "Remove animations" nothing plays,
+  haptic included, and the screen's own reached/earned state stays the static
+  mark.
 - **A screen of sibling money figures enters as one group.** Period Review
   fades its loaded content in once on first visit — fade only, no travel,
   saveable flag — instead of staggering its cards (rules 1, 2 and 5); later

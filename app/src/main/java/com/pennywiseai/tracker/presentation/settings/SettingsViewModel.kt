@@ -23,6 +23,9 @@ import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.backup.ImportStrategy
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -39,6 +42,7 @@ import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -80,6 +84,7 @@ class SettingsViewModel @Inject constructor(
     private val moneyAlertChecker: com.pennywiseai.tracker.worker.MoneyAlertChecker,
     private val budgetGroupRepository: com.pennywiseai.tracker.data.repository.BudgetGroupRepository,
     private val currencyConversionService: com.pennywiseai.tracker.data.currency.CurrencyConversionService,
+    private val mascotMoments: MascotMoments,
     entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
@@ -189,10 +194,6 @@ class SettingsViewModel @Inject constructor(
     val weeklySummaryEnabled = userPreferencesRepository.weeklySummaryEnabled
 
     val conscienceEnabled = userPreferencesRepository.conscienceEnabled
-
-    fun setConscienceEnabled(enabled: Boolean) {
-        viewModelScope.launch { userPreferencesRepository.setConscienceEnabled(enabled) }
-    }
 
     // Replace UPI VPAs with contact names (gated by READ_CONTACTS).
     val useContactsForVpa = userPreferencesRepository.useContactsForVpa
@@ -574,6 +575,16 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /** Every transaction, for the CSV export row; null (with a message shown) if the read fails. */
+    suspend fun loadAllTransactionsForCsv(): List<TransactionEntity>? = try {
+        transactionRepository.getAllTransactions().first()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        _importExportMessage.value = UiText.Res(R.string.settings_export_error, listOf("${e.message}"))
+        null
+    }
+
     fun exportBackup() {
         viewModelScope.launch {
             try {
@@ -617,6 +628,8 @@ class SettingsViewModel @Inject constructor(
                         inputStream.copyTo(out)
                     }
                 }
+                // Announced before the message, so whoever sees "Backup saved" has the moment too.
+                mascotMoments.announce(MascotMoment.BackupSaved)
                 _importExportMessage.value = UiText.Res(R.string.settings_backup_saved)
                 _exportedBackupFile.value = null
             } catch (e: Exception) {
@@ -698,6 +711,11 @@ class SettingsViewModel @Inject constructor(
                             UiText.Plural(R.plurals.settings_import_backup_success_skipped_receipts, result.skippedReceipts, counts + result.skippedReceipts)
                         } else {
                             UiText.Res(R.string.settings_import_backup_success, counts)
+                        }
+                        // Rows that failed to insert, or receipts that didn't land, make it a partial
+                        // restore, which the message says: no shield. Duplicates are already here.
+                        if (result.skippedRows == 0 && result.skippedReceipts == 0) {
+                            mascotMoments.announce(MascotMoment.BackupRestored)
                         }
                     }
                     is ImportResult.Error -> {
@@ -840,6 +858,9 @@ class SettingsViewModel @Inject constructor(
                                 UiText.Res(R.string.settings_folder_backup_saved)
                             }
                         }
+                        // Only the user reaches here (back up now, a new folder, turning it on);
+                        // the scheduled worker writes its backups on its own.
+                        mascotMoments.announce(MascotMoment.BackupSaved)
                         exportResult.skippedReceipts
                     }
                     is FolderBackupWriter.Result.Failure -> {

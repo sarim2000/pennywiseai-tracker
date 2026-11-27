@@ -5,18 +5,21 @@ import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
 
+/** Reads that can outgrow one CursorWindow are @Transaction: see [TransactionDao] (#1500). */
 @Dao
 interface RuleApplicationDao {
 
     @Query("SELECT * FROM rule_applications WHERE transaction_id = :transactionId ORDER BY applied_at DESC")
     suspend fun getApplicationsByTransaction(transactionId: String): List<RuleApplicationEntity>
 
+    @Transaction
     @Query("SELECT * FROM rule_applications WHERE rule_id = :ruleId ORDER BY applied_at DESC")
     fun getApplicationsByRule(ruleId: String): Flow<List<RuleApplicationEntity>>
 
     @Query("SELECT * FROM rule_applications ORDER BY applied_at DESC LIMIT :limit")
     fun getRecentApplications(limit: Int): Flow<List<RuleApplicationEntity>>
 
+    @Transaction
     @Query("SELECT * FROM rule_applications WHERE applied_at >= :startDate AND applied_at <= :endDate ORDER BY applied_at DESC")
     suspend fun getApplicationsInDateRange(
         startDate: LocalDateTime,
@@ -49,7 +52,8 @@ interface RuleApplicationDao {
 
     @Query("DELETE FROM rule_applications")
     suspend fun deleteAllApplications()
-    
+
+    @Transaction
     @Query("SELECT * FROM rule_applications ORDER BY applied_at DESC")
     fun getAllApplications(): Flow<List<RuleApplicationEntity>>
 }

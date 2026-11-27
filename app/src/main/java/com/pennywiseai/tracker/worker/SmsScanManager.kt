@@ -5,6 +5,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.pennywiseai.tracker.core.SmsScanRunning
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -18,7 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class SmsScanManager @Inject constructor(
     @ApplicationContext private val context: Context
-) {
+) : SmsScanRunning {
     private val workManager = WorkManager.getInstance(context)
 
     /**
@@ -43,6 +44,20 @@ class SmsScanManager @Inject constructor(
     }
 
     /**
+     * An incremental scan (from the last finished one, so it reads whatever arrived while
+     * messages weren't being read), unless a scan is already queued or running: that one,
+     * maybe a rebuild, is never replaced.
+     */
+    fun startScanUnlessRunning() {
+        val smsReaderWork = OneTimeWorkRequestBuilder<OptimizedSmsReaderWorker>()
+            .addTag("sms_logging")
+            .addTag("optimized_sms_processing")
+            .addTag(OptimizedSmsReaderWorker.WORK_NAME)
+            .build()
+        workManager.enqueueUniqueWork(OptimizedSmsReaderWorker.WORK_NAME, ExistingWorkPolicy.KEEP, smsReaderWork)
+    }
+
+    /**
      * Cancels any ongoing SMS scanning work.
      */
     fun cancelSmsScanning() {
@@ -50,7 +65,7 @@ class SmsScanManager @Inject constructor(
     }
 
     /** Whether a scan is queued or running, whoever started it. */
-    fun isScanRunning(): Flow<Boolean> =
+    override fun isScanRunning(): Flow<Boolean> =
         workManager.getWorkInfosForUniqueWorkFlow(OptimizedSmsReaderWorker.WORK_NAME)
             .map { infos -> infos.any { !it.state.isFinished } }
 

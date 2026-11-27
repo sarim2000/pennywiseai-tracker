@@ -128,6 +128,7 @@ class UserPreferencesKeysGoldenTest {
             "has_skipped_sms_permission" to "Boolean",
             "has_used_full_resync" to "Boolean",
             "hidden_nav_tabs" to "Set<String>",
+            "hide_widget_amounts_while_locked" to "Boolean",
             "home_sections" to "String",
             "home_shortcuts" to "String",
             "is_amoled_mode" to "Boolean",

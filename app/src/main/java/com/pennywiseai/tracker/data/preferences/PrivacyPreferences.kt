@@ -39,6 +39,14 @@ interface PrivacyPreferences {
     /** Saves the switch and, when enabling, the auth time in one edit, so no reader sees enabled with no auth time. */
     suspend fun setAppLockEnabledWithTimestamp(enabled: Boolean)
 
+    /**
+     * Whether the home-screen widgets mask every amount while App Lock is on, so they
+     * don't show what the lock keeps out. On until the user turns it off.
+     */
+    val hideWidgetAmountsWhileLocked: Flow<Boolean>
+
+    suspend fun setHideWidgetAmountsWhileLocked(hide: Boolean)
+
     val appLockTimeoutMinutes: Flow<Int>
 
     suspend fun getAppLockTimeoutMinutes(): Int

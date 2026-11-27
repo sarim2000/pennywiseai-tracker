@@ -129,12 +129,15 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                 chunk.forEachIndexed { i, item -> if (results[i]) count(item) }
                 return false
             } catch (e: Exception) {
+                // A cancelled run stops; it doesn't replay.
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 // The chunk rolled back; find the row at fault by writing them one by one.
             }
             for (item in chunk) {
                 try {
                     if (database.withTransaction { item.write() }) count(item)
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     if (ruleDeleted()) {
                         errors.add("A rule was deleted while it was being applied. The run stopped there.")
                         return true

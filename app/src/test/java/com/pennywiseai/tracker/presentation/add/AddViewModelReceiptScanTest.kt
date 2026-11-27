@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.receipt.ReceiptTextRecognizer
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -13,6 +14,7 @@ import com.pennywiseai.tracker.ui.UiText
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -30,12 +32,19 @@ import java.time.LocalDate
 class AddViewModelReceiptScanTest {
     private val receipt = listOf("COFFEE HUT", "Date 2026-01-02", "Subtotal 9.00", "Tax 0.45", "TOTAL 9.45")
 
-    private fun withForm(lines: List<String>?, block: (AddViewModel) -> Unit) {
+    private fun withForm(lines: List<String>?, block: (AddViewModel) -> Unit) = withForm({ lines }, block = block)
+
+    /** A form whose OCR reads each photo with [read]; [refused] photos fail the receipt check. */
+    private fun withForm(
+        read: suspend (Uri) -> List<String>?,
+        refused: Set<Uri> = emptySet(),
+        block: (AddViewModel) -> Unit
+    ) {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         try {
             val recognizer = object : ReceiptTextRecognizer {
                 override val isAvailable = true
-                override suspend fun recognize(uri: Uri): List<String>? = lines
+                override suspend fun recognize(uri: Uri): List<String>? = read(uri)
             }
             val viewModel = AddViewModel(
                 appContext = mockk(relaxed = true),
@@ -55,7 +64,11 @@ class AddViewModelReceiptScanTest {
                     coEvery { getCategoryForMerchant(any()) } returns null
                 },
                 tagRepository = mockk(relaxed = true),
-                receiptManager = mockk(relaxed = true) { coEvery { checkReceipt(any()) } returns null },
+                receiptManager = mockk(relaxed = true) {
+                    coEvery { checkReceipt(any()) } answers {
+                        if (firstArg<Uri>() in refused) ReceiptManager.PdfProblem.UNREADABLE else null
+                    }
+                },
                 receiptTextRecognizer = recognizer,
                 unrecognizedSmsRepository = mockk(relaxed = true),
                 learnedSendersStore = mockk(relaxed = true),
@@ -76,6 +89,7 @@ class AddViewModelReceiptScanTest {
     }
 
     private val photo: Uri = mockk()
+    private val otherPhoto: Uri = mockk()
 
     @Test
     fun `a blank form is filled from the receipt and the photo attached`() = withForm(receipt) { vm ->
@@ -119,5 +133,104 @@ class AddViewModelReceiptScanTest {
         val state = vm.transactionUiState.value
         assertEquals("INR", state.currency)
         assertEquals("450.00", state.amount)
+    }
+
+    @Test
+    fun `a second photo's scan replaces what the first one filled in`() {
+        val second = listOf("BOOK NOOK", "Date 2026-01-05", "TOTAL 20.00")
+        withForm({ uri -> if (uri == photo) receipt else second }) { vm ->
+            vm.scanReceipt(photo)
+            vm.scanReceipt(otherPhoto)
+            val state = vm.transactionUiState.value
+            assertEquals("20.00", state.amount)
+            assertEquals("Book Nook", state.merchant)
+            assertEquals(LocalDate.of(2026, 1, 5), state.date.toLocalDate())
+            assertEquals(otherPhoto, state.receiptUri)
+        }
+    }
+
+    @Test
+    fun `a second photo without a total clears the first one's, but not what the user typed`() {
+        withForm({ uri -> if (uri == photo) receipt else listOf("BOOK NOOK") }) { vm ->
+            vm.scanReceipt(photo)
+            vm.updateTransactionMerchant("Corner Shop")
+            vm.scanReceipt(otherPhoto)
+            val state = vm.transactionUiState.value
+            assertEquals("", state.amount)
+            assertEquals("Corner Shop", state.merchant)
+        }
+    }
+
+    @Test
+    fun `a photo that fails its check isn't read into the form`() {
+        withForm({ receipt }, refused = setOf(otherPhoto)) { vm ->
+            vm.scanReceipt(otherPhoto)
+            val state = vm.transactionUiState.value
+            assertEquals("", state.amount)
+            assertEquals(null, state.receiptUri)
+            assertFalse(state.scanningReceipt)
+        }
+    }
+
+    @Test
+    fun `cancelling the check stops the scan too`() {
+        val ocr = CompletableDeferred<List<String>?>()
+        withForm({ ocr.await() }) { vm ->
+            vm.scanReceipt(photo)
+            vm.cancelReceiptCheck()
+            ocr.complete(receipt)
+            val state = vm.transactionUiState.value
+            assertEquals("", state.amount)
+            assertFalse(state.scanningReceipt)
+        }
+    }
+
+    @Test
+    fun `a field the user empties while the photo is read stays empty`() {
+        val ocr = CompletableDeferred<List<String>?>()
+        withForm({ ocr.await() }) { vm ->
+            vm.updateTransactionMerchant("Corner")
+            vm.scanReceipt(photo)
+            vm.updateTransactionMerchant("")
+            ocr.complete(receipt)
+            assertEquals("", vm.transactionUiState.value.merchant)
+            assertEquals("9.45", vm.transactionUiState.value.amount)
+        }
+    }
+
+    @Test
+    fun `a currency the user chose isn't switched, and a total in another one is left out`() =
+        withForm(listOf("TOTAL ₹450.00")) { vm ->
+            vm.updateTransactionCurrency("EUR")
+            vm.scanReceipt(photo)
+            val state = vm.transactionUiState.value
+            assertEquals("EUR", state.currency)
+            assertEquals("", state.amount)
+            assertEquals(UiText.Res(R.string.add_receipt_scan_other_currency), state.scanMessage)
+        }
+
+    @Test
+    fun `a shared mark keeps the form's currency, and fills only when it can be the form's`() {
+        withForm(listOf("TOTAL $12.00")) { vm ->
+            vm.scanReceipt(photo)
+            assertEquals("USD", vm.transactionUiState.value.currency)
+            assertEquals("12.00", vm.transactionUiState.value.amount)
+        }
+        withForm(listOf("Net payable Rs. 450.00")) { vm ->
+            vm.scanReceipt(photo)
+            assertEquals("USD", vm.transactionUiState.value.currency)
+            assertEquals("", vm.transactionUiState.value.amount)
+        }
+    }
+
+    @Test
+    fun `a second scan puts back the currency the first one switched`() {
+        withForm({ uri -> if (uri == photo) listOf("TOTAL ₹450.00") else listOf("TOTAL 12.00") }) { vm ->
+            vm.scanReceipt(photo)
+            assertEquals("INR", vm.transactionUiState.value.currency)
+            vm.scanReceipt(otherPhoto)
+            assertEquals("USD", vm.transactionUiState.value.currency)
+            assertEquals("12.00", vm.transactionUiState.value.amount)
+        }
     }
 }

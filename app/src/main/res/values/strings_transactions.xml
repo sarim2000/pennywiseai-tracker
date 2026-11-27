@@ -342,6 +342,7 @@
     <string name="add_receipt_scanning">Reading the receipt…</string>
     <string name="add_receipt_scan_filled">Filled in from the receipt. Check it before you save.</string>
     <string name="add_receipt_scan_kept">Receipt attached. Your entries were kept.</string>
+    <string name="add_receipt_scan_other_currency">The receipt\'s total may be in another currency, so it was left for you to fill in.</string>
     <string name="add_receipt_scan_failed">Couldn\'t read this receipt. It\'s attached; fill in the details yourself.</string>
     <string name="txn_detail_receipt_no_pdf_app">No app on this phone can open PDFs</string>
     <string name="txn_detail_receipt_no_pdf_viewer">No app on this phone can open PDFs. Install a PDF viewer to see the whole bill.</string>

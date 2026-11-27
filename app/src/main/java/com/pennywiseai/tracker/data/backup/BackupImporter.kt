@@ -105,7 +105,7 @@ class BackupImporter @Inject constructor(
             ImportResult.Error(context.getString(e.messageRes))
         } catch (e: Exception) {
             Log.e("BackupImporter", "Import failed", e)
-            ImportResult.Error("Import failed: ${e.message}")
+            ImportResult.Error("${e.message}")
         }
     }
 

@@ -1166,29 +1166,29 @@ class TransactionDetailViewModel @Inject constructor(
                     newPath = newReceiptPath,
                     deleteReceipt = receiptManager::deleteReceipt
                 ) {
-                    accountBalanceRepository.pinManualOpenings(persisted ?: _transaction.value, normalizedTransaction)
-
-                    // Read and merge right before the write, with nothing suspending
-                    // in between but the write itself: the saves above (receipt, balances)
-                    // take time, and a change landing meanwhile must survive (#1484).
-                    freshRow = original?.let { transactionRepository.getTransactionById(it.id) }
-                    normalizedTransaction = build(freshRow)
-                    // The splits were checked against the edited amount; the amount that
-                    // is written can differ if the stored one changed underneath.
-                    if (_showSplitEditor.value && _splits.value.isNotEmpty() &&
-                        (normalizedTransaction.amount - _splits.value.fold(BigDecimal.ZERO) { acc, split -> acc + split.amount })
-                            .abs() > BigDecimal("0.01")
-                    ) {
-                        throw SplitTotalChangedException()
+                    // One database transaction: the read, the merge, the write and the
+                    // balance reflection, so a change landing meanwhile can't be written
+                    // over, and the row and the balance can't part ways (#1484). Any throw
+                    // rolls it all back.
+                    accountBalanceRepository.inTransaction {
+                        freshRow = original?.let { transactionRepository.getTransactionById(it.id) }
+                        normalizedTransaction = build(freshRow)
+                        // The splits were checked against the edited amount; the amount that
+                        // is written can differ if the stored one changed underneath.
+                        if (_showSplitEditor.value && _splits.value.isNotEmpty() &&
+                            (normalizedTransaction.amount - _splits.value.fold(BigDecimal.ZERO) { acc, split -> acc + split.amount })
+                                .abs() > BigDecimal("0.01")
+                        ) {
+                            throw SplitTotalChangedException()
+                        }
+                        val before = freshRow ?: _transaction.value
+                        accountBalanceRepository.pinManualOpenings(before, normalizedTransaction)
+                        transactionRepository.updateTransaction(normalizedTransaction)
+                        // Reflect the edit on account balances (#636): SMS-account shifts and
+                        // manual-account recomputes, owned by the repository.
+                        accountBalanceRepository.reflectTransactionEdit(before, normalizedTransaction)
                     }
-                    transactionRepository.updateTransaction(normalizedTransaction)
                 }
-
-                // Reflect the edit on account balances (#636): SMS-account shifts and
-                // manual-account recomputes, owned by the repository. Right after the row
-                // write, so a failing tag write can't leave the row new and the balance old
-                // (a retry would then see no difference to reflect).
-                accountBalanceRepository.reflectTransactionEdit(freshRow ?: _transaction.value, normalizedTransaction)
 
                 // Persist the edited tag set (create-or-select handled in repo).
                 // Only if this session changed them: otherwise tags set elsewhere stay.

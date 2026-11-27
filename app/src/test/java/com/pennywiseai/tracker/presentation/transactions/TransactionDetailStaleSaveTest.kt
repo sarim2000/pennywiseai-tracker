@@ -8,7 +8,6 @@ import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.widget.WidgetRefresher
-import io.mockk.anyVararg
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
@@ -54,7 +53,15 @@ class TransactionDetailStaleSaveTest {
         every { unifiedCurrencyMode } returns flowOf(false)
     }
 
-    private val balances = mockk<AccountBalanceRepository>(relaxed = true)
+    // Runs what the save puts in its database transaction (a relaxed mock would skip it), after
+    // anything that "lands" between the save's early read and that transaction.
+    private var beforeTransaction: () -> Unit = {}
+    private val balances = mockk<AccountBalanceRepository>(relaxed = true) {
+        coEvery { inTransaction<Any?>(any()) } coAnswers {
+            beforeTransaction()
+            firstArg<suspend () -> Any?>().invoke()
+        }
+    }
 
     private fun viewModel() = TransactionDetailViewModel(
         transactions, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
@@ -100,8 +107,8 @@ class TransactionDetailStaleSaveTest {
     fun `a change landing after the early read still survives the write`() {
         val vm = viewModel()
         vm.enterEditMode()
-        // The save suspends between its first read and the write (balances, receipt).
-        coEvery { balances.pinManualOpenings(*anyVararg()) } answers { stored = stored.copy(category = "Food") }
+        // The save suspends between its first read and the write (receipt).
+        beforeTransaction = { stored = stored.copy(category = "Food") }
         vm.updateDescription("new note")
         vm.saveChanges()
         assertEquals("Food", written.single().category)

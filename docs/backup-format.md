@@ -229,13 +229,16 @@ Then frames until the one marked last:
   reordered or dropped frames, a moved `isLast` flag, a missing last frame or
   bytes after it all fail.
 - The writer always ends with a frame marked last (empty for an empty input).
-- **Export** writes the JSON to a temp file in `cacheDir`, encrypts it into the
-  backup file, and deletes the temp file whatever happens.
-- **Import** sniffs the first 5 bytes. A plain backup takes the usual path. An
-  encrypted one asks for the passphrase, is decrypted in full to a temp file in
-  `cacheDir` and parsed **before the database is touched**, so a wrong
-  passphrase (the first frame fails) or a damaged file changes nothing. The temp
-  file is deleted whatever happens.
+- **Export** streams the JSON straight into the encryptor, frame by frame, so
+  no plain copy is written. A write that fails leaves no last frame.
+- **Import** sniffs the first 5 bytes. A plain backup takes the usual path,
+  unless a passphrase was given: then the file must be encrypted. An encrypted
+  one asks for the passphrase, is decrypted in full to a temp file in
+  `cacheDir/backup_restore/` and parsed **before the database is touched**, so a
+  wrong passphrase (the first frame fails) or a damaged file changes nothing.
+  The temp file is deleted whatever happens, and that folder is swept at the
+  start of every import and export (`DecryptedBackupFiles`). A decrypted backup
+  that won't parse gives a fixed error: parser messages quote the plaintext.
 - A new KDF or cipher needs a new envelope version; readers reject versions
   they don't know.
 

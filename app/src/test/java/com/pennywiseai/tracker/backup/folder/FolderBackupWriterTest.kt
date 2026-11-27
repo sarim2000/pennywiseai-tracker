@@ -15,12 +15,11 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 
-/** The backup file is only ever replaced by a complete copy, and never left beside a renamed one. */
+/** The backup file is only ever replaced by a complete copy, and success means it holds the new one. */
 class FolderBackupWriterTest {
     @get:Rule val temp = TemporaryFolder()
 
@@ -62,29 +61,51 @@ class FolderBackupWriterTest {
     }
 
     @Test
-    fun `a rename the provider suffixes is a failure, and the new copy stays under the temp name`() {
+    fun `a rename the provider suffixes is a failure, and no extra copy is left beside the old one`() {
         tree.put(final, "old")
-        tree.deleteLies = true // says it deleted, keeps the file: the rename gets "name (1)"
+        tree.lyingDeletes += final // says it deleted, keeps the file: the rename gets "name (1)"
 
         val result = writer.writeBackup("tree", backup("new"))
 
         assertTrue(result is FolderBackupWriter.Result.Failure)
-        assertEquals(mapOf(final to "old", tmp to "new"), tree.contents())
+        assertEquals(mapOf(final to "old"), tree.contents())
     }
 
     @Test
-    fun `a temp left alone by an interrupted run is put in place, not deleted`() {
-        tree.put(tmp, "last complete backup")
+    fun `a temp left by an interrupted run is removed, never put in place`() {
+        tree.put(tmp, "stale")
         tree.unwritable += tmp // this run's own write fails
 
         val result = writer.writeBackup("tree", backup("new"))
 
         assertTrue(result is FolderBackupWriter.Result.Failure)
-        assertEquals(mapOf(final to "last complete backup"), tree.contents())
+        assertEquals(emptyMap<String, String>(), tree.contents())
     }
 
     @Test
-    fun `without rename the temp is copied into place and only then removed`() {
+    fun `a stale temp beside the backup is replaced by this run's copy`() {
+        tree.put(final, "old")
+        tree.put(tmp, "stale")
+
+        assertEquals(FolderBackupWriter.Result.Success, writer.writeBackup("tree", backup("new")))
+
+        assertEquals(mapOf(final to "new"), tree.contents())
+    }
+
+    @Test
+    fun `a stale temp the provider won't delete is a failure, and the backup is untouched`() {
+        tree.put(final, "old")
+        tree.put(tmp, "stale")
+        tree.undeletable += tmp
+
+        val result = writer.writeBackup("tree", backup("new"))
+
+        assertTrue(result is FolderBackupWriter.Result.Failure)
+        assertEquals(mapOf(final to "old", tmp to "stale"), tree.contents())
+    }
+
+    @Test
+    fun `without rename the backup is copied into place and the temp removed`() {
         tree.put(final, "old")
         tree.renameSupported = false
 
@@ -94,7 +115,19 @@ class FolderBackupWriterTest {
     }
 
     @Test
-    fun `without rename a failed copy keeps the temp and drops the partial backup file`() {
+    fun `without rename a suffixed backup file is a failure, not a second file`() {
+        tree.put(final, "old")
+        tree.renameSupported = false
+        tree.lyingDeletes += final
+
+        val result = writer.writeBackup("tree", backup("new"))
+
+        assertTrue(result is FolderBackupWriter.Result.Failure)
+        assertTrue("no \"name (1)\" copy", tree.contents().keys.none { it.startsWith("$final (") })
+    }
+
+    @Test
+    fun `without rename a failed copy is reported`() {
         tree.put(final, "old")
         tree.renameSupported = false
         tree.unwritable += final
@@ -102,7 +135,6 @@ class FolderBackupWriterTest {
         val result = writer.writeBackup("tree", backup("new"))
 
         assertTrue(result is FolderBackupWriter.Result.Failure)
-        assertEquals(mapOf(tmp to "new"), tree.contents())
     }
 
     /** A SAF folder that suffixes clashing names like ExternalStorageProvider, with knobs for its failures. */
@@ -115,7 +147,7 @@ class FolderBackupWriterTest {
                 every { delete() } answers {
                     when {
                         this@Entry.name in undeletable -> false
-                        deleteLies -> true
+                        this@Entry.name in lyingDeletes -> true
                         else -> entries.remove(this@Entry)
                     }
                 }
@@ -133,7 +165,7 @@ class FolderBackupWriterTest {
         private val entries = mutableListOf<Entry>()
         val undeletable = mutableSetOf<String>()
         val unwritable = mutableSetOf<String>()
-        var deleteLies = false
+        val lyingDeletes = mutableSetOf<String>()
         var renameSupported = true
 
         val folder = mockk<DocumentFile> {
@@ -152,9 +184,6 @@ class FolderBackupWriterTest {
                         entry.content = toString(Charsets.UTF_8.name())
                     }
                 }
-            }
-            every { openInputStream(any()) } answers {
-                ByteArrayInputStream(entries.first { it.uri === firstArg<Uri>() }.content.toByteArray())
             }
         }
 

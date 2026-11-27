@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.backup.BackupExporter
 import com.pennywiseai.tracker.data.backup.BackupImporter
 import com.pennywiseai.tracker.data.backup.ExportResult
+import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.UiText
@@ -117,5 +118,15 @@ class BackupExportSessionTest {
             UiText.Res(R.string.settings_backup_save_failed, listOf("The backup is no longer available. Export it again")),
             message
         )
+    }
+
+    @Test
+    fun `the restore passphrase is cleared once the import is done`() {
+        coEvery { importer.importBackup(any(), any(), any()) } returns ImportResult.WrongPassphrase
+        val passphrase = "synthetic".toCharArray()
+
+        viewModel.importBackup(mockk(), passphrase)
+
+        assertArrayEquals(CharArray(passphrase.size), passphrase)
     }
 }

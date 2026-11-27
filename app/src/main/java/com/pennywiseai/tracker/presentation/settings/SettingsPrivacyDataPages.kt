@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.TextObfuscationMode
+import androidx.compose.foundation.text.input.clearText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -522,7 +523,10 @@ private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -
     // Plain remember, not saveable: the passphrase must not land in saved instance state.
     val passphraseState = remember { TextFieldState() }
     val confirmState = remember { TextFieldState() }
-    val mismatch = confirmState.text.isNotEmpty() && confirmState.text.toString() != passphraseState.text.toString()
+    ClearOnDispose(passphraseState, confirmState)
+    // Compared and copied char by char: no String copies of the passphrase.
+    val matches = confirmState.text.contentEquals(passphraseState.text)
+    val mismatch = confirmState.text.isNotEmpty() && !matches
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Lock, contentDescription = null) },
@@ -540,8 +544,13 @@ private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -
         },
         confirmButton = {
             TextButton(
-                onClick = { onExport(passphraseState.text.toString().toCharArray()) },
-                enabled = passphraseState.text.isNotEmpty() && confirmState.text.toString() == passphraseState.text.toString(),
+                onClick = {
+                    val passphrase = passphraseState.toCharArray()
+                    passphraseState.clearText()
+                    confirmState.clearText()
+                    onExport(passphrase)
+                },
+                enabled = passphraseState.text.isNotEmpty() && matches,
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.settings_backup_passphrase_export_action))
@@ -558,6 +567,7 @@ private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -
 private fun BackupPassphraseDialog(wrongPassphrase: Boolean, onRestore: (CharArray) -> Unit, onDismiss: () -> Unit) {
     // Plain remember, not saveable: the passphrase must not land in saved instance state.
     val passphraseState = remember { TextFieldState() }
+    ClearOnDispose(passphraseState)
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Lock, contentDescription = null) },
@@ -574,7 +584,11 @@ private fun BackupPassphraseDialog(wrongPassphrase: Boolean, onRestore: (CharArr
         },
         confirmButton = {
             TextButton(
-                onClick = { onRestore(passphraseState.text.toString().toCharArray()) },
+                onClick = {
+                    val passphrase = passphraseState.toCharArray()
+                    passphraseState.clearText()
+                    onRestore(passphrase)
+                },
                 enabled = passphraseState.text.isNotEmpty(),
                 shapes = ButtonDefaults.shapes()
             ) {
@@ -585,6 +599,16 @@ private fun BackupPassphraseDialog(wrongPassphrase: Boolean, onRestore: (CharArr
             TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.settings_action_cancel)) }
         }
     )
+}
+
+private fun TextFieldState.toCharArray(): CharArray = text.let { text -> CharArray(text.length) { text[it] } }
+
+/** Empties the fields when the dialog closes, however it closes. */
+@Composable
+private fun ClearOnDispose(vararg states: TextFieldState) {
+    DisposableEffect(Unit) {
+        onDispose { states.forEach { it.clearText() } }
+    }
 }
 
 @Composable

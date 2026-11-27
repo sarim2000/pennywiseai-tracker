@@ -602,14 +602,10 @@ class SettingsViewModel @Inject constructor(
         }
         exportJob = viewModelScope.launch {
             try {
-                val result = try {
-                    backupExporter.exportBackup(
-                        includeReceipts = userPreferencesRepository.exportIncludeReceipts.first(),
-                        passphrase = passphrase
-                    )
-                } finally {
-                    passphrase?.fill('\u0000')
-                }
+                val result = backupExporter.exportBackup(
+                    includeReceipts = userPreferencesRepository.exportIncludeReceipts.first(),
+                    passphrase = passphrase
+                )
                 when (result) {
                     is ExportResult.Success -> {
                         // Store the file for later saving
@@ -626,6 +622,8 @@ class SettingsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _importExportMessage.value = UiText.Res(R.string.settings_export_error, listOf("${e.message}"))
                 Log.e("SettingsViewModel", "Export error", e)
+            } finally {
+                passphrase?.fill('\u0000')
             }
         }
     }
@@ -709,11 +707,7 @@ class SettingsViewModel @Inject constructor(
             try {
                 _importExportMessage.value = UiText.Res(R.string.settings_importing_backup)
                 val baseBefore = userPreferencesRepository.baseCurrency.first()
-                val result = try {
-                    backupImporter.importBackup(uri, ImportStrategy.MERGE, passphrase)
-                } finally {
-                    passphrase?.fill('\u0000')
-                }
+                val result = backupImporter.importBackup(uri, ImportStrategy.MERGE, passphrase)
                 when (result) {
                     ImportResult.PassphraseRequired, ImportResult.WrongPassphrase -> {
                         // Nothing was imported: ask (again), with the error on a retry.
@@ -758,6 +752,8 @@ class SettingsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _importExportMessage.value = UiText.Res(R.string.settings_import_error, listOf("${e.message}"))
                 Log.e("SettingsViewModel", "Import error", e)
+            } finally {
+                passphrase?.fill('\u0000')
             }
         }
     }

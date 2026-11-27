@@ -264,7 +264,7 @@
     <string name="cash_flow_transferred">Transferred</string>
 
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">Card spend</string>
+    <string name="txn_item_tag_credit">Card</string>
     <string name="txn_item_tag_transfer">Transfer</string>
     <string name="txn_item_tag_investment">Investment</string>
     <string name="txn_item_tag_recurring">Recurring</string>

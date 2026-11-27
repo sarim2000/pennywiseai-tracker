@@ -1,10 +1,14 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.widget.WidgetRefresher
+import io.mockk.anyVararg
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
@@ -50,9 +54,11 @@ class TransactionDetailStaleSaveTest {
         every { unifiedCurrencyMode } returns flowOf(false)
     }
 
+    private val balances = mockk<AccountBalanceRepository>(relaxed = true)
+
     private fun viewModel() = TransactionDetailViewModel(
         transactions, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
-        mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
+        balances, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
         tags, mockk(relaxed = true), prefs, mockk(relaxed = true),
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
         mockk(relaxed = true), mockk(relaxed = true)
@@ -88,6 +94,30 @@ class TransactionDetailStaleSaveTest {
         vm.updateCategory("Travel")
         vm.saveChanges()
         assertEquals("Travel", written.single().category)
+    }
+
+    @Test
+    fun `a change landing after the early read still survives the write`() {
+        val vm = viewModel()
+        vm.enterEditMode()
+        // The save suspends between its first read and the write (balances, receipt).
+        coEvery { balances.pinManualOpenings(*anyVararg()) } answers { stored = stored.copy(category = "Food") }
+        vm.updateDescription("new note")
+        vm.saveChanges()
+        assertEquals("Food", written.single().category)
+        assertEquals("new note", written.single().description)
+    }
+
+    @Test
+    fun `splits that no longer match a changed stored amount stop the save`() {
+        val vm = viewModel()
+        vm.enterEditMode()
+        vm.enableSplitMode()
+        stored = stored.copy(amount = BigDecimal("80"))
+        vm.updateDescription("new note")
+        vm.saveChanges()
+        assertTrue(written.isEmpty())
+        assertEquals(UiText.Res(R.string.txn_detail_error_splits_total), vm.errorMessage.value)
     }
 
     @Test

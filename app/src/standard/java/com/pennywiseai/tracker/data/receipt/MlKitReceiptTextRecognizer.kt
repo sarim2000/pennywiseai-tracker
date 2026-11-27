@@ -23,31 +23,53 @@ import kotlin.coroutines.resumeWithException
 import kotlin.math.abs
 
 /**
- * ML Kit Text Recognition v2 with the Latin model bundled in the APK, so it works
- * offline and nothing leaves the device. The photo is decoded at most [MAX_SIDE] px
- * on its long side, and its text is never logged.
+ * ML Kit Text Recognition v2 with the Latin-script model bundled in the APK, so it
+ * works offline: the photo and its text stay on the device. ML Kit itself still sends
+ * Google usage and performance metrics (no images or text). Latin only: Arabic or
+ * Devanagari text isn't read. The photo is decoded at most [MAX_SIDE] px on its long
+ * side, and its text is never logged.
  */
 class MlKitReceiptTextRecognizer @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ReceiptTextRecognizer {
     override val isAvailable: Boolean = true
 
-    override suspend fun recognize(uri: Uri): List<String>? {
+    // Off the main thread: creating the client loads the model from disk.
+    override suspend fun recognize(uri: Uri): List<String>? = withContext(Dispatchers.Default) {
         try {
-            val (bitmap, rotation) = withContext(Dispatchers.IO) { decode(uri) } ?: return null
-            try {
-                return TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS).use { client ->
-                    rows(client.process(InputImage.fromBitmap(bitmap, rotation)).await())
-                }
-            } finally {
-                bitmap.recycle()
-            }
+            val (bitmap, rotation) = withContext(Dispatchers.IO) { decode(uri) } ?: return@withContext null
+            rows(read(bitmap, rotation).await())
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Log.w(TAG, "Receipt text recognition failed", e)
-            return null
+            null
         }
+    }
+
+    /**
+     * ML Kit's reading of [bitmap]. The task keeps reading the bitmap after a cancelled
+     * caller stops waiting, so the bitmap and the client are released only once it's done.
+     */
+    private fun read(bitmap: Bitmap, rotation: Int): Task<Text> {
+        val client = try {
+            TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        } catch (e: Exception) {
+            bitmap.recycle()
+            throw e
+        }
+        val task = try {
+            client.process(InputImage.fromBitmap(bitmap, rotation))
+        } catch (e: Exception) {
+            client.close()
+            bitmap.recycle()
+            throw e
+        }
+        task.addOnCompleteListener {
+            client.close()
+            bitmap.recycle()
+        }
+        return task
     }
 
     /** The photo, scaled down by a power of two to fit [MAX_SIDE], and how far it's turned. */
@@ -106,6 +128,7 @@ class MlKitReceiptTextRecognizer @Inject constructor(
     private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
         addOnSuccessListener { cont.resume(it) }
         addOnFailureListener { cont.resumeWithException(it) }
+        addOnCanceledListener { cont.cancel() }
     }
 
     private companion object {

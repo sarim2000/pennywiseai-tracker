@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import com.pennywiseai.tracker.core.TransactionWidgets
+import com.pennywiseai.tracker.data.backup.SettingsSnapshot
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -86,6 +87,17 @@ class PreferenceWidgetRefreshTest {
         repository.setHideWidgetAmountsWhileLocked(false)
         assertEquals(3, redraws)
         assertEquals(0, refreshes)
+    }
+
+    @Test
+    fun `a restore that changes the eye redraws the widgets, one that keeps it doesn't`() = runBlocking {
+        val hidden = SettingsSnapshot(booleans = mapOf("balance_hidden" to true))
+        repository.restoreSettings(hidden) { it }
+        assertEquals(1, redraws)
+        repository.restoreSettings(hidden) { it }
+        assertEquals(1, redraws)
+        repository.restoreSettings(SettingsSnapshot(booleans = mapOf("balance_hidden" to null))) { it }
+        assertEquals(2, redraws)
     }
 
     @Test

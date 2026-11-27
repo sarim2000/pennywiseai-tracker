@@ -424,7 +424,9 @@ open class UserPreferencesRepository internal constructor(
      * read. [profileId] maps the backup's profile id to this device's (null = gone).
      */
     suspend fun restoreSettings(snapshot: SettingsSnapshot, profileId: (Long) -> Long?) {
+        var hiddenChanged = false
         dataStore.edit { prefs ->
+            val hiddenBefore = prefs[PreferencesKeys.BALANCE_HIDDEN]
             fun <T : Any> List<Preferences.Key<T>>.restore(values: Map<String, T?>, accept: (Preferences.Key<T>, T) -> T? = { _, v -> v }) {
                 for (key in this) {
                     if (key.name !in values) continue
@@ -444,7 +446,10 @@ open class UserPreferencesRepository internal constructor(
                 }
             )
             SettingsBackup.STRING_SETS.restore(snapshot.stringSets.mapValues { (_, v) -> v?.toSet() })
+            hiddenChanged = prefs[PreferencesKeys.BALANCE_HIDDEN] != hiddenBefore
         }
+        // A restored eye changes what the widgets mask, which their data rebuild alone may not redraw.
+        if (hiddenChanged) transactionWidgets.redraw()
     }
 
     private companion object {

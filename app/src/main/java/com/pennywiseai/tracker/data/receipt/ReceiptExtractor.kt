@@ -71,10 +71,11 @@ object ReceiptExtractor {
 
     // Thousands may be grouped by a (narrow) no-break or thin space anywhere ("1 234.56"), and by
     // a plain space before a decimal comma ("1 234,56"); a plain space before a decimal point is
-    // more likely two figures ("Qty 3 120.00").
+    // more likely two figures ("Qty 3 120.00"), unless a total's currency comes right before it.
     private val NUMBER = Regex(
         """(?<![\d.,])(?:\d{1,3}(?:[\u00A0\u202F\u2009]\d{3})+(?:[.,]\d+)?(?!\d)|\d{1,3}(?: \d{3})+,\d+|\d+(?:[.,]\d+)*)"""
     )
+    private val SPACED = Regex("""(?<![\d.,])\d{1,3}(?: \d{3})+(?:\.\d+)?(?![\d.,])""")
     private val GROUP_SPACE = Regex("""[ \u00A0\u202F\u2009]""")
     private const val MAX_AMOUNT = 10_000_000
 
@@ -137,9 +138,21 @@ object ReceiptExtractor {
 
     /** The amounts on [line] read with [digits] decimals; null when one of them can't be read for sure. */
     private fun amountsOrNull(line: String, digits: Int?): List<BigDecimal>? {
-        val tokens = NUMBER.findAll(DATE_OR_TIME.replace(line, " ")).map { it.value }.toList()
+        val text = DATE_OR_TIME.replace(line, " ").let { stripped ->
+            // "AED 1 250.00" is one figure; "Total 3 120.00" may be a count and a price.
+            val spaced = SPACED.findAll(stripped).toList()
+            if (spaced.any { !afterCurrency(stripped, it.range.first) }) return null
+            SPACED.replace(stripped) { it.value.replace(' ', '\u00A0') }
+        }
+        val tokens = NUMBER.findAll(text).map { it.value }.toList()
         val values = tokens.map { amount(it, digits, centsOnly = false) ?: return null }
         return values.filter { it.signum() > 0 && it < BigDecimal(MAX_AMOUNT) }
+    }
+
+    /** Whether a currency mark or code ends [text] just before [index]. */
+    private fun afterCurrency(text: String, index: Int): Boolean {
+        val before = text.substring(0, index).trimEnd()
+        return CURRENCY_WORDS.findAll(before).any { it.range.last == before.lastIndex }
     }
 
     /** The amounts on [line]; with [centsOnly], only figures written with the currency's decimals. */

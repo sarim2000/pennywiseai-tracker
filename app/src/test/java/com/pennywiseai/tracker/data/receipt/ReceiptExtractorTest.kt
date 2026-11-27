@@ -73,8 +73,11 @@ class ReceiptExtractorTest {
     fun `thousands grouped by spaces`() {
         assertEquals(BigDecimal("1234.56"), amount("TOTAL 1 234,56 EUR"))
         assertEquals(BigDecimal("1234.56"), amount("TOTAL 1\u202F234.56"))
-        // A plain space before a decimal point parts two figures.
-        assertEquals(BigDecimal("120.00"), amount("Total 3 120.00"))
+        // Right after the total's currency, a plain space groups thousands too.
+        assertEquals(BigDecimal("1250.00"), amount("GRAND TOTAL AED 1 250.00"))
+        assertEquals(BigDecimal("1250.00"), amount("TOTAL", "AED 1 250.00"))
+        // Anywhere else it may part two figures (a count and a price), so it's left out.
+        assertNull(amount("Total 3 120.00"))
     }
 
     @Test

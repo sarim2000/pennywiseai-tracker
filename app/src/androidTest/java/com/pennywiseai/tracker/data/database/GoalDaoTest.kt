@@ -72,7 +72,8 @@ class GoalDaoTest {
         seed()
         transactions.insertTransaction(txn(2, sender = "AD-KOTAKB"))
         transactions.deleteRebuildableSmsTransactions(
-            BankNotificationConfig.notificationAliases.toList(), from = LocalDateTime.of(2026, 1, 1, 0, 0)
+            BankNotificationConfig.notificationAliases.toList(), from = LocalDateTime.of(2026, 1, 1, 0, 0),
+            inboxBodies = setOf("body 2")
         )
         assertNotNull(transactions.getTransactionById(1))
         assertEquals(null, transactions.getTransactionById(2))

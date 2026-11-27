@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.database
 import androidx.room3.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pennywiseai.tracker.data.database.dao.deleteRebuildableSmsTransactions
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -53,11 +54,26 @@ class RebuildDeleteTest {
 
         dao.deleteRebuildableSmsTransactions(
             BankNotificationConfig.notificationAliases.toList(),
-            from = LocalDateTime.of(2026, 7, 1, 0, 0)
+            from = LocalDateTime.of(2026, 7, 1, 0, 0),
+            inboxBodies = (1L..10L).map { "body $it" }.toSet()
         )
 
         val left = db.longs("SELECT id FROM transactions ORDER BY id")
         assertEquals(listOf(2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L), left)
+    }
+
+    @Test fun keepsAnSmsRowWhoseMessageIsNoLongerInTheInbox() = runBlocking {
+        val dao = db.transactionDao()
+        listOf(row(1, "AD-KOTAKB"), row(2, "AD-KOTAKB"), row(3, "AD-KOTAKB").copy(smsBody = " ")).forEach { dao.insertTransaction(it) }
+
+        dao.deleteRebuildableSmsTransactions(
+            BankNotificationConfig.notificationAliases.toList(),
+            from = LocalDateTime.of(2026, 7, 1, 0, 0),
+            inboxBodies = setOf("body 1", " ")
+        )
+
+        // 1: message still in the inbox -> deleted. 2: message gone -> kept. 3: blank body -> kept.
+        assertEquals(listOf(2L, 3L), db.longs("SELECT id FROM transactions ORDER BY id"))
     }
 
     @Test fun aRebuiltCardGetsItsBillBack() = runBlocking {

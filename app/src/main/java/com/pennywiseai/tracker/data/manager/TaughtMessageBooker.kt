@@ -140,7 +140,7 @@ class TaughtMessageBooker @Inject constructor(
         /**
          * Marks a row "Rebuild from scratch" must keep. A rebuild deletes what the inbox can
          * bring back, and a taught message only comes back if the user confirms it again.
-         * Spelled out in TransactionDao.deleteRebuildableSmsTransactions.
+         * Spelled out in TransactionDao.getRebuildableSmsTransactions.
          */
         const val HASH_PREFIX = "taught_"
     }

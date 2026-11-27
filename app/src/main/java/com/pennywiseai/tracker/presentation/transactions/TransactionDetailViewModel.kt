@@ -1076,7 +1076,7 @@ class TransactionDetailViewModel @Inject constructor(
 
         viewModelScope.launch {
             // Goal contributions keep their share in the transaction's currency (#914).
-            if (original != null && original.currency != toSave.currency &&
+            if (original != null && toSave.currency != opened?.currency && original.currency != toSave.currency &&
                 goalRepository.observeContributionsForTransaction(original.id).first().isNotEmpty()
             ) {
                 _errorMessage.value = UiText.Res(R.string.goal_currency_locked_by_goal)
@@ -1087,16 +1087,18 @@ class TransactionDetailViewModel @Inject constructor(
             val persisted = original?.let { transactionRepository.getTransactionById(it.id) }
             val sharesTotal = persisted?.lentSharesTotal
             if (persisted != null && sharesTotal != null) {
-                if (!persisted.currency.equals(toSave.currency, ignoreCase = true)) {
+                // Checked as it will be written: a field this edit left alone keeps the stored value.
+                val willWrite = mergeEditOntoFresh(opened ?: persisted, toSave, persisted)
+                if (!persisted.currency.equals(willWrite.currency, ignoreCase = true)) {
                     _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_currency_locked)
                     return@launch
                 }
                 // Only an expense can be split: as income the shares would be debt with no outlay behind it.
-                if (toSave.transactionType != TransactionType.EXPENSE) {
+                if (willWrite.transactionType != TransactionType.EXPENSE) {
                     _errorMessage.value = UiText.Res(R.string.split_error_type_locked)
                     return@launch
                 }
-                if (toSave.amount < sharesTotal) {
+                if (willWrite.amount < sharesTotal) {
                     _errorMessage.value = UiText.Res(R.string.split_error_amount_below_shares)
                     return@launch
                 }

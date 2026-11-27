@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
+import com.pennywiseai.tracker.utils.Money
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -209,14 +210,14 @@ class SmsTransactionProcessorMoneyAlertsTest {
     }
 
     @Test
-    fun `a saved transaction announces one event`() = runBlocking {
+    fun `a saved transaction announces one event, with its amount`() = runBlocking {
         val heard = listen()
 
         processor.saveParsedTransaction(parsed(balance = null, accountLast4 = null), BODY)
         heard.stop()
 
         assertEquals(
-            listOf(TransactionEvent(SavedType.EXPENSE, 1, TransactionOrigin.BANK_MESSAGE)),
+            listOf(TransactionEvent(SavedType.EXPENSE, 1, TransactionOrigin.BANK_MESSAGE, Money(BigDecimal("50"), "INR"))),
             heard.events,
         )
     }

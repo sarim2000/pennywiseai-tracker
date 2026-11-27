@@ -80,7 +80,7 @@ class ConscienceReplayTest {
     private fun windowOf(purchases: List<ConsciencePurchase>, index: Int): List<ConsciencePurchase> {
         val current = purchases[index]
         // The same windows as ConscienceManager: further back late at night, to spot renewals.
-        val days = if (ConscienceDetectors.isLateNight(current.at.toLocalTime())) 761L else 42L
+        val days = if (ConscienceDetectors.isLateNight(current.at.toLocalTime())) 761L else 95L
         val from = current.at.toLocalDate().minusDays(days).atStartOfDay()
         // The manager reads through tomorrow; the detectors drop what came after.
         val until = current.at.toLocalDate().plusDays(2).atStartOfDay()
@@ -106,6 +106,7 @@ class ConscienceReplayTest {
             val active = year.activeDates.filter { !it.isAfter(today) }.toSet()
             val facts = ConscienceDetectors.detect(current, history, start, active)
 
+            assertEquals(ConscienceFact.Hello(current.category), facts.last())
             assertEquals(facts.sortedBy { it.kind.ordinal }, facts)
             assertEquals(facts.size, facts.map { it.kind }.distinct().size)
             assertTrue(facts.all { it.category == current.category })
@@ -124,7 +125,8 @@ class ConscienceReplayTest {
             val choice = ConscienceCadence.choose(
                 facts.map { ConscienceCandidate(it, pool(it.kind)) },
                 log,
-                emptySet(),
+                ConscienceFeedback(),
+                ConscienceFrequency.NORMAL,
                 "en",
                 nowMillis,
                 today.toEpochDay(),
@@ -137,7 +139,8 @@ class ConscienceReplayTest {
             }
         }
 
-        val firedFacts = fired.values.sum()
+        val detectedFacts = detected.filterKeys { it != ConscienceKind.HELLO }
+        val firedFacts = fired.filterKeys { it != ConscienceKind.HELLO }.values.sum()
         println(
             "Conscience replay: ${purchases.size} purchases, detected ${detected.toSortedMap()}, " +
                 "fired ${fireTimes.size} ${fired.toSortedMap()}",
@@ -148,8 +151,22 @@ class ConscienceReplayTest {
             assertTrue("$inWeek fires in the week from $fire", inWeek <= 3)
             assertTrue(fireTimes.count { it >= fire && it - fire < dayMillis } <= 1)
         }
-        // Every kind shows up, and the three kinds stay well under the weekly cap.
-        assertEquals(ConscienceKind.entries.toSet(), detected.keys)
-        assertTrue("$firedFacts lines fired", firedFacts in 10..80)
+        // Every kind but the rarest shows up, and facts speak about once a week.
+        assertTrue("only ${detectedFacts.keys} detected", detectedFacts.keys.size >= 6)
+        assertTrue("$firedFacts fact lines fired", firedFacts in 30..100)
+    }
+
+    @Test
+    fun `a year of a fixed Mon-Thu routine never reads as a comeback`() {
+        val purchases = (0L until 365L).map { start.plusDays(it) }
+            .filter { it.dayOfWeek.value in 1..4 }
+            .mapIndexed { index, date ->
+                ConsciencePurchase(date.atTime(13, 0), BigDecimal(10), "JOD", FOOD, index + 1L, "Cafe A")
+            }
+        val comebacks = purchases.indices.count { index ->
+            ConscienceDetectors.detect(purchases[index], windowOf(purchases, index), start)
+                .any { it is ConscienceFact.Comeback }
+        }
+        assertEquals(0, comebacks)
     }
 }

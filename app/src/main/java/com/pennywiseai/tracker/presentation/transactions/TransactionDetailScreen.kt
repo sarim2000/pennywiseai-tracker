@@ -10,23 +10,28 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -36,9 +41,11 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
@@ -56,7 +63,9 @@ import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.RevealAmountsAction
 import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.ui.components.SplitItem
+import com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -76,9 +85,14 @@ fun TransactionDetailScreen(
     onDuplicateTransaction: (Long) -> Unit = {},
     onNavigateToGoal: (Long) -> Unit = {},
     onCreateGoal: () -> Unit = {},
+    onNavigateToTransaction: (Long) -> Unit = {},
+    onNavigateToReimbursements: () -> Unit = {},
+    /** The list of this raw merchant's or this category's transactions (the other one null), in [currency], from [profileId]. */
+    onOpenRelated: (merchant: String?, category: String?, currency: String, profileId: Long) -> Unit = { _, _, _, _ -> },
     viewModel: TransactionDetailViewModel = hiltViewModel(),
     goalsViewModel: TransactionGoalsViewModel = hiltViewModel(),
-    splitViewModel: SplitBillViewModel = hiltViewModel()
+    splitViewModel: SplitBillViewModel = hiltViewModel(),
+    reimbursementViewModel: TransactionReimbursementViewModel = hiltViewModel()
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
     val isEditMode by viewModel.isEditMode.collectAsStateWithLifecycle()
@@ -131,6 +145,10 @@ fun TransactionDetailScreen(
     // Split a bill (#346): reload after a save so lent_shares_total is fresh.
     LaunchedEffect(transaction) { splitViewModel.setTransaction(transaction) }
     LaunchedEffect(Unit) { splitViewModel.changed.collect { viewModel.loadTransaction(transactionId) } }
+    // Reimbursable (#1389): same reload after a change.
+    LaunchedEffect(transaction) { reimbursementViewModel.setTransaction(transaction) }
+    LaunchedEffect(Unit) { reimbursementViewModel.changed.collect { viewModel.loadTransaction(transactionId) } }
+    var showPaidBackBy by rememberSaveable { mutableStateOf(false) }
     fun closeAddToGoal() { showAddToGoal = false; goalsViewModel.closeSheet() }
     // Bumped by each confirmed user action that settles the receipt: Save, Add to goal.
     var settleRequests by remember { mutableIntStateOf(0) }
@@ -207,6 +225,9 @@ fun TransactionDetailScreen(
         }
     }
     var showCategoryPicker by rememberSaveable { mutableStateOf(false) }
+    // "More from" names the merchant as the header does (alias first); the list searches the raw name.
+    val merchantDisplay = LocalMerchantDisplay.current
+    val merchantAlias by viewModel.currentMerchantAlias.collectAsStateWithLifecycle()
     val reportMistake: () -> Unit = {
         val reportUrl = viewModel.getReportUrl()
         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(reportUrl))) }
@@ -258,6 +279,34 @@ fun TransactionDetailScreen(
                     showActions = transaction != null,
                     onEdit = { viewModel.enterEditMode() },
                     menu = { dismiss ->
+                        transaction?.let { txn ->
+                            val merchant = txn.merchantName.takeIf { it.isNotBlank() }
+                            // A split row's categories are its parts, and Unsorted is several names.
+                            val category = txn.category.takeIf { hasSplits == false && !isUnsortedCategory(it) }
+                            // The profile the lists filter this row by (explicit, else its account's, else Personal).
+                            val profileId = txn.profileId ?: accountProfileId ?: ProfileEntity.PERSONAL_ID
+                            merchant?.let {
+                                RelatedMenuItem(
+                                    text = stringResource(R.string.txn_detail_menu_more_from, merchantAlias ?: merchantDisplay(it) ?: it),
+                                    icon = Icons.Outlined.Storefront,
+                                    onClick = {
+                                        dismiss()
+                                        onOpenRelated(it, null, txn.currency, profileId)
+                                    }
+                                )
+                            }
+                            category?.let {
+                                RelatedMenuItem(
+                                    text = stringResource(R.string.txn_detail_menu_more_in, categoryLabel(it)),
+                                    icon = Icons.Outlined.Category,
+                                    onClick = {
+                                        dismiss()
+                                        onOpenRelated(null, it, txn.currency, profileId)
+                                    }
+                                )
+                            }
+                            if (merchant != null || category != null) HorizontalDivider()
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.txn_detail_menu_add_to_group)) },
                             leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
@@ -283,6 +332,16 @@ fun TransactionDetailScreen(
                                 onClick = {
                                     dismiss()
                                     splitViewModel.openSheet()
+                                }
+                            )
+                        }
+                        if (transaction?.let(::canMarkReimbursable) == true) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.reimburse_menu_mark)) },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Outlined.ReceiptLong, contentDescription = null) },
+                                onClick = {
+                                    dismiss()
+                                    reimbursementViewModel.markPending()
                                 }
                             )
                         }
@@ -353,6 +412,17 @@ fun TransactionDetailScreen(
                 splitWith = {
                     transaction?.let { SplitSection(splitViewModel, it, onOpenLoan = onNavigateToLoanDetail) }
                 },
+                reimbursement = {
+                    transaction?.let {
+                        ReimbursementSection(
+                            viewModel = reimbursementViewModel,
+                            transaction = it,
+                            onOpenTransaction = onNavigateToTransaction,
+                            onOpenAll = onNavigateToReimbursements,
+                            onPickPayment = { showPaidBackBy = true }
+                        )
+                    }
+                },
                 onCategoryClick = {
                     // A split row's categories live in the editor's split section.
                     // Unknown yet (still loading): do nothing rather than guess.
@@ -370,6 +440,12 @@ fun TransactionDetailScreen(
 
     transaction?.let { SplitBillSheet(splitViewModel, it) }
 
+    if (showPaidBackBy) {
+        transaction?.let { txn ->
+            PaidBackBySheet(reimbursementViewModel, txn, onDismiss = { showPaidBackBy = false })
+        }
+    }
+
     if (showCategoryPicker) {
         val categories by viewModel.categories.collectAsStateWithLifecycle()
         val mostUsed by viewModel.mostUsedCategories.collectAsStateWithLifecycle()
@@ -382,7 +458,11 @@ fun TransactionDetailScreen(
                     viewModel.quickUpdateCategory(name)
                 },
                 onDismiss = { showCategoryPicker = false },
-                mostUsed = mostUsed
+                mostUsed = mostUsed,
+                onWhatWasThis = {
+                    showCategoryPicker = false
+                    showWhatWasThis = true
+                }.takeIf { whatWasThisOptions(txn, loan != null).isNotEmpty() }
             )
         }
     }
@@ -649,6 +729,7 @@ private fun TransactionDetailContent(
     hazeState: HazeState,
     towardGoals: @Composable () -> Unit,
     splitWith: @Composable () -> Unit,
+    reimbursement: @Composable () -> Unit,
     whatWasThis: @Composable () -> Unit,
     onCategoryClick: () -> Unit,
     hasClassificationAction: Boolean,
@@ -705,6 +786,7 @@ private fun TransactionDetailContent(
                 accountProfileId = accountProfileId,
                 towardGoals = towardGoals,
                 splitWith = splitWith,
+                reimbursement = reimbursement,
                 whatWasThis = whatWasThis,
                 onCategoryClick = onCategoryClick,
                 onEditClick = { viewModel.enterEditMode() },
@@ -712,6 +794,16 @@ private fun TransactionDetailContent(
             )
         }
     }
+}
+
+/** A "More from"/"More in" link: one line, since a merchant's name can be long. */
+@Composable
+private fun RelatedMenuItem(text: String, icon: ImageVector, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        leadingIcon = { Icon(icon, contentDescription = null) },
+        onClick = onClick
+    )
 }
 
 /**

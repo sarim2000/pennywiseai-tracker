@@ -278,6 +278,8 @@ fun TransactionTabContent(
                     shape = RoundedField.shape,
                     colors = RoundedField.colors()
                 )
+                val merchantSuggestions by viewModel.merchantSuggestions.collectAsStateWithLifecycle()
+                MerchantSuggestionRow(merchantSuggestions, onPick = viewModel::pickMerchantSuggestion)
             }
 
             // ── Category / Account (From + To for a transfer) / Date ──

@@ -16,6 +16,8 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.manager.TaughtMessageBooker
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
@@ -44,7 +46,8 @@ class UnrecognizedSmsViewModel @Inject constructor(
     private val trackedAppsStore: TrackedNotificationAppsStore,
     private val taughtTemplatesStore: TaughtTemplatesStore,
     private val taughtMessageBooker: TaughtMessageBooker,
-    private val smsInboxReader: SmsInboxReader
+    private val smsInboxReader: SmsInboxReader,
+    private val mascotMoments: MascotMoments
 ) : ViewModel() {
 
     private companion object {
@@ -166,6 +169,8 @@ class UnrecognizedSmsViewModel @Inject constructor(
     /**
      * Learns the shape and books this message through it, so the first booking proves the
      * template reads what's on screen. Teaching a message again replaces what misread it.
+     * Only a new transaction tells the Chat tab's mascot the message was learned; one already
+     * booked, ignored or failed isn't news.
      */
     fun saveTeach() {
         val state = _teach.value ?: return
@@ -195,7 +200,9 @@ class UnrecognizedSmsViewModel @Inject constructor(
         taughtTemplatesStore.save(template, replacing = misread)
         _teach.value = null
         viewModelScope.launch {
-            notify(taughtMessageBooker.bookMessage(state.sender, state.body, state.timestamp), saved = R.string.teach_saved)
+            val outcome = taughtMessageBooker.bookMessage(state.sender, state.body, state.timestamp)
+            if (outcome == TaughtMessageBooker.Outcome.SAVED) mascotMoments.announce(MascotMoment.MessageTaught)
+            notify(outcome, saved = R.string.teach_saved)
         }
     }
 

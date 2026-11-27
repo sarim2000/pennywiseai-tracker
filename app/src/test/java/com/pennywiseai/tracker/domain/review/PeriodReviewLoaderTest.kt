@@ -3,17 +3,22 @@ package com.pennywiseai.tracker.domain.review
 import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
+import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
@@ -37,7 +42,9 @@ class PeriodReviewLoaderTest {
     private val cards = mockk<CardRepository>()
     private val ignored = mockk<IgnoredAccountsStore>()
     private val balances = mockk<AccountBalanceRepository>()
-    private val loader = PeriodReviewLoader(transactions, mockk(), mockk(), balances, prefs, ignored, cards)
+    private val loans = mockk<LoanRepository>()
+    private val categories = mockk<CategoryRepository>()
+    private val loader = PeriodReviewLoader(transactions, loans, categories, balances, prefs, ignored, cards)
 
     init {
         every { prefs.selectedProfileId } returns flowOf(null)
@@ -148,5 +155,63 @@ class PeriodReviewLoaderTest {
         dataStore.value = 2
         advanceUntilIdle()
         assertEquals(2, changes.size)
+    }
+
+    @Test
+    fun `the weekly guess's last week is the Week review's week, figure for figure`() = runTest {
+        val today = LocalDate.of(2026, 11, 18)
+        val week = reviewRange(ReviewKind.WEEK, -1, today, 1, localFirstDayOfWeek())
+        every { prefs.countCreditCardAsExpense } returns flowOf(false)
+        coEvery { prefs.getBudgetCycleStartDay() } returns 1
+        every { categories.getAllCategories() } returns flowOf(emptyList())
+        every { loans.getLentLoansSettledInPeriod(any(), any()) } returns flowOf(emptyList())
+        coEvery { loans.settlementLossByCurrency(any(), any()) } returns emptyMap()
+        every { transactions.getTransactionsBetweenDates(any<LocalDate>(), any<LocalDate>()) } returns flowOf(emptyList())
+
+        var id = 0L
+        fun spend(day: LocalDate, amount: String, category: String, currency: String = "USD", type: TransactionType = TransactionType.EXPENSE, splits: Map<String, String> = emptyMap()): Pair<String, TransactionWithSplits> {
+            id++
+            val at = day.atTime(12, 0)
+            return at.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) to TransactionWithSplits(
+                TransactionEntity(
+                    id = id,
+                    amount = BigDecimal(amount),
+                    merchantName = "Test Shop",
+                    category = category,
+                    currency = currency,
+                    transactionType = type,
+                    dateTime = at,
+                    transactionHash = "row$id",
+                    bankName = "Test Bank",
+                ),
+                splits.map { (name, part) -> TransactionSplitEntity(transactionId = id, category = name, amount = BigDecimal(part)) },
+            )
+        }
+        storedAs(
+            mapOf(
+                spend(week.start, "30", "Food & Dining"),
+                spend(week.start.plusDays(2), "45.50", "Shopping", splits = mapOf("Food & Dining" to "20.50", "Shopping" to "25")),
+                // Card spend, left out of expenses by default in both.
+                spend(week.start.plusDays(3), "80", "Food & Dining", type = TransactionType.CREDIT),
+                spend(week.end, "500", "Food & Dining", currency = "INR"),
+                // The week before, which the review compares against.
+                spend(week.start.minusDays(2), "12", "Food & Dining"),
+            )
+        )
+
+        val review = loader.observe(ReviewKind.WEEK, -1, today).first()
+        val guessWeeks = loader.lastWeeks(GUESS_HISTORY_WEEKS + 1, today).cycles
+
+        for (currency in listOf("USD", "INR")) {
+            val reviewed = review.currencies.single { it.currency == currency }
+            val asked = guessWeeks.getValue(currency).last()
+            assertEquals(week.start to week.end, asked.start to asked.end)
+            assertEquals(0, reviewed.spent.compareTo(asked.spent))
+            assertEquals(
+                reviewed.categories.filter { it.amount.signum() != 0 }.associate { it.name to it.amount.stripTrailingZeros() },
+                asked.byCategory.filterValues { it.signum() != 0 }.mapValues { it.value.stripTrailingZeros() },
+            )
+        }
+        assertEquals(0, BigDecimal("50.50").compareTo(guessWeeks.getValue("USD").last().byCategory["Food & Dining"]))
     }
 }

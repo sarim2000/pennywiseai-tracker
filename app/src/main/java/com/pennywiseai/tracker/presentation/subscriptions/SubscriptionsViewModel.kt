@@ -8,6 +8,10 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
@@ -40,6 +44,7 @@ class SubscriptionsViewModel @Inject constructor(
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
     private val recurringSuggestionsUseCase: RecurringSuggestionsUseCase,
     accountBalanceRepository: AccountBalanceRepository,
+    private val mascotMoments: MascotMoments,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubscriptionsUiState())
@@ -63,6 +68,7 @@ class SubscriptionsViewModel @Inject constructor(
     fun acceptSuggestion(suggestion: RecurringSuggestion, amount: BigDecimal) {
         viewModelScope.launch {
             val tracked = recurringSuggestionsUseCase.accept(suggestion, amount)
+            billTrackedMoment(tracked?.direction)?.let(mascotMoments::announce)
             _uiState.value = _uiState.value.copy(
                 markPaidMessage = if (tracked != null) {
                     UiText.Res(R.string.subscriptions_suggestion_tracked, listOf(suggestion.merchantName))
@@ -306,7 +312,21 @@ class SubscriptionsViewModel @Inject constructor(
                 markPaidMessage = (if (paid) finishedPlan(subscriptionId) else null) ?: message,
                 settledSubscriptionId = subscriptionId.takeIf { paid } ?: _uiState.value.settledSubscriptionId,
             )
+            announceBillPaid(subscriptionId, result)
         }
+    }
+
+    /** Tells the Chat tab about a payment the user just recorded or linked, at its own amount. */
+    private suspend fun announceBillPaid(subscriptionId: Long, result: MarkSubscriptionPaidUseCase.Result) {
+        val paymentId = when (result) {
+            is MarkSubscriptionPaidUseCase.Result.Created -> result.transactionId
+            is MarkSubscriptionPaidUseCase.Result.Linked -> result.transactionId
+            else -> return
+        }
+        // The sheet offers expense rows to link even for an income subscription, so the
+        // payment's own type isn't enough: the subscription must be a bill.
+        val direction = subscriptionRepository.getSubscriptionById(subscriptionId)?.direction
+        billPaidMoment(direction, transactionRepository.getTransactionById(paymentId))?.let(mascotMoments::announce)
     }
 
     /** "All 12 payments made" when that payment was a plan's last (#1061): its row has moved to Cancelled. */
@@ -374,9 +394,26 @@ class SubscriptionsViewModel @Inject constructor(
                 settledSubscriptionId = subscriptionId.takeIf { linked }
                     ?: _uiState.value.settledSubscriptionId,
             )
+            announceBillPaid(subscriptionId, result)
         }
     }
 }
+
+/**
+ * The Chat tab's moment for a subscription the user just started tracking: a bill, so only
+ * one the user pays. Null when nothing new was tracked, or for income.
+ */
+internal fun billTrackedMoment(direction: SubscriptionDirection?): MascotMoment.BillTracked? =
+    MascotMoment.BillTracked.takeIf { direction == SubscriptionDirection.EXPENSE }
+
+/**
+ * The Chat tab's moment for a bill the user marked paid, carrying the [payment] recorded or
+ * linked for it, in its own currency. Null when there's no payment, it's money coming in, or
+ * the subscription ([direction]) isn't a bill: an expense linked to an income one isn't.
+ */
+internal fun billPaidMoment(direction: SubscriptionDirection?, payment: TransactionEntity?): MascotMoment.BillPaid? =
+    payment?.takeIf { direction == SubscriptionDirection.EXPENSE && it.transactionType == TransactionType.EXPENSE }
+        ?.let { MascotMoment.BillPaid(Money(it.amount, it.currency)) }
 
 data class SubscriptionsUiState(
     val activeSubscriptions: List<SubscriptionEntity> = emptyList(),

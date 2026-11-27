@@ -5,6 +5,7 @@ import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.core.NumberFormatStyle
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.text.DecimalFormatSymbols
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
@@ -70,6 +71,14 @@ object CurrencyFormatter {
         if (rounded.remainder(BigDecimal.ONE).signum() != 0) copy.minimumFractionDigits = digits
         return copy
     }
+
+    /**
+     * Decimal separator [formatCurrency] uses for [currencyCode]. The odometer
+     * needs it with the text this produced: a three-decimal amount next to a
+     * whole one (`12.345` → `13`) cannot be told from a thousands group.
+     */
+    fun decimalSeparator(currencyCode: String): Char =
+        DecimalFormatSymbols.getInstance(groupingLocale(currencyCode)).decimalSeparator
 
     /**
      * Currency symbol mapping for display

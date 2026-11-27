@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.settings
 
 import android.content.Context
 import android.net.Uri
+import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
 import com.pennywiseai.tracker.core.AppForegroundState
@@ -30,6 +31,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -61,6 +64,8 @@ class BackupMomentsTest {
         coEvery { load() } returns null
         every { status } returns MutableStateFlow(FolderBackupPassphrase.Status.OFF)
     }
+    // Outlives the ViewModel, as the app's scope does.
+    private val appScope = CoroutineScope(SupervisorJob())
     private val moments = MascotMoments(AppForegroundState { true })
     private val heard = mutableListOf<MascotMoment>()
     private lateinit var listening: Job
@@ -106,6 +111,7 @@ class BackupMomentsTest {
             currencyConversionService = mockk(relaxed = true),
             mascotMoments = moments,
             entitlementGate = mockk(relaxed = true),
+            applicationScope = appScope,
         )
     }
 
@@ -120,6 +126,7 @@ class BackupMomentsTest {
     @After
     fun tearDown() {
         listening.cancel()
+        appScope.cancel()
         backupFile.delete()
         unmockkObject(WidgetRefresher, DailySummaryWorker, WeeklySummaryWorker)
         Dispatchers.resetMain()
@@ -218,6 +225,31 @@ class BackupMomentsTest {
         assertEquals(UiText.Res(R.string.settings_folder_backup_enabled), viewModel.importExportMessage.value)
         assertEquals(true, exportedWithPassphrase)
         runBlocking { withTimeout(5_000) { viewModel.savingFolderBackupPassphrase.first { !it } } }
+    }
+
+    @Test
+    fun `leaving Settings doesn't cancel a passphrase save or the backup that replaces the plain one`() {
+        val stored = CompletableDeferred<Unit>()
+        var saved: CharArray? = null
+        coEvery { passphrase.save(any()) } coAnswers {
+            stored.await()
+            saved = firstArg<CharArray>().copyOf()
+        }
+        coEvery { passphrase.load() } answers { saved?.copyOf() }
+        var exportedWithPassphrase: Boolean? = null
+        coEvery { exporter.exportBackup(any(), any(), any()) } answers {
+            exportedWithPassphrase = thirdArg<CharArray?>() != null
+            ExportResult.Success(backupFile)
+        }
+        every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Success
+        coEvery { preferences.isScheduledFolderBackupEnabled() } returns true
+
+        viewModel.setFolderBackupPassphrase("synthetic phrase".toCharArray())
+        viewModel.viewModelScope.cancel() // the user left Settings
+        stored.complete(Unit)
+
+        verify(timeout = 5_000) { writer.writeBackup(any(), any()) }
+        assertEquals(true, exportedWithPassphrase)
     }
 
     @Test

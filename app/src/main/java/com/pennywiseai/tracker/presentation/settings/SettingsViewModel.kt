@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
 import com.pennywiseai.tracker.billing.EntitlementGate
+import com.pennywiseai.tracker.core.ApplicationScope
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.core.DateFormatStyle
@@ -45,6 +46,7 @@ import com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -94,6 +96,7 @@ class SettingsViewModel @Inject constructor(
     private val currencyConversionService: com.pennywiseai.tracker.data.currency.CurrencyConversionService,
     private val mascotMoments: MascotMoments,
     entitlementGate: EntitlementGate,
+    @param:ApplicationScope private val applicationScope: CoroutineScope,
 ) : ViewModel() {
 
     /** Set while Settings asks whether to convert the budgets to a new base currency. */
@@ -211,10 +214,11 @@ class SettingsViewModel @Inject constructor(
     /**
      * Encrypts automatic backups with [passphrase] (cleared once it's saved). When they're on,
      * backs up straight away so the folder doesn't keep a plain copy until the next night;
-     * before that, the first backup they write is already encrypted.
+     * before that, the first backup they write is already encrypted. Both run in the app's
+     * scope, on the main thread as before: leaving Settings mustn't cancel them halfway.
      */
     fun setFolderBackupPassphrase(passphrase: CharArray) {
-        val save = viewModelScope.async {
+        val save = applicationScope.async(Dispatchers.Main.immediate) {
             try {
                 folderBackupRunner.saveEncryption(passphrase)
                 true
@@ -230,7 +234,7 @@ class SettingsViewModel @Inject constructor(
         }
         folderBackupPassphraseSave = save
         _savingFolderBackupPassphrase.value = true
-        viewModelScope.launch {
+        applicationScope.launch(Dispatchers.Main.immediate) {
             val saved = save.await()
             if (folderBackupPassphraseSave === save) {
                 folderBackupPassphraseSave = null

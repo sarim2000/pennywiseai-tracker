@@ -83,6 +83,7 @@ class BackupExportSessionTest {
             currencyConversionService = mockk(relaxed = true),
             mascotMoments = MascotMoments(AppForegroundState { true }),
             entitlementGate = mockk(relaxed = true),
+            applicationScope = mockk(relaxed = true),
         )
     }
 

@@ -70,6 +70,7 @@ class BudgetConversionPromptTest {
             currencyConversionService = conversion,
             mascotMoments = mockk(relaxed = true),
             entitlementGate = mockk(relaxed = true),
+            applicationScope = mockk(relaxed = true),
         )
     }
 

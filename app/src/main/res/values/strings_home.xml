@@ -56,7 +56,7 @@
     <string name="home_resync_scan_again">Scan all messages again</string>
     <string name="home_resync_scan_again_desc">Adds anything that was missed. Your edits and all existing transactions stay as they are.</string>
     <string name="home_resync_rebuild">Rebuild from scratch</string>
-    <string name="home_resync_rebuild_desc">Re-reads SMS transactions to pick up parser fixes. Edits to SMS transactions are reset. Manual, imported, loan and grouped transactions are kept.</string>
+    <string name="home_resync_rebuild_desc">Re-reads SMS transactions to pick up parser fixes. Edits to SMS transactions are reset. Manual, imported, loan and grouped transactions are kept, and so are transactions whose message is no longer on the phone.</string>
 
     <!-- More options sheet -->
     <string name="home_menu_title">More Options</string>

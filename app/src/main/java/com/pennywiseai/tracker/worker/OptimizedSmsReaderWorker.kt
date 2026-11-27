@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.ledger.cashWallets
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.manager.SmsScanParamsInput
@@ -25,6 +26,7 @@ import com.pennywiseai.tracker.worker.smsscan.ProcessingStats
 import com.pennywiseai.tracker.worker.smsscan.ScanOutcomeRecorder
 import com.pennywiseai.tracker.worker.smsscan.ScanRunContext
 import com.pennywiseai.tracker.worker.smsscan.ScanTransactionWriter
+import com.pennywiseai.tracker.worker.smsscan.ScannedSms
 import com.pennywiseai.tracker.worker.smsscan.SmsScanClassifier
 import com.pennywiseai.tracker.worker.smsscan.SmsScanCleanup
 import com.pennywiseai.tracker.worker.smsscan.SmsScanPipeline
@@ -32,6 +34,7 @@ import com.pennywiseai.tracker.worker.smsscan.restoringAccountsAfterRebuild
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import java.time.LocalDateTime
 import kotlin.system.measureTimeMillis
@@ -216,16 +219,34 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             // never regenerate them (hash collision short-circuits
                             // processBalanceUpdate), leaving gaps in the balance
                             // time-series.
-                            transactionRepository.deleteRebuildableSmsTransactions(
-                                java.time.LocalDateTime.ofInstant(
-                                    java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
+                            // A row whose SMS is gone from the inbox would never come
+                            // back, so only rows whose sender and body the inbox still holds are
+                            // deleted (#1497). Read the same window the scan below reads.
+                            val inboxMessages = HashMap<Pair<String, String>, Int>()
+                            coroutineScope {
+                                val feed = Channel<ScannedSms>(64)
+                                launch {
+                                    try {
+                                        DeviceSmsMessageSource(applicationContext).streamTo(feed, scanStartTime) {}
+                                    } finally {
+                                        feed.close()
+                                    }
+                                }
+                                for (sms in feed) inboxMessages.merge(sms.sender to sms.body, 1, Int::plus)
+                            }
+                            database.withTransaction {
+                                transactionRepository.deleteRebuildableSmsTransactions(
+                                    java.time.LocalDateTime.ofInstant(
+                                        java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
+                                    ),
+                                    inboxMessages
                                 )
-                            )
+                            }
                             accountBalanceRepository.deleteRebuildableBalances()
                         } finally {
                             Trace.endSection()
                         }
-                        Log.i(TAG, "Force resync: SMS rows cleared (loans, groups, deleted and non-SMS rows kept)")
+                        Log.i(TAG, "Force resync: SMS rows the inbox still holds cleared (loans, groups, deleted, non-SMS and missing-SMS rows kept)")
                     }
 
                     val now = System.currentTimeMillis()

@@ -304,8 +304,10 @@ class AddViewModel @Inject constructor(
                     category = draftCategory ?: it.category,
                     currency = draftCurrency ?: it.currency,
                     date = draftDateTime ?: it.date,
+                    // The quick sheet always hands on its currency: only one other than the
+                    // base was picked, so the base stays open for a receipt's own currency.
                     edited = it.edited + setOfNotNull(
-                        ScanField.CURRENCY.takeIf { draftCurrency != null },
+                        ScanField.CURRENCY.takeIf { draftCurrency != null && draftCurrency != baseCurrency },
                         ScanField.DATE.takeIf { draftDateTime != null }
                     )
                 )

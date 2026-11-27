@@ -34,10 +34,15 @@ class AddViewModelReceiptScanTest {
 
     private fun withForm(lines: List<String>?, block: (AddViewModel) -> Unit) = withForm({ lines }, block = block)
 
+    /** A form opened from the quick sheet's "More details", which hands on [draft] as route arguments. */
+    private fun withDraft(lines: List<String>, draft: Map<String, Any?>, block: (AddViewModel) -> Unit) =
+        withForm({ lines }, draft = draft, block = block)
+
     /** A form whose OCR reads each photo with [read]; [refused] photos fail the receipt check. */
     private fun withForm(
         read: suspend (Uri) -> List<String>?,
         refused: Set<Uri> = emptySet(),
+        draft: Map<String, Any?> = emptyMap(),
         block: (AddViewModel) -> Unit
     ) {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -76,7 +81,7 @@ class AddViewModelReceiptScanTest {
                     every { selectedProfileId } returns flowOf(2L)
                 },
                 mascotMoments = mockk(relaxed = true),
-                savedStateHandle = SavedStateHandle(),
+                savedStateHandle = SavedStateHandle(draft),
             )
             try {
                 block(viewModel)
@@ -233,4 +238,23 @@ class AddViewModelReceiptScanTest {
             assertEquals("12.00", vm.transactionUiState.value.amount)
         }
     }
+
+    @Test
+    fun `the quick sheet's untouched base currency still lets the receipt's own one in`() =
+        withDraft(listOf("TOTAL JOD 12.500"), mapOf("currency" to "USD")) { vm ->
+            vm.scanReceipt(photo)
+            val state = vm.transactionUiState.value
+            assertEquals("JOD", state.currency)
+            assertEquals("12.500", state.amount)
+        }
+
+    @Test
+    fun `another currency picked in the quick sheet is kept, and a total in a third one left out`() =
+        withDraft(listOf("TOTAL JOD 12.500"), mapOf("currency" to "EUR")) { vm ->
+            vm.scanReceipt(photo)
+            val state = vm.transactionUiState.value
+            assertEquals("EUR", state.currency)
+            assertEquals("", state.amount)
+            assertEquals(UiText.Res(R.string.add_receipt_scan_other_currency), state.scanMessage)
+        }
 }

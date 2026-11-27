@@ -9,12 +9,14 @@ import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.File
 
 /** An encrypted backup restores with its passphrase, and nothing is touched without it. */
 class BackupImporterEncryptedTest {
@@ -37,13 +39,14 @@ class BackupImporterEncryptedTest {
         every { cacheDir } answers { temp.root }
         every { contentResolver.openInputStream(uri) } answers { ByteArrayInputStream(encrypted) }
     }
+    private val restoreDir get() = DecryptedBackupFiles.dir(temp.root)
     private val importer = BackupImporter(context, database, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
 
     @Test
     fun encryptedBackupDecodesWithItsPassphrase() {
         val decoded = importer.decodeBackup(ByteArrayInputStream(encrypted), passphrase.toCharArray(), temp.root)
         assertEquals(backup, decoded)
-        assertTrue("decrypted temp file is removed", temp.root.listFiles()!!.isEmpty())
+        assertTrue("decrypted temp file is removed", restoreDir.listFiles().orEmpty().isEmpty())
     }
 
     @Test
@@ -56,12 +59,29 @@ class BackupImporterEncryptedTest {
         val result = importer.importBackup(uri, passphrase = "not the passphrase".toCharArray())
         assertEquals(ImportResult.WrongPassphrase, result)
         confirmVerified(database)
-        assertTrue("decrypted temp file is removed", temp.root.listFiles()!!.isEmpty())
+        assertTrue("decrypted temp file is removed", restoreDir.listFiles().orEmpty().isEmpty())
     }
 
     @Test
     fun missingPassphraseAsksForOne() = runBlocking {
         assertEquals(ImportResult.PassphraseRequired, importer.importBackup(uri))
         confirmVerified(database)
+    }
+
+    @Test
+    fun aDecryptedFileLeftByAnEarlierRestoreIsSwept() = runBlocking {
+        restoreDir.mkdirs()
+        val stale = File(restoreDir, "decrypted_stale.json").apply { writeText("{}") }
+        importer.importBackup(uri, passphrase = "not the passphrase".toCharArray())
+        assertFalse(stale.exists())
+    }
+
+    @Test
+    fun theSweepLeavesARestoreInProgressAlone() {
+        DecryptedBackupFiles.withTempFile(temp.root) { inProgress ->
+            DecryptedBackupFiles.sweep(temp.root)
+            assertTrue(inProgress.exists())
+        }
+        assertTrue(restoreDir.listFiles().orEmpty().isEmpty())
     }
 }

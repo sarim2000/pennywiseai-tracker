@@ -55,6 +55,8 @@ class BackupExporter @Inject constructor(
             val file = createBackupFile()
             try {
                 withContext(Dispatchers.IO) {
+                    // Plaintext a restore left behind when the app died mid-restore.
+                    DecryptedBackupFiles.sweep(context.cacheDir)
                     // Streamed so the photos aren't held twice more as one big JSON string,
                     // and an encrypted backup's JSON is never written out in plain.
                     file.outputStream().buffered().use { out ->

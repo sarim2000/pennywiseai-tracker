@@ -53,6 +53,8 @@ class BackupImporter @Inject constructor(
         passphrase: CharArray? = null
     ): ImportResult = withContext(Dispatchers.IO) {
         try {
+            // Plaintext an earlier restore left behind when the app died mid-restore.
+            DecryptedBackupFiles.sweep(context.cacheDir)
             // Read and parse the backup file
             val backup = readBackupFile(uri, passphrase)
 
@@ -113,9 +115,10 @@ class BackupImporter @Inject constructor(
 
     /**
      * Parses a plain or encrypted backup. An encrypted one is decrypted in full to a
-     * temp file in [tempDir] first, so a wrong passphrase or a damaged file fails here.
+     * private temp file under [cacheDir] first, so a wrong passphrase or a damaged file
+     * fails here.
      */
-    internal fun decodeBackup(input: InputStream, passphrase: CharArray?, tempDir: File): PennyWiseBackup {
+    internal fun decodeBackup(input: InputStream, passphrase: CharArray?, cacheDir: File): PennyWiseBackup {
         val stream = input.buffered()
         val head = ByteArray(BackupCrypto.MAGIC_SIZE)
         stream.mark(head.size)
@@ -134,12 +137,9 @@ class BackupImporter @Inject constructor(
         // apply. See BackupSerializers + docs/backup-format.md.
         if (!BackupCrypto.isEncrypted(head)) return backupJson.decodeFromStream<PennyWiseBackup>(stream)
         if (passphrase == null) throw BackupCrypto.PassphraseRequiredException()
-        val plain = File.createTempFile("backup_decrypted_", ".json", tempDir)
-        try {
+        return DecryptedBackupFiles.withTempFile(cacheDir) { plain ->
             plain.outputStream().buffered().use { BackupCrypto.decrypt(stream, it, passphrase) }
-            return plain.inputStream().buffered().use { backupJson.decodeFromStream<PennyWiseBackup>(it) }
-        } finally {
-            plain.delete()
+            plain.inputStream().buffered().use { backupJson.decodeFromStream<PennyWiseBackup>(it) }
         }
     }
 

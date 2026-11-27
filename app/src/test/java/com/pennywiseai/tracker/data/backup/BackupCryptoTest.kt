@@ -63,6 +63,38 @@ class BackupCryptoTest {
     }
 
     @Test
+    fun streamedWritesMatchACopiedInput() {
+        val plain = bytes(64 * 1024 * 2 + 123)
+        val sealed = ByteArrayOutputStream().also { out ->
+            BackupCrypto.encrypt(out, passphrase.toCharArray()) { sink ->
+                // Uneven pieces that straddle the frame edges, and single bytes.
+                var at = 0
+                while (at < plain.size) {
+                    val n = minOf(1000, plain.size - at)
+                    sink.write(plain, at, n)
+                    at += n
+                    if (at < plain.size) sink.write(plain[at++].toInt())
+                }
+            }
+        }.toByteArray()
+        assertTrue(frames(sealed).size == 3)
+        assertArrayEquals(plain, decrypt(sealed))
+    }
+
+    @Test
+    fun aWriteThatFailsLeavesNoCompleteBackup() {
+        val out = ByteArrayOutputStream()
+        assertThrows(IllegalStateException::class.java) {
+            BackupCrypto.encrypt(out, passphrase.toCharArray()) { sink ->
+                sink.write(bytes(64 * 1024 + 10))
+                error("export failed halfway")
+            }
+        }
+        // No last frame was written, so what's there can't pass for a backup.
+        assertThrows(IOException::class.java) { decrypt(out.toByteArray()) }
+    }
+
+    @Test
     fun wrongPassphraseIsReported() {
         val sealed = encrypt(bytes(100))
         assertThrows(BackupCrypto.WrongPassphraseException::class.java) { decrypt(sealed, "not the passphrase") }

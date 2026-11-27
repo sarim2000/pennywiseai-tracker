@@ -55,18 +55,13 @@ class BackupExporter @Inject constructor(
             val file = createBackupFile()
             try {
                 withContext(Dispatchers.IO) {
-                    if (passphrase == null) {
-                        writeJson(backup, file)
-                    } else {
-                        // The plain JSON only lives in cache until it's encrypted.
-                        val plain = File.createTempFile("backup_plain_", ".json", context.cacheDir)
-                        try {
-                            writeJson(backup, plain)
-                            plain.inputStream().buffered().use { input ->
-                                file.outputStream().buffered().use { BackupCrypto.encrypt(input, it, passphrase) }
-                            }
-                        } finally {
-                            plain.delete()
+                    // Streamed so the photos aren't held twice more as one big JSON string,
+                    // and an encrypted backup's JSON is never written out in plain.
+                    file.outputStream().buffered().use { out ->
+                        if (passphrase == null) {
+                            backupJson.encodeToStream(backup, out)
+                        } else {
+                            BackupCrypto.encrypt(out, passphrase) { backupJson.encodeToStream(backup, it) }
                         }
                     }
                 }
@@ -80,11 +75,6 @@ class BackupExporter @Inject constructor(
         } catch (e: OutOfMemoryError) {
             ExportResult.Error(TOO_LARGE)
         }
-    }
-
-    // Streamed so the photos aren't held twice more as one big JSON string.
-    private fun writeJson(backup: PennyWiseBackup, file: File) {
-        file.outputStream().buffered().use { backupJson.encodeToStream(backup, it) }
     }
 
     /** Creates the backup, and counts the PDF receipts too large to go in it. */

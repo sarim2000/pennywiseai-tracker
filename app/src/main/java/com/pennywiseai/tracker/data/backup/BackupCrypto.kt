@@ -50,7 +50,15 @@ object BackupCrypto {
     fun isEncrypted(firstBytes: ByteArray): Boolean =
         firstBytes.size >= MAGIC.size && MAGIC.indices.all { firstBytes[it] == MAGIC[it] }
 
-    fun encrypt(input: InputStream, output: OutputStream, passphrase: CharArray) {
+    fun encrypt(input: InputStream, output: OutputStream, passphrase: CharArray) =
+        encrypt(output, passphrase) { input.copyTo(it) }
+
+    /**
+     * Encrypts what [write] writes, frame by frame, so the plaintext never exists in full.
+     * The final frame is only written when [write] returns: if it throws, [output] holds
+     * no complete backup. The passphrase is used before [write] runs; [output] isn't closed.
+     */
+    fun encrypt(output: OutputStream, passphrase: CharArray, write: (OutputStream) -> Unit) {
         val random = SecureRandom()
         val salt = ByteArray(SALT_BYTES).also(random::nextBytes)
         val noncePrefix = ByteArray(NONCE_PREFIX_BYTES).also(random::nextBytes)
@@ -60,22 +68,57 @@ object BackupCrypto {
         val key = deriveKey(passphrase, salt, ITERATIONS)
         val out = DataOutputStream(output)
         out.write(header)
+        val frames = FrameWriter(out, key, header, noncePrefix)
+        try {
+            write(frames)
+            frames.finish()
+        } finally {
+            frames.clear()
+        }
+        out.flush()
+    }
 
-        // One frame of lookahead, so the writer knows which frame is the last.
-        var current = readFrame(input)
-        var index = 0
-        while (true) {
-            val next = if (current.size == FRAME_BYTES) readFrame(input) else ByteArray(0)
-            val isLast = next.isEmpty()
-            val sealed = cipher(Cipher.ENCRYPT_MODE, key, header, noncePrefix, index, isLast).doFinal(current)
+    /**
+     * Seals each full 64 KiB frame once more bytes arrive, so it knows which frame is the
+     * last; [finish] seals what's left (maybe nothing) as the last frame.
+     */
+    private class FrameWriter(
+        private val out: DataOutputStream,
+        private val key: SecretKeySpec,
+        private val header: ByteArray,
+        private val noncePrefix: ByteArray
+    ) : OutputStream() {
+        private val buffer = ByteArray(FRAME_BYTES)
+        private var filled = 0
+        private var index = 0
+
+        override fun write(b: Int) = write(byteArrayOf(b.toByte()), 0, 1)
+
+        override fun write(b: ByteArray, off: Int, len: Int) {
+            var at = off
+            var left = len
+            while (left > 0) {
+                if (filled == FRAME_BYTES) seal(isLast = false)
+                val n = minOf(left, FRAME_BYTES - filled)
+                System.arraycopy(b, at, buffer, filled, n)
+                filled += n
+                at += n
+                left -= n
+            }
+        }
+
+        fun finish() = seal(isLast = true)
+
+        fun clear() = buffer.fill(0)
+
+        private fun seal(isLast: Boolean) {
+            val sealed = cipher(Cipher.ENCRYPT_MODE, key, header, noncePrefix, index, isLast).doFinal(buffer, 0, filled)
             out.writeByte(if (isLast) 1 else 0)
             out.writeInt(sealed.size)
             out.write(sealed)
-            if (isLast) break
-            current = next
+            filled = 0
             index++
         }
-        out.flush()
     }
 
     /**
@@ -118,17 +161,6 @@ object BackupCrypto {
         }
         if (data.read() != -1) throw IOException("Damaged encrypted backup")
         output.flush()
-    }
-
-    private fun readFrame(input: InputStream): ByteArray {
-        val buffer = ByteArray(FRAME_BYTES)
-        var filled = 0
-        while (filled < FRAME_BYTES) {
-            val read = input.read(buffer, filled, FRAME_BYTES - filled)
-            if (read == -1) break
-            filled += read
-        }
-        return if (filled == FRAME_BYTES) buffer else buffer.copyOf(filled)
     }
 
     private fun readFully(data: DataInputStream, into: ByteArray): ByteArray {

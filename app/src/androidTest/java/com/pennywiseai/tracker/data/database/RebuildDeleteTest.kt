@@ -36,8 +36,8 @@ class RebuildDeleteTest {
     @Test fun deletesOnlyActiveSmsRows() = runBlocking {
         val dao = db.transactionDao()
         val notification = BankNotificationConfig.notificationAliases.first()
-        listOf(
-            row(1, "AD-KOTAKB"),             // SMS: rebuilt from the inbox -> deleted
+        val rows = listOf(
+            row(1, "AD-KOTAKB"),           // SMS: rebuilt from the inbox -> deleted
             row(2, null),                    // manual / chat / CSV -> kept
             row(3, "ICICI PDF"),             // PDF import -> kept
             row(4, notification),            // bank-app notification -> kept
@@ -50,12 +50,14 @@ class RebuildDeleteTest {
             // The payment that paid row 10 back: the link has no foreign key -> kept
             row(9, "AD-KOTAKB").copy(transactionType = TransactionType.INCOME),
             row(10, "AD-KOTAKB").copy(reimbursementStatus = ReimbursementStatus.REIMBURSED, reimbursedById = 9),
-        ).forEach { dao.insertTransaction(it) }
+        )
+        rows.forEach { dao.insertTransaction(it) }
 
         dao.deleteRebuildableSmsTransactions(
             BankNotificationConfig.notificationAliases.toList(),
             from = LocalDateTime.of(2026, 7, 1, 0, 0),
-            inboxMessages = (1L..10L).associate { ("AD-KOTAKB" to "body $it") to 1 }
+            // Every seeded SMS is still in the inbox, so only the query's own exclusions keep rows.
+            inboxMessages = rows.filter { it.smsSender != null }.associate { (it.smsSender!! to it.smsBody!!) to 1 }
         )
 
         val left = db.longs("SELECT id FROM transactions ORDER BY id")

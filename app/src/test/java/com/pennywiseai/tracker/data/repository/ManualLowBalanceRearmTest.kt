@@ -14,6 +14,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -43,7 +44,7 @@ class ManualLowBalanceRearmTest {
     private val transactionDao = mockk<TransactionDao>(relaxed = true)
     private val database = mockk<PennyWiseDatabase>()
     private val preferences = mockk<UserPreferencesRepository>(relaxed = true)
-    private val repo = AccountBalanceRepository(balanceDao, transactionDao, database, preferences)
+    private val repo = AccountBalanceRepository(balanceDao, transactionDao, database, preferences, kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined))
 
     @Before
     fun setUp() {
@@ -70,6 +71,14 @@ class ManualLowBalanceRearmTest {
     @Test
     fun `typing a balance back above the threshold rearms`() = runBlocking {
         openingWithThreshold("500")
+        repo.setManualCurrentBalance(BANK, ACCT, BigDecimal("900"))
+        verifyRearms(1)
+    }
+
+    @Test
+    fun `a claim that never finishes does not hold up the recompute`() = runBlocking {
+        openingWithThreshold("500")
+        coEvery { preferences.claimLowBalanceAlert(BANK, ACCT, false) } coAnswers { CompletableDeferred<Boolean>().await() }
         repo.setManualCurrentBalance(BANK, ACCT, BigDecimal("900"))
         verifyRearms(1)
     }

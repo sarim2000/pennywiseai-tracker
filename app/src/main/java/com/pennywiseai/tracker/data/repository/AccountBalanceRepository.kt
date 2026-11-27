@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.core.ApplicationScope
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
@@ -15,8 +16,10 @@ import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.toDatabaseString
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -27,7 +30,8 @@ open class AccountBalanceRepository @Inject constructor(
     private val accountBalanceDao: AccountBalanceDao,
     private val transactionDao: TransactionDao,
     private val database: PennyWiseDatabase,
-    private val userPreferencesRepository: NotificationPreferences
+    private val userPreferencesRepository: NotificationPreferences,
+    @ApplicationScope private val scope: CoroutineScope
 ) {
     companion object {
         const val SOURCE_OPENING = "OPENING"
@@ -386,15 +390,17 @@ open class AccountBalanceRepository @Inject constructor(
      * Above the threshold, or with none: the next dip is news again. Done at the
      * write, not in MoneyAlertWorker, which only sees the newest figure and doesn't
      * run after an edit. Never fails the write around it; worst case is one missed alert.
+     * Fire-and-forget so a caller inside a database transaction is never held up by it;
+     * a re-arm for a write that later rolls back is harmless (worst case one extra alert).
      */
-    private suspend fun rearmLowBalanceAlert(
+    private fun rearmLowBalanceAlert(
         bankName: String,
         accountLast4: String,
         balance: BigDecimal,
         threshold: BigDecimal?
     ) {
         if (threshold != null && balance <= threshold) return
-        runCatching { userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false) }
+        scope.launch { runCatching { userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false) } }
     }
 
     suspend fun updateAccountCurrency(bankName: String, accountLast4: String, currency: String): Int {

@@ -67,8 +67,10 @@ adb shell 'am start \
 ```
 
 The single quotes send the whole command to the device as one line, so the
-device's shell keeps `"Test Cafe"` as one value. Without them, your computer's
-shell drops the inner quotes and the merchant arrives as just `Test`.
+device's shell keeps `"Test Cafe"` as one value and reads every flag after it.
+Without them, your computer's shell drops the inner quotes: the merchant
+arrives as just `Test`, and the stray `Cafe` ends `am`'s option list, so the
+`--es` flags after it (`note`, `type`) are lost or the command fails.
 
 ### Tasker
 

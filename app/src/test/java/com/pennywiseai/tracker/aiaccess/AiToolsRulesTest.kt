@@ -85,6 +85,14 @@ class AiToolsRulesTest {
         )
     }
 
+    private fun servePages(vararg rows: TransactionEntity) {
+        coEvery { transactions.countLiveTransactions() } returns rows.size
+        coEvery { transactions.maxLiveTransactionId() } returns rows.maxOf { it.id }
+        coEvery { transactions.getTransactionsPageAfter(any(), any(), any()) } answers {
+            rows.filter { it.id > firstArg<Long>() && it.id <= secondArg<Long>() }.take(thirdArg<Int>())
+        }
+    }
+
     @Before
     fun setUp() {
         mockkStatic(ROOM_COMPAT)
@@ -96,9 +104,7 @@ class AiToolsRulesTest {
         coEvery { rules.getRuleById("off") } returns off
         coEvery { rules.getRuleById("blk") } returns blocking
         coEvery { rules.getRuleById("old") } returns legacy
-        coEvery { transactions.getAllTransactionsList() } returns listOf(swiggyOthers, swiggyDining, uberOthers)
-        coEvery { transactions.getUncategorizedTransactions() } returns listOf(swiggyOthers, uberOthers)
-        every { tags.observeTransactionTagNames() } returns flowOf(emptyMap())
+        servePages(swiggyOthers, swiggyDining, uberOthers)
     }
 
     @After
@@ -237,6 +243,16 @@ class AiToolsRulesTest {
         assertEquals(1, dflt.count("past_transactions_would_update"))
         assertEquals("uncategorized", dflt["apply_to_past"]!!.jsonPrimitive.content)
         verifyNothingWritten()
+    }
+
+    @Test
+    fun `preview_rule uncategorized skips a split parent and a loan-linked row`() {
+        servePages(
+            swiggyOthers,
+            txn(4, "Swiggy", "Others").copy(lentSharesTotal = BigDecimal("10")),
+            txn(5, "Swiggy", "Others").copy(loanId = 9L),
+        )
+        assertEquals(1, call("preview_rule", create("")).second!!.count("past_transactions_would_update"))
     }
 
     @Test
@@ -396,9 +412,9 @@ class AiToolsRulesTest {
     @Test
     fun `the past run holds the rule lock, so a delete waits for it`() = runBlocking {
         val gate = CompletableDeferred<Unit>()
-        coEvery { transactions.getUncategorizedTransactions() } coAnswers {
+        coEvery { transactions.countLiveTransactions() } coAnswers {
             gate.await()
-            listOf(swiggyOthers)
+            1
         }
         val update = async { callS("update_rule", """{"id":"r1","apply_to_past":"uncategorized"}""") }
         repeat(5) { yield() }
@@ -416,9 +432,9 @@ class AiToolsRulesTest {
     @Test
     fun `a write queued behind a past run is refused if changes were turned off meanwhile`() = runBlocking {
         val gate = CompletableDeferred<Unit>()
-        coEvery { transactions.getUncategorizedTransactions() } coAnswers {
+        coEvery { transactions.countLiveTransactions() } coAnswers {
             gate.await()
-            listOf(swiggyOthers)
+            1
         }
         val update = async { callS("update_rule", """{"id":"r1","apply_to_past":"uncategorized"}""") }
         repeat(5) { yield() }

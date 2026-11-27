@@ -42,11 +42,15 @@ class AddViewModelReceiptScanTest {
     private fun withDraft(lines: List<String>, draft: Map<String, Any?>, block: (AddViewModel) -> Unit) =
         withForm({ lines }, draft = draft, block = block)
 
-    /** A form whose OCR reads each photo with [read]; [refused] photos fail the receipt check. */
+    /**
+     * A form whose OCR reads each photo with [read]; [refused] photos fail the receipt check,
+     * and [categories] are the ones learned for past merchants.
+     */
     private fun withForm(
         read: suspend (Uri) -> List<String>?,
         refused: Set<Uri> = emptySet(),
         draft: Map<String, Any?> = emptyMap(),
+        categories: Map<String, String> = emptyMap(),
         block: (AddViewModel) -> Unit
     ) {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -70,7 +74,7 @@ class AddViewModelReceiptScanTest {
                     coEvery { getMerchantsInProfile(null) } returns listOf("Coffee Hut Downtown", "COFFEE HUT")
                 },
                 merchantMappingRepository = mockk<MerchantMappingRepository>(relaxed = true) {
-                    coEvery { getCategoryForMerchant(any()) } returns null
+                    coEvery { getCategoryForMerchant(any()) } answers { categories[firstArg()] }
                 },
                 tagRepository = mockk(relaxed = true),
                 receiptManager = mockk(relaxed = true) {
@@ -193,6 +197,29 @@ class AddViewModelReceiptScanTest {
             vm.scanReceipt(photo)
             vm.saveTransaction {}
             confirmVerified(addTransactionUseCase)
+        }
+    }
+
+    @Test
+    fun `a second scan puts back the category the first one's shop brought in`() {
+        val second = listOf("BOOK NOOK", "TOTAL 20.00")
+        withForm({ uri -> if (uri == photo) receipt else second }, categories = mapOf("Coffee Hut Downtown" to "Food & Dining")) { vm ->
+            vm.scanReceipt(photo)
+            assertEquals("Food & Dining", vm.transactionUiState.value.category)
+            vm.scanReceipt(otherPhoto)
+            assertEquals("Book Nook", vm.transactionUiState.value.merchant)
+            assertEquals("Others", vm.transactionUiState.value.category)
+        }
+    }
+
+    @Test
+    fun `a category the user picked stays through a second scan`() {
+        val second = listOf("BOOK NOOK", "TOTAL 20.00")
+        withForm({ uri -> if (uri == photo) receipt else second }, categories = mapOf("Coffee Hut Downtown" to "Food & Dining")) { vm ->
+            vm.scanReceipt(photo)
+            vm.updateTransactionCategory("Groceries")
+            vm.scanReceipt(otherPhoto)
+            assertEquals("Groceries", vm.transactionUiState.value.category)
         }
     }
 

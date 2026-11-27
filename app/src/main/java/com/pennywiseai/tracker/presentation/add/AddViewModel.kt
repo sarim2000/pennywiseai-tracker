@@ -386,7 +386,9 @@ class AddViewModel @Inject constructor(
                 budgetCategory = if (type != TransactionType.INCOME) null else currentState.budgetCategory,
                 // The To account only applies to a transfer — drop it when leaving
                 // TRANSFER so a stale selection can't silently pre-fill a later one.
-                toAccount = if (type == TransactionType.TRANSFER) currentState.toAccount else null
+                toAccount = if (type == TransactionType.TRANSFER) currentState.toAccount else null,
+                // The type picked its own category: a later scan has none of its own to put back.
+                scanned = currentState.scanned - ScanField.CATEGORY
             )
         }
     }
@@ -402,11 +404,12 @@ class AddViewModel @Inject constructor(
         suggestCategoryFor(merchant)
     }
 
-    private fun suggestCategoryFor(merchant: String) {
+    private fun suggestCategoryFor(merchant: String, fromScan: Boolean = false) {
         // Suggest the category previously learned for this merchant (#678) — the
         // same mapping SMS parsing already applies. Only fills in when the user
         // hasn't chosen a specific category yet (still a per-type default), so an
-        // explicit choice is never overridden.
+        // explicit choice is never overridden. One a scanned shop brought in is the
+        // scan's: a scan of another photo puts the category back.
         merchantSuggestionJob?.cancel() // supersede any slower in-flight lookup
         val name = merchant.trim()
         if (name.isEmpty()) return
@@ -419,9 +422,14 @@ class AddViewModel @Inject constructor(
                 // placeholder), and no category the user has since chosen.
                 if (currentState.merchant.trim() == name &&
                     currentState.transactionType == typeAtRequest &&
-                    currentState.category in DEFAULT_CATEGORY_PLACEHOLDERS
+                    currentState.category in DEFAULT_CATEGORY_PLACEHOLDERS &&
+                    !(fromScan && ScanField.CATEGORY in currentState.edited)
                 ) {
-                    currentState.copy(category = mapped, categoryError = validateCategory(mapped))
+                    currentState.copy(
+                        category = mapped,
+                        categoryError = validateCategory(mapped),
+                        scanned = if (fromScan) currentState.scanned + ScanField.CATEGORY else currentState.scanned
+                    )
                 } else {
                     currentState
                 }
@@ -440,7 +448,7 @@ class AddViewModel @Inject constructor(
             currentState.copy(
                 category = category,
                 categoryError = validateCategory(category)
-            )
+            ).userSet(ScanField.CATEGORY)
         }
     }
 
@@ -601,9 +609,9 @@ class AddViewModel @Inject constructor(
         _transactionUiState.update { it.copy(scanningReceipt = false) }
     }
 
-    // The currency and date the form had before a scan changed them: a later scan reads
-    // another photo, so it starts from these.
-    private var beforeScan: Pair<String, LocalDateTime>? = null
+    // The currency, date and category the form had before a scan changed them: a later
+    // scan reads another photo, so it starts from these.
+    private var beforeScan: BeforeScan? = null
 
     /**
      * "Scan receipt": attaches the photo like any receipt, reads it on the device, and
@@ -680,7 +688,7 @@ class AddViewModel @Inject constructor(
             ScanField.CURRENCY.takeIf { newCurrency != base.currency },
             ScanField.DATE.takeIf { date != null }
         )
-        beforeScan = base.currency to base.date
+        beforeScan = BeforeScan(base.currency, base.date, base.category)
         _transactionUiState.value = base.copy(
             amount = amount?.toPlainString() ?: base.amount,
             amountError = if (amount != null) validateAmount(amount.toPlainString()) else base.amountError,
@@ -701,7 +709,7 @@ class AddViewModel @Inject constructor(
         )
         merchant?.let {
             merchantQuery.value = ""
-            suggestCategoryFor(it)
+            suggestCategoryFor(it, fromScan = true)
         }
     }
 
@@ -1200,7 +1208,10 @@ data class SubscriptionUiState(
 }
 
 /** A form field "Scan receipt" can fill. */
-enum class ScanField { AMOUNT, MERCHANT, CURRENCY, DATE }
+enum class ScanField { AMOUNT, MERCHANT, CURRENCY, DATE, CATEGORY }
+
+/** What a scan changed, as the form had it before. */
+private data class BeforeScan(val currency: String, val date: LocalDateTime, val category: String)
 
 /** [field] set by the user: no scan replaces it, and it no longer holds a scan's reading. */
 private fun TransactionUiState.userSet(field: ScanField): TransactionUiState =
@@ -1214,11 +1225,12 @@ private fun TransactionUiState.withoutScannedAmountIn(newCurrency: String): Tran
         this
     }
 
-/** The form without what the last scan filled in, its currency and date back to [before] it. */
-private fun TransactionUiState.withoutScan(before: Pair<String, LocalDateTime>?): TransactionUiState {
+/** The form without what the last scan filled in, its currency, date and category back to [before] it. */
+private fun TransactionUiState.withoutScan(before: BeforeScan?): TransactionUiState {
     val amountScanned = ScanField.AMOUNT in scanned
     val merchantScanned = ScanField.MERCHANT in scanned
-    val currencyBack = before?.first?.takeIf { ScanField.CURRENCY in scanned } ?: currency
+    val currencyBack = before?.currency?.takeIf { ScanField.CURRENCY in scanned } ?: currency
+    val categoryBack = before?.category?.takeIf { ScanField.CATEGORY in scanned }
     return copy(
         amount = if (amountScanned) "" else amount,
         amountError = if (amountScanned) null else amountError,
@@ -1226,7 +1238,9 @@ private fun TransactionUiState.withoutScan(before: Pair<String, LocalDateTime>?)
         merchantError = if (merchantScanned) null else merchantError,
         currency = currencyBack,
         toAccount = toAccount?.takeIf { it.currency == currencyBack },
-        date = before?.second?.takeIf { ScanField.DATE in scanned } ?: date,
+        date = before?.date?.takeIf { ScanField.DATE in scanned } ?: date,
+        category = categoryBack ?: category,
+        categoryError = if (categoryBack != null) null else categoryError,
         scanned = emptySet()
     )
 }

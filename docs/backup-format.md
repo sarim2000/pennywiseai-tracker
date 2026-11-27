@@ -246,7 +246,11 @@ Then frames until the one marked last:
   Keystore key (`data/backup/FolderBackupPassphrase.kt`), in app-private prefs
   that no backup file or Android backup carries. If the key can no longer
   unseal it, no backup is written — never a plain one — and Settings asks for
-  the passphrase again. Restore them like any encrypted backup.
+  the passphrase again; a Keystore error that may pass is retried instead.
+  The switch can be turned on before automatic backups, so the first file is
+  already encrypted. One lock in `worker/FolderBackupRunner.kt` keeps backups
+  and encryption changes from overlapping. Restore them like any encrypted
+  backup.
 
 ## How to change the format safely
 

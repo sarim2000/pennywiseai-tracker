@@ -141,14 +141,16 @@ class BudgetWidget : GlanceAppWidget() {
             else -> R.string.widget_budget_left_label
         }
 
+        // The percent gives the figure away, so it goes while amounts are hidden.
+        val showPercent = !amountsHidden()
         // Compact has no room for a title row: the label says "in budget" and carries the percent.
         WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             item {
                 if (compact) WidgetLabel(context.getString(label), GlanceModifier.defaultWeight())
                 else WidgetTitle(context.getString(R.string.widget_budget_title), GlanceModifier.defaultWeight())
             }
-            item { Spacer(GlanceModifier.width(Spacing.sm)) }
-            item {
+            if (showPercent) item { Spacer(GlanceModifier.width(Spacing.sm)) }
+            if (showPercent) item {
                 Text(
                     text = context.latinString(R.string.widget_budget_percent_used, data.percentageUsed.toInt()),
                     maxLines = 1,

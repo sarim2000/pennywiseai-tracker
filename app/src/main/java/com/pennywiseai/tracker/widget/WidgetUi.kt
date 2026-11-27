@@ -399,11 +399,14 @@ fun AddButton(action: Action, contentDescription: String, size: Dp = WidgetDefau
     }
 }
 
-/** The family's thin progress bar, on the surface-variant track. */
+/** How much of a bar or ring a widget fills: none while [hidden], since its length gives the figure away. */
+internal fun shownFraction(fraction: Float, hidden: Boolean): Float = if (hidden) 0f else fraction
+
+/** The family's thin progress bar, on the surface-variant track; an empty track while totals are hidden. */
 @Composable
 fun WidgetProgressBar(fraction: Float, color: ColorProvider, modifier: GlanceModifier = GlanceModifier) {
     LinearProgressIndicator(
-        progress = fraction.coerceIn(0f, 1f),
+        progress = shownFraction(fraction, amountsHidden()).coerceIn(0f, 1f),
         modifier = modifier.fillMaxWidth().height(WidgetDefaults.barHeight).cornerRadius(WidgetDefaults.barHeight / 2),
         color = color,
         backgroundColor = GlanceTheme.colors.surfaceVariant

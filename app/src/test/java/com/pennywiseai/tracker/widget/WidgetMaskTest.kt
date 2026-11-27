@@ -67,4 +67,10 @@ class WidgetMaskTest {
 
         assertEquals(WidgetMask.ALL, masks.last())
     }
+
+    @Test
+    fun `a bar or ring is empty while its figure is hidden`() {
+        assertEquals(0f, shownFraction(0.6f, hidden = true))
+        assertEquals(0.6f, shownFraction(0.6f, hidden = false))
+    }
 }

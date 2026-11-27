@@ -125,6 +125,8 @@ private fun openGoals(context: Context, createGoal: Boolean = false) =
 @Composable
 private fun GoalRingImage(item: GoalWidgetItem, size: Dp, stroke: Dp) {
     val context = LocalContext.current
+    // While amounts are hidden the ring is only its track: how full it is gives the figure away.
+    val hidden = everyAmountHidden()
     val color = item.color.toColorOr(GlanceTheme.colors.primary.getColor(context)).toArgb()
     Box(modifier = GlanceModifier.size(size)) {
         Image(
@@ -134,12 +136,21 @@ private fun GoalRingImage(item: GoalWidgetItem, size: Dp, stroke: Dp) {
             modifier = GlanceModifier.size(size),
         )
         Image(
-            provider = ImageProvider(renderArc(context, item.fraction, color, size, stroke)),
-            contentDescription = context.latinString(R.string.goals_ring_description, item.percent),
+            provider = ImageProvider(renderArc(context, shownFraction(item.fraction, hidden), color, size, stroke)),
+            contentDescription = if (hidden) {
+                context.getString(R.string.widget_goal_progress_hidden)
+            } else {
+                context.latinString(R.string.goals_ring_description, item.percent)
+            },
             modifier = GlanceModifier.size(size),
         )
     }
 }
+
+/** The goal's "40%", or [HIDDEN_AMOUNT] while amounts are hidden. */
+@Composable
+private fun goalPercent(item: GoalWidgetItem): String =
+    if (everyAmountHidden()) HIDDEN_AMOUNT else LocalContext.current.latinString(R.string.budgets_percent, item.percent)
 
 /** An arc from 12 o'clock covering [fraction] of a ring, on a transparent bitmap. */
 private fun renderArc(context: Context, fraction: Float, color: Int, size: Dp, stroke: Dp): Bitmap {
@@ -207,7 +218,6 @@ class GoalWidget : GlanceAppWidget() {
 
     @Composable
     private fun Goal(item: GoalWidgetItem) {
-        val context = LocalContext.current
         // Centred, so it reads the same both ways; only the text inside needs the app's language.
         Column(
             modifier = GlanceModifier.fillMaxSize(),
@@ -217,7 +227,7 @@ class GoalWidget : GlanceAppWidget() {
             Box(contentAlignment = Alignment.Center) {
                 GoalRingImage(item, Dimensions.Component.goalRing, Dimensions.Component.goalRingStroke)
                 Text(
-                    text = context.latinString(R.string.budgets_percent, item.percent),
+                    text = goalPercent(item),
                     style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.labelMedium.fontSize, fontWeight = FontWeight.Bold),
                 )
             }
@@ -320,7 +330,7 @@ class GoalsListWidget : GlanceAppWidget() {
             item { Spacer(GlanceModifier.width(Spacing.sm)) }
             item {
                 Text(
-                    text = context.latinString(R.string.budgets_percent, item.percent),
+                    text = goalPercent(item),
                     style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.labelLarge.fontSize, fontWeight = FontWeight.Bold),
                 )
             }

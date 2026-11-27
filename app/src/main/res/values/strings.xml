@@ -145,4 +145,6 @@
     <!-- Settings → Security, shown while App Lock is on -->
     <string name="settings_hide_widget_amounts_title">Hide amounts in widgets</string>
     <string name="settings_hide_widget_amounts_subtitle">Home screen widgets show •••• while App Lock is on</string>
+    <!-- Goal widgets: what TalkBack reads for a goal's ring while amounts are hidden -->
+    <string name="widget_goal_progress_hidden">Progress hidden</string>
 </resources>

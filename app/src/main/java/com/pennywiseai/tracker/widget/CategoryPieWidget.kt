@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.widget
 
-import com.pennywiseai.tracker.utils.AppDates
-
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -50,6 +48,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
+import com.pennywiseai.tracker.utils.AppDates
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate
@@ -130,22 +129,32 @@ class CategoryPieWidget : GlanceAppWidget() {
             WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 item {
                     Box(contentAlignment = Alignment.Center) {
-                        Image(
-                            provider = ImageProvider(renderDonut(context, data.slices, donut) { if (isLowContrast(it)) null else it }),
-                            contentDescription = context.getString(R.string.widget_pie_content_description),
-                            modifier = GlanceModifier.size(donut)
-                        )
-                        // Slices too dark (or light) for one of the themes are drawn white and
-                        // tinted by the launcher, which knows whether it's day or night.
-                        if (data.slices.any { isLowContrast(it.colorArgb.toInt()) }) {
+                        if (amountsHidden()) {
+                            // The split gives the amounts away: one plain ring until they're shown.
                             Image(
-                                provider = ImageProvider(
-                                    renderDonut(context, data.slices, donut) { if (isLowContrast(it)) android.graphics.Color.WHITE else null }
-                                ),
-                                contentDescription = null,
-                                colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurface),
+                                provider = ImageProvider(renderDonut(context, listOf(HIDDEN_RING), donut) { android.graphics.Color.WHITE }),
+                                contentDescription = context.getString(R.string.widget_pie_content_description),
+                                colorFilter = ColorFilter.tint(GlanceTheme.colors.surfaceVariant),
                                 modifier = GlanceModifier.size(donut)
                             )
+                        } else {
+                            Image(
+                                provider = ImageProvider(renderDonut(context, data.slices, donut) { if (isLowContrast(it)) null else it }),
+                                contentDescription = context.getString(R.string.widget_pie_content_description),
+                                modifier = GlanceModifier.size(donut)
+                            )
+                            // Slices too dark (or light) for one of the themes are drawn white and
+                            // tinted by the launcher, which knows whether it's day or night.
+                            if (data.slices.any { isLowContrast(it.colorArgb.toInt()) }) {
+                                Image(
+                                    provider = ImageProvider(
+                                        renderDonut(context, data.slices, donut) { if (isLowContrast(it)) android.graphics.Color.WHITE else null }
+                                    ),
+                                    contentDescription = null,
+                                    colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurface),
+                                    modifier = GlanceModifier.size(donut)
+                                )
+                            }
                         }
                         if (total != null && donut >= DONUT_WITH_TOTAL) {
                             Text(
@@ -174,6 +183,8 @@ class CategoryPieWidget : GlanceAppWidget() {
     private fun LegendRow(slice: CategoryPieSlice) {
         val context = LocalContext.current
         val argb = slice.colorArgb.toInt()
+        // A slice's share gives the amounts away, so only its name shows while they're hidden.
+        val showPercent = !amountsHidden()
         WidgetRow(
             modifier = GlanceModifier.fillMaxWidth().padding(vertical = Spacing.xxs),
             verticalAlignment = Alignment.CenterVertically
@@ -199,8 +210,8 @@ class CategoryPieWidget : GlanceAppWidget() {
                     )
                 )
             }
-            item { Spacer(modifier = GlanceModifier.width(Spacing.sm)) }
-            item {
+            if (showPercent) item { Spacer(modifier = GlanceModifier.width(Spacing.sm)) }
+            if (showPercent) item {
                 Text(
                     text = context.latinString(R.string.widget_pie_percent, slice.percent.roundToInt()),
                     style = TextStyle(
@@ -250,6 +261,8 @@ class CategoryPieWidget : GlanceAppWidget() {
     }
 
     private companion object {
+        /** The whole ring as one slice, drawn while amounts are hidden. */
+        val HIDDEN_RING = CategoryPieSlice(name = "", colorArgb = 0xFFFFFFFF, percent = 100f)
         /** WidgetTitle's line, for sizing what's under it. */
         val HEADER = Spacing.lg
         val HEADER_GAP = Spacing.sm

@@ -78,3 +78,15 @@ internal fun shareOf(amount: BigDecimal, total: BigDecimal): Float =
     if (total > BigDecimal.ZERO) {
         (amount.divide(total, 4, RoundingMode.HALF_UP) * BigDecimal(100)).toFloat().coerceAtMost(100f)
     } else 0f
+
+/** The [selected] tag if it still exists in [tagNames], else null ("All tags"): a deleted tag stops filtering. */
+internal fun effectiveTagFilter(selected: String?, tagNames: List<String>): String? =
+    selected?.takeIf { it in tagNames }
+
+/** [rows] carrying [tag] per [tagsByTransaction], from the one tag map the screen already loads; all of them when [tag] is null. */
+internal fun <T> filterByTag(
+    rows: List<T>,
+    tag: String?,
+    tagsByTransaction: Map<Long, List<String>>,
+    idOf: (T) -> Long
+): List<T> = if (tag == null) rows else rows.filter { tag in tagsByTransaction[idOf(it)].orEmpty() }

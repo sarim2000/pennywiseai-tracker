@@ -114,6 +114,7 @@ fun AnalyticsScreen(
             group.copy(
                 category = group.category ?: uiState.categoryFilter,
                 account = group.account ?: uiState.accountFilter,
+                tag = group.tag ?: uiState.tagFilter,
                 type = uiState.typeFilter.name,
                 period = uiState.period.name,
                 currency = uiState.currency,

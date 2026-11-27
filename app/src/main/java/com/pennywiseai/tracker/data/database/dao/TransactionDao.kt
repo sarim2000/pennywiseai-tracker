@@ -9,6 +9,16 @@ import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
+/** Whether row `t` belongs to the `:profileId` profile (null for all); see [MERCHANT_SUGGESTIONS_SQL]. */
+internal const val IN_PROFILE_SQL = """
+    (:profileId IS NULL OR COALESCE(
+        t.profile_id,
+        (SELECT b.profile_id FROM account_balances b
+            WHERE b.bank_name = t.bank_name AND b.account_last4 = t.account_number LIMIT 1),
+        1
+    ) = :profileId)
+"""
+
 /**
  * Past merchants for a merchant field (#1392): those whose name or alias contains `:term`
  * (escaped with [MerchantSuggestions.likeTerm]), from the `:profileId` profile (null for
@@ -30,12 +40,7 @@ internal const val MERCHANT_SUGGESTIONS_SQL = """
                 AND (t.merchant_name LIKE '%' || :term || '%' ESCAPE '\'
                     OR t.merchant_name COLLATE NOCASE IN (SELECT merchant_name FROM merchant_aliases
                         WHERE alias LIKE '%' || :term || '%' ESCAPE '\'))
-                AND (:profileId IS NULL OR COALESCE(
-                    t.profile_id,
-                    (SELECT b.profile_id FROM account_balances b
-                        WHERE b.bank_name = t.bank_name AND b.account_last4 = t.account_number LIMIT 1),
-                    1
-                ) = :profileId)
+                AND $IN_PROFILE_SQL
             GROUP BY t.merchant_name COLLATE NOCASE
         )
         SELECT COALESCE(a.merchant_name, m.name) AS merchantName, a.alias AS alias, m.uses AS uses, m.lastUsed AS lastUsed
@@ -49,6 +54,13 @@ internal const val MERCHANT_SUGGESTIONS_SQL = """
                 OR IFNULL(a.alias LIKE :term || '%' ESCAPE '\', 0)) DESC,
             uses DESC, lastUsed DESC
         LIMIT :limit
+    """
+
+/** Every past merchant name in the `:profileId` profile (null for all), scoped like [MERCHANT_SUGGESTIONS_SQL]. */
+internal const val PROFILE_MERCHANTS_SQL = """
+        SELECT DISTINCT t.merchant_name FROM transactions t
+        WHERE t.is_deleted = 0 AND $IN_PROFILE_SQL
+        ORDER BY t.merchant_name ASC
     """
 
 @Dao
@@ -212,6 +224,10 @@ interface TransactionDao {
     /** Past merchants matching [term] (#1392), best first; see [MERCHANT_SUGGESTIONS_SQL]. */
     @Query(MERCHANT_SUGGESTIONS_SQL)
     suspend fun suggestMerchants(term: String, profileId: Long?, limit: Int): List<MerchantSuggestion>
+
+    /** Past merchant names in one profile (null for all); see [PROFILE_MERCHANTS_SQL]. */
+    @Query(PROFILE_MERCHANTS_SQL)
+    suspend fun getMerchantsInProfile(profileId: Long?): List<String>
 
     @Query("""
         SELECT SUM(amount) FROM transactions 

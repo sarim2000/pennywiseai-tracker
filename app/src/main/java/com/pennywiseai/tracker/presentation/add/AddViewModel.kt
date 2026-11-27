@@ -594,8 +594,9 @@ class AddViewModel @Inject constructor(
         _transactionUiState.update { it.copy(scanningReceipt = true, scanMessage = null) }
         receiptScan = viewModelScope.launch {
             val lines = receiptTextRecognizer.recognize(uri)
+            // From the profile in view, like the suggestions under the field.
             val known = try {
-                transactionRepository.getAllMerchants().first()
+                transactionRepository.getMerchantsInProfile(profilePreferences.selectedProfileId.first())
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

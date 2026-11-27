@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.receipt.ReceiptTextRecognizer
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -46,7 +47,9 @@ class AddViewModelReceiptScanTest {
                 budgetGroupRepository = mockk(relaxed = true),
                 userPreferencesRepository = mockk<CurrencyPreferences> { every { baseCurrency } returns flowOf("USD") },
                 transactionRepository = mockk<TransactionRepository>(relaxed = true) {
-                    every { getAllMerchants() } returns flowOf(listOf("Coffee Hut Downtown"))
+                    // Only the profile in view: another profile's spelling isn't offered.
+                    coEvery { getMerchantsInProfile(2L) } returns listOf("Coffee Hut Downtown")
+                    coEvery { getMerchantsInProfile(null) } returns listOf("Coffee Hut Downtown", "COFFEE HUT")
                 },
                 merchantMappingRepository = mockk<MerchantMappingRepository>(relaxed = true) {
                     coEvery { getCategoryForMerchant(any()) } returns null
@@ -56,7 +59,9 @@ class AddViewModelReceiptScanTest {
                 receiptTextRecognizer = recognizer,
                 unrecognizedSmsRepository = mockk(relaxed = true),
                 learnedSendersStore = mockk(relaxed = true),
-                profilePreferences = mockk(relaxed = true),
+                profilePreferences = mockk<UserPreferencesRepository>(relaxed = true) {
+                    every { selectedProfileId } returns flowOf(2L)
+                },
                 mascotMoments = mockk(relaxed = true),
                 savedStateHandle = SavedStateHandle(),
             )

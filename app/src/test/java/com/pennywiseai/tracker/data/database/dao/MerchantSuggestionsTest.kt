@@ -132,6 +132,19 @@ class MerchantSuggestionsTest {
     }
 
     @Test
+    fun `a receipt's merchant is matched only within the profile in view`() {
+        account("Test Bank", "0001", profileId = 2)
+        tx("Gym Work", profileId = 2)
+        tx("Gym Account", bank = "Test Bank", last4 = "0001")
+        tx("Gym Home")
+        tx("Gym Gone", profileId = 2, deleted = true)
+
+        assertEquals(listOf("Gym Account", "Gym Work"), merchantsIn(2))
+        assertEquals(listOf("Gym Home"), merchantsIn(1))
+        assertEquals(listOf("Gym Account", "Gym Home", "Gym Work"), merchantsIn(null))
+    }
+
+    @Test
     fun `percent and underscore typed are matched literally`() {
         tx("50% Off Store")
         tx("500 Store")
@@ -154,6 +167,19 @@ class MerchantSuggestionsTest {
     }
 
     private fun names(found: List<MerchantSuggestion>) = found.map { it.merchantName }
+
+    /** [PROFILE_MERCHANTS_SQL] as Room would run it. */
+    private fun merchantsIn(profileId: Long?): List<String> {
+        val statement = connection.prepare(PROFILE_MERCHANTS_SQL.replace(":profileId", "?1"))
+        try {
+            if (profileId == null) statement.bindNull(1) else statement.bindLong(1, profileId)
+            val found = mutableListOf<String>()
+            while (statement.step()) found += statement.getText(0)
+            return found
+        } finally {
+            statement.close()
+        }
+    }
 
     /** Runs the DAO's SQL as Room would, its named arguments bound in place. */
     private fun suggest(typed: String, profileId: Long? = null, limit: Int = MerchantSuggestions.LIMIT): List<MerchantSuggestion> {

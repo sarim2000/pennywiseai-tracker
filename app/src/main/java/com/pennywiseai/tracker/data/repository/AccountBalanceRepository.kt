@@ -905,7 +905,7 @@ open class AccountBalanceRepository @Inject constructor(
 
     /**
      * Before an edit is written: pin the OPENING anchor of every manual account
-     * (own account and both transfer legs) of each version, from the PRE-update
+     * each version moves (see [accountsOf]), from the PRE-update
      * snapshot. Pinned after the update, an opening would absorb the edit and the
      * balance would never move (#913). No-op for SMS accounts.
      */
@@ -916,18 +916,24 @@ open class AccountBalanceRepository @Inject constructor(
 
     /**
      * After [transactions] are inserted (pin with [pinManualOpenings] before):
-     * re-derives every manual account they land on, own account and both
-     * transfer legs, once each.
+     * re-derives every manual account they move (see [accountsOf]), once each.
      */
     suspend fun recomputeManualBalances(transactions: Collection<TransactionEntity>) {
         transactions.flatMap(::accountsOf).distinct()
             .forEach { (bank, acct) -> recomputeManualBalance(bank, acct) }
     }
 
-    /** The accounts [t] moves: its own and both transfer legs, where named. */
+    /**
+     * The accounts [t] moves, as [signedTransactionSum] counts it: a transfer
+     * its named legs (a marked pair's leg, its own account), anything else its
+     * own account.
+     */
     private fun accountsOf(t: TransactionEntity): List<Pair<String, String>> =
-        listOf(t.bankName to t.accountNumber, t.fromBankName to t.fromAccount, t.toBankName to t.toAccount)
-            .mapNotNull { (bank, acct) -> if (bank != null && acct != null) bank to acct else null }
+        if (t.transactionType == TransactionType.TRANSFER && !t.isPairedTransferLeg) {
+            listOf(t.fromBankName to t.fromAccount, t.toBankName to t.toAccount)
+        } else {
+            listOf(t.bankName to t.accountNumber)
+        }.mapNotNull { (bank, acct) -> if (bank != null && acct != null) bank to acct else null }
 
     /**
      * After an edit replacing [original] with [updated] is written (call

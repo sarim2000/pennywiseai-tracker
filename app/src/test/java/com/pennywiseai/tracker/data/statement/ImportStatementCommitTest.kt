@@ -44,8 +44,13 @@ class ImportStatementCommitTest {
         conditions = listOf(RuleCondition(TransactionField.MERCHANT, ConditionOperator.CONTAINS, "Coffee")),
         actions = listOf(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "Cash Wallet"))
     )
+    private val blockSpam = TransactionRule(
+        name = "Block spam",
+        conditions = listOf(RuleCondition(TransactionField.MERCHANT, ConditionOperator.CONTAINS, "Spam")),
+        actions = listOf(RuleAction(TransactionField.CATEGORY, ActionType.BLOCK, ""))
+    )
     private val importRules = mockk<ImportRulesSource>(relaxed = true) {
-        coEvery { load() } returns ImportRules(emptyMap(), emptyMap(), listOf(toWallet), RuleEngine())
+        coEvery { load() } returns ImportRules(emptyMap(), emptyMap(), listOf(toWallet, blockSpam), RuleEngine())
     }
     private val useCase = ImportStatementUseCase(transactions, balances, mockk(relaxed = true), database, importRules, mockk())
 
@@ -60,7 +65,7 @@ class ImportStatementCommitTest {
     @After
     fun tearDown() = unmockkStatic(ROOM_COMPAT)
 
-    private fun row(merchant: String, hash: String) = ParsedTransaction(
+    private fun row(merchant: String, hash: String, bank: String = "Sample Bank") = ParsedTransaction(
         amount = BigDecimal("120.00"),
         type = ParsedTransactionType.EXPENSE,
         merchant = merchant,
@@ -70,7 +75,7 @@ class ImportStatementCommitTest {
         smsBody = "$merchant 120.00",
         sender = StatementTableParser.STATEMENT_SENDER,
         timestamp = LocalDateTime.of(2026, 1, 15, 12, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
-        bankName = "Sample Bank",
+        bankName = bank,
         transactionHash = hash,
         currency = "INR"
     )
@@ -82,18 +87,21 @@ class ImportStatementCommitTest {
             pinned += (args.first() as Array<*>).map { (it as TransactionEntity).bankName }
         }
 
-        val result = useCase.commit(listOf(row("Coffee Hut", "a"), row("Book Nook", "b")), keep = setOf(0, 1))
+        val result = useCase.commit(
+            listOf(row("Coffee Hut", "a", bank = "Old Bank"), row("Book Nook", "b"), row("Spam Shop", "c", bank = "Spare Bank")),
+            keep = setOf(0, 1, 2)
+        )
 
         assertEquals(2, result.imported)
         coVerifyOrder {
-            balances.pinManualOpenings(*anyVararg())
             balances.pinManualOpenings(*anyVararg())
             transactions.insertTransactions(any())
             balances.recomputeManualBalances(
                 match { rows -> rows.map { it.bankName } == listOf("Cash Wallet", "Sample Bank") }
             )
         }
-        // First the rows as the file has them, then as the rules left them.
-        assertEquals(listOf(listOf("Sample Bank", "Sample Bank"), listOf("Cash Wallet", "Sample Bank")), pinned)
+        // Once, as the rules left the rows: neither the account the moved row came
+        // from nor the blocked row's account gets an opening for a row it never got.
+        assertEquals(listOf(listOf("Cash Wallet", "Sample Bank")), pinned)
     }
 }

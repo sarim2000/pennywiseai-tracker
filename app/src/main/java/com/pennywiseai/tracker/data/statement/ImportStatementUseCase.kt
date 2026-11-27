@@ -126,13 +126,8 @@ class ImportStatementUseCase @Inject constructor(
                 val processor = StatementImportProcessor(repositoryStore(inserted), importRules.load())
                 val plan = processor.plan(parsed)
                 val excluded = plan.rows.indices.toSet() - keep
-                // Pin a legacy manual account's opening before the rows land, so the
-                // recompute below adds them instead of absorbing them into the opening.
-                accountBalanceRepository.pinManualOpenings(
-                    *plan.newIndices.filter { it !in excluded }
-                        .mapNotNull { (plan.rows[it].decision as? StatementRowDecision.Insert)?.entity }
-                        .toTypedArray()
-                )
+                // The store pins each account's opening as the rules left the rows, just
+                // before they land, so the recompute adds them instead of absorbing them.
                 val result = processor.apply(plan, excluded)
                 accountBalanceRepository.recomputeManualBalances(inserted)
                 result
@@ -223,7 +218,7 @@ class ImportStatementUseCase @Inject constructor(
         }
 
         override suspend fun insertTransactions(transactions: List<TransactionEntity>): List<Long> {
-            // A rule can move a row to another account or transfer leg: pin those openings too.
+            // The rows as the rules left them: a blocked one isn't here, a moved one pins where it went.
             accountBalanceRepository.pinManualOpenings(*transactions.toTypedArray())
             return transactionRepository.insertTransactions(transactions).also { ids ->
                 ids.zip(transactions).forEach { (id, row) -> if (id != -1L) inserted += row }

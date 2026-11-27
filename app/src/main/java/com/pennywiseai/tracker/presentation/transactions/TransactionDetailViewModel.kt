@@ -1197,10 +1197,15 @@ class TransactionDetailViewModel @Inject constructor(
                     }
                 }
 
-                // Persist the edited tag set (create-or-select handled in repo).
-                // Only if this session changed them: otherwise tags set elsewhere stay.
-                if (editStartTags != null && _editableTags.value != editStartTags) {
-                    tagRepository.setTagsForTransaction(normalizedTransaction.id, _editableTags.value)
+                // Persist what this session did to the tags (create-or-select handled in repo):
+                // the tags it added and removed, so a tag set elsewhere meanwhile stays.
+                editStartTags?.let { startTags ->
+                    val editedTags = _editableTags.value
+                    val added = editedTags.filter { tag -> startTags.none { it.equals(tag, ignoreCase = true) } }
+                    val removed = startTags.filter { tag -> editedTags.none { it.equals(tag, ignoreCase = true) } }
+                    if (added.isNotEmpty() || removed.isNotEmpty()) {
+                        tagRepository.applyTagChanges(normalizedTransaction.id, added, removed)
+                    }
                 }
 
                 // Save or remove splits

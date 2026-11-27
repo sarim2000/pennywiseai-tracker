@@ -171,6 +171,25 @@ class ReceiptExtractorTest {
     }
 
     @Test
+    fun `a code touching its figure, and any code the app offers`() {
+        assertEquals("AED", scan("TOTAL 27.30AED").currency)
+        assertEquals(BigDecimal("27.30"), amount("TOTAL 27.30AED"))
+        assertEquals("AED", scan("TOTAL AED27.30").currency)
+        assertEquals("RUB", scan("TOTAL RUB 27.30").currency)
+        assertEquals(BigDecimal("27.30"), amount("Card fee AED 1.00", "TOTAL RUB 27.30"))
+        assertEquals(setOf("INR", "PKR", "LKR", "NPR"), scan("Net payable Rs450.00").currencies)
+    }
+
+    @Test
+    fun `a total with no currency by it borrows none, except one the receipt declares`() {
+        val borrowed = scan("Card fee USD 1.00", "TOTAL 75.00")
+        assertEquals(BigDecimal("75.00"), borrowed.amount)
+        assertEquals(emptySet<String>(), borrowed.currencies)
+        assertEquals("AED", scan("Currency: AED", "TOTAL 75.00").currency)
+        assertEquals("EUR", scan("All amounts in EUR", "Bread 3.20", "Bag 18.40").currency)
+    }
+
+    @Test
     fun `a shared mark only says which currencies it could be`() {
         assertEquals(setOf("INR", "PKR", "LKR", "NPR"), scan("Net payable Rs. 450.00").currencies)
         assertTrue("USD" in scan("Total $12.00").currencies)

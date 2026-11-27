@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.receipt
 
 import com.pennywiseai.shared.domain.money.MinorUnits
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.Month
@@ -86,7 +87,10 @@ object ReceiptExtractor {
      * its largest figure with decimals.
      */
     private fun total(lines: List<String>, formCurrency: String?): Pair<BigDecimal, Set<String>>? {
-        val receiptCurrency = currencyOf(lines.joinToString(" "))
+        // A figure with no currency by it is in the one the receipt declares ("Currency: AED"),
+        // never one borrowed from another line: with no declaration it's the form's, unless the
+        // receipt names two that can't be the same ("1 USD = 3.67 AED") and so it's unclear.
+        val unnamed = declaredCurrency(lines) ?: emptySet<String>().takeIf { currencyOf(lines.joinToString(" ")) != null }
         // Per labeled line: its rank and what it reads, null when it can't be read.
         val found = mutableListOf<Pair<Int, Pair<BigDecimal, Set<String>>?>>()
         lines.forEachIndexed { i, line ->
@@ -100,10 +104,10 @@ object ReceiptExtractor {
             // OCR can put the figure on the line under its label, maybe with its currency.
             val figureLine = if (NUMBER.containsMatchIn(DATE_OR_TIME.replace(line, " "))) line
             else lines.getOrNull(i + 1)?.takeIf { isFigureLine(it) }
-            found += rank to figureLine?.let { read(if (it == line) line else "$line $it", it, receiptCurrency, formCurrency) }
+            found += rank to figureLine?.let { read(if (it == line) line else "$line $it", it, unnamed, formCurrency) }
         }
         val top = found.maxOfOrNull { it.first }
-            ?: return read(lines.filterNot { NOT_TOTAL.containsMatchIn(it.lowercase()) }, receiptCurrency, formCurrency)
+            ?: return read(lines.filterNot { NOT_TOTAL.containsMatchIn(it.lowercase()) }, unnamed, formCurrency)
         val best = found.filter { it.first == top }.map { it.second ?: return null }
         // Totals in two currencies (a dual-currency receipt): which was paid isn't clear.
         if (best.map { it.second }.distinct().size > 1) return null
@@ -111,19 +115,24 @@ object ReceiptExtractor {
     }
 
     /** The largest figure on [figureLine] with the currency printed on [text] (its label and figure lines). */
-    private fun read(text: String, figureLine: String, receiptCurrency: Set<String>?, formCurrency: String?): Pair<BigDecimal, Set<String>>? {
+    private fun read(text: String, figureLine: String, unnamed: Set<String>?, formCurrency: String?): Pair<BigDecimal, Set<String>>? {
         val currencies = currencyOf(text) ?: return null
-        val named = currencies.ifEmpty { receiptCurrency ?: return null }
+        val named = currencies.ifEmpty { unnamed ?: return null }
         val digits = digitsOf(named, formCurrency)
         val values = amountsOrNull(figureLine, digits) ?: return null
         return values.maxOrNull()?.let { it to named }
     }
 
     /** No total label: the largest figure written with the currency's decimals is most likely what was paid. */
-    private fun read(lines: List<String>, receiptCurrency: Set<String>?, formCurrency: String?): Pair<BigDecimal, Set<String>>? {
-        val named = receiptCurrency ?: return null
-        val digits = digitsOf(named, formCurrency) ?: return null
-        return lines.flatMap { amounts(it, digits, centsOnly = true) }.maxOrNull()?.let { it to named }
+    private fun read(lines: List<String>, unnamed: Set<String>?, formCurrency: String?): Pair<BigDecimal, Set<String>>? {
+        val reads = lines.mapNotNull { line ->
+            val named = currencyOf(line)?.ifEmpty { unnamed } ?: return@mapNotNull null
+            val digits = digitsOf(named, formCurrency) ?: return@mapNotNull null
+            amounts(line, digits, centsOnly = true).maxOrNull()?.let { it to named }
+        }
+        // Figures in more than one currency: which of them was paid isn't clear.
+        if (reads.map { it.second }.distinct().size > 1) return null
+        return reads.maxByOrNull { it.first }
     }
 
     // A line holding only a figure, maybe with its currency: "27.30", "AED 27.30", "12,50 €".
@@ -203,27 +212,39 @@ object ReceiptExtractor {
         "PKR", "BDT", "LKR", "NPR", "SGD", "MYR", "THB", "IDR", "PHP", "VND", "JPY", "CNY",
         "KRW", "AUD", "NZD", "CAD", "CHF", "SEK", "NOK", "DKK", "PLN", "CZK", "HUF",
         "ZAR", "NGN", "KES", "BRL", "MXN", "UAH", "ILS",
-    )
-    private val CODE = Regex("""\b[A-Z]{3}\b""")
+    ) + CurrencyFormatter.getSupportedCurrencies()
+
+    // A code may touch its figure ("27.30AED"), but not another letter.
+    private val CODE = Regex("""(?<![A-Za-z])[A-Z]{3}(?![A-Za-z])""")
 
     // Dollar signs with their country letters name one currency; a bare "$", "¥", "Rs" or
     // "kr" is shared by several, and only says which ones it could be.
     private val PREFIXED_DOLLARS = mapOf("US" to "USD", "A" to "AUD", "AU" to "AUD", "C" to "CAD", "CA" to "CAD", "NZ" to "NZD", "S" to "SGD", "SG" to "SGD", "HK" to "HKD", "R" to "BRL", "MX" to "MXN")
     private val DOLLAR = Regex("""(?<![A-Za-z])([A-Z]{1,2})?\$""")
     private val DOLLARS = setOf("USD", "CAD", "AUD", "NZD", "SGD", "HKD", "TWD", "MXN", "ARS", "CLP", "COP", "JMD", "TTD", "BSD", "BBD", "FJD")
-    private val RUPEES = Regex("""\brs\b\.?""", RegexOption.IGNORE_CASE)
+    private val RUPEES = Regex("""(?<![A-Za-z])rs(?![A-Za-z])\.?""", RegexOption.IGNORE_CASE)
     private val RUPEE_CODES = setOf("INR", "PKR", "LKR", "NPR")
     private val YEN = setOf("JPY", "CNY")
-    private val KRONOR = Regex("""\bkr\b\.?""", RegexOption.IGNORE_CASE)
+    private val KRONOR = Regex("""(?<![A-Za-z])kr(?![A-Za-z])\.?""", RegexOption.IGNORE_CASE)
     private val KRONA_CODES = setOf("SEK", "NOK", "DKK", "ISK")
 
     // Everything [currencyOf] reads as a currency, to see past it on a figure's line.
     private val CURRENCY_WORDS = Regex(
         (
             CURRENCY_MARKS.keys.map { Regex.escape(it) } +
-                listOf(CURRENCY_CODES.joinToString("|", """\b(?:""", """)\b"""), DOLLAR.pattern, "(?i:${RUPEES.pattern}|${KRONOR.pattern})", "¥")
+                listOf(CURRENCY_CODES.joinToString("|", """(?<![A-Za-z])(?:""", """)(?![A-Za-z])"""), DOLLAR.pattern, "(?i:${RUPEES.pattern}|${KRONOR.pattern})", "¥")
             ).joinToString("|")
     )
+
+    // "Currency: AED", "All amounts in EUR": a line saying what every figure on the receipt is in.
+    private val DECLARATION = Regex("""\b(?:currency|(?:amounts?|prices?|figures)\s+(?:are\s+)?in)\b""", RegexOption.IGNORE_CASE)
+
+    /** The currency the receipt declares on a line of its own, with no figure; null when there's none. */
+    private fun declaredCurrency(lines: List<String>): Set<String>? =
+        lines.filter { DECLARATION.containsMatchIn(it) && it.none(Char::isDigit) }
+            .takeIf { it.isNotEmpty() }
+            ?.let { currencyOf(it.joinToString(" ")) }
+            ?.takeIf { it.isNotEmpty() }
 
     /**
      * The currencies [text] can be in: empty when none is named, the one it names, or the

@@ -137,11 +137,14 @@ class ApplyRulesPagingSafetyTest {
         // Rolls the block's writes back when it throws, as the database does.
         coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
             val before = written.toList()
+            val historyBefore = withHistory.toList()
             try {
                 secondArg<suspend () -> Any?>().invoke()
             } catch (e: Exception) {
                 written.clear()
                 written.addAll(before)
+                withHistory.clear()
+                withHistory.addAll(historyBefore)
                 throw e
             }
         }
@@ -162,7 +165,71 @@ class ApplyRulesPagingSafetyTest {
         assertEquals(3, result.totalUpdated)
         assertEquals(1, result.errors.size)
         assertTrue(result.errors.single().contains("rule was deleted"))
-        coVerify(exactly = 4) { engine.evaluateRules(any(), any(), any()) }
+        // All ten rows are evaluated before the chunk is written; only the rows that committed are counted.
+        coVerify(exactly = 10) { engine.evaluateRules(any(), any(), any()) }
+    }
+
+    private fun tagApplication(txn: TransactionEntity, name: String) = RuleApplication(
+        ruleId = "r1", ruleName = "Food", transactionId = txn.id.toString(),
+        fieldsModified = listOf(FieldModification(TransactionField.TAGS, null, name, ActionType.ADD_TAG))
+    )
+
+    @Test
+    fun tagRuleOverRowsAlreadyTaggedWritesNothing() = runBlocking {
+        val rows = (1L..5L).map { txn(it, category = "Food") }
+        serve(rows)
+        coEvery { tags.getTagNamesFor(any()) } returns rows.associate { it.id to listOf("Trip") }
+        every { engine.evaluateRules(any(), any(), any()) } answers {
+            val t = firstArg<TransactionEntity>()
+            t to listOf(tagApplication(t, "Trip"))
+        }
+
+        val result = useCase.applyRuleToAllTransactions(rule)
+
+        assertEquals(5, result.totalProcessed)
+        assertEquals(0, result.totalUpdated)
+        coVerify(exactly = 0) { database.withTransaction(any<suspend () -> Any?>()) }
+        coVerify(exactly = 0) { tags.applyTagChanges(any(), any(), any()) }
+        coVerify(exactly = 0) { rules.saveRuleApplications(any()) }
+    }
+
+    @Test
+    fun aFailedHistoryInsertInAChunkLeavesTheOtherRowsUpdated() = runBlocking {
+        serve((1L..5L).map { txn(it) })
+        every { engine.evaluateRules(any(), any(), any()) } answers {
+            val t = firstArg<TransactionEntity>()
+            t.copy(category = "Food") to listOf(application(t, TransactionField.CATEGORY, "Others", "Food"))
+        }
+        val written = mutableListOf<Long>()
+        val withHistory = mutableListOf<Long>()
+        coEvery { transactions.updateTransaction(any()) } answers { written.add(firstArg<TransactionEntity>().id) }
+        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
+            val before = written.toList()
+            val historyBefore = withHistory.toList()
+            try {
+                secondArg<suspend () -> Any?>().invoke()
+            } catch (e: Exception) {
+                written.clear()
+                written.addAll(before)
+                withHistory.clear()
+                withHistory.addAll(historyBefore)
+                throw e
+            }
+        }
+        coEvery { rules.saveRuleApplications(any()) } answers {
+            val id = firstArg<List<RuleApplication>>().first().transactionId.toLong()
+            if (id == 3L) error("disk full")
+            withHistory.add(id)
+        }
+        coEvery { rules.getRuleById("r1") } returns rule
+
+        val result = useCase.applyRuleToAllTransactions(rule)
+
+        assertEquals(listOf(1L, 2L, 4L, 5L), written)
+        assertEquals(written, withHistory)
+        assertEquals(4, result.totalUpdated)
+        assertEquals(1, result.errors.size)
+        assertTrue(result.errors.single().contains("transaction 3"))
     }
 
     private fun pairedLeg() = txn(1, "Transfer", TransactionType.TRANSFER).copy(transferPairId = "pair-1")

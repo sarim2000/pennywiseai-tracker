@@ -85,11 +85,17 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
         onProgress: (processed: Int, total: Int) -> Unit = { _, _ -> }
     ): BatchApplyResult = applyPaged(ruleRepository.getActiveRules(), onlyNeedingCategory = false, onProgress)
 
+    /** A row waiting for its write; [write] returns true when the row (and its history) changed. */
+    private class PendingWrite(val id: Long, val isDelete: Boolean, val write: suspend () -> Boolean)
+
     /**
-     * Walks the ledger a page at a time by id, so only one page is in memory. Each row
-     * and its rule-history rows are written in one transaction: a failed history insert
-     * rolls the row back and it isn't counted. If the cause is a rule deleted mid-run,
-     * the run stops there rather than failing every remaining row.
+     * Walks the ledger a page at a time by id, so only one page is in memory. Rows that
+     * need a write are committed in chunks of [WRITE_CHUNK], one transaction per chunk
+     * (a transaction per row made big runs several times slower). A chunk that fails has
+     * rolled back and is replayed row by row, each row with its rule-history rows in one
+     * transaction: a failed history insert rolls that row back and it isn't counted. If
+     * the cause is a rule deleted mid-run, the run stops there rather than failing every
+     * remaining row.
      */
     private suspend fun applyPaged(
         rules: List<TransactionRule>,
@@ -105,11 +111,46 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
         var totalDeleted = 0
         val errors = mutableListOf<String>()
         var after = 0L
+        val pending = mutableListOf<PendingWrite>()
+
+        fun count(item: PendingWrite) {
+            if (item.isDelete) totalDeleted++ else totalUpdated++
+        }
+
+        suspend fun ruleDeleted() = rules.any { ruleRepository.getRuleById(it.id) == null }
+
+        // Commits the pending rows. Returns true when the run must stop (a rule was deleted).
+        suspend fun flush(): Boolean {
+            if (pending.isEmpty()) return false
+            val chunk = pending.toList()
+            pending.clear()
+            try {
+                val results = database.withTransaction { chunk.map { it.write() } }
+                chunk.forEachIndexed { i, item -> if (results[i]) count(item) }
+                return false
+            } catch (e: Exception) {
+                // The chunk rolled back; find the row at fault by writing them one by one.
+            }
+            for (item in chunk) {
+                try {
+                    if (database.withTransaction { item.write() }) count(item)
+                } catch (e: Exception) {
+                    if (ruleDeleted()) {
+                        errors.add("A rule was deleted while it was being applied. The run stopped there.")
+                        return true
+                    }
+                    errors.add("Error processing transaction ${item.id}: ${e.message}")
+                }
+            }
+            return false
+        }
 
         pages@ while (true) {
             val page = transactionRepository.getTransactionsPageAfter(after, upTo, PAGE_SIZE)
             if (page.isEmpty()) break
             after = page.last().id
+            // One read for the page's tags, so rows a tag action wouldn't change open no transaction.
+            val tagsByTransaction = tagRepository.getTagNamesFor(page.map { it.id })
 
             for (transaction in page) {
                 scanned++
@@ -123,38 +164,49 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                 try {
                     val smsBody = transaction.smsBody
                     if (ruleEngine.shouldBlockTransaction(transaction, smsBody, rules) != null) {
-                        transactionRepository.updateTransaction(transaction.copy(isDeleted = true))
-                        totalDeleted++
-                        continue
-                    }
-                    val (ruleResult, rawApplications) = ruleEngine.evaluateRules(transaction, smsBody, rules)
+                        pending.add(
+                            PendingWrite(transaction.id, isDelete = true) {
+                                transactionRepository.updateTransaction(transaction.copy(isDeleted = true))
+                                true
+                            }
+                        )
+                    } else {
+                        val (ruleResult, rawApplications) = ruleEngine.evaluateRules(transaction, smsBody, rules)
 
-                    // A field change is real by construction; a tag action is recorded
-                    // even when it changes nothing, so ask the tag write whether it did.
-                    // Otherwise the completion count disagrees with the preview.
-                    // What a guard undid isn't recorded as applied.
-                    val updatedTransaction = guarded(transaction, ruleResult)
-                    val ruleApplications = rawApplications.landedOn(updatedTransaction, ruleResult)
-                    val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
-                    // Most rows have nothing to write: opening a transaction for each made a
-                    // run take a minute whatever the rule matched (each one waits on the caller's thread).
-                    if (!entityChanged && ruleApplications.tagChanges().let { (add, remove) -> add.isEmpty() && remove.isEmpty() }) continue
-                    val changed = database.withTransaction {
-                        if (entityChanged) updateWithBalances(transaction, updatedTransaction)
-                        val tagsChanged = persistTagActions(transaction.id, ruleApplications)
-                        (entityChanged || tagsChanged).also {
-                            if (it) ruleRepository.saveRuleApplications(ruleApplications)
+                        // A field change is real by construction; a tag action is recorded
+                        // even when it changes nothing, so ask the tag write whether it did.
+                        // Otherwise the completion count disagrees with the preview.
+                        // What a guard undid isn't recorded as applied.
+                        val updatedTransaction = guarded(transaction, ruleResult)
+                        val ruleApplications = rawApplications.landedOn(updatedTransaction, ruleResult)
+                        val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
+                        // Same test as the preview. Most rows have nothing to write, and a
+                        // transaction for each made a run take a minute whatever the rule matched.
+                        val existingTags = tagsByTransaction[transaction.id].orEmpty()
+                        val newTags = ruleApplications.applyTagActions(existingTags)
+                        val tagsWouldChange = newTags !== existingTags && newTags.toSet() != existingTags.toSet()
+                        if (entityChanged || tagsWouldChange) {
+                            pending.add(
+                                PendingWrite(transaction.id, isDelete = false) {
+                                    if (entityChanged) updateWithBalances(transaction, updatedTransaction)
+                                    val tagsChanged = persistTagActions(transaction.id, ruleApplications)
+                                    (entityChanged || tagsChanged).also {
+                                        if (it) ruleRepository.saveRuleApplications(ruleApplications)
+                                    }
+                                }
+                            )
                         }
                     }
-                    if (changed) totalUpdated++
                 } catch (e: Exception) {
-                    if (rules.any { ruleRepository.getRuleById(it.id) == null }) {
-                        errors.add("A rule was deleted while it was being applied. The run stopped there.")
+                    if (ruleDeleted()) {
+                        if (!flush()) errors.add("A rule was deleted while it was being applied. The run stopped there.")
                         break@pages
                     }
                     errors.add("Error processing transaction ${transaction.id}: ${e.message}")
                 }
+                if (pending.size >= WRITE_CHUNK && flush()) break@pages
             }
+            if (flush()) break@pages
         }
 
         return BatchApplyResult(
@@ -254,6 +306,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
 
     private companion object {
         const val PAGE_SIZE = 500
+        const val WRITE_CHUNK = 50
     }
 }
 

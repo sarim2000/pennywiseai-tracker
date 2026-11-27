@@ -13,11 +13,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.unit.LayoutDirection
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -166,6 +169,9 @@ internal fun ActivityDayInOut(
             )
         }
     }
+    // The line's own text sets its direction, so an untranslated "In $100 · Out $40"
+    // keeps its order in an RTL UI; the UI's direction only picks the edge it sits on.
+    val endEdge = if (LocalLayoutDirection.current == LayoutDirection.Rtl) TextAlign.Left else TextAlign.Right
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -176,9 +182,9 @@ internal fun ActivityDayInOut(
         lines.forEach { line ->
             Text(
                 text = line,
-                style = MaterialTheme.typography.bodySmall.tabular(),
+                style = MaterialTheme.typography.bodySmall.tabular().copy(textDirection = TextDirection.Content),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.End,
+                textAlign = endEdge,
                 modifier = Modifier.fillMaxWidth()
             )
         }

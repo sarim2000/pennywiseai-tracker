@@ -1,6 +1,9 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
@@ -8,12 +11,18 @@ import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.style.ResolvedTextDirection
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.debug.UiVerificationActivity
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import java.math.BigDecimal
@@ -63,5 +72,21 @@ class ActivityDayHeaderTest {
         }
         compose.onNode(isHeading() and hasText("Mon, Nov 9") and hasText(formatDayNet(net)!!))
             .assertIsDisplayed()
+    }
+
+    @Test
+    fun inAnRtlUiAnEnglishLineKeepsItsOrderAndSitsOnTheLeft() {
+        val inOut = listOf(DayInOut("USD", BigDecimal("100"), BigDecimal("40")))
+        compose.setContent {
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                MaterialTheme { ActivityDayInOut(inOut = inOut) }
+            }
+        }
+        val results = mutableListOf<TextLayoutResult>()
+        compose.onNodeWithText(inOutLine("100", "40"), useUnmergedTree = true)
+            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(results) }
+        val layout = results.single()
+        assertEquals(ResolvedTextDirection.Ltr, layout.getParagraphDirection(0))
+        assertEquals(TextAlign.Left, layout.layoutInput.style.textAlign)
     }
 }

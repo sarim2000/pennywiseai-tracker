@@ -121,8 +121,13 @@ class ImportCsvUseCase @Inject constructor(
         /** The rows [rules] keep, and how many they blocked. The file's own category wins. */
         fun applyRules(rows: List<TransactionEntity>, rules: ImportRules): Pair<List<ImportRules.Outcome.Kept>, Int> {
             var blocked = 0
+            // Others under either name: a file exported after the user renamed it carries the new one.
+            val uncategorized = setOf(
+                CsvTransactionImporter.DEFAULT_CATEGORY,
+                com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(CsvTransactionImporter.DEFAULT_CATEGORY)
+            )
             val kept = rows.mapNotNull { row ->
-                when (val outcome = rules.apply(row, categorize = row.category == CsvTransactionImporter.DEFAULT_CATEGORY)) {
+                when (val outcome = rules.apply(row, categorize = row.category in uncategorized)) {
                     ImportRules.Outcome.Blocked -> null.also { blocked++ }
                     is ImportRules.Outcome.Kept -> outcome
                 }

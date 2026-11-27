@@ -207,7 +207,9 @@ class CsvTransactionImporter @Inject constructor() {
             ?: throw IllegalArgumentException("Unknown Type '$typeText'")
 
         val merchant = row.cell(merchantIdx)?.takeIf { it.isNotBlank() } ?: "Unknown"
-        val category = row.cell(categoryIdx)?.takeIf { it.isNotBlank() } ?: DEFAULT_CATEGORY
+        // Under its current name: the user may have renamed Others, and rules match on that name.
+        val category = row.cell(categoryIdx)?.takeIf { it.isNotBlank() }
+            ?: com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(DEFAULT_CATEGORY)
         val currency = row.cell(currencyIdx)?.takeIf { it.isNotBlank() } ?: defaultCurrency
         val bank = row.cell(bankIdx)?.takeIf { it.isNotBlank() } ?: DEFAULT_BANK
         val account = row.cell(accountIdx)?.takeIf { it.isNotBlank() }

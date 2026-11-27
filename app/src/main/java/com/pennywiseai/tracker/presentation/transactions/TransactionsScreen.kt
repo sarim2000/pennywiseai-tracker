@@ -529,6 +529,15 @@ fun TransactionsScreen(
     ) { paddingValues ->
         val sections = remember(uiState.transactions, sortOption) { daySections(uiState.transactions, sortOption) }
         val displayCurrency = if (isUnifiedMode) selectedCurrency else null
+        val splitShares = uiState.splitShares
+        val subtotalsByDay = remember(sections, splitShares, convertedAmounts, displayCurrency) {
+            sections.mapNotNull { section ->
+                // A lone row already says its amount; the subtotals only help on busier days.
+                val day = section.date ?: return@mapNotNull null
+                if (section.rows.size < 2) return@mapNotNull null
+                day to daySubtotals(section.rows, splitShares, convertedAmounts, displayCurrency)
+            }.toMap()
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -690,21 +699,24 @@ fun TransactionsScreen(
                     else -> sections.forEach { section ->
                         val day = section.date
                         if (day != null) {
+                            val subtotals = subtotalsByDay[day]
                             stickyHeader(key = "day_$day", contentType = "dayHeader") {
-                                val splitShares = uiState.splitShares
-                                val subtotals = remember(section.rows, splitShares, convertedAmounts, displayCurrency) {
-                                    // A lone row already says its amount; the subtotals only help on busier days.
-                                    if (section.rows.size > 1) {
-                                        daySubtotals(section.rows, splitShares, convertedAmounts, displayCurrency)
-                                    } else {
-                                        null
-                                    }
-                                }
                                 ActivityDayHeader(
                                     title = dayTitle(day, today),
-                                    subtotals = subtotals,
+                                    net = subtotals?.net,
                                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                 )
+                            }
+                            // A plain item, not part of the sticky header, so a tall breakdown
+                            // scrolls away instead of covering the day's rows.
+                            val inOut = subtotals?.inOut.orEmpty()
+                            if (inOut.isNotEmpty()) {
+                                item(key = "dayInOut_$day", contentType = "dayInOut") {
+                                    ActivityDayInOut(
+                                        inOut = inOut,
+                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                    )
+                                }
                             }
                         } else {
                             item(key = "sortedGap") { Spacer(Modifier.height(Spacing.md)) }

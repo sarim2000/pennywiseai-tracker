@@ -103,61 +103,76 @@ internal fun SwipeToEditCategory(
 
 /**
  * A day's heading in the Activity list: "Today", "Yesterday" or "Mon, Nov 17"
- * on the left, the day's net (money in less spent, per currency) on the right,
- * with one "In … · Out …" line per currency under it (see [daySubtotals]).
- * [subtotals] are raw figures; they're formatted here so the hide-amounts
- * switch re-masks them. Painted on the page background so it can stick while
- * its rows scroll under it.
+ * on the left, the day's [net] (money in less spent, per currency, see
+ * [daySubtotals]) on the right. The raw figures are formatted here so the
+ * hide-amounts switch re-masks them. Painted on the page background so it can
+ * stick while its rows scroll under it.
  */
 @Composable
 internal fun ActivityDayHeader(
     title: String,
-    subtotals: DaySubtotals?,
+    net: List<Money>?,
     modifier: Modifier = Modifier
 ) {
-    val net = subtotals?.let { formatDayNet(it.net) }
-    val inOut = subtotals?.inOut.orEmpty()
-    Column(
+    val netText = net?.let { formatDayNet(it) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = Spacing.sm)
             .padding(top = Spacing.md, bottom = Spacing.sm)
-            // One heading node, so TalkBack reads the date and its totals together.
+            // One heading node, so TalkBack reads the date and its net together.
             .semantics(mergeDescendants = true) { heading() }
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = title,
+            style = PennyWiseText.sectionHeader,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        if (netText != null) {
             Text(
-                text = title,
-                style = PennyWiseText.sectionHeader,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
+                text = netText,
+                style = MaterialTheme.typography.bodyMedium.tabular(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (net != null) {
-                Text(
-                    text = net,
-                    style = MaterialTheme.typography.bodyMedium.tabular(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
-        // Under the date row, not beside it, so long figures at large font sizes
-        // wrap in the full width instead of squeezing the date. A balanced day
-        // ($100 in, $100 out) has no net but still shows these.
-        // Hidden, one masked line: a line per currency would still say how many there are.
-        val lines = when {
-            inOut.isEmpty() -> emptyList()
-            AmountPrivacy.hidden -> listOf(
-                stringResource(R.string.txn_list_day_in_out, AmountPrivacy.MASK, AmountPrivacy.MASK)
+    }
+}
+
+/**
+ * A day's "In … · Out …" lines, one per currency, shown as a plain list item
+ * under its [ActivityDayHeader] rather than inside it: with several currencies
+ * at a large font the sticky header would grow tall enough to cover the rows.
+ * A balanced day ($100 in, $100 out) has no net but still shows these.
+ */
+@Composable
+internal fun ActivityDayInOut(
+    inOut: List<DayInOut>,
+    modifier: Modifier = Modifier
+) {
+    // Hidden, one masked line: a line per currency would still say how many there are.
+    val lines = when {
+        inOut.isEmpty() -> return
+        AmountPrivacy.hidden -> listOf(
+            stringResource(R.string.txn_list_day_in_out, AmountPrivacy.MASK, AmountPrivacy.MASK)
+        )
+        else -> inOut.map { flow ->
+            stringResource(
+                R.string.txn_list_day_in_out,
+                CurrencyFormatter.formatCurrency(flow.moneyIn, flow.currency),
+                CurrencyFormatter.formatCurrency(flow.moneyOut, flow.currency)
             )
-            else -> inOut.map { flow ->
-                stringResource(
-                    R.string.txn_list_day_in_out,
-                    CurrencyFormatter.formatCurrency(flow.moneyIn, flow.currency),
-                    CurrencyFormatter.formatCurrency(flow.moneyOut, flow.currency)
-                )
-            }
         }
+    }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.sm)
+            .padding(bottom = Spacing.sm)
+            .semantics(mergeDescendants = true) {}
+    ) {
         lines.forEach { line ->
             Text(
                 text = line,
@@ -223,7 +238,7 @@ internal data class DayInOut(
     val moneyOut: BigDecimal
 )
 
-/** A day's subtotals as raw figures, for [ActivityDayHeader] to format. */
+/** A day's subtotals as raw figures, for [ActivityDayHeader] and [ActivityDayInOut] to format. */
 internal data class DaySubtotals(
     /** Money in less spent per currency, largest first; zero buckets left out. */
     val net: List<Money>,

@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.debug.UiVerificationActivity
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.Money
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
@@ -32,13 +33,10 @@ class ActivityDayHeaderTest {
     }
 
     @Test
-    fun balancedDayShowsItsInAndOutWithoutANet() {
-        val subtotals = DaySubtotals(
-            net = emptyList(),
-            inOut = listOf(DayInOut("USD", BigDecimal("100"), BigDecimal("100")))
-        )
+    fun balancedDayShowsItsInAndOut() {
+        val inOut = listOf(DayInOut("USD", BigDecimal("100"), BigDecimal("100")))
         compose.setContent {
-            MaterialTheme { ActivityDayHeader(title = "Mon, Nov 9", subtotals = subtotals) }
+            MaterialTheme { ActivityDayInOut(inOut = inOut) }
         }
         compose.onNodeWithText(inOutLine("100", "100")).assertIsDisplayed()
     }
@@ -46,30 +44,24 @@ class ActivityDayHeaderTest {
     @Test
     fun hiddenAmountsShowOneMaskedLineHoweverManyCurrencies() {
         AmountPrivacy.hidden = true
-        val subtotals = DaySubtotals(
-            net = emptyList(),
-            inOut = listOf(
-                DayInOut("USD", BigDecimal("100"), BigDecimal("40")),
-                DayInOut("EUR", BigDecimal("20"), BigDecimal("10"))
-            )
+        val inOut = listOf(
+            DayInOut("USD", BigDecimal("100"), BigDecimal("40")),
+            DayInOut("EUR", BigDecimal("20"), BigDecimal("10"))
         )
         compose.setContent {
-            MaterialTheme { ActivityDayHeader(title = "Mon, Nov 9", subtotals = subtotals) }
+            MaterialTheme { ActivityDayInOut(inOut = inOut) }
         }
         val masked = compose.activity.getString(R.string.txn_list_day_in_out, AmountPrivacy.MASK, AmountPrivacy.MASK)
         compose.onAllNodesWithText(masked, useUnmergedTree = true).assertCountEquals(1)
     }
 
     @Test
-    fun theDateAndItsTotalsAreOneHeading() {
-        val subtotals = DaySubtotals(
-            net = emptyList(),
-            inOut = listOf(DayInOut("USD", BigDecimal("100"), BigDecimal("100")))
-        )
+    fun theDateAndItsNetAreOneHeading() {
+        val net = listOf(Money(BigDecimal("60"), "USD"))
         compose.setContent {
-            MaterialTheme { ActivityDayHeader(title = "Mon, Nov 9", subtotals = subtotals) }
+            MaterialTheme { ActivityDayHeader(title = "Mon, Nov 9", net = net) }
         }
-        compose.onNode(isHeading() and hasText("Mon, Nov 9") and hasText(inOutLine("100", "100")))
+        compose.onNode(isHeading() and hasText("Mon, Nov 9") and hasText(formatDayNet(net)!!))
             .assertIsDisplayed()
     }
 }

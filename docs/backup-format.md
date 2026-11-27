@@ -242,12 +242,16 @@ Then frames until the one marked last:
 - A new KDF or cipher needs a new envelope version; readers reject versions
   they don't know.
 - **Automatic folder backups** (*Encrypt Automatic Backups*) use the same
-  envelope. Their passphrase is kept on the device, sealed with an Android
-  Keystore key (`data/backup/FolderBackupPassphrase.kt`), in app-private prefs
-  that no backup file or Android backup carries. If the key can no longer
-  unseal it, no backup is written — never a plain one — and Settings asks for
-  the passphrase again; a Keystore error that may pass is retried instead.
-  The switch can be turned on before automatic backups, so the first file is
+  envelope. The switch and the passphrase are kept on the device in their
+  own Preferences DataStore (`data/backup/FolderBackupPassphrase.kt`), which
+  no backup file or Android backup carries; the passphrase is sealed with an
+  Android Keystore key under a fresh alias each time it's entered, stored
+  beside it. A backup is written plain only when that store reads "off": a
+  read error, or a passphrase the Keystore can't unlock (opening never
+  creates a key), writes nothing, the worker retries later, and Settings
+  asks for the passphrase again. Nothing is marked on disk when an unlock
+  fails. The switch can be turned on before automatic backups, and turning
+  them on waits for a passphrase still being saved, so the first file is
   already encrypted. One lock in `worker/FolderBackupRunner.kt` keeps backups
   and encryption changes from overlapping. Restore them like any encrypted
   backup.

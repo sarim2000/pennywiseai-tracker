@@ -18,13 +18,20 @@ import com.pennywiseai.tracker.MainActivity
 class AddAutomationActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // The copy keeps the action, data and extras, still unread: MainActivity reads
-        // them defensively. Flags are replaced, so a caller's flags can't grant anything.
-        val forward = Intent(intent).apply {
-            setClass(this@AddAutomationActivity, MainActivity::class.java)
-            selector = null
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        // Checked here, and only the checked values go on, in a new intent: none of the
+        // caller's action, data, ClipData, flags or other extras (MainActivity acts on
+        // chat and widget extras) reach MainActivity. Each read is caught: on Android 12
+        // one malformed extra makes every read of the bundle throw.
+        val link = intent.data?.takeIf { it.isHierarchical }
+        val add = AddAutomation.prefill { key ->
+            @Suppress("DEPRECATION")
+            runCatching { intent.extras?.get(key) }.getOrNull()
+                ?: runCatching { link?.getQueryParameter(key) }.getOrNull()
         }
+        val forward = Intent(this, MainActivity::class.java)
+            .setAction(AddAutomation.ACTION_ADD_TRANSACTION)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        AddAutomation.extras(add).forEach { (key, value) -> forward.putExtra(key, value) }
         startActivity(forward)
         finish()
     }

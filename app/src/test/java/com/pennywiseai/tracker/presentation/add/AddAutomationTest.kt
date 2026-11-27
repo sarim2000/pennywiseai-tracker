@@ -117,6 +117,31 @@ class AddAutomationTest {
     }
 
     @Test
+    fun `the forwarded extras are the checked values under the public keys only`() {
+        val add = prefill(
+            "amount" to 12.5,
+            "currency" to "usd",
+            "merchant" to "  Test Cafe ",
+            "type" to "income",
+            MainActivity.EXTRA_ADD_LAST4 to "1234",
+            MainActivity.EXTRA_CHAT_TEXT to "not for the form",
+            MainActivity.EXTRA_OPEN_GOAL_ID to 7L,
+        )
+        val extras = AddAutomation.extras(add)
+        assertEquals(
+            mapOf(
+                "amount" to "12.5",
+                "currency" to "USD",
+                "merchant" to "Test Cafe",
+                "type" to "INCOME",
+                "account_last4" to "1234",
+            ),
+            extras,
+        )
+        assertEquals(add.copy(openId = 0), AddAutomation.prefill(extras::get).copy(openId = 0))
+    }
+
+    @Test
     fun `the long extra names still work, the short key wins`() {
         val add = prefill(
             MainActivity.EXTRA_ADD_AMOUNT to "7.25",

@@ -59,6 +59,21 @@ object AddAutomation {
     }
 
     /**
+     * [add]'s values under the public keys, all as text: the only extras
+     * [AddAutomationActivity] passes on, and [prefill] reads them back unchanged.
+     */
+    fun extras(add: AddTransaction): Map<String, String> = listOfNotNull(
+        add.amount?.let { KEY_AMOUNT to it },
+        add.currency?.let { KEY_CURRENCY to it },
+        add.merchant?.let { KEY_MERCHANT to it },
+        add.category?.let { KEY_CATEGORY to it },
+        add.type?.let { KEY_TYPE to it },
+        add.note?.let { KEY_NOTE to it },
+        add.accountLast4?.let { KEY_ACCOUNT_LAST4 to it },
+        add.bankName?.let { KEY_BANK to it },
+    ).toMap()
+
+    /**
      * A positive decimal as plain text ("12.50"; a number extra's "1.0E7" becomes
      * "10000000"). Bounded, so a huge exponent can't expand into a giant string.
      */

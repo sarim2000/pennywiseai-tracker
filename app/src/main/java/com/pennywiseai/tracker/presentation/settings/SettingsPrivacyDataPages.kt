@@ -322,11 +322,13 @@ internal fun DataPage(
             SettingsSwitchRow(
                 icon = Icons.Default.Lock,
                 title = stringResource(R.string.settings_folder_backup_encrypt_title),
-                subtitle = if (folderBackupEncryption == FolderBackupPassphrase.Status.OFF) {
-                    stringResource(R.string.settings_folder_backup_encrypt_subtitle_off)
-                } else {
-                    stringResource(R.string.settings_folder_backup_encrypt_subtitle_on)
-                },
+                subtitle = stringResource(
+                    when (folderBackupEncryption) {
+                        FolderBackupPassphrase.Status.OFF -> R.string.settings_folder_backup_encrypt_subtitle_off
+                        FolderBackupPassphrase.Status.ON -> R.string.settings_folder_backup_encrypt_subtitle_on
+                        FolderBackupPassphrase.Status.LOST -> R.string.settings_folder_backup_encrypt_subtitle_lost
+                    }
+                ),
                 checked = folderBackupEncryption != FolderBackupPassphrase.Status.OFF,
                 onCheckedChange = { encrypt ->
                     if (encrypt) showFolderPassphraseDialog = true else settingsViewModel.turnOffFolderBackupEncryption()
@@ -340,7 +342,8 @@ internal fun DataPage(
                     title = stringResource(R.string.settings_folder_backup_passphrase_lost_title),
                     subtitle = stringResource(R.string.settings_folder_backup_passphrase_lost_subtitle),
                     onClick = { showFolderPassphraseDialog = true },
-                    position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
+                    position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
+                    problem = true
                 )
             }
         }

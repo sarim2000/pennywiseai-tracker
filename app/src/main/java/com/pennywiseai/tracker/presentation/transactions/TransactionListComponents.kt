@@ -140,13 +140,23 @@ internal fun ActivityDayHeader(
         // Under the date row, not beside it, so long figures at large font sizes
         // wrap in the full width instead of squeezing the date. A balanced day
         // ($100 in, $100 out) has no net but still shows these.
-        inOut.forEach { flow ->
-            Text(
-                text = stringResource(
+        // Hidden, one masked line: a line per currency would still say how many there are.
+        val lines = when {
+            inOut.isEmpty() -> emptyList()
+            AmountPrivacy.hidden -> listOf(
+                stringResource(R.string.txn_list_day_in_out, AmountPrivacy.MASK, AmountPrivacy.MASK)
+            )
+            else -> inOut.map { flow ->
+                stringResource(
                     R.string.txn_list_day_in_out,
                     CurrencyFormatter.formatCurrency(flow.moneyIn, flow.currency),
                     CurrencyFormatter.formatCurrency(flow.moneyOut, flow.currency)
-                ),
+                )
+            }
+        }
+        lines.forEach { line ->
+            Text(
+                text = line,
                 style = MaterialTheme.typography.bodySmall.tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.End,

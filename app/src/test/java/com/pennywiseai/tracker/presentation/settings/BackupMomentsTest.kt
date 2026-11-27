@@ -25,6 +25,7 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -45,6 +46,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 
 /** The shield shows only for a backup the user wrote or restored, and only once it's done. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -186,6 +188,56 @@ class BackupMomentsTest {
 
         assertEquals(UiText.Res(R.string.settings_folder_backup_enabled), viewModel.importExportMessage.value)
         assertEquals(true, exportedWithPassphrase)
+    }
+
+    @Test
+    fun `turning automatic backups on while the passphrase is still saving waits for it`() {
+        val stored = CompletableDeferred<Unit>()
+        var saved: CharArray? = null
+        coEvery { passphrase.save(any()) } coAnswers {
+            stored.await()
+            saved = firstArg<CharArray>().copyOf()
+        }
+        coEvery { passphrase.load() } answers { saved?.copyOf() }
+        var exportedWithPassphrase: Boolean? = null
+        coEvery { exporter.exportBackup(any(), any(), any()) } answers {
+            exportedWithPassphrase = thirdArg<CharArray?>() != null
+            ExportResult.Success(backupFile)
+        }
+        every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Success
+        coEvery { preferences.isScheduledFolderBackupEnabled() } returns false
+
+        viewModel.setFolderBackupPassphrase("synthetic phrase".toCharArray())
+        assertTrue(viewModel.savingFolderBackupPassphrase.value)
+        viewModel.setScheduledFolderBackupEnabled(true)
+        coVerify(exactly = 0) { preferences.setScheduledFolderBackupEnabled(true) }
+
+        stored.complete(Unit)
+        awaitMessage()
+
+        assertEquals(UiText.Res(R.string.settings_folder_backup_enabled), viewModel.importExportMessage.value)
+        assertEquals(true, exportedWithPassphrase)
+        runBlocking { withTimeout(5_000) { viewModel.savingFolderBackupPassphrase.first { !it } } }
+    }
+
+    @Test
+    fun `a passphrase that failed to save doesn't turn automatic backups on plain`() {
+        val failing = CompletableDeferred<Unit>()
+        coEvery { passphrase.save(any()) } coAnswers {
+            failing.await()
+            throw IOException("disk full")
+        }
+
+        // Turned on while the save is still in flight.
+        viewModel.setFolderBackupPassphrase("synthetic phrase".toCharArray())
+        viewModel.setScheduledFolderBackupEnabled(true)
+        failing.complete(Unit)
+        awaitMessage()
+        runBlocking { withTimeout(5_000) { viewModel.savingFolderBackupPassphrase.first { !it } } }
+
+        assertEquals(UiText.Res(R.string.settings_folder_backup_passphrase_save_failed), viewModel.importExportMessage.value)
+        coVerify(exactly = 0) { preferences.setScheduledFolderBackupEnabled(true) }
+        verify(exactly = 0) { writer.writeBackup(any(), any()) }
     }
 
     @Test

@@ -148,6 +148,7 @@ internal fun DataPage(
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showEncryptedExportDialog by remember { mutableStateOf(false) }
     val folderBackupEncryption by settingsViewModel.folderBackupEncryption.collectAsStateWithLifecycle()
+    val savingFolderBackupPassphrase by settingsViewModel.savingFolderBackupPassphrase.collectAsStateWithLifecycle()
     var showFolderPassphraseDialog by remember { mutableStateOf(false) }
     val backupPassphrasePrompt by settingsViewModel.backupPassphrasePrompt.collectAsStateWithLifecycle()
 
@@ -285,7 +286,9 @@ internal fun DataPage(
                     settingsViewModel.setScheduledFolderBackupEnabled(enabled)
                 }
             },
-            position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
+            position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
+            // A passphrase being saved comes first, so the first backup isn't written plain.
+            enabled = !savingFolderBackupPassphrase
         )
         if (scheduledFolderBackupEnabled) {
             SettingsNavItem(
@@ -307,7 +310,8 @@ internal fun DataPage(
                     }
                 } ?: stringResource(R.string.settings_backup_now_subtitle),
                 onClick = { settingsViewModel.backupToFolderNow() },
-                position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
+                position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
+                enabled = !savingFolderBackupPassphrase
             )
             SettingsSwitchRow(
                 icon = Icons.Default.Receipt,
@@ -323,10 +327,11 @@ internal fun DataPage(
                 icon = Icons.Default.Lock,
                 title = stringResource(R.string.settings_folder_backup_encrypt_title),
                 subtitle = stringResource(
-                    when (folderBackupEncryption) {
-                        null, FolderBackupPassphrase.Status.OFF -> R.string.settings_folder_backup_encrypt_subtitle_off
-                        FolderBackupPassphrase.Status.ON -> R.string.settings_folder_backup_encrypt_subtitle_on
-                        FolderBackupPassphrase.Status.LOCKED -> R.string.settings_folder_backup_encrypt_subtitle_locked
+                    when {
+                        savingFolderBackupPassphrase -> R.string.settings_folder_backup_encryption_saving
+                        folderBackupEncryption == FolderBackupPassphrase.Status.ON -> R.string.settings_folder_backup_encrypt_subtitle_on
+                        folderBackupEncryption == FolderBackupPassphrase.Status.LOCKED -> R.string.settings_folder_backup_encrypt_subtitle_locked
+                        else -> R.string.settings_folder_backup_encrypt_subtitle_off
                     }
                 ),
                 checked = folderBackupEncryption.let { it != null && it != FolderBackupPassphrase.Status.OFF },
@@ -334,8 +339,8 @@ internal fun DataPage(
                     if (encrypt) showFolderPassphraseDialog = true else settingsViewModel.turnOffFolderBackupEncryption()
                 },
                 position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
-                // Not before the stored setting is read: the switch would show a guess.
-                enabled = folderBackupEncryption != null
+                // Not before the stored setting is read (the switch would show a guess), nor mid-save.
+                enabled = folderBackupEncryption != null && !savingFolderBackupPassphrase
             )
             // Backups stop rather than go out plain: say so until the passphrase is entered again.
             if (folderPassphraseLocked) {
@@ -345,7 +350,8 @@ internal fun DataPage(
                     subtitle = stringResource(R.string.settings_folder_backup_passphrase_locked_subtitle),
                     onClick = { showFolderPassphraseDialog = true },
                     position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
-                    problem = true
+                    problem = true,
+                    enabled = !savingFolderBackupPassphrase
                 )
             }
         }
@@ -355,7 +361,8 @@ internal fun DataPage(
                 title = stringResource(R.string.settings_change_backup_folder_title),
                 subtitle = stringResource(R.string.settings_change_backup_folder_subtitle),
                 onClick = { settingsViewModel.requestChangeBackupFolder() },
-                position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
+                position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
+                enabled = !savingFolderBackupPassphrase
             )
         }
     }

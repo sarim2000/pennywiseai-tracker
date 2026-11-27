@@ -45,9 +45,11 @@ import com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -199,27 +201,52 @@ class SettingsViewModel @Inject constructor(
     val folderBackupEncryption: StateFlow<FolderBackupPassphrase.Status?> = folderBackupPassphrase.status
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    // True while a new passphrase is being stored; Settings shows it and holds the backup switches.
+    private val _savingFolderBackupPassphrase = MutableStateFlow(false)
+    val savingFolderBackupPassphrase: StateFlow<Boolean> = _savingFolderBackupPassphrase.asStateFlow()
+
+    // The passphrase save in flight, true once stored: folder backups wait for it.
+    private var folderBackupPassphraseSave: Deferred<Boolean>? = null
+
     /**
      * Encrypts automatic backups with [passphrase] (cleared once it's saved). When they're on,
      * backs up straight away so the folder doesn't keep a plain copy until the next night;
      * before that, the first backup they write is already encrypted.
      */
     fun setFolderBackupPassphrase(passphrase: CharArray) {
-        viewModelScope.launch {
+        val save = viewModelScope.async {
             try {
                 folderBackupRunner.saveEncryption(passphrase)
+                true
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Failed to save the folder backup passphrase", e)
                 _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_passphrase_save_failed)
-                return@launch
+                false
             } finally {
                 passphrase.fill('\u0000')
             }
-            if (userPreferencesRepository.isScheduledFolderBackupEnabled()) {
+        }
+        folderBackupPassphraseSave = save
+        _savingFolderBackupPassphrase.value = true
+        viewModelScope.launch {
+            val saved = save.await()
+            if (folderBackupPassphraseSave === save) {
+                folderBackupPassphraseSave = null
+                _savingFolderBackupPassphrase.value = false
+            }
+            if (saved && userPreferencesRepository.isScheduledFolderBackupEnabled()) {
                 performFolderBackup(showSuccessMessage = true)
             }
         }
     }
+
+    /**
+     * Waits for a passphrase save in flight; false when it failed, which it has already said.
+     * The user chose encryption, so nothing goes out plain in its place.
+     */
+    private suspend fun folderBackupPassphraseSaved(): Boolean = folderBackupPassphraseSave?.await() ?: true
 
     fun turnOffFolderBackupEncryption() {
         viewModelScope.launch {
@@ -953,6 +980,7 @@ class SettingsViewModel @Inject constructor(
 
     /** Writes a backup to the folder; returns how many receipts it left out, or null when it failed. */
     private suspend fun performFolderBackup(showSuccessMessage: Boolean): Int? {
+        if (!folderBackupPassphraseSaved()) return null
         val treeUri = userPreferencesRepository.getScheduledFolderBackupTreeUri()
         if (treeUri.isNullOrBlank()) {
             _importExportMessage.value = UiText.Res(R.string.settings_folder_select_first)
@@ -995,6 +1023,8 @@ class SettingsViewModel @Inject constructor(
     }
 
     private suspend fun enableScheduledFolderBackup(treeUri: String) {
+        // Not before a passphrase chosen for them is stored: the first backup would go out plain.
+        if (!folderBackupPassphraseSaved()) return
         if (!withContext(Dispatchers.IO) { folderBackupWriter.canWriteToFolder(treeUri) }) {
             _importExportMessage.value = UiText.Res(R.string.settings_folder_not_writable)
             return

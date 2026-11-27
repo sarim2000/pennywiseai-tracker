@@ -143,4 +143,15 @@ class DayInOutTest {
             net.map { it.currency to it.amount.stripTrailingZeros().toPlainString() }
         )
     }
+
+    @Test
+    fun `a balanced day has no net but keeps its in and out`() {
+        val rows = listOf(
+            tx(1, "100", currency = "USD"),
+            tx(2, "100", TransactionType.INCOME, currency = "USD"),
+        )
+        val subtotals = daySubtotals(rows, null, emptyMap(), null)
+        assertEquals(emptyList<Any>(), subtotals.net)
+        assertEquals(listOf(flow("USD", "100", "100")).plain(), subtotals.inOut.plain())
+    }
 }

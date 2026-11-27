@@ -128,13 +128,16 @@ internal fun ActivityDayHeader(
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
-        if (net != null) {
+        // A balanced day ($100 in, $100 out) has no net but still shows its in/out.
+        if (net != null || inOut.isNotEmpty()) {
             Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = net,
-                    style = MaterialTheme.typography.bodyMedium.tabular(),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (net != null) {
+                    Text(
+                        text = net,
+                        style = MaterialTheme.typography.bodyMedium.tabular(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 inOut.forEach { flow ->
                     Text(
                         text = stringResource(

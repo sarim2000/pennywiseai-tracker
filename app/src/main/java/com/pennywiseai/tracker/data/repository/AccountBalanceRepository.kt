@@ -785,19 +785,22 @@ open class AccountBalanceRepository @Inject constructor(
      * separately by their `from_account`/`to_account` (money in when this account is the
      * destination, out when it's the source) and excluded from the direct sum so they're
      * never double-counted — a transfer *into* a manual account would otherwise be dropped.
+     * Only rows in the account's [currency] count: the sum doesn't convert, so a $10 row
+     * would otherwise come off a ₹ balance as ₹10.
      */
     private suspend fun signedTransactionSum(
         bankName: String,
         accountLast4: String,
+        currency: String,
         after: LocalDateTime? = null
     ): BigDecimal {
-        fun inWindow(tx: TransactionEntity) = after == null || tx.dateTime > after
+        fun counts(tx: TransactionEntity) = tx.currency == currency && (after == null || tx.dateTime > after)
         var sum = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
-            .filter { it.transactionType != TransactionType.TRANSFER && inWindow(it) }
+            .filter { it.transactionType != TransactionType.TRANSFER && counts(it) }
             .fold(BigDecimal.ZERO) { acc, tx ->
                 if (tx.transactionType == TransactionType.INCOME) acc + tx.amount else acc - tx.amount
             }
-        for (tx in transactionDao.getTransfersForAccount(accountLast4).filter(::inWindow)) {
+        for (tx in transactionDao.getTransfersForAccount(accountLast4).filter(::counts)) {
             if (tx.isPairedTransferLeg) {
                 if (tx.bankName == bankName && tx.accountNumber == accountLast4) {
                     when (tx.ledgerType()) {
@@ -823,7 +826,7 @@ open class AccountBalanceRepository @Inject constructor(
     suspend fun balanceAsOf(bankName: String, accountLast4: String, end: LocalDateTime): BigDecimal? {
         val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return null
         if (isManualAccount(bankName, accountLast4)) {
-            return latest.balance - signedTransactionSum(bankName, accountLast4, after = end)
+            return latest.balance - signedTransactionSum(bankName, accountLast4, latest.currency, after = end)
         }
         return accountBalanceDao.getBalanceHistoryForAccount(bankName, accountLast4) // newest first
             .firstOrNull { it.timestamp <= end && it.sourceType != SOURCE_OPENING }
@@ -914,18 +917,11 @@ open class AccountBalanceRepository @Inject constructor(
     /**
      * After [transactions] are inserted (pin with [pinManualOpenings] before):
      * re-derives every manual account they land on, own account and both
-     * transfer legs, once each. An account one of them reaches in another
-     * currency is left as it is: the sum doesn't convert, so it would take a
-     * $10 row off a ₹ balance as ₹10.
+     * transfer legs, once each.
      */
     suspend fun recomputeManualBalances(transactions: Collection<TransactionEntity>) {
-        transactions.flatMap { t -> accountsOf(t).map { it to t.currency } }
-            .groupBy({ it.first }, { it.second })
-            .forEach { (account, currencies) ->
-                val (bank, acct) = account
-                val currency = accountBalanceDao.getLatestBalance(bank, acct)?.currency ?: return@forEach
-                if (currencies.all { it == currency }) recomputeManualBalance(bank, acct)
-            }
+        transactions.flatMap(::accountsOf).distinct()
+            .forEach { (bank, acct) -> recomputeManualBalance(bank, acct) }
     }
 
     /** The accounts [t] moves: its own and both transfer legs, where named. */
@@ -982,7 +978,7 @@ open class AccountBalanceRepository @Inject constructor(
             // Re-check inside the transaction in case a concurrent call just created it.
             if (accountBalanceDao.getOpeningRow(bankName, accountLast4) != null) return@withTransaction
             val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return@withTransaction
-            val sum = signedTransactionSum(bankName, accountLast4)
+            val sum = signedTransactionSum(bankName, accountLast4, latest.currency)
             val earliest = accountBalanceDao.getEarliestBalanceTimestamp(bankName, accountLast4)
                 ?: latest.timestamp
             accountBalanceDao.insertBalance(
@@ -1009,7 +1005,7 @@ open class AccountBalanceRepository @Inject constructor(
         database.withTransaction {
             ensureManualOpening(bankName, accountLast4)
             val opening = accountBalanceDao.getOpeningRow(bankName, accountLast4) ?: return@withTransaction
-            val current = opening.balance + signedTransactionSum(bankName, accountLast4)
+            val current = opening.balance + signedTransactionSum(bankName, accountLast4, opening.currency)
             writeManualCurrentRow(bankName, accountLast4, opening, current)
         }
     }
@@ -1024,7 +1020,7 @@ open class AccountBalanceRepository @Inject constructor(
         database.withTransaction {
             ensureManualOpening(bankName, accountLast4)
             val opening = accountBalanceDao.getOpeningRow(bankName, accountLast4) ?: return@withTransaction
-            val sum = signedTransactionSum(bankName, accountLast4)
+            val sum = signedTransactionSum(bankName, accountLast4, opening.currency)
             accountBalanceDao.updateBalanceById(opening.id, target - sum)
             // current = (target − sum) + sum = target — write it directly instead of
             // re-summing via recomputeManualBalance.

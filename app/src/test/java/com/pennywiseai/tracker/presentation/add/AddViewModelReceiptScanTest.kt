@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
@@ -220,6 +221,20 @@ class AddViewModelReceiptScanTest {
             vm.updateTransactionCategory("Groceries")
             vm.scanReceipt(otherPhoto)
             assertEquals("Groceries", vm.transactionUiState.value.category)
+        }
+    }
+
+    @Test
+    fun `switching to a transfer stops the scan`() {
+        val ocr = CompletableDeferred<List<String>?>()
+        withForm({ ocr.await() }) { vm ->
+            vm.scanReceipt(photo)
+            vm.updateTransactionType(TransactionType.TRANSFER)
+            ocr.complete(receipt)
+            val state = vm.transactionUiState.value
+            assertEquals("", state.amount)
+            assertEquals("", state.merchant)
+            assertFalse(state.scanningReceipt)
         }
     }
 

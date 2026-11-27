@@ -391,6 +391,8 @@ class AddViewModel @Inject constructor(
                 scanned = currentState.scanned - ScanField.CATEGORY
             )
         }
+        // A transfer has no receipt total or shop: a photo still being read fills nothing in.
+        if (type == TransactionType.TRANSFER) cancelReceiptScan()
     }
 
     fun updateTransactionMerchant(merchant: String) {
@@ -655,6 +657,10 @@ class AddViewModel @Inject constructor(
     }
 
     private fun applyReceiptScan(lines: List<String>?, known: List<String>) {
+        if (_transactionUiState.value.transactionType == TransactionType.TRANSFER) {
+            _transactionUiState.update { it.copy(scanningReceipt = false) }
+            return
+        }
         // What the last scan filled in came off another photo: this one starts without it.
         val base = _transactionUiState.value.withoutScan(beforeScan)
         val scan = lines?.let { ReceiptExtractor.extract(it, known, LocalDate.now(), currency = base.entryCurrency) }
@@ -677,9 +683,7 @@ class AddViewModel @Inject constructor(
         val amount = scan.amount?.takeIf { currency != null && amountFree }
         val otherCurrency = scan.amount != null && amountFree && currency == null
         val newCurrency = currency?.takeIf { amount != null } ?: base.currency
-        val merchant = scan.merchant?.takeIf {
-            ScanField.MERCHANT !in base.edited && base.merchant.isBlank() && base.transactionType != TransactionType.TRANSFER
-        }
+        val merchant = scan.merchant?.takeIf { ScanField.MERCHANT !in base.edited && base.merchant.isBlank() }
         val date = scan.date?.takeIf { ScanField.DATE !in base.edited }
 
         val filled = setOfNotNull(

@@ -26,7 +26,7 @@ class RecomputeManualBalancesTest {
             )
         }
     }
-    private val repo = spyk(AccountBalanceRepository(balanceDao, mockk(relaxed = true), mockk(), mockk(relaxed = true)))
+    private val repo = spyk(AccountBalanceRepository(balanceDao, mockk(relaxed = true), mockk(), mockk(relaxed = true), kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)))
 
     private fun row(
         id: Long,

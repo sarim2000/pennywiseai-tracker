@@ -54,7 +54,7 @@ class ManualBalanceCurrencyTest {
         coEvery { getTransfersForAccount(ACCT) } answers { ledger.filter { it.transactionType == TransactionType.TRANSFER } }
     }
     private val database = mockk<PennyWiseDatabase>()
-    private val repo = AccountBalanceRepository(balanceDao, transactionDao, database, mockk(relaxed = true))
+    private val repo = AccountBalanceRepository(balanceDao, transactionDao, database, mockk(relaxed = true), kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined))
 
     private fun balanceRow(source: String, balance: String) = AccountBalanceEntity(
         bankName = BANK, accountLast4 = ACCT, balance = BigDecimal(balance), timestamp = time,

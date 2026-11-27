@@ -605,7 +605,11 @@ class AddViewModel @Inject constructor(
                 emptyList()
             }
             val scan = lines?.let {
-                ReceiptExtractor.extract(it, known, LocalDate.now(), monthFirst = AppDates.locale().country == "US")
+                ReceiptExtractor.extract(
+                    it, known, LocalDate.now(),
+                    monthFirst = AppDates.locale().country == "US",
+                    currency = _transactionUiState.value.entryCurrency
+                )
             }
             applyReceiptScan(scan)
         }

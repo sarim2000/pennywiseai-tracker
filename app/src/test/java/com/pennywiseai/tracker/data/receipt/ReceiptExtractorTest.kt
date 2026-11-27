@@ -12,10 +12,10 @@ class ReceiptExtractorTest {
 
     private val today = LocalDate.of(2026, 3, 20)
 
-    private fun scan(vararg lines: String, known: List<String> = emptyList(), monthFirst: Boolean = false) =
-        ReceiptExtractor.extract(lines.toList(), known, today, monthFirst)
+    private fun scan(vararg lines: String, known: List<String> = emptyList(), monthFirst: Boolean = false, currency: String? = "USD") =
+        ReceiptExtractor.extract(lines.toList(), known, today, monthFirst, currency)
 
-    private fun amount(vararg lines: String) = scan(*lines).amount
+    private fun amount(vararg lines: String, currency: String? = "USD") = scan(*lines, currency = currency).amount
 
     @Test
     fun `total wins over subtotal, tax, cash and change`() {
@@ -50,6 +50,38 @@ class ReceiptExtractorTest {
         assertEquals(BigDecimal("9.45"), amount("Total 9,45"))
         assertEquals(BigDecimal("1200"), amount("Total ₹1,200"))
         assertEquals(BigDecimal("125000.00"), amount("Net payable Rs. 1,25,000.00"))
+    }
+
+    @Test
+    fun `three digits after the point are fils for a three-decimal currency, thousands otherwise`() {
+        assertEquals(BigDecimal("12.500"), amount("TOTAL JOD 12.500"))
+        assertEquals("JOD", scan("TOTAL JOD 12.500").currency)
+        assertEquals(BigDecimal("12.500"), amount("TOTAL 12.500", currency = "KWD"))
+        assertEquals(BigDecimal("12500"), amount("TOTAL 12.500", currency = "EUR"))
+        assertEquals(BigDecimal("1234.500"), amount("Total OMR 1,234.500"))
+        // No currency printed or known: "12.500" could be either, so it's left out.
+        assertNull(amount("TOTAL 12.500", currency = null))
+    }
+
+    @Test
+    fun `a total with its currency code on the line under the label`() {
+        assertEquals(BigDecimal("27.30"), amount("EXCHANGE RATE 100.00", "TOTAL", "AED 27.30"))
+        assertEquals("AED", scan("EXCHANGE RATE 100.00", "TOTAL", "AED 27.30").currency)
+    }
+
+    @Test
+    fun `thousands grouped by spaces`() {
+        assertEquals(BigDecimal("1234.56"), amount("TOTAL 1 234,56 EUR"))
+        assertEquals(BigDecimal("1234.56"), amount("TOTAL 1\u202F234.56"))
+        // A plain space before a decimal point parts two figures.
+        assertEquals(BigDecimal("120.00"), amount("Total 3 120.00"))
+    }
+
+    @Test
+    fun `a labeled total that can't be read leaves the amount out`() {
+        assertNull(amount("Bread 3.20", "Cheese 15.20", "TOTAL", "see over"))
+        assertNull(amount("1 USD = 3.67 AED", "TOTAL 27.30"))
+        assertNull(amount("TOTAL USD 7.44", "TOTAL AED 27.30"))
     }
 
     @Test
@@ -106,8 +138,23 @@ class ReceiptExtractorTest {
         assertEquals("INR", scan("Total ₹450.00").currency)
         assertEquals("AED", scan("TOTAL AED 75.00").currency)
         assertEquals("EUR", scan("Summe 12,50 €").currency)
-        assertNull(scan("Total $12.00").currency)
+        assertEquals("USD", scan("Total US$12.00").currency)
         assertNull(scan("USD 10.00", "EUR 9.00").currency)
+    }
+
+    @Test
+    fun `the total's own currency, not another one on the receipt`() {
+        val result = scan("Card fee USD 1.00", "TOTAL AED 75.00")
+        assertEquals(BigDecimal("75.00"), result.amount)
+        assertEquals(setOf("AED"), result.currencies)
+    }
+
+    @Test
+    fun `a shared mark only says which currencies it could be`() {
+        assertEquals(setOf("INR", "PKR", "LKR", "NPR"), scan("Net payable Rs. 450.00").currencies)
+        assertTrue("USD" in scan("Total $12.00").currencies)
+        assertTrue("CAD" in scan("Total $12.00").currencies)
+        assertNull(scan("Total $12.00").currency)
     }
 
     @Test

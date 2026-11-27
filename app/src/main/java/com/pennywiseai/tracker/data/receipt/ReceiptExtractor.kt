@@ -157,8 +157,10 @@ object ReceiptExtractor {
             if (spaced.any { !afterCurrency(stripped, it.range.first) }) return null
             SPACED.replace(stripped) { it.value.replace(' ', '\u00A0') }
         }
-        val tokens = NUMBER.findAll(text).map { it.value }.toList()
-        val values = tokens.map { amount(it, digits, centsOnly = false) ?: return null }
+        val tokens = NUMBER.findAll(text).toList()
+        // A refund or a credit ("TOTAL -12.50"): not a purchase to fill in.
+        if (tokens.any { negative(text, it.range) }) return null
+        val values = tokens.map { amount(it.value, digits, centsOnly = false) ?: return null }
         return values.filter { it < BigDecimal(MAX_AMOUNT) }
     }
 
@@ -169,11 +171,28 @@ object ReceiptExtractor {
     }
 
     /** The amounts on [line]; with [centsOnly], only figures written with the currency's decimals. */
-    internal fun amounts(line: String, digits: Int? = 2, centsOnly: Boolean = false): List<BigDecimal> =
-        NUMBER.findAll(DATE_OR_TIME.replace(line, " "))
+    internal fun amounts(line: String, digits: Int? = 2, centsOnly: Boolean = false): List<BigDecimal> {
+        val text = DATE_OR_TIME.replace(line, " ")
+        return NUMBER.findAll(text)
+            .filterNot { negative(text, it.range) }
             .mapNotNull { amount(it.value, digits, centsOnly) }
             .filter { it.signum() > 0 && it < BigDecimal(MAX_AMOUNT) }
             .toList()
+    }
+
+    /**
+     * Whether a minus sign stands right by the figure at [range] in [text]: before it, maybe
+     * across a currency symbol ("-12.50", "-€12.50", "€-12.50"), or after it ("12.50-"). A dash
+     * set apart by spaces ("TOTAL - 12.50") or joining words ("Item-2") isn't one.
+     */
+    private fun negative(text: String, range: IntRange): Boolean {
+        fun minus(i: Int) = text.getOrNull(i)?.let { it == '-' || it == '\u2212' } == true
+        fun apart(i: Int) = text.getOrNull(i)?.isLetterOrDigit() != true
+        var before = range.first - 1
+        if (text.getOrNull(before)?.let { Character.getType(it) == Character.CURRENCY_SYMBOL.toInt() } == true) before--
+        val after = range.last + 1
+        return (minus(before) && apart(before - 1)) || (minus(after) && apart(after + 1))
+    }
 
     /**
      * "1,234.56", "1.234,56", "9,45", "1,200", "1 234,56" → a number, read with the [digits]

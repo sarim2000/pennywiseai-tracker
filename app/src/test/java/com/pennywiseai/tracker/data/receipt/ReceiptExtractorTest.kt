@@ -46,6 +46,16 @@ class ReceiptExtractorTest {
     }
 
     @Test
+    fun `a negative total is left out, and a dash between words isn't a minus`() {
+        assertNull(amount("TOTAL -12.50 EUR"))
+        assertNull(amount("TOTAL -€12.50"))
+        assertNull(amount("TOTAL 12.50-"))
+        assertEquals(BigDecimal("12.50"), amount("TOTAL - 12.50"))
+        // A discount isn't the largest figure on a receipt with no total.
+        assertEquals(BigDecimal("18.40"), amount("Bread 3.20", "Bag 18.40", "Promo -50.00"))
+    }
+
+    @Test
     fun `figure on the line under its label`() {
         assertEquals(BigDecimal("27.30"), amount("Subtotal", "26.00", "TOTAL", "27.30"))
     }

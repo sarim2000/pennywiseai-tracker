@@ -1,0 +1,248 @@
+package com.pennywiseai.tracker.presentation.settings
+
+import android.os.Build
+import com.lemonappdev.konsist.api.Konsist
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.navigation.BottomNavItem
+import com.pennywiseai.tracker.navigation.SettingsPage
+import com.pennywiseai.tracker.navigation.SettingsSection
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.w3c.dom.Element
+import java.io.File
+import javax.xml.parsers.DocumentBuilderFactory
+import com.pennywiseai.feature.learnedcategories.R as LearnedCategoriesR
+
+class SettingsSearchTest {
+
+    /** Fields as the screen passes them: title, subtitle, keywords, page name. */
+    private fun List<List<String>>.search(query: String) =
+        matchingSearch(query) { it.map(::normalizeForSearch) }.map { it.first() }
+
+    private fun rows(vararg titles: String) = titles.map { listOf(it, "", "", "") }
+
+    /** The index's titles for [query], resolved from the app's own strings in [locale] (English by default). */
+    private fun searchIndex(query: String, locale: String = ""): List<String> {
+        val strings = appStrings("values") + if (locale.isEmpty()) emptyMap() else appStrings("values-$locale")
+        val names = listOf(R.string::class.java, LearnedCategoriesR.string::class.java)
+            .flatMap { it.fields.toList() }
+            .associate { it.getInt(null) to it.name }
+        val text = { id: Int -> strings.getValue(names.getValue(id)) }
+        return settingsSearchIndex(Build.VERSION_CODES.S)
+            .matchingSearch(query) { it.searchFields(text) }
+            .map { text(it.title) }
+    }
+
+    @Test
+    fun `every settings page can be found`() {
+        val targets = settingsSearchIndex().map { it.target }.toSet()
+        SettingsSection.entries.forEach { assertTrue("$it missing", SettingsPage(it) in targets) }
+    }
+
+    @Test
+    fun `no row is listed twice`() {
+        val keys = settingsSearchIndex().map { it.title to it.target }
+        assertEquals(keys.size, keys.toSet().size)
+    }
+
+    @Test
+    fun `every row on a settings page is indexed or skipped on purpose`() {
+        // Android 12, so rows Appearance shows only from then (Blur Effects) still have to be indexed.
+        val indexed = settingsSearchIndex(Build.VERSION_CODES.S).flatMap { listOf(it.title) + it.keywords }.toSet()
+        // Any argument: a string resource, or a variable such as `tab.titleRes`.
+        val rowTitle = Regex("""(?<!sub)title = stringResource\(([\w.]+(?:\(\))?)""")
+        val resource = Regex("""(\w+)\.string\.(\w+)""")
+        val pages = Konsist.scopeFromPackage("com.pennywiseai.tracker.presentation.settings", "app", "main").files
+            .filter { it.name.matches(Regex("Settings\\w*Pages?|SettingsScreen|AppearanceScreen")) }
+        assertTrue("no settings page files found. Did they move? Point this test at them.", pages.size >= 6)
+        val missing = pages.flatMap { file ->
+            rowTitle.findAll(file.text).map { it.groupValues[1] }.mapNotNull { arg ->
+                val (rClass, name) = resource.matchEntire(arg)?.destructured
+                    ?: return@mapNotNull "${file.name}: title from `$arg`".takeIf { arg !in VARIABLE_TITLES }
+                val strings = if (rClass == "LearnedCategoriesR") LearnedCategoriesR.string::class.java else R.string::class.java
+                "${file.name}: $name".takeIf { name !in NOT_SEARCHABLE && strings.getField(name).getInt(null) !in indexed }
+            }.toList()
+        }.distinct()
+        assertTrue(
+            "Settings rows missing from settingsSearchIndex (SettingsSearch.kt). Index them, or add them " +
+                "to NOT_SEARCHABLE (a variable: VARIABLE_TITLES) with the reason:\n" + missing.joinToString("\n") { "  $it" },
+            missing.isEmpty(),
+        )
+        // VARIABLE_TITLES says these are indexed.
+        BottomNavItem.hideable.forEach { assertTrue("${it.route} tab missing", it.titleRes in indexed) }
+    }
+
+    @Test
+    fun `case, punctuation, accents and Arabic marks do not matter`() {
+        val items = rows("Café mode", "الإعدادات", "عُملة العرض", "الصفحة الرئيسية")
+        assertEquals(listOf("Café mode"), items.search("CAFE"))
+        assertEquals(listOf("SMS check-up"), rows("SMS check-up").search("checkup"))
+        assertEquals(listOf("الإعدادات"), items.search("الاعدادات"))
+        assertEquals(listOf("عُملة العرض"), items.search("عمله"))
+        assertEquals(listOf("الصفحة الرئيسية"), items.search("الرئيسيه"))
+    }
+
+    @Test
+    fun `every word must match somewhere`() {
+        val items = listOf(
+            listOf("Date format", "", "", "Language & formats"),
+            listOf("Dark", "", "dark mode, night mode", "Appearance"),
+        )
+        assertEquals(listOf("Date format"), items.search("format date"))
+        assertEquals(listOf("Dark"), items.search("dark mode"))
+        assertTrue(items.search("date dark").isEmpty())
+        assertTrue(items.search("   ").isEmpty())
+    }
+
+    @Test
+    fun `exact title, then title start, then word starts, then mid-word`() {
+        assertEquals(
+            listOf("Language", "Language & formats", "App language"),
+            rows("App language", "Language & formats", "Language").search("language"),
+        )
+        assertEquals(listOf("Default currency", "Recurring"), rows("Recurring", "Default currency").search("curr"))
+        // A word start in the page name beats a hit inside a title word.
+        val ai = listOf(listOf("Daily summary", "", "", "Notifications"), listOf("Connect Claude", "", "", "AI"))
+        assertEquals(listOf("Connect Claude", "Daily summary"), ai.search("ai"))
+        // Title before subtitle before page name.
+        val backup = listOf(
+            listOf("Export data", "", "", "Backup & data"),
+            listOf("Import data", "Restore a backup file", "", "Backup & data"),
+            listOf("Folder backup", "", "", "Backup & data"),
+        )
+        assertEquals(listOf("Folder backup", "Import data", "Export data"), backup.search("backup"))
+        // Dropped punctuation leaves no double space to break "starts with".
+        assertEquals(listOf("Backup & data", "Data backup"), rows("Data backup", "Backup & data").search("backup data"))
+    }
+
+    @Test
+    fun `small typos match when nothing matches as typed`() {
+        val items = rows("Folder backup", "Default currency", "الإعدادات", "Dark", "Date format")
+        assertEquals(listOf("Folder backup"), items.search("bakup")) // missing letter
+        assertEquals(listOf("Folder backup"), items.search("bakcup")) // swapped letters
+        assertEquals(listOf("Default currency"), items.search("curency defalt"))
+        // Two typos only from 8 letters.
+        assertEquals(listOf("Default currency"), items.search("curxenxy"))
+        assertTrue(items.search("curxenx").isEmpty())
+        assertEquals(listOf("الإعدادات"), items.search("الاعددات"))
+        // Short words get no slack, or "dar" would find "Date" too.
+        assertEquals(listOf("Dark"), items.search("dar"))
+        assertTrue(items.search("drk").isEmpty())
+        // Nor do 4 letters: one edit turns too many short words into others.
+        assertTrue(rows("Folder backup", "Fold").search("food").isEmpty())
+        // Nor do 4 letters or fewer after the Arabic article, or "الاسم" would find every "الا…".
+        val arabic = rows("العملة", "المزامنة", "اللغة", "الأسهم")
+        assertTrue(arabic.search("الغم").isEmpty())
+        assertTrue(arabic.search("اللفه").isEmpty())
+        assertTrue(arabic.search("الاسم").isEmpty())
+        assertEquals(listOf("المزامنة"), arabic.search("المزامنه")) // ة/ه fold, not a typo
+        assertEquals(listOf("المزامنة"), arabic.search("المزمنة"))
+        // A typo is spent on the whole word, never on the start of a longer one.
+        val longer = rows("Connect Claude / ChatGPT", "Restore data from backup", "Folder backup")
+        assertTrue(longer.search("cloud").isEmpty())
+        assertTrue(longer.search("reset").isEmpty())
+        assertTrue(longer.search("bakc").isEmpty())
+        // Any exact hit turns typo matching off, so "date" doesn't also list "Data".
+        assertEquals(listOf("Date format"), rows("Data", "Date format").search("date"))
+        // Typo hits keep the field order: title before page name.
+        val typo = listOf(listOf("Export data", "", "", "Backup"), listOf("Backup now", "", "", "Data"))
+        assertEquals(listOf("Backup now", "Export data"), typo.search("bakup"))
+    }
+
+    @Test
+    fun `typos find the right rows in the real index, and no wrong ones`() {
+        // Each of these found unrelated rows when a typo could be spent on the start of a longer word.
+        listOf("food", "reset", "cloud", "year", "icon").forEach { query ->
+            val found = searchIndex(query)
+            assertTrue("\"$query\" found $found", found.isEmpty())
+        }
+        val arabic = searchIndex("الاسم", "ar-rSA")
+        assertTrue("\"الاسم\" found $arabic", arabic.isEmpty())
+        assertEquals("Automatic Folder Backup", searchIndex("bakup").first())
+        assertTrue("Import Data" in searchIndex("restroe"))
+        assertEquals("Currency", searchIndex("curency").first())
+        assertEquals("الإشعارات", searchIndex("الاشعرات", "ar-rSA").first())
+    }
+
+    @Test
+    fun `a result shows its subtitle when a word matched there, typos included`() {
+        fun shows(query: String, title: String, subtitle: String, keywords: String = ""): Boolean {
+            val words = searchWords(query)
+            val fields = listOf(title, subtitle, keywords).map(::normalizeForSearch)
+            return showsOwnSubtitle(words, fields[0], fields[1], fields)
+        }
+        assertTrue(shows("restore", "Import data", "Restore data from backup"))
+        assertTrue(shows("restroe", "Import data", "Restore data from backup"))
+        // A typo near the title doesn't hide a word the subtitle has as typed.
+        assertTrue(shows("spent", "Card spending", "Spent this month"))
+        assertTrue(!shows("import", "Import data", "Restore data from backup"))
+        // A word found as typed (here a keyword) isn't also matched with a typo.
+        assertTrue(!shows("night", "Dark", "Easier in low light", keywords = "night mode"))
+        // A pasted wall of text stays cheap and matches nothing.
+        assertTrue(!shows("x".repeat(10_000), "Import data", "Restore data from backup"))
+    }
+
+    @Test
+    fun `amoled terms find dark, the choice that shows the control`() {
+        val index = settingsSearchIndex()
+        assertTrue(index.none { it.title == R.string.appearance_amoled_title })
+        val dark = index.single { it.title == R.string.appearance_mode_dark }
+        assertTrue(R.string.appearance_amoled_title in dark.keywords)
+        assertTrue(R.string.appearance_amoled_subtitle in dark.keywords)
+    }
+
+    @Test
+    fun `blur effects is searchable only on Android 12 and up`() {
+        val blur = R.string.appearance_blur_title
+        assertTrue(settingsSearchIndex(Build.VERSION_CODES.S).any { it.title == blur })
+        assertTrue(settingsSearchIndex(Build.VERSION_CODES.S - 1).none { it.title == blur })
+    }
+
+    private companion object {
+        /** Gradle runs tests from `app/`; an IDE may run them from the repo root. */
+        val root = if (File("settings.gradle.kts").isFile) File(".") else File("..")
+
+        /** Every `<string>` in :app's and the feature modules' [dir] (e.g. `values-ar-rSA`), by name. */
+        fun appStrings(dir: String): Map<String, String> {
+            val parser = DocumentBuilderFactory.newInstance().apply {
+                setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+            }.newDocumentBuilder()
+            val modules = listOf(File(root, "app")) + File(root, "feature").listFiles().orEmpty()
+            return modules.flatMap { File(it, "src/main/res/$dir").listFiles { f -> f.extension == "xml" }.orEmpty().toList() }
+                .flatMap { file ->
+                    val nodes = parser.parse(file).getElementsByTagName("string")
+                    (0 until nodes.length).map { nodes.item(it) as Element }
+                }
+                .associate { it.getAttribute("name") to it.textContent }
+        }
+
+        /** Row titles passed through a variable, and where search covers them. */
+        val VARIABLE_TITLES = setOf(
+            // AppearanceScreen's bottom-bar tab switches: each tab's name is a keyword of Bottom bar.
+            "tab.titleRes",
+            // AppearanceScreen's navigation style choices, found through the Navigation row.
+            "style.titleRes()",
+            // SettingsPages' bar title: the page itself, indexed under its hub name.
+            "title",
+        )
+
+        /** Settings rows search leaves out on purpose, and why. */
+        val NOT_SEARCHABLE = setOf(
+            // Group headers inside a page, not rows.
+            "settings_group_sms", "settings_group_app_notifications", "settings_contacts_section",
+            "settings_group_backup", "settings_group_auto_backup", "settings_group_import", "settings_group_danger",
+            "appearance_accessibility_section",
+            // The Appearance screen's own bar title; the page is indexed under its hub name.
+            "appearance_title",
+            // Need something outside their page: an account, a hidden Plan tab, the app
+            // language, developer mode, a missing notification permission.
+            "settings_main_account_title", "settings_budgets_title", "subscriptions_title", "conscience_title",
+            "mascot_playground_title", "settings_notifications_permission_title",
+            // On the hub itself, above the search results' starting point; differs by flavor.
+            "support_title",
+            // Help links leave the app.
+            "settings_user_guide_title", "settings_report_issue_title", "home_menu_discord", "home_menu_rate",
+        )
+    }
+}

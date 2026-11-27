@@ -95,15 +95,34 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+        </activity>
 
-            <!-- pennywise://add — the single quick-add entry point. Used by the
-                 QS tile and the launcher shortcut, and open for the user to
-                 wire up themselves (Tasker, an OEM gesture, Quick Tap). -->
+        <!-- Quick-add from other apps (docs/automation.md): Tasker, MacroDroid,
+             adb or an OEM gesture open Add Transaction pre-filled. It forwards
+             to MainActivity so that firing the same intent again opens the form
+             again. Shows nothing and keeps no task of its own. Nothing is saved
+             until the user taps Save, and App Lock still applies. The QS tile
+             and launcher shortcut name MainActivity directly. -->
+        <activity
+            android:name=".presentation.add.AddAutomationActivity"
+            android:exported="true"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <!-- pennywise://add, with the keys as optional query parameters. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="pennywise" android:host="add" />
+            </intent-filter>
+
+            <!-- The documented action, with the keys as extras. Not BROWSABLE,
+                 so a web page can't fire it. -->
+            <intent-filter>
+                <action android:name="com.pennywiseai.tracker.action.ADD_TRANSACTION" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

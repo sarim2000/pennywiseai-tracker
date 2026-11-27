@@ -46,3 +46,4 @@ node_modules/
 .dev.vars
 package-lock.json
 .parser-core/
+public/static/

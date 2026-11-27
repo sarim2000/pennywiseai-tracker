@@ -8,6 +8,7 @@
     <string name="widget_description_category_pie">Los gastos de este mes por categoría en un gráfico circular con leyenda.</string>
     <string name="widget_name_add_transaction">Gasto en efectivo</string>
     <string name="widget_name_summary">Resumen de gastos</string>
+    <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Agregar transacción</string>
     <string name="shortcut_add_transaction_short">Agregar</string>
@@ -42,4 +43,6 @@
     <!-- rd:plan -->
     <!-- rd:settings -->
     <!-- rd:lead -->
+    <!-- Settings → Security, shown while App Lock is on -->
+    <!-- Goal widgets: what TalkBack reads for a goal's ring while amounts are hidden -->
 </resources>

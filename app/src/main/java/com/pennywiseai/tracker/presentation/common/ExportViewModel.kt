@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.transactions
+package com.pennywiseai.tracker.presentation.common
 
 import androidx.lifecycle.ViewModel
 import com.pennywiseai.tracker.billing.EntitlementGate

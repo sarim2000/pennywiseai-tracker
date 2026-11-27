@@ -55,6 +55,8 @@
     <string name="mascot_playground_value">Value: %1$d%%</string>
     <string name="mascot_playground_reactions_title">Chat tab reactions</string>
     <string name="mascot_playground_reactions_body">Each button announces a save the way a real one does, so the Chat tab below reacts. Nothing is saved. A tap during a reaction folds into it.</string>
+    <string name="mascot_playground_moments_title">Moments</string>
+    <string name="mascot_playground_moments_body">Each button announces a moment the way the real action does: a goal reached, a debt paid off, a backup saved. Nothing changes. A bigger moment takes over from a smaller one.</string>
     <string name="mascot_playground_grid_title">Every shape and mood</string>
     <string name="mascot_playground_grid_body">Tap one to show it above.</string>
     <!-- rd:home -->
@@ -140,4 +142,9 @@
     <!-- rd:lead -->
     <string name="settings_help_community_subtitle">Chat with other PennyWise users</string>
     <string name="settings_help_rate_subtitle">Rate PennyWise on Google Play</string>
+    <!-- Settings → Security, shown while App Lock is on -->
+    <string name="settings_hide_widget_amounts_title">Hide amounts in widgets</string>
+    <string name="settings_hide_widget_amounts_subtitle">Home screen widgets show •••• while App Lock is on</string>
+    <!-- Goal widgets: what TalkBack reads for a goal's ring while amounts are hidden -->
+    <string name="widget_goal_progress_hidden">Progress hidden</string>
 </resources>

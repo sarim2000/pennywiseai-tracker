@@ -87,6 +87,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.celebration.Celebration
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
@@ -123,6 +124,7 @@ fun GoalDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val merchants by viewModel.merchants.collectAsStateWithLifecycle()
     val sheet by viewModel.sheet.collectAsStateWithLifecycle()
+    val celebrate by viewModel.celebrate.collectAsStateWithLifecycle()
     var mode by remember { mutableStateOf<MoneySheetMode?>(null) }
     var showDelete by rememberSaveable { mutableStateOf(false) }
     var showUpgrade by rememberSaveable { mutableStateOf(false) }
@@ -148,55 +150,61 @@ fun GoalDetailScreen(
     val detail = (state as? GoalDetailState.Loaded)?.detail
     val progress = detail?.progress
     fun open(m: MoneySheetMode) { viewModel.resetSheet(); mode = m }
+    // Reached by Add money, or in the background since this device last saw it: the first
+    // sight cheers. Goals already reached when this device first opened one never do.
+    LaunchedEffect(progress?.status) { if (progress?.status == GoalStatus.REACHED) viewModel.onShownReached(progress.goal.uid) }
 
-    PennyWiseScaffold(
-        title = progress?.goal?.name.orEmpty(),
-        snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(data, shape = MaterialTheme.shapes.large) } },
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
-            }
-        },
-        actions = {
-            if (progress != null) {
-                IconButton(onClick = { onShare(progress.goal.id) }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.goal_share))
+    Box(Modifier.fillMaxSize()) {
+        PennyWiseScaffold(
+            title = progress?.goal?.name.orEmpty(),
+            snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(data, shape = MaterialTheme.shapes.large) } },
+            navigationIcon = {
+                IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
                 }
+            },
+            actions = {
+                if (progress != null) {
+                    IconButton(onClick = { onShare(progress.goal.id) }, shapes = IconButtonDefaults.shapes()) {
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.goal_share))
+                    }
+                }
+            },
+        ) { padding ->
+            if (detail == null || progress == null) {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                return@PennyWiseScaffold
             }
-        },
-    ) { padding ->
-        if (detail == null || progress == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingIndicator() }
-            return@PennyWiseScaffold
+            GoalDetailContent(
+                detail = detail,
+                padding = padding,
+                onAdd = { open(MoneySheetMode.Add) },
+                onTakeOut = { open(MoneySheetMode.TakeOut) },
+                addedFrom = addedFrom,
+                onAddedSettled = {
+                    val from = addedFrom
+                    addedFrom = null
+                    // Not while amounts are hidden: the ring, and with it how far along the goal is,
+                    // is hidden then too.
+                    if (from != null && !AmountPrivacy.hidden) {
+                        crossedMilestone(from, progress.saved, progress.goal.targetAmount)?.let { milestone = it }
+                    }
+                },
+                merchants = merchants,
+                management = {
+                    GoalManagement(
+                        progress = progress,
+                        onEdit = { onEdit(progress.goal.id) },
+                        onRepeat = { viewModel.repeatForNextYear(onCreated = onOpenGoal, onBlocked = { showUpgrade = true }) },
+                        onArchive = { viewModel.setArchived(progress.status != GoalStatus.ARCHIVED) },
+                        onDelete = { showDelete = true },
+                    )
+                },
+                // A row taken from a transaction opens it; the rest open the edit sheet.
+                onContribution = { c -> c.transactionId?.let(onOpenTransaction) ?: open(MoneySheetMode.Edit(c)) },
+            )
         }
-        GoalDetailContent(
-            detail = detail,
-            padding = padding,
-            onAdd = { open(MoneySheetMode.Add) },
-            onTakeOut = { open(MoneySheetMode.TakeOut) },
-            addedFrom = addedFrom,
-            onAddedSettled = {
-                val from = addedFrom
-                addedFrom = null
-                // Not while amounts are hidden: the ring, and with it how far along the goal is,
-                // is hidden then too.
-                if (from != null && !AmountPrivacy.hidden) {
-                    crossedMilestone(from, progress.saved, progress.goal.targetAmount)?.let { milestone = it }
-                }
-            },
-            merchants = merchants,
-            management = {
-                GoalManagement(
-                    progress = progress,
-                    onEdit = { onEdit(progress.goal.id) },
-                    onRepeat = { viewModel.repeatForNextYear(onCreated = onOpenGoal, onBlocked = { showUpgrade = true }) },
-                    onArchive = { viewModel.setArchived(progress.status != GoalStatus.ARCHIVED) },
-                    onDelete = { showDelete = true },
-                )
-            },
-            // A row taken from a transaction opens it; the rest open the edit sheet.
-            onContribution = { c -> c.transactionId?.let(onOpenTransaction) ?: open(MoneySheetMode.Edit(c)) },
-        )
+        Celebration(play = celebrate, onFinished = viewModel::onCelebrated)
     }
 
     val goal = progress?.goal

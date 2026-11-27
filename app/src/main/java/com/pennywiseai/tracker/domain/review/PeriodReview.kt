@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.domain.review
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.domain.model.BudgetCycle
@@ -175,6 +176,8 @@ data class PeriodDetail(
      * subscription even with card spending left out of expenses.
      */
     val paymentRows: List<TransactionEntity> = emptyList(),
+    /** Card purchases across those cycles, every currency, with their splits: counted or not. */
+    val cardRows: List<TransactionWithSplits> = emptyList(),
 )
 
 /** The [count] cycles ending with [range]'s, oldest first. */
@@ -217,6 +220,7 @@ internal suspend fun buildPeriodDetail(
         cycles = totals,
         spendRows = analyticsRowsFor(rows, filter),
         paymentRows = rows.map { it.transaction }.filter { it.transactionType in RecurringCharge.SPEND_TYPES },
+        cardRows = rows.filter { it.transaction.transactionType == TransactionType.CREDIT },
     )
 }
 

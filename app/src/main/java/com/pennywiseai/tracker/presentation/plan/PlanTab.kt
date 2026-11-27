@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
@@ -43,6 +44,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.navigation.PlanSection
 import com.pennywiseai.tracker.presentation.goals.GoalsSection
@@ -58,7 +60,7 @@ import dev.chrisbanes.haze.hazeSource
 
 /**
  * Set when a screen draws as one section of the Plan tab (titled "Plan", the
- * Budgets · Bills · Goals switch on top, its add action docked by the nav bar)
+ * Budgets · Bills · Goals · Challenges switch on top, its add action docked by the nav bar)
  * rather than on its own.
  */
 @Immutable
@@ -73,10 +75,11 @@ private fun PlanSection.labelRes(): Int = when (this) {
     PlanSection.BUDGETS -> R.string.budgets_title
     PlanSection.BILLS -> R.string.plan_bills
     PlanSection.GOALS -> R.string.goals_section_title
+    PlanSection.CHALLENGES -> R.string.challenges_title
 }
 
 /**
- * The connected Budgets · Bills · Goals switch heading each Plan section. The
+ * The connected Budgets · Bills · Goals · Challenges switch heading each Plan section. The
  * chosen section carries a check, so the choice doesn't rest on colour alone.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -101,7 +104,7 @@ private fun PlanSwitcher(host: PlanTabHost, modifier: Modifier = Modifier) {
                 index == options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
                 else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
             },
-            contentPadding = ButtonDefaults.SmallContentPadding,
+            contentPadding = if (stacked) ButtonDefaults.SmallContentPadding else PaddingValues(horizontal = Spacing.sm),
         ) {
             if (checked) {
                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
@@ -122,11 +125,21 @@ private fun PlanSwitcher(host: PlanTabHost, modifier: Modifier = Modifier) {
             options.indices.forEach { option(it, Modifier.fillMaxWidth()) }
         }
     } else {
+        // Each option is as wide as its label needs, the slack shared out in proportion:
+        // four equal quarters of a phone can't hold "✓ Challenges", content-sized ones can.
+        val measurer = rememberTextMeasurer()
+        val style = MaterialTheme.typography.labelLarge
+        val density = LocalDensity.current
+        val labels = options.map { stringResource(it.labelRes()) }
+        val widths = options.indices.map { i ->
+            val check = if (options[i] == host.section) ButtonDefaults.IconSize + ButtonDefaults.IconSpacing else Spacing.none
+            measurer.measure(labels[i], style, maxLines = 1).size.width + with(density) { (check + Spacing.sm * 2).toPx() }
+        }
         Row(
             modifier = modifier.fillMaxWidth().selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
         ) {
-            options.indices.forEach { option(it, Modifier.weight(1f)) }
+            options.indices.forEach { option(it, Modifier.weight(widths[it])) }
         }
     }
 }
@@ -152,13 +165,23 @@ fun PlanTopBar(host: PlanTabHost?, titleBar: @Composable () -> Unit) {
 }
 
 /** The Plan tab's Goals section: the switch, then the goals, "New goal" docked by the nav bar. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlanGoalsScreen(
     host: PlanTabHost,
     onOpenGoal: (Long) -> Unit,
     onCreateGoal: () -> Unit,
 ) {
+    PlanListScreen(host) {
+        item(key = "goals") {
+            GoalsSection(onOpenGoal = onOpenGoal, onCreateGoal = onCreateGoal, inPlanTab = true)
+        }
+    }
+}
+
+/** A Plan section drawn as one list under the Plan title and switch. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun PlanListScreen(host: PlanTabHost, content: LazyListScope.() -> Unit) {
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
@@ -194,10 +217,7 @@ fun PlanGoalsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             flingBehavior = rememberOverscrollFlingBehavior { listState },
-        ) {
-            item(key = "goals") {
-                GoalsSection(onOpenGoal = onOpenGoal, onCreateGoal = onCreateGoal, inPlanTab = true)
-            }
-        }
+            content = content,
+        )
     }
 }

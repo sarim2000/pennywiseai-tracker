@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -409,19 +410,24 @@ class TransactionsViewModel @Inject constructor(
 
             // Source of the money = the EXPENSE row's account.
             // Destination = the INCOME row's account.
-            // A split bill (#346) is money others owe you, not a transfer. Read fresh.
-            if (listOf(aId, bId).any { transactionRepository.getTransactionById(it)?.lentSharesTotal != null }) {
+            // A split bill (#346) is money others owe you, not a transfer. Read fresh: the list
+            // may not show a change written just now, and the Undo snapshot comes from these too.
+            val fresh = listOf(a, b).associate { it.id to (transactionRepository.getTransactionById(it.id) ?: it) }
+            if (fresh.values.any { it.lentSharesTotal != null }) {
                 _bulkSnack.value = BulkSnack(UiText.Res(R.string.split_error_transfer))
                 return@launch
             }
 
             val (expense, income) = if (a.transactionType == TransactionType.EXPENSE) a to b else b to a
 
-            // Snapshot for Undo: type + the two account fields per row.
+            // Snapshot for Undo: type + the two account fields per row, and the reimbursement
+            // (#1389) that becoming a transfer clears.
             data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?,
-                val fromBankName: String?, val toBankName: String?, val transferPairId: String?)
-            val originals = listOf(a, b).associate {
-                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName, it.transferPairId)
+                val fromBankName: String?, val toBankName: String?, val transferPairId: String?,
+                val reimbursementStatus: ReimbursementStatus?, val reimbursedById: Long?)
+            val originals = fresh.values.associate {
+                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName, it.transferPairId,
+                    it.reimbursementStatus, it.reimbursedById)
             }
 
             transactionRepository.markAsTransferPair(expense, income)
@@ -430,11 +436,11 @@ class TransactionsViewModel @Inject constructor(
                 message = UiText.Res(R.string.txn_list_bulk_marked_transfer),
                 undo = {
                     viewModelScope.launch {
-                        val current = _uiState.value.transactions
                         val nowUndo = java.time.LocalDateTime.now()
                         originals.forEach { (id, snapshot) ->
-                            current.firstOrNull { it.id == id }?.let { row ->
-                                transactionRepository.updateTransaction(
+                            // By id, not from the list: a type filter (Expense) hides the row once it's a transfer.
+                            transactionRepository.getTransactionById(id)?.let { row ->
+                                transactionRepository.restoreTransaction(
                                     row.copy(
                                         transactionType = snapshot.type,
                                         fromAccount = snapshot.fromAccount,
@@ -443,7 +449,9 @@ class TransactionsViewModel @Inject constructor(
                                         toBankName = snapshot.toBankName,
                                         transferPairId = snapshot.transferPairId,
                                         updatedAt = nowUndo
-                                    )
+                                    ),
+                                    snapshot.reimbursementStatus,
+                                    snapshot.reimbursedById,
                                 )
                             }
                         }

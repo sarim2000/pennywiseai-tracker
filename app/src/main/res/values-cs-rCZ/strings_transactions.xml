@@ -73,6 +73,8 @@
     <string name="txn_detail_more_actions">Další akce</string>
     <string name="txn_detail_menu_add_to_group">Přidat do skupiny</string>
     <string name="txn_detail_menu_duplicate">Duplikovat</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">Nahlásit problém</string>
     <string name="txn_detail_delete_title">Odstranit transakci</string>
     <string name="txn_detail_delete_message">Opravdu chcete odstranit tuto transakci? Tuto akci nelze vrátit zpět.</string>
@@ -211,6 +213,7 @@
     <string name="txn_list_group_yesterday">Včera</string>
     <string name="txn_list_group_this_week">Tento týden</string>
     <string name="txn_list_group_earlier">Dříve</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">Nejnovější první</string>
     <string name="txn_list_sort_oldest">Nejstarší první</string>
     <string name="txn_list_sort_amount_highest">Nejvyšší částka</string>
@@ -404,6 +407,7 @@
     <string name="share_banner_dismiss">Odmítnout</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Změnit kategorii</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">Není výdaj</string>
     <string name="quick_category_not_income">Není příjem</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

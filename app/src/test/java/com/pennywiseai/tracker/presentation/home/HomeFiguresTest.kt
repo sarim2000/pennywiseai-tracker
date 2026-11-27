@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.repository.TransactionRepository.MonthlyBreakdown
 import com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory
+import com.pennywiseai.tracker.ui.components.cards.needsCategory
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -139,6 +140,17 @@ class HomeFiguresTest {
         assertEquals(listOf(others.id), unsortedIds(listOf(others), "Others", emptySet()))
         assertTrue(isUnsortedCategory(others.category))
         assertFalse(isUnsortedCategory("Food"))
+        assertTrue(others.needsCategory())
+    }
+
+    @Test fun `a row that counts for nothing isn't styled as needing a category`() {
+        val loan = tx("10", TransactionType.EXPENSE, category = "Others", loanId = 1)
+        val excluded = tx("10", TransactionType.EXPENSE, category = "Others", excluded = true)
+        val partLoan = tx("10", TransactionType.EXPENSE, category = "Others", loanId = 1, loanContribution = "4")
+        assertEquals(listOf(partLoan.id), unsortedIds(listOf(loan, excluded, partLoan), "Others", emptySet()))
+        assertFalse(loan.needsCategory())
+        assertFalse(excluded.needsCategory())
+        assertTrue(partLoan.needsCategory())
     }
 
     @Test fun `transfers and investments are neither income nor spend`() {

@@ -7,6 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.parser.core.GenericTransactionExtractor
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
@@ -296,7 +297,7 @@ class AddViewModel @Inject constructor(
             draftType?.let { updateTransactionType(it) }
             _transactionUiState.update {
                 it.copy(
-                    amount = draftAmount ?: it.amount,
+                    amount = draftAmountIn(draftCurrency ?: it.currency) ?: it.amount,
                     merchant = draftMerchant ?: it.merchant,
                     category = draftCategory ?: it.category,
                     currency = draftCurrency ?: it.currency,
@@ -311,7 +312,7 @@ class AddViewModel @Inject constructor(
             }
             _subscriptionUiState.update {
                 it.copy(
-                    amount = draftAmount ?: it.amount,
+                    amount = draftAmountIn(draftCurrency ?: it.currency) ?: it.amount,
                     serviceName = draftMerchant ?: it.serviceName,
                     category = draftCategory ?: it.category,
                     currency = draftCurrency ?: it.currency,
@@ -898,6 +899,14 @@ class AddViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * The draft's amount, unless it's finer than [currency]'s minor units (0.004 USD, from
+     * an automation app): neither the form nor a saved row could hold it exactly.
+     */
+    private fun draftAmountIn(currency: String): String? = draftAmount?.takeIf { amount ->
+        amount.toBigDecimalOrNull()?.let { it.stripTrailingZeros().scale() <= MinorUnits.digits(currency) } ?: true
     }
 
     // Validation helpers

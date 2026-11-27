@@ -44,12 +44,13 @@ when it turns a value such as `0123` into the number `123`.
 | `bank` | The account's bank name, as PennyWise shows it, used with `account_last4` | `Test Bank` |
 
 Every key is optional. A value PennyWise can't use is skipped and that field is
-left for you to fill in: an amount that isn't a positive number, a currency it
-doesn't know, a type other than `EXPENSE` or `INCOME`. Text is trimmed and cut
-at 200 characters. Without `currency`, the form uses your base currency. With a
-`currency` PennyWise doesn't know, or one that is empty, the amount is skipped
-too, so it is never shown in the wrong currency. An account is picked only when one in the form's
-currency matches.
+left for you to fill in: an amount that isn't a positive number or has more
+decimals than its currency has (`0.004` in USD; `1.235` is fine in KWD), a
+currency it doesn't know, a type other than `EXPENSE` or `INCOME`. Text is
+trimmed and cut at 200 characters. Without `currency`, the form uses your base
+currency. With a `currency` PennyWise doesn't know, or one that is empty, the
+amount is skipped too, so it is never shown in the wrong currency. An account is
+picked only when one in the form's currency matches.
 
 ## Examples
 

@@ -51,6 +51,29 @@ internal const val MERCHANT_SUGGESTIONS_SQL = """
         LIMIT :limit
     """
 
+/** A row a rebuild may delete: its id and the SMS sender and body it was parsed from. */
+data class RebuildCandidate(val id: Long, val smsSender: String?, val smsBody: String?)
+
+/**
+ * The "rebuild from scratch" delete (#1497): of [TransactionDao.getRebuildableSmsTransactions],
+ * only rows whose (sender, body) pair the inbox still holds go, and only when the inbox holds it at least as many times as there are such rows ([inboxMessages] counts messages per pair); the rest could not be re-read, so they stay.
+ */
+suspend fun TransactionDao.deleteRebuildableSmsTransactions(
+    notificationAliases: List<String>,
+    from: LocalDateTime,
+    inboxMessages: Map<Pair<String, String>, Int>
+) {
+    getRebuildableSmsTransactions(notificationAliases, from)
+        .filter { it.smsBody?.isNotBlank() == true && it.smsSender != null }
+        .groupBy { it.smsSender!! to it.smsBody!! }
+        // More rows than messages: we can't tell which row lost its message, so keep them all.
+        .filter { (key, rows) -> rows.size <= (inboxMessages[key] ?: 0) }
+        .values.flatten()
+        .map { it.id }
+        .chunked(500)
+        .forEach { deleteTransactionsByIds(it) }
+}
+
 @Dao
 interface TransactionDao {
 
@@ -267,7 +290,7 @@ interface TransactionDao {
     suspend fun countAllTransactions(): Int
 
     /**
-     * The "rebuild from scratch" resync: deletes only rows the SMS inbox can
+     * The "rebuild from scratch" resync's candidates: the rows the SMS inbox can
      * rebuild — active, parsed from an SMS, and not loan-linked, grouped
      * (#401), split with people (#346), put toward a goal (#914: the hard delete would cascade the
      * contribution away), marked reimbursable or the payment that paid one back (#1389: a
@@ -279,11 +302,14 @@ interface TransactionDao {
      * Only rows dated at/after [from] go: the rebuild re-reads the inbox from
      * there, so an older SMS row would never come back.
      *
-     * Re-parse uses `transaction_hash` UNIQUE + `OnConflictStrategy.IGNORE`,
-     * so the surviving rows are not duplicated when SMS is re-read.
+     * These are only candidates: the caller deletes (via [deleteTransactionsByIds]) just
+     * those whose message is still in the inbox (#1497), since a row whose SMS is gone
+     * would never come back. Re-parse uses `transaction_hash` UNIQUE +
+     * `OnConflictStrategy.IGNORE`, so the surviving rows are not duplicated when SMS is
+     * re-read.
      */
     @Query("""
-        DELETE FROM transactions
+        SELECT id, sms_sender AS smsSender, sms_body AS smsBody FROM transactions
         WHERE loan_id IS NULL AND group_id IS NULL AND is_deleted = 0
           AND id NOT IN (SELECT transaction_id FROM goal_contributions WHERE transaction_id IS NOT NULL)
           AND id NOT IN (SELECT transaction_id FROM loan_shares)
@@ -295,7 +321,14 @@ interface TransactionDao {
           AND transaction_hash NOT LIKE 'taught_%'
           AND date_time >= :from
     """)
-    suspend fun deleteRebuildableSmsTransactions(notificationAliases: List<String>, from: LocalDateTime)
+    suspend fun getRebuildableSmsTransactions(
+        notificationAliases: List<String>,
+        from: LocalDateTime
+    ): List<RebuildCandidate>
+
+    /** Removes the rows [ids]; callers keep each call under SQLite's 999 bind limit. */
+    @Query("DELETE FROM transactions WHERE id IN (:ids)")
+    suspend fun deleteTransactionsByIds(ids: List<Long>)
 
     /**
      * Moves [merchantName]'s other live rows of [types] to [newCategory] (the
@@ -380,6 +413,10 @@ interface TransactionDao {
     /** Every reimbursable expense, pending or reimbursed, newest first. */
     @Query("SELECT * FROM transactions WHERE reimbursement_status IS NOT NULL AND is_deleted = 0 ORDER BY date_time DESC")
     fun observeReimbursables(): Flow<List<TransactionEntity>>
+
+    /** One live transaction as it changes; emits null once it's gone or deleted. */
+    @Query("SELECT * FROM transactions WHERE id = :id AND is_deleted = 0")
+    fun observeTransaction(id: Long): Flow<TransactionEntity?>
 
     /** The live payment row an expense links to (#1389); null once it's gone or deleted. */
     @Query("SELECT * FROM transactions WHERE id = :paymentId AND is_deleted = 0")

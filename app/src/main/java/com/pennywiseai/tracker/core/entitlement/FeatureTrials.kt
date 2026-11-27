@@ -103,7 +103,9 @@ class FeatureTrials internal constructor(
     @Synchronized
     fun start(feature: TrialFeature, isPro: Boolean?) {
         if (isPro != false || prefs.contains(feature.name)) return
-        prefs.edit().putLong(feature.name, now()).apply()
+        // A clock behind the latest time seen starts the trial from that time, not now,
+        // or evaluate() would read the fresh trial as wound back and spend it at once.
+        prefs.edit().putLong(feature.name, maxOf(now(), prefs.getLong(LATEST_SEEN, 0L))).apply()
         recheck()
     }
 

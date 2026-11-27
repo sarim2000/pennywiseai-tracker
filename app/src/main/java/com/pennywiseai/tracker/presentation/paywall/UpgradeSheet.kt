@@ -794,7 +794,7 @@ private fun ManageRow(
 
 /**
  * A gate's "Trial: N days left" line, from [FeatureAccess.trialDaysLeft]. The final
- * day (24 hours or less, which rounds up to 1) reads as less than a day.
+ * day (24 hours or less, which rounds up to 1) reads as 24 hours or less.
  */
 @Composable
 fun trialDaysLeftLabel(daysLeft: Int): String =

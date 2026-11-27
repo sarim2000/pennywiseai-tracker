@@ -28,7 +28,7 @@ sealed interface TrialStatus {
 
     /**
      * [daysLeft] counts a part day as a whole one, so a fresh trial reads 7 and the
-     * final day (24 hours or less) reads 1, which gates show as less than a day.
+     * final day (24 hours or less) reads 1, which gates show as 24 hours or less.
      */
     data class Active(val daysLeft: Int) : TrialStatus
 

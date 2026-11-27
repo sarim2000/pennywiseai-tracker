@@ -153,5 +153,5 @@
         <item quantity="other">Trial: %1$d days left</item>
     </plurals>
     <!-- Shown by a gated feature on its free trial's final day (24 hours or less left) -->
-    <string name="feature_trial_last_day">Trial: less than 1 day left</string>
+    <string name="feature_trial_last_day">Trial: 24 hours or less left</string>
 </resources>

@@ -32,7 +32,6 @@
     <string name="home_resync_scan_again">สแกนข้อความทั้งหมดอีกครั้ง</string>
     <string name="home_resync_scan_again_desc">เพิ่มรายการที่ตกหล่น สิ่งที่คุณแก้ไขและธุรกรรมที่มีอยู่ทั้งหมดจะยังเหมือนเดิม</string>
     <string name="home_resync_rebuild">สร้างใหม่ตั้งแต่ต้น</string>
-    <string name="home_resync_rebuild_desc">อ่านธุรกรรมจาก SMS ใหม่เพื่อใช้การแก้ไขตัวแยกข้อมูลล่าสุด สิ่งที่คุณแก้ไขในธุรกรรมจาก SMS จะถูกรีเซ็ต ส่วนธุรกรรมที่เพิ่มเอง นำเข้า เงินกู้ และที่จัดกลุ่มไว้จะยังอยู่</string>
     <!-- More options sheet -->
     <string name="home_menu_title">ตัวเลือกเพิ่มเติม</string>
     <string name="home_menu_edit_home">แก้ไขหน้าแรก</string>

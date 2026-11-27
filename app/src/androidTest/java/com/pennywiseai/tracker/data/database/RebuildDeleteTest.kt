@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.database
 import androidx.room3.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pennywiseai.tracker.data.database.dao.deleteRebuildableSmsTransactions
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -35,8 +36,8 @@ class RebuildDeleteTest {
     @Test fun deletesOnlyActiveSmsRows() = runBlocking {
         val dao = db.transactionDao()
         val notification = BankNotificationConfig.notificationAliases.first()
-        listOf(
-            row(1, "AD-KOTAKB"),             // SMS: rebuilt from the inbox -> deleted
+        val rows = listOf(
+            row(1, "AD-KOTAKB"),           // SMS: rebuilt from the inbox -> deleted
             row(2, null),                    // manual / chat / CSV -> kept
             row(3, "ICICI PDF"),             // PDF import -> kept
             row(4, notification),            // bank-app notification -> kept
@@ -49,15 +50,60 @@ class RebuildDeleteTest {
             // The payment that paid row 10 back: the link has no foreign key -> kept
             row(9, "AD-KOTAKB").copy(transactionType = TransactionType.INCOME),
             row(10, "AD-KOTAKB").copy(reimbursementStatus = ReimbursementStatus.REIMBURSED, reimbursedById = 9),
-        ).forEach { dao.insertTransaction(it) }
+        )
+        rows.forEach { dao.insertTransaction(it) }
 
         dao.deleteRebuildableSmsTransactions(
             BankNotificationConfig.notificationAliases.toList(),
-            from = LocalDateTime.of(2026, 7, 1, 0, 0)
+            from = LocalDateTime.of(2026, 7, 1, 0, 0),
+            // Every seeded SMS is still in the inbox, so only the query's own exclusions keep rows.
+            inboxMessages = rows.filter { it.smsSender != null }.associate { (it.smsSender!! to it.smsBody!!) to 1 }
         )
 
         val left = db.longs("SELECT id FROM transactions ORDER BY id")
         assertEquals(listOf(2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L), left)
+    }
+
+    @Test fun keepsAnSmsRowWhoseMessageIsNoLongerInTheInbox() = runBlocking {
+        val dao = db.transactionDao()
+        listOf(row(1, "AD-KOTAKB"), row(2, "AD-KOTAKB"), row(3, "AD-KOTAKB").copy(smsBody = " ")).forEach { dao.insertTransaction(it) }
+
+        dao.deleteRebuildableSmsTransactions(
+            BankNotificationConfig.notificationAliases.toList(),
+            from = LocalDateTime.of(2026, 7, 1, 0, 0),
+            inboxMessages = mapOf(("AD-KOTAKB" to "body 1") to 1, ("AD-KOTAKB" to " ") to 1)
+        )
+
+        // 1: message still in the inbox -> deleted. 2: message gone -> kept. 3: blank body -> kept.
+        assertEquals(listOf(2L, 3L), db.longs("SELECT id FROM transactions ORDER BY id"))
+    }
+
+    @Test fun keepsARowWhenTheSameTextIsInTheInboxFromAnotherSender() = runBlocking {
+        val dao = db.transactionDao()
+        dao.insertTransaction(row(1, "AD-KOTAKB"))
+
+        dao.deleteRebuildableSmsTransactions(
+            BankNotificationConfig.notificationAliases.toList(),
+            from = LocalDateTime.of(2026, 7, 1, 0, 0),
+            inboxMessages = mapOf(("VM-OTHERB" to "body 1") to 1)
+        )
+
+        assertEquals(listOf(1L), db.longs("SELECT id FROM transactions ORDER BY id"))
+    }
+
+    @Test fun twoRowsWithTheSameTextNeedTheMessageTwice() = runBlocking {
+        val dao = db.transactionDao()
+        val twins = listOf(row(1, "AD-KOTAKB"), row(2, "AD-KOTAKB").copy(smsBody = "body 1"))
+        twins.forEach { dao.insertTransaction(it) }
+        val aliases = BankNotificationConfig.notificationAliases.toList()
+        val from = LocalDateTime.of(2026, 7, 1, 0, 0)
+
+        // One message left for two rows: we can't tell which row lost its message -> both kept.
+        dao.deleteRebuildableSmsTransactions(aliases, from, mapOf(("AD-KOTAKB" to "body 1") to 1))
+        assertEquals(listOf(1L, 2L), db.longs("SELECT id FROM transactions ORDER BY id"))
+
+        dao.deleteRebuildableSmsTransactions(aliases, from, mapOf(("AD-KOTAKB" to "body 1") to 2))
+        assertEquals(emptyList<Long>(), db.longs("SELECT id FROM transactions ORDER BY id"))
     }
 
     @Test fun aRebuiltCardGetsItsBillBack() = runBlocking {

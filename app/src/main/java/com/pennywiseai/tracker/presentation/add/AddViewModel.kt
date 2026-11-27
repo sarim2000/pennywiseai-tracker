@@ -7,6 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.parser.core.GenericTransactionExtractor
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
@@ -100,6 +101,7 @@ class AddViewModel @Inject constructor(
     private val draftDateTime: LocalDateTime? = savedStateHandle.get<String>("dateTime")
         ?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
     private val unrecognizedSmsId: Long? = savedStateHandle.get<Long>("unrecognizedSmsId")
+    private val draftNote: String? = savedStateHandle.get<String>("note")
 
     // General UI State
     private val _uiState = MutableStateFlow(AddUiState())
@@ -300,11 +302,12 @@ class AddViewModel @Inject constructor(
             draftType?.let { updateTransactionType(it) }
             _transactionUiState.update {
                 it.copy(
-                    amount = draftAmount ?: it.amount,
+                    amount = draftAmountIn(draftCurrency ?: it.currency) ?: it.amount,
                     merchant = draftMerchant ?: it.merchant,
                     category = draftCategory ?: it.category,
                     currency = draftCurrency ?: it.currency,
                     date = draftDateTime ?: it.date,
+                    notes = draftNote ?: it.notes,
                     // The quick sheet always hands on its currency: only one other than the
                     // base was picked, so the base stays open for a receipt's own currency.
                     edited = it.edited + setOfNotNull(
@@ -320,10 +323,11 @@ class AddViewModel @Inject constructor(
             }
             _subscriptionUiState.update {
                 it.copy(
-                    amount = draftAmount ?: it.amount,
+                    amount = draftAmountIn(draftCurrency ?: it.currency) ?: it.amount,
                     serviceName = draftMerchant ?: it.serviceName,
                     category = draftCategory ?: it.category,
-                    currency = draftCurrency ?: it.currency
+                    currency = draftCurrency ?: it.currency,
+                    notes = draftNote ?: it.notes
                 )
             }
             selectAccount(draftBankName, draftAccountLast4)
@@ -1051,6 +1055,14 @@ class AddViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * The draft's amount, unless it's finer than [currency]'s minor units (0.004 USD, from
+     * an automation app): neither the form nor a saved row could hold it exactly.
+     */
+    private fun draftAmountIn(currency: String): String? = draftAmount?.takeIf { amount ->
+        amount.toBigDecimalOrNull()?.let { it.stripTrailingZeros().scale() <= MinorUnits.digits(currency) } ?: true
     }
 
     // Validation helpers

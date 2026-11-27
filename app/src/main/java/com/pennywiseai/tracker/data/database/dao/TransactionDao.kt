@@ -63,11 +63,42 @@ internal const val PROFILE_MERCHANTS_SQL = """
         ORDER BY t.merchant_name ASC
     """
 
+/** A row a rebuild may delete: its id and the SMS sender and body it was parsed from. */
+data class RebuildCandidate(val id: Long, val smsSender: String?, val smsBody: String?)
+
+/**
+ * The "rebuild from scratch" delete (#1497): of [TransactionDao.getRebuildableSmsTransactions],
+ * only rows whose (sender, body) pair the inbox still holds go, and only when the inbox holds it at least as many times as there are such rows ([inboxMessages] counts messages per pair); the rest could not be re-read, so they stay.
+ */
+suspend fun TransactionDao.deleteRebuildableSmsTransactions(
+    notificationAliases: List<String>,
+    from: LocalDateTime,
+    inboxMessages: Map<Pair<String, String>, Int>
+) {
+    getRebuildableSmsTransactions(notificationAliases, from)
+        .filter { it.smsBody?.isNotBlank() == true && it.smsSender != null }
+        .groupBy { it.smsSender!! to it.smsBody!! }
+        // More rows than messages: we can't tell which row lost its message, so keep them all.
+        .filter { (key, rows) -> rows.size <= (inboxMessages[key] ?: 0) }
+        .values.flatten()
+        .map { it.id }
+        .chunked(500)
+        .forEach { deleteTransactionsByIds(it) }
+}
+
+/**
+ * Every list read here is @Transaction (#1500). The system SQLite reads a result in
+ * CursorWindows of about 3,500 transaction rows and re-runs the query for each later
+ * window; outside a transaction a write in between shifts the rows, or crashes the read
+ * with "Couldn't read row N from CursorWindow" when the result has shrunk. A transaction
+ * keeps every window on one snapshot.
+ */
 @Dao
 interface TransactionDao {
 
     // ── Split-bill shares (#346): transactions.lent_shares_total mirrors loan_shares ──
 
+    @Transaction
     @Query("SELECT amount FROM loan_shares WHERE transaction_id = :transactionId")
     suspend fun getShareAmounts(transactionId: Long): List<BigDecimal>
 
@@ -112,6 +143,7 @@ interface TransactionDao {
         syncLentSharesTotal(toId)
         return true
     }
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE (currency = :currency AND updated_at >= :start AND updated_at <= :end)
@@ -122,6 +154,7 @@ interface TransactionDao {
     """)
     suspend fun getWebhookChanges(start: LocalDateTime, end: LocalDateTime, currency: String, profileId: String = ""): List<TransactionEntity>
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions WHERE currency != :currency AND id IN (
             SELECT transaction_id FROM webhook_delivered_transactions WHERE profile_id = :profileId
@@ -129,12 +162,14 @@ interface TransactionDao {
     """)
     suspend fun getWebhookCurrencyRemovals(currency: String, profileId: String): List<TransactionEntity>
 
+    @Transaction
     @Query("SELECT * FROM transactions WHERE is_deleted = 0 ORDER BY date_time DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
 
     @Query("SELECT * FROM transactions WHERE id = :transactionId")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -156,6 +191,7 @@ interface TransactionDao {
      * @param transactionType Optional transaction type filter (null means all types)
      * @return Flow of filtered transactions ordered by date descending
      */
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -171,6 +207,7 @@ interface TransactionDao {
         transactionType: TransactionType?
     ): Flow<List<TransactionEntity>>
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions 
         WHERE is_deleted = 0 
@@ -179,6 +216,7 @@ interface TransactionDao {
     """)
     fun getTransactionsByType(type: TransactionType): Flow<List<TransactionEntity>>
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions 
         WHERE is_deleted = 0 
@@ -187,6 +225,7 @@ interface TransactionDao {
     """)
     fun getTransactionsByCategory(category: String): Flow<List<TransactionEntity>>
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions 
         WHERE is_deleted = 0 
@@ -198,9 +237,11 @@ interface TransactionDao {
     """)
     fun searchTransactions(searchQuery: String): Flow<List<TransactionEntity>>
 
+    @Transaction
     @Query("SELECT DISTINCT category FROM transactions WHERE is_deleted = 0 ORDER BY category ASC")
     fun getAllCategories(): Flow<List<String>>
 
+    @Transaction
     @Query("""
         SELECT category FROM transactions
         WHERE is_deleted = 0
@@ -210,6 +251,7 @@ interface TransactionDao {
     suspend fun getCategoriesByUsage(): List<String>
 
     /** Categories by how many transactions used them since [since], most first (#1058). */
+    @Transaction
     @Query("""
         SELECT category FROM transactions
         WHERE is_deleted = 0 AND date_time >= :since
@@ -218,14 +260,17 @@ interface TransactionDao {
     """)
     fun observeCategoriesByUsageSince(since: LocalDateTime): Flow<List<String>>
 
+    @Transaction
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 ORDER BY merchant_name ASC")
     fun getAllMerchants(): Flow<List<String>>
 
     /** Past merchants matching [term] (#1392), best first; see [MERCHANT_SUGGESTIONS_SQL]. */
+    @Transaction
     @Query(MERCHANT_SUGGESTIONS_SQL)
     suspend fun suggestMerchants(term: String, profileId: Long?, limit: Int): List<MerchantSuggestion>
 
     /** Past merchant names in one profile (null for all); see [PROFILE_MERCHANTS_SQL]. */
+    @Transaction
     @Query(PROFILE_MERCHANTS_SQL)
     suspend fun getMerchantsInProfile(profileId: Long?): List<String>
 
@@ -283,7 +328,7 @@ interface TransactionDao {
     suspend fun countAllTransactions(): Int
 
     /**
-     * The "rebuild from scratch" resync: deletes only rows the SMS inbox can
+     * The "rebuild from scratch" resync's candidates: the rows the SMS inbox can
      * rebuild — active, parsed from an SMS, and not loan-linked, grouped
      * (#401), split with people (#346), put toward a goal (#914: the hard delete would cascade the
      * contribution away), marked reimbursable or the payment that paid one back (#1389: a
@@ -295,11 +340,15 @@ interface TransactionDao {
      * Only rows dated at/after [from] go: the rebuild re-reads the inbox from
      * there, so an older SMS row would never come back.
      *
-     * Re-parse uses `transaction_hash` UNIQUE + `OnConflictStrategy.IGNORE`,
-     * so the surviving rows are not duplicated when SMS is re-read.
+     * These are only candidates: the caller deletes (via [deleteTransactionsByIds]) just
+     * those whose message is still in the inbox (#1497), since a row whose SMS is gone
+     * would never come back. Re-parse uses `transaction_hash` UNIQUE +
+     * `OnConflictStrategy.IGNORE`, so the surviving rows are not duplicated when SMS is
+     * re-read.
      */
+    @Transaction
     @Query("""
-        DELETE FROM transactions
+        SELECT id, sms_sender AS smsSender, sms_body AS smsBody FROM transactions
         WHERE loan_id IS NULL AND group_id IS NULL AND is_deleted = 0
           AND id NOT IN (SELECT transaction_id FROM goal_contributions WHERE transaction_id IS NOT NULL)
           AND id NOT IN (SELECT transaction_id FROM loan_shares)
@@ -311,7 +360,14 @@ interface TransactionDao {
           AND transaction_hash NOT LIKE 'taught_%'
           AND date_time >= :from
     """)
-    suspend fun deleteRebuildableSmsTransactions(notificationAliases: List<String>, from: LocalDateTime)
+    suspend fun getRebuildableSmsTransactions(
+        notificationAliases: List<String>,
+        from: LocalDateTime
+    ): List<RebuildCandidate>
+
+    /** Removes the rows [ids]; callers keep each call under SQLite's 999 bind limit. */
+    @Query("DELETE FROM transactions WHERE id IN (:ids)")
+    suspend fun deleteTransactionsByIds(ids: List<Long>)
 
     /**
      * Moves [merchantName]'s other live rows of [types] to [newCategory] (the
@@ -330,6 +386,7 @@ interface TransactionDao {
      * [merchantName]'s live rows of [types] still in [category], minus loan-linked,
      * split-bill and category-split rows: what learning a category may move.
      */
+    @Transaction
     @Query("""
         SELECT id FROM transactions
         WHERE merchant_name = :merchantName COLLATE NOCASE
@@ -394,14 +451,20 @@ interface TransactionDao {
     suspend fun setReimbursedById(transactionId: Long, reimbursedById: Long?)
 
     /** Every reimbursable expense, pending or reimbursed, newest first. */
+    @Transaction
     @Query("SELECT * FROM transactions WHERE reimbursement_status IS NOT NULL AND is_deleted = 0 ORDER BY date_time DESC")
     fun observeReimbursables(): Flow<List<TransactionEntity>>
+
+    /** One live transaction as it changes; emits null once it's gone or deleted. */
+    @Query("SELECT * FROM transactions WHERE id = :id AND is_deleted = 0")
+    fun observeTransaction(id: Long): Flow<TransactionEntity?>
 
     /** The live payment row an expense links to (#1389); null once it's gone or deleted. */
     @Query("SELECT * FROM transactions WHERE id = :paymentId AND is_deleted = 0")
     fun observeReimbursementPayment(paymentId: Long): Flow<TransactionEntity?>
 
     /** The expenses that [paymentId] paid back. */
+    @Transaction
     @Query("SELECT * FROM transactions WHERE reimbursed_by_id = :paymentId AND is_deleted = 0 ORDER BY date_time DESC")
     fun observeReimbursedBy(paymentId: Long): Flow<List<TransactionEntity>>
 
@@ -409,6 +472,7 @@ interface TransactionDao {
      * Incoming payments in [currency] from [since] on, newest first: what could have paid an
      * expense back. Uncapped, so an old claim's payment stays reachable however many came after.
      */
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE transaction_type = 'INCOME' AND is_deleted = 0 AND currency = :currency AND date_time >= :since
@@ -428,9 +492,11 @@ interface TransactionDao {
     @Query("UPDATE transactions SET profile_id = :profileId, updated_at = :updatedAt WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
     suspend fun setProfileForAccountTransactions(bankName: String, accountLast4: String, profileId: Long, updatedAt: LocalDateTime): Int
 
+    @Transaction
     @Query("SELECT DISTINCT currency FROM transactions WHERE is_deleted = 0 ORDER BY currency")
     fun getAllCurrencies(): Flow<List<String>>
 
+    @Transaction
     @Query("SELECT DISTINCT currency FROM transactions WHERE is_deleted = 0 AND date_time BETWEEN :startDate AND :endDate ORDER BY currency")
     fun getCurrenciesForPeriod(startDate: LocalDateTime, endDate: LocalDateTime): Flow<List<String>>
 
@@ -445,6 +511,7 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE transaction_hash = :transactionHash LIMIT 1")
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?
 
+    @Transaction
     @Query("SELECT * FROM transactions WHERE transaction_hash IN (:transactionHashes)")
     suspend fun getTransactionsByHashes(transactionHashes: List<String>): List<TransactionEntity>
 
@@ -505,6 +572,7 @@ interface TransactionDao {
      * left by earlier rescans (#886). Grouped and resolved by the caller. Rows booked
      * from a taught template (#279) are exempt: for them, repeated text is repeated payments.
      */
+    @Transaction
     @Query(
         """
         SELECT t.* FROM transactions t
@@ -558,6 +626,7 @@ interface TransactionDao {
      * One query for the whole batch — used by CSV import to dedup a whole file
      * without issuing a per-row lookup.
      */
+    @Transaction
     @Query("SELECT transaction_hash FROM transactions WHERE transaction_hash IN (:hashes)")
     suspend fun getExistingHashes(hashes: List<String>): List<String>
 
@@ -577,6 +646,7 @@ interface TransactionDao {
      * (±₹0.01) absorbs any float-conversion rounding without matching
      * meaningfully different amounts.
      */
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE LOWER(merchant_name) = LOWER(:merchant)
@@ -596,6 +666,7 @@ interface TransactionDao {
         limit: Int = 5,
     ): List<TransactionEntity>
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions 
         WHERE is_deleted = 0 
@@ -607,9 +678,21 @@ interface TransactionDao {
         endDate: LocalDateTime
     ): List<TransactionEntity>
 
+    /** One page of live rows with ids in ([after], [upTo]]: keeps a batch walk to a page in memory, and to the rows there when it began. */
+    @Transaction
+    @Query("SELECT * FROM transactions WHERE is_deleted = 0 AND id > :after AND id <= :upTo ORDER BY id LIMIT :limit")
+    suspend fun getTransactionsPageAfter(after: Long, upTo: Long, limit: Int): List<TransactionEntity>
+
+    @Query("SELECT MAX(id) FROM transactions WHERE is_deleted = 0")
+    suspend fun maxLiveTransactionId(): Long?
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE is_deleted = 0")
+    suspend fun countLiveTransactions(): Int
+
     @Query("SELECT MIN(date_time) FROM transactions WHERE is_deleted = 0")
     suspend fun getOldestTransactionDateTime(): LocalDateTime?
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -628,6 +711,7 @@ interface TransactionDao {
      * "any account at this bank" rows. Used to recompute a manual/cash account's
      * balance as opening + Σ(transactions).
      */
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -646,6 +730,7 @@ interface TransactionDao {
      * pull them by those columns — it doesn't carry the account in `account_number`.
      * A marked pair is two rows with the same from/to; see `utils/TransferPairs.kt`.
      */
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -654,6 +739,7 @@ interface TransactionDao {
     """)
     suspend fun getTransfersForAccount(accountLast4: String): List<TransactionEntity>
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE transaction_type = 'TRANSFER' AND transfer_pair_id IS NULL
@@ -664,6 +750,7 @@ interface TransactionDao {
     @Query("UPDATE transactions SET transfer_pair_id = :pairId WHERE id IN (:ids)")
     suspend fun linkTransferPair(pairId: String, ids: List<Long>)
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -720,6 +807,7 @@ interface TransactionDao {
     ): Int
 
     /** Select bank-owned legs, including manual destinations and paired legacy SMS rows. */
+    @Transaction
     @Query("""
         WITH owned AS (
             SELECT * FROM transactions
@@ -766,6 +854,7 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE reference = :reference AND is_deleted = 0 LIMIT 1")
     suspend fun getTransactionByReference(reference: String): TransactionEntity?
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE reference = :reference
@@ -774,6 +863,7 @@ interface TransactionDao {
     """)
     suspend fun getTransactionsByReference(reference: String): List<TransactionEntity>
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -795,6 +885,7 @@ interface TransactionDao {
         endDate: LocalDateTime
     ): List<TransactionEntity>
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -808,6 +899,7 @@ interface TransactionDao {
      * deleted after a notification booked it must still block the matching SMS
      * on a rescan, or it comes back.
      */
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE amount = :amount
@@ -819,6 +911,7 @@ interface TransactionDao {
         dateEnd: LocalDateTime
     ): List<TransactionEntity>
 
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -837,6 +930,7 @@ interface TransactionDao {
      * check scans. Merchant and amount compare loosely, so that's done by the
      * caller.
      */
+    @Transaction
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -860,6 +954,7 @@ interface TransactionDao {
      * live rows matched as recurring that came from an SMS or bank alert. Manual
      * entries and in-app "mark paid" rows carry no `sms_body`.
      */
+    @Transaction
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 AND is_recurring = 1 AND sms_body IS NOT NULL AND currency = :currency")
     suspend fun getBankChargedRecurringMerchants(currency: String): List<String>
 }

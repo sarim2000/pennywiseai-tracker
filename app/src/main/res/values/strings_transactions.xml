@@ -235,6 +235,8 @@
     <string name="txn_list_group_yesterday">Yesterday</string>
     <string name="txn_list_group_this_week">This Week</string>
     <string name="txn_list_group_earlier">Earlier</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
+    <string name="txn_list_day_in_out">In %1$s · Out %2$s</string>
     <string name="txn_list_sort_newest">Newest First</string>
     <string name="txn_list_sort_oldest">Oldest First</string>
     <string name="txn_list_sort_amount_highest">Highest Amount</string>

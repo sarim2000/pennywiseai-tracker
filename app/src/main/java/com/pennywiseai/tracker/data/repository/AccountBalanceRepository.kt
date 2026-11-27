@@ -393,8 +393,9 @@ open class AccountBalanceRepository @Inject constructor(
      * write, not in MoneyAlertWorker, which only sees the newest figure and doesn't
      * run after an edit. Never fails the write around it; worst case is one missed alert.
      * Fire-and-forget so a caller inside a database transaction is never held up by it.
-     * The job reads the committed balance after that transaction ends (a stale or rolled-back
-     * re-arm does nothing), and at most one job per account is queued.
+     * The job waits for the caller's write to end, then clears the flag; a recovery clears it
+     * even if the balance has dipped again by then, so the new dip alerts. A recovery that
+     * rolled back can cost one repeated alert. At most one job per account is queued.
      */
     private fun rearmLowBalanceAlert(
         bankName: String,
@@ -408,15 +409,9 @@ open class AccountBalanceRepository @Inject constructor(
         scope.launch {
             try {
                 runCatching {
-                    // Own transaction: queues behind the caller's open write, so it reads committed state.
-                    val stored = database.withTransaction {
-                        pendingRearm.remove(key)
-                        accountBalanceDao.getLatestBalance(bankName, accountLast4)
-                    }
-                    val limit = stored?.lowBalanceThreshold
-                    if (stored != null && (limit == null || stored.balance > limit)) {
-                        userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false)
-                    }
+                    // Barrier only: queues behind the caller's open write, so the claim runs after it ends.
+                    database.withTransaction { pendingRearm.remove(key) }
+                    userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false)
                 }
             } finally {
                 pendingRearm.remove(key)

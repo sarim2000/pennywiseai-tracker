@@ -17,8 +17,11 @@ import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.toDatabaseString
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -38,7 +41,8 @@ open class AccountBalanceRepository @Inject constructor(
         const val SOURCE_MANUAL = "MANUAL"
     }
 
-    private val pendingRearm = java.util.concurrent.ConcurrentHashMap.newKeySet<Pair<String, String>>()
+    private val rearmJobs = java.util.concurrent.ConcurrentHashMap.newKeySet<Job>()
+    private val pendingRearm = java.util.concurrent.ConcurrentHashMap<Pair<String, String>, Job>()
 
     /** Runs [block] as one database transaction; the repositories it calls join it, and a throw rolls it all back. */
     suspend fun <T> inTransaction(block: suspend () -> T): T = database.withTransaction { block() }
@@ -405,18 +409,29 @@ open class AccountBalanceRepository @Inject constructor(
     ) {
         if (threshold != null && balance <= threshold) return
         val key = bankName to accountLast4
-        if (!pendingRearm.add(key)) return
-        scope.launch {
+        val job = scope.launch(start = CoroutineStart.LAZY) {
             try {
                 runCatching {
                     // Barrier only: queues behind the caller's open write, so the claim runs after it ends.
-                    database.withTransaction { pendingRearm.remove(key) }
+                    database.withTransaction { pendingRearm.remove(key, coroutineContext[Job]) }
                     userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false)
                 }
             } finally {
-                pendingRearm.remove(key)
+                pendingRearm.remove(key, coroutineContext[Job])
+                rearmJobs.remove(coroutineContext[Job])
             }
         }
+        if (pendingRearm.putIfAbsent(key, job) != null) {
+            job.cancel()
+            return
+        }
+        rearmJobs.add(job)
+        job.start()
+    }
+
+    /** Lets a check that reads the alert flag run after the resets queued before it. */
+    suspend fun awaitLowBalanceRearms() {
+        rearmJobs.toList().joinAll()
     }
 
     suspend fun updateAccountCurrency(bankName: String, accountLast4: String, currency: String): Int {

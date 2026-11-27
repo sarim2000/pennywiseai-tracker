@@ -113,6 +113,31 @@ class ManualLowBalanceRearmTest {
     }
 
     @Test
+    fun `a check that awaits queued rearms sees the flag cleared and the new dip alerts`() = runTest {
+        var told = true
+        coEvery { preferences.claimLowBalanceAlert(BANK, ACCT, any()) } coAnswers {
+            val low = thirdArg<Boolean>()
+            when {
+                !low -> { told = false; false }
+                !told -> { told = true; true }
+                else -> false
+            }
+        }
+        val queued = AccountBalanceRepository(balanceDao, transactionDao, database, preferences, CoroutineScope(StandardTestDispatcher(testScheduler)))
+        openingWithThreshold("500")
+        queued.setManualCurrentBalance(BANK, ACCT, BigDecimal("900"))
+        queued.setManualCurrentBalance(BANK, ACCT, BigDecimal("300"))
+        queued.awaitLowBalanceRearms()
+        assertEquals(true, preferences.claimLowBalanceAlert(BANK, ACCT, true))
+    }
+
+    @Test
+    fun `awaiting with nothing queued returns at once`() = runTest {
+        val queued = AccountBalanceRepository(balanceDao, transactionDao, database, preferences, CoroutineScope(StandardTestDispatcher(testScheduler)))
+        withTimeout(5_000) { queued.awaitLowBalanceRearms() }
+    }
+
+    @Test
     fun `a queued rearm still clears the flag while the stored balance is above`() = runTest {
         val queued = AccountBalanceRepository(balanceDao, transactionDao, database, preferences, CoroutineScope(StandardTestDispatcher(testScheduler)))
         openingWithThreshold("500")

@@ -127,6 +127,8 @@
     <string name="settings_backup_passphrase_restore_body">Enter the passphrase this backup was exported with.</string>
     <string name="settings_backup_passphrase_wrong">Wrong passphrase, or the file is damaged. Nothing was changed.</string>
     <string name="settings_backup_passphrase_restore_action">Restore</string>
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
+    <string name="settings_backup_restore_not_encrypted">The file changed after you picked it and is no longer encrypted. Pick it again.</string>
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_export_csv_title">Export Transactions (CSV)</string>
     <string name="settings_export_csv_subtitle">A spreadsheet file of every transaction</string>

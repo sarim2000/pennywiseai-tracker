@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.data.backup
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.annotation.StringRes
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.entitlement.LicenseRestorer
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.decodeFromStream
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -97,6 +100,9 @@ class BackupImporter @Inject constructor(
             ImportResult.PassphraseRequired
         } catch (e: BackupCrypto.WrongPassphraseException) {
             ImportResult.WrongPassphrase
+        } catch (e: BackupReadException) {
+            Log.e("BackupImporter", "Import failed: ${e.message}")
+            ImportResult.Error(context.getString(e.messageRes))
         } catch (e: Exception) {
             Log.e("BackupImporter", "Import failed", e)
             ImportResult.Error("Import failed: ${e.message}")
@@ -116,7 +122,7 @@ class BackupImporter @Inject constructor(
     /**
      * Parses a plain or encrypted backup. An encrypted one is decrypted in full to a
      * private temp file under [cacheDir] first, so a wrong passphrase or a damaged file
-     * fails here.
+     * fails here. With a [passphrase] the file must be encrypted: it was asked for one.
      */
     internal fun decodeBackup(input: InputStream, passphrase: CharArray?, cacheDir: File): PennyWiseBackup {
         val stream = input.buffered()
@@ -135,13 +141,22 @@ class BackupImporter @Inject constructor(
         // old Gson `normalized()` net is no longer needed because the
         // `= emptyList()` / field defaults on the models now actually
         // apply. See BackupSerializers + docs/backup-format.md.
-        if (!BackupCrypto.isEncrypted(head)) return backupJson.decodeFromStream<PennyWiseBackup>(stream)
+        if (!BackupCrypto.isEncrypted(head)) {
+            // Re-read for the passphrase but no longer encrypted: the file changed under us.
+            if (passphrase != null) {
+                throw BackupReadException(R.string.settings_backup_restore_not_encrypted, "Expected an encrypted backup")
+            }
+            return backupJson.decodeFromStream<PennyWiseBackup>(stream)
+        }
         if (passphrase == null) throw BackupCrypto.PassphraseRequiredException()
         return DecryptedBackupFiles.withTempFile(cacheDir) { plain ->
             plain.outputStream().buffered().use { BackupCrypto.decrypt(stream, it, passphrase) }
             plain.inputStream().buffered().use { backupJson.decodeFromStream<PennyWiseBackup>(it) }
         }
     }
+
+    /** A failure whose [messageRes] and message carry no backup content, so both are safe to show and log. */
+    internal class BackupReadException(@StringRes val messageRes: Int, reason: String) : IOException(reason)
 
     /**
      * Check if backup version is compatible. Accepts any `v1.x` backup; real

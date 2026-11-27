@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.backup
 
 import android.content.Context
 import android.net.Uri
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import io.mockk.confirmVerified
 import io.mockk.every
@@ -35,9 +36,12 @@ class BackupImporterEncryptedTest {
     // Strict: any call into the database fails the test.
     private val database = mockk<PennyWiseDatabase>()
     private val uri = mockk<Uri>()
+    // What the picked file holds when it's (re)opened.
+    private var fileBytes = encrypted
     private val context = mockk<Context> {
         every { cacheDir } answers { temp.root }
-        every { contentResolver.openInputStream(uri) } answers { ByteArrayInputStream(encrypted) }
+        every { contentResolver.openInputStream(uri) } answers { ByteArrayInputStream(fileBytes) }
+        every { getString(R.string.settings_backup_restore_not_encrypted) } returns NOT_ENCRYPTED
     }
     private val restoreDir get() = DecryptedBackupFiles.dir(temp.root)
     private val importer = BackupImporter(context, database, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
@@ -69,6 +73,15 @@ class BackupImporterEncryptedTest {
     }
 
     @Test
+    fun aFileThatIsPlainWhenReopenedWithThePassphraseIsNotImported() = runBlocking {
+        assertEquals(ImportResult.PassphraseRequired, importer.importBackup(uri))
+        // The provider now serves plain JSON for the same file.
+        fileBytes = plain
+        assertEquals(ImportResult.Error(NOT_ENCRYPTED), importer.importBackup(uri, passphrase = passphrase.toCharArray()))
+        confirmVerified(database)
+    }
+
+    @Test
     fun aDecryptedFileLeftByAnEarlierRestoreIsSwept() = runBlocking {
         restoreDir.mkdirs()
         val stale = File(restoreDir, "decrypted_stale.json").apply { writeText("{}") }
@@ -83,5 +96,9 @@ class BackupImporterEncryptedTest {
             assertTrue(inProgress.exists())
         }
         assertTrue(restoreDir.listFiles().orEmpty().isEmpty())
+    }
+
+    private companion object {
+        const val NOT_ENCRYPTED = "not encrypted"
     }
 }

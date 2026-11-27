@@ -303,6 +303,8 @@ open class UserPreferencesRepository internal constructor(
         val PROFILE_BACKGROUND_COLOR = intPreferencesKey("profile_background_color")
         val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         val MAIN_ACCOUNT_KEY = stringPreferencesKey("main_account_key")
+        // The onboarding step reached (an OnBoardingStep name), so a killed app resumes there.
+        val ONBOARDING_STEP = stringPreferencesKey("onboarding_step")
         // True once the user explicitly picks a currency in the Settings selector.
         // While true, the main-account-derived currency must not override their choice.
         val BASE_CURRENCY_USER_SET = booleanPreferencesKey("base_currency_user_set")
@@ -386,7 +388,7 @@ open class UserPreferencesRepository internal constructor(
             K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HIDE_WIDGET_AMOUNTS_WHILE_LOCKED, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
-            K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING,
+            K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING, K.ONBOARDING_STEP,
             K.SCHEDULED_FOLDER_BACKUP_ENABLED, K.SCHEDULED_FOLDER_BACKUP_TREE_URI,
             K.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP, K.SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS,
             K.LAST_SCAN_RECORD, K.LAST_LIVE_SMS_AT
@@ -1867,6 +1869,22 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
+    /** Remembers the onboarding [step] (an OnBoardingStep name) and the typed [name] across a kill. */
+    suspend fun saveOnboardingProgress(step: String, name: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ONBOARDING_STEP] = step
+            preferences[PreferencesKeys.USER_NAME] = name
+        }
+    }
+
+    /** The saved onboarding step and name, or null when onboarding is finished or never left Welcome. */
+    suspend fun getOnboardingProgress(): Pair<String, String>? {
+        val preferences = dataStore.data.first()
+        if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) return null
+        val step = preferences[PreferencesKeys.ONBOARDING_STEP] ?: return null
+        return step to (preferences[PreferencesKeys.USER_NAME] ?: "")
+    }
+
     suspend fun updateProfileImageUri(uri: String?) {
         dataStore.edit { preferences ->
             if (uri == null) {
@@ -1904,6 +1922,7 @@ open class UserPreferencesRepository internal constructor(
     suspend fun updateHasCompletedOnboarding(completed: Boolean, freshInstall: Boolean = false) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] = completed
+            if (completed) preferences.remove(PreferencesKeys.ONBOARDING_STEP)
             if (completed && freshInstall) {
                 HomeSectionLayout.seedForFreshInstall(preferences[PreferencesKeys.HOME_SECTIONS])
                     ?.let { preferences[PreferencesKeys.HOME_SECTIONS] = it }

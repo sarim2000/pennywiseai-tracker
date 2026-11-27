@@ -122,6 +122,7 @@ class UserPreferencesKeysGoldenTest {
             "first_launch_time" to "Long",
             "folder_backup_include_receipts" to "Boolean",
             "has_completed_onboarding" to "Boolean",
+            "onboarding_step" to "String",
             "has_migrated_to_budget_groups" to "Boolean",
             "has_shown_review_prompt" to "Boolean",
             "has_shown_scan_tutorial" to "Boolean",

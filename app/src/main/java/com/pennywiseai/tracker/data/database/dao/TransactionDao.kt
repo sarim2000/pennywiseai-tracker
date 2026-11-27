@@ -51,20 +51,24 @@ internal const val MERCHANT_SUGGESTIONS_SQL = """
         LIMIT :limit
     """
 
-/** A row a rebuild may delete: its id and the SMS body it was parsed from. */
-data class RebuildCandidate(val id: Long, val smsBody: String?)
+/** A row a rebuild may delete: its id and the SMS sender and body it was parsed from. */
+data class RebuildCandidate(val id: Long, val smsSender: String?, val smsBody: String?)
 
 /**
  * The "rebuild from scratch" delete (#1497): of [TransactionDao.getRebuildableSmsTransactions],
- * only rows whose body is in [inboxBodies] go; the rest could not be re-read, so they stay.
+ * only rows whose (sender, body) pair the inbox still holds go, and only when the inbox holds it at least as many times as there are such rows ([inboxMessages] counts messages per pair); the rest could not be re-read, so they stay.
  */
 suspend fun TransactionDao.deleteRebuildableSmsTransactions(
     notificationAliases: List<String>,
     from: LocalDateTime,
-    inboxBodies: Set<String>
+    inboxMessages: Map<Pair<String, String>, Int>
 ) {
     getRebuildableSmsTransactions(notificationAliases, from)
-        .filter { it.smsBody?.isNotBlank() == true && it.smsBody in inboxBodies }
+        .filter { it.smsBody?.isNotBlank() == true && it.smsSender != null }
+        .groupBy { it.smsSender!! to it.smsBody!! }
+        // More rows than messages: we can't tell which row lost its message, so keep them all.
+        .filter { (key, rows) -> rows.size <= (inboxMessages[key] ?: 0) }
+        .values.flatten()
         .map { it.id }
         .chunked(500)
         .forEach { deleteTransactionsByIds(it) }
@@ -305,7 +309,7 @@ interface TransactionDao {
      * re-read.
      */
     @Query("""
-        SELECT id, sms_body AS smsBody FROM transactions
+        SELECT id, sms_sender AS smsSender, sms_body AS smsBody FROM transactions
         WHERE loan_id IS NULL AND group_id IS NULL AND is_deleted = 0
           AND id NOT IN (SELECT transaction_id FROM goal_contributions WHERE transaction_id IS NOT NULL)
           AND id NOT IN (SELECT transaction_id FROM loan_shares)

@@ -220,9 +220,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             // processBalanceUpdate), leaving gaps in the balance
                             // time-series.
                             // A row whose SMS is gone from the inbox would never come
-                            // back, so only rows whose body the inbox still holds are
+                            // back, so only rows whose sender and body the inbox still holds are
                             // deleted (#1497). Read the same window the scan below reads.
-                            val inboxBodies = HashSet<String>()
+                            val inboxMessages = HashMap<Pair<String, String>, Int>()
                             coroutineScope {
                                 val feed = Channel<ScannedSms>(64)
                                 launch {
@@ -232,14 +232,14 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                                         feed.close()
                                     }
                                 }
-                                for (sms in feed) inboxBodies.add(sms.body)
+                                for (sms in feed) inboxMessages.merge(sms.sender to sms.body, 1, Int::plus)
                             }
                             database.withTransaction {
                                 transactionRepository.deleteRebuildableSmsTransactions(
                                     java.time.LocalDateTime.ofInstant(
                                         java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
                                     ),
-                                    inboxBodies
+                                    inboxMessages
                                 )
                             }
                             accountBalanceRepository.deleteRebuildableBalances()

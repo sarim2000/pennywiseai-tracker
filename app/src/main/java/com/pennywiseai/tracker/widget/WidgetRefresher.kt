@@ -29,6 +29,28 @@ object WidgetRefresher {
     }
 
     /**
+     * Redraws every widget from its saved snapshot, without rebuilding the data:
+     * for a change to what they mask. A running session recomposes; any other
+     * starts one, which reads the mask afresh.
+     */
+    fun redrawAll(context: Context) {
+        val app = context.applicationContext
+        scope.launch {
+            listOf(
+                RecentTransactionsWidget(), SpendingSummaryWidget(), BudgetWidget(), CategoryPieWidget(),
+                GoalWidget(), GoalsListWidget(), AddTransactionWidget(), TrackingCheckupWidget()
+            ).forEach { widget ->
+                try {
+                    widget.updateAll(app)
+                } catch (e: Exception) {
+                    if (e is CancellationException) throw e
+                    Log.w("WidgetRefresher", "Couldn't redraw ${widget.javaClass.simpleName}", e)
+                }
+            }
+        }
+    }
+
+    /**
      * Redraws the tracking check-up, which has no snapshot: it reads SMS access and
      * background limits as it draws. Call when those may have changed (the app comes
      * back from Settings) and when a scan ends.

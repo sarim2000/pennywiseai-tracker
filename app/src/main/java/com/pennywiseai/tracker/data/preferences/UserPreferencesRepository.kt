@@ -1222,7 +1222,7 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.APP_LOCK_ENABLED] = enabled
         }
         // The widgets mask their amounts while the lock is on.
-        transactionWidgets.refresh()
+        transactionWidgets.redraw()
     }
 
     /**
@@ -1236,7 +1236,7 @@ open class UserPreferencesRepository internal constructor(
                 preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] = System.currentTimeMillis()
             }
         }
-        transactionWidgets.refresh()
+        transactionWidgets.redraw()
     }
 
     override val hideWidgetAmountsWhileLocked: Flow<Boolean> = dataStore.data
@@ -1246,7 +1246,7 @@ open class UserPreferencesRepository internal constructor(
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HIDE_WIDGET_AMOUNTS_WHILE_LOCKED] = hide
         }
-        transactionWidgets.refresh()
+        transactionWidgets.redraw()
     }
 
     override val appLockTimeoutMinutes: Flow<Int> = dataStore.data
@@ -1545,7 +1545,7 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
         // The widgets' totals follow the same eye.
-        transactionWidgets.refresh()
+        transactionWidgets.redraw()
         return changed
     }
 
@@ -1561,7 +1561,7 @@ open class UserPreferencesRepository internal constructor(
             hidden = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: hiddenWhenUnset)
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
-        transactionWidgets.refresh()
+        transactionWidgets.redraw()
         return hidden
     }
 

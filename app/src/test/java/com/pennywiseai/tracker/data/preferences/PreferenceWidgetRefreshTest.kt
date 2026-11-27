@@ -23,8 +23,8 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 
 /**
- * The preference writes that change what the widgets show refresh them through
- * [TransactionWidgets], once each, and other writes don't.
+ * The preference writes that change what the widgets show refresh (or, for the
+ * mask, redraw) them through [TransactionWidgets], once each, and other writes don't.
  */
 class PreferenceWidgetRefreshTest {
 
@@ -33,7 +33,16 @@ class PreferenceWidgetRefreshTest {
 
     private val scope = CoroutineScope(Dispatchers.IO + Job())
     private var refreshes = 0
-    private val widgets = TransactionWidgets { refreshes++ }
+    private var redraws = 0
+    private val widgets = object : TransactionWidgets {
+        override fun refresh() {
+            refreshes++
+        }
+
+        override fun redraw() {
+            redraws++
+        }
+    }
     private lateinit var store: DataStore<Preferences>
     private lateinit var repository: UserPreferencesRepository
 
@@ -57,22 +66,26 @@ class PreferenceWidgetRefreshTest {
         assertEquals(1, refreshes)
     }
 
+    // The mask changes, not the data: a redraw from the snapshots, so a failed or
+    // retrying data rebuild can't leave the old amounts on the launcher.
     @Test
-    fun `the hide-amounts eye refreshes the widgets`() = runBlocking {
+    fun `the hide-amounts eye redraws the widgets`() = runBlocking {
         repository.setBalanceHidden(true)
-        assertEquals(1, refreshes)
+        assertEquals(1, redraws)
         repository.toggleBalanceHidden(hiddenWhenUnset = true)
-        assertEquals(2, refreshes)
+        assertEquals(2, redraws)
+        assertEquals(0, refreshes)
     }
 
     @Test
-    fun `App Lock and its widget switch refresh the widgets`() = runBlocking {
+    fun `App Lock and its widget switch redraw the widgets`() = runBlocking {
         repository.setAppLockEnabledWithTimestamp(true)
-        assertEquals(1, refreshes)
+        assertEquals(1, redraws)
         repository.setAppLockEnabled(false)
-        assertEquals(2, refreshes)
+        assertEquals(2, redraws)
         repository.setHideWidgetAmountsWhileLocked(false)
-        assertEquals(3, refreshes)
+        assertEquals(3, redraws)
+        assertEquals(0, refreshes)
     }
 
     @Test
@@ -86,6 +99,7 @@ class PreferenceWidgetRefreshTest {
     fun `an unrelated setting does not refresh the widgets`() = runBlocking {
         repository.updateBaseCurrency("EUR")
         assertEquals(0, refreshes)
+        assertEquals(0, redraws)
     }
 
     @Test

@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -114,42 +115,43 @@ internal fun ActivityDayHeader(
 ) {
     val net = subtotals?.let { formatDayNet(it.net) }
     val inOut = subtotals?.inOut.orEmpty()
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = Spacing.sm)
             .padding(top = Spacing.md, bottom = Spacing.sm)
     ) {
-        Text(
-            text = title,
-            style = PennyWiseText.sectionHeader,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
-        // A balanced day ($100 in, $100 out) has no net but still shows its in/out.
-        if (net != null || inOut.isNotEmpty()) {
-            Column(horizontalAlignment = Alignment.End) {
-                if (net != null) {
-                    Text(
-                        text = net,
-                        style = MaterialTheme.typography.bodyMedium.tabular(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                inOut.forEach { flow ->
-                    Text(
-                        text = stringResource(
-                            R.string.txn_list_day_in_out,
-                            CurrencyFormatter.formatCurrency(flow.moneyIn, flow.currency),
-                            CurrencyFormatter.formatCurrency(flow.moneyOut, flow.currency)
-                        ),
-                        style = MaterialTheme.typography.bodySmall.tabular(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = title,
+                style = PennyWiseText.sectionHeader,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            if (net != null) {
+                Text(
+                    text = net,
+                    style = MaterialTheme.typography.bodyMedium.tabular(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+        }
+        // Under the date row, not beside it, so long figures at large font sizes
+        // wrap in the full width instead of squeezing the date. A balanced day
+        // ($100 in, $100 out) has no net but still shows these.
+        inOut.forEach { flow ->
+            Text(
+                text = stringResource(
+                    R.string.txn_list_day_in_out,
+                    CurrencyFormatter.formatCurrency(flow.moneyIn, flow.currency),
+                    CurrencyFormatter.formatCurrency(flow.moneyOut, flow.currency)
+                ),
+                style = MaterialTheme.typography.bodySmall.tabular(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.End,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

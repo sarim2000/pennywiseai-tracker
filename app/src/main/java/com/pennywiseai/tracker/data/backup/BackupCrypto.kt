@@ -38,6 +38,9 @@ object BackupCrypto {
     private const val TAG_BITS = 128
     private const val TAG_BYTES = TAG_BITS / 8
 
+    /** Shortest passphrase a new encrypted backup takes. Opening one takes any passphrase. */
+    const val MIN_NEW_PASSPHRASE_LENGTH = 8
+
     /** Bytes [isEncrypted] needs to see. */
     val MAGIC_SIZE: Int get() = MAGIC.size
 

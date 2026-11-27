@@ -29,6 +29,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.backup.BackupCrypto
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.presentation.common.ExportTransactionsDialog
@@ -584,7 +585,15 @@ private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(stringResource(R.string.settings_backup_passphrase_export_body))
-                PassphraseField(passphraseState, stringResource(R.string.settings_backup_passphrase_label))
+                PassphraseField(
+                    passphraseState,
+                    stringResource(R.string.settings_backup_passphrase_label),
+                    supportingText = pluralStringResource(
+                        R.plurals.settings_backup_passphrase_min_length,
+                        BackupCrypto.MIN_NEW_PASSPHRASE_LENGTH,
+                        BackupCrypto.MIN_NEW_PASSPHRASE_LENGTH
+                    )
+                )
                 PassphraseField(
                     confirmState,
                     stringResource(R.string.settings_backup_passphrase_confirm_label),
@@ -600,7 +609,7 @@ private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -
                     confirmState.wipe()
                     onExport(passphrase)
                 },
-                enabled = passphraseState.text.isNotEmpty() && matches,
+                enabled = canCreateEncryptedBackup(passphraseState.text, confirmState.text),
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.settings_backup_passphrase_export_action))
@@ -657,6 +666,10 @@ private fun BackupPassphraseDialog(wrongPassphrase: Boolean, onRestore: (CharArr
     )
 }
 
+/** A new encrypted backup needs a long enough passphrase, typed the same twice. */
+internal fun canCreateEncryptedBackup(passphrase: CharSequence, confirm: CharSequence): Boolean =
+    passphrase.length >= BackupCrypto.MIN_NEW_PASSPHRASE_LENGTH && confirm.contentEquals(passphrase)
+
 private fun TextFieldState.toCharArray(): CharArray = text.let { text -> CharArray(text.length) { text[it] } }
 
 /** Empties the fields when the dialog closes, however it closes. */
@@ -675,13 +688,13 @@ internal fun TextFieldState.wipe() {
 }
 
 @Composable
-private fun PassphraseField(state: TextFieldState, label: String, error: String? = null) {
+private fun PassphraseField(state: TextFieldState, label: String, error: String? = null, supportingText: String? = null) {
     OutlinedSecureTextField(
         state = state,
         textObfuscationMode = TextObfuscationMode.Hidden,
         label = { Text(label) },
         isError = error != null,
-        supportingText = error?.let { { Text(it) } },
+        supportingText = (error ?: supportingText)?.let { { Text(it) } },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedField.shape

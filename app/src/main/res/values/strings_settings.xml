@@ -125,6 +125,11 @@
     <string name="settings_backup_passphrase_confirm_label">Confirm passphrase</string>
     <string name="settings_backup_passphrase_mismatch">Passphrases don\'t match</string>
     <string name="settings_backup_passphrase_export_action">Export</string>
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <plurals name="settings_backup_passphrase_min_length">
+        <item quantity="one">Use at least %1$d character.</item>
+        <item quantity="other">Use at least %1$d characters.</item>
+    </plurals>
     <!-- Shown when the backup picked for Import Data is encrypted -->
     <string name="settings_backup_passphrase_restore_title">Encrypted backup</string>
     <string name="settings_backup_passphrase_restore_body">Enter the passphrase this backup was exported with.</string>

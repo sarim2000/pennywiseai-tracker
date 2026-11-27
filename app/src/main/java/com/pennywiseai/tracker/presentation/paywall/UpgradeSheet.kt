@@ -74,6 +74,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.core.entitlement.FeatureAccess
 import com.pennywiseai.tracker.core.entitlement.FeatureTrials
+import com.pennywiseai.tracker.core.entitlement.TrialFeature
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlinx.coroutines.delay
@@ -88,15 +89,16 @@ import kotlinx.coroutines.launch
  * price, launches no checkout, and points nowhere to buy one — which is what
  * keeps a consumption-only app on the right side of Play's Payments policy.
  *
- * A gate whose feature has a trial left passes [onStartTrial]: the sheet then
- * also offers "Try free for 7 days", which starts it and closes the sheet.
+ * A gate whose feature has a trial left passes [trial]: the sheet then also
+ * offers "Try free for 7 days" for that one feature, which starts it and closes
+ * the sheet.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UpgradeSheet(
     onDismiss: () -> Unit,
     viewModel: UpgradeViewModel = hiltViewModel(),
-    onStartTrial: (() -> Unit)? = null,
+    trial: TrialOffer? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -130,14 +132,14 @@ fun UpgradeSheet(
             onCelebrationComplete = viewModel::markCelebrationComplete,
             onShowLicenseDialog = viewModel::onShowLicenseDialog,
             onRemoveLicense = viewModel::onRemoveLicense,
-            onStartTrial = onStartTrial?.let { start ->
-                {
-                    start()
+            trial = trial?.let { offer ->
+                offer.copy(start = {
+                    offer.start()
                     scope.launch {
                         sheetState.hide()
                         onDismiss()
                     }
-                }
+                })
             },
             onHelp = {
                 runCatching {
@@ -171,7 +173,7 @@ private fun UpgradeSheetContent(
     onCelebrationComplete: () -> Unit,
     onShowLicenseDialog: () -> Unit,
     onRemoveLicense: () -> Unit,
-    onStartTrial: (() -> Unit)?,
+    trial: TrialOffer?,
     onHelp: () -> Unit,
 ) {
     // Celebration takes the whole sheet — even members shouldn't see the
@@ -202,7 +204,7 @@ private fun UpgradeSheetContent(
                 state = state,
                 onRestore = onRestore,
                 onLicenseKey = onShowLicenseDialog,
-                onStartTrial = onStartTrial,
+                trial = trial,
                 onHelp = onHelp,
             )
         }
@@ -264,7 +266,7 @@ private fun UpgradeBody(
     state: UpgradeUiState,
     onRestore: () -> Unit,
     onLicenseKey: () -> Unit,
-    onStartTrial: (() -> Unit)?,
+    trial: TrialOffer?,
     onHelp: () -> Unit,
 ) {
     IncludesBlock()
@@ -293,10 +295,10 @@ private fun UpgradeBody(
             fontWeight = FontWeight.SemiBold,
         )
     }
-    if (onStartTrial != null) {
+    if (trial != null) {
         Spacer(Modifier.height(Spacing.sm))
         OutlinedButton(
-            onClick = onStartTrial,
+            onClick = trial.start,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = Dimensions.Padding.content)
@@ -309,6 +311,22 @@ private fun UpgradeBody(
                 fontWeight = FontWeight.SemiBold,
             )
         }
+        // The list above is all of Pro; the trial opens only the feature the user tapped.
+        Text(
+            text = stringResource(
+                when (trial.feature) {
+                    TrialFeature.ANALYTICS_GROUPING -> R.string.feature_trial_scope_analytics_grouping
+                    TrialFeature.CSV_EXPORT -> R.string.feature_trial_scope_csv_export
+                }
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content)
+                .padding(top = Spacing.xs),
+        )
     }
     Spacer(Modifier.height(Spacing.md))
 
@@ -803,3 +821,6 @@ fun trialDaysLeftLabel(daysLeft: Int): String =
     } else {
         pluralStringResource(R.plurals.feature_trial_days_left, daysLeft, daysLeft)
     }
+
+/** The one [feature] a gate's trial opens, and how to [start] it. */
+data class TrialOffer(val feature: TrialFeature, val start: () -> Unit)

@@ -147,6 +147,9 @@
         <item quantity="one">Try free for %1$d day</item>
         <item quantity="other">Try free for %1$d days</item>
     </plurals>
+    <!-- Pro sheet, under the trial button: the trial opens only the feature the user tapped -->
+    <string name="feature_trial_scope_analytics_grouping">The trial unlocks tag and weekday groupings only</string>
+    <string name="feature_trial_scope_csv_export">The trial unlocks full CSV export only</string>
     <!-- Shown by a gated feature while its free trial runs -->
     <plurals name="feature_trial_days_left">
         <item quantity="one">Trial: %1$d day left</item>

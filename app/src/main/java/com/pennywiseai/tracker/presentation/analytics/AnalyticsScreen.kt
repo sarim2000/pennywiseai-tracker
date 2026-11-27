@@ -323,8 +323,10 @@ fun AnalyticsScreen(
     lockedPick?.let { pick ->
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
             onDismiss = { lockedPick = null },
-            onStartTrial = if (groupingAccess.canStartTrial) {
-                { viewModel.startGroupingTrial(pick) }
+            trial = if (groupingAccess.canStartTrial) {
+                com.pennywiseai.tracker.presentation.paywall.TrialOffer(com.pennywiseai.tracker.core.entitlement.TrialFeature.ANALYTICS_GROUPING) {
+                    viewModel.startGroupingTrial(pick)
+                }
             } else null
         )
     }

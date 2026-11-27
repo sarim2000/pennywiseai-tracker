@@ -430,7 +430,9 @@ fun ExportTransactionsDialog(
     if (showUpgradeSheet) {
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
             onDismiss = { showUpgradeSheet = false },
-            onStartTrial = if (csvAccess.canStartTrial) viewModel::startCsvTrial else null,
+            trial = if (csvAccess.canStartTrial) {
+                com.pennywiseai.tracker.presentation.paywall.TrialOffer(com.pennywiseai.tracker.core.entitlement.TrialFeature.CSV_EXPORT, viewModel::startCsvTrial)
+            } else null,
         )
     }
 

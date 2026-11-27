@@ -63,11 +63,15 @@ class TransactionDetailStaleSaveTest {
         }
     }
 
+    private val goals = mockk<com.pennywiseai.tracker.data.repository.GoalRepository>(relaxed = true) {
+        every { observeContributionsForTransaction(any()) } returns flowOf(emptyList())
+    }
+
     private fun viewModel() = TransactionDetailViewModel(
         transactions, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
         balances, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
         tags, mockk(relaxed = true), prefs, mockk(relaxed = true),
-        mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
+        mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), goals,
         mockk(relaxed = true), mockk(relaxed = true)
     ).apply { loadTransaction(1) }
 
@@ -138,6 +142,17 @@ class TransactionDetailStaleSaveTest {
         val untouched = mergeEditOntoFresh(start, start, fresh)
         assertEquals("5678", untouched.accountNumber)
         assertEquals("Bank C", untouched.bankName)
+    }
+
+    @Test
+    fun `a loan linked after the edit opened blocks a currency change on the merged row`() {
+        val vm = viewModel()
+        vm.enterEditMode()
+        beforeTransaction = { stored = stored.copy(loanId = 3) }
+        vm.updateCurrency("USD")
+        vm.saveChanges()
+        assertTrue(written.isEmpty())
+        assertEquals(UiText.Res(R.string.txn_detail_error_loan_currency_locked), vm.errorMessage.value)
     }
 
     @Test

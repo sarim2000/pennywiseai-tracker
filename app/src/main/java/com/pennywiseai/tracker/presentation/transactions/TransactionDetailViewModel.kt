@@ -437,6 +437,11 @@ class TransactionDetailViewModel @Inject constructor(
                 rowJob = viewModelScope.launch {
                     transactionRepository.observeTransaction(transactionId).collect { row ->
                         if (row != null && row != _transaction.value) {
+                            // Another account's discrepancy must not pair with this row while it recomputes.
+                            val current = _transaction.value
+                            if (current?.bankName != row.bankName || current?.accountNumber != row.accountNumber) {
+                                _balanceDiscrepancy.value = null
+                            }
                             _transaction.value = row
                             refreshDerivedState(row, keepBudgetPicks = _isEditMode.value)
                         }
@@ -1037,12 +1042,7 @@ class TransactionDetailViewModel @Inject constructor(
         // a transaction linked to a loan would silently mix currencies in the
         // loan's totals, so require unlinking it first.
         val original = _transaction.value
-        if (LoanCurrencyRules.blocksCurrencyChange(
-                linkedLoanId = original?.loanId,
-                originalCurrency = original?.currency.orEmpty(),
-                editedCurrency = toSave.currency
-            )
-        ) {
+        if (blocksLoanCurrencyChange(original, toSave.currency)) {
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_currency_locked)
             return
         }
@@ -1065,11 +1065,7 @@ class TransactionDetailViewModel @Inject constructor(
         }
 
         // Validate self-transfer for TRANSFER transactions
-        if (toSave.transactionType == TransactionType.TRANSFER &&
-            toSave.fromAccount != null &&
-            toSave.toAccount != null &&
-            toSave.fromAccount == toSave.toAccount &&
-            (toSave.fromBankName == null || toSave.toBankName == null || toSave.fromBankName == toSave.toBankName)) {
+        if (toSave.isSelfTransfer()) {
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_same_accounts)
             return
         }
@@ -1179,7 +1175,14 @@ class TransactionDetailViewModel @Inject constructor(
                             (normalizedTransaction.amount - _splits.value.fold(BigDecimal.ZERO) { acc, split -> acc + split.amount })
                                 .abs() > BigDecimal("0.01")
                         ) {
-                            throw SplitTotalChangedException()
+                            throw SaveRefusedException(UiText.Res(R.string.txn_detail_error_splits_total))
+                        }
+                        // Likewise the checks made on the edited row: the merged row can differ.
+                        if (blocksLoanCurrencyChange(freshRow, normalizedTransaction.currency)) {
+                            throw SaveRefusedException(UiText.Res(R.string.txn_detail_error_loan_currency_locked))
+                        }
+                        if (normalizedTransaction.isSelfTransfer()) {
+                            throw SaveRefusedException(UiText.Res(R.string.txn_detail_error_same_accounts))
                         }
                         val before = freshRow ?: _transaction.value
                         accountBalanceRepository.pinManualOpenings(before, normalizedTransaction)
@@ -1296,8 +1299,8 @@ class TransactionDetailViewModel @Inject constructor(
                 _originalMerchantAlias = trimmedAlias
                 _budgetImpactType.value = normalizedTransaction.budgetImpactType
                 _budgetCategory.value = normalizedTransaction.budgetCategory
-            } catch (e: SplitTotalChangedException) {
-                _errorMessage.value = UiText.Res(R.string.txn_detail_error_splits_total)
+            } catch (e: SaveRefusedException) {
+                _errorMessage.value = e.error
             } catch (e: Exception) {
                 _errorMessage.value = UiText.Res(R.string.txn_detail_error_save, listOf(e.message.toString()))
             } finally {
@@ -1841,8 +1844,24 @@ internal fun TransactionEntity.withKnownTransferLeg(before: TransactionEntity?):
     }
 }
 
-/** The row's amount changed underneath an edit with splits, so the splits no longer add up to it. */
-private class SplitTotalChangedException : Exception()
+/** The merged row written inside the save's transaction fails a check the edited row passed; rolls the save back. */
+private class SaveRefusedException(val error: UiText) : Exception()
+
+/** [row] is linked to a loan whose currency [editedCurrency] would change. */
+private fun blocksLoanCurrencyChange(row: TransactionEntity?, editedCurrency: String): Boolean =
+    LoanCurrencyRules.blocksCurrencyChange(
+        linkedLoanId = row?.loanId,
+        originalCurrency = row?.currency.orEmpty(),
+        editedCurrency = editedCurrency
+    )
+
+/** A transfer from an account to itself, which moves no money. */
+private fun TransactionEntity.isSelfTransfer(): Boolean =
+    transactionType == TransactionType.TRANSFER &&
+        fromAccount != null &&
+        toAccount != null &&
+        fromAccount == toAccount &&
+        (fromBankName == null || toBankName == null || fromBankName == toBankName)
 
 /**
  * [edited] laid over [fresh], the row as stored now (#1484): a field takes the edited

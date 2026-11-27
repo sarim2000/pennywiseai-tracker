@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
+import com.pennywiseai.tracker.data.database.dao.deleteRebuildableSmsTransactions
 import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
@@ -251,11 +252,12 @@ open class TransactionRepository @Inject constructor(
     suspend fun countAllTransactions(): Int =
         transactionDao.countAllTransactions()
 
-    /** See [TransactionDao.deleteRebuildableSmsTransactions]. */
-    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime) =
+    /** See [deleteRebuildableSmsTransactions]; run inside one database transaction. */
+    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime, inboxMessages: Map<Pair<String, String>, Int>) =
         transactionDao.deleteRebuildableSmsTransactions(
             BankNotificationConfig.notificationAliases.toList(),
-            from
+            from,
+            inboxMessages
         )
 
     /** See [TransactionDao.getTransactionByAmountAndDateIncludingDeleted]. */

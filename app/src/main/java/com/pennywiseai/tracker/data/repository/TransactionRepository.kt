@@ -51,6 +51,9 @@ open class TransactionRepository @Inject constructor(
     fun getAllTransactions(): Flow<List<TransactionEntity>> =
         transactionDao.getAllTransactions()
 
+    open fun observeTransaction(id: Long): Flow<TransactionEntity?> =
+        transactionDao.observeTransaction(id)
+
     open suspend fun getTransactionById(id: Long): TransactionEntity? =
         transactionDao.getTransactionById(id)
 

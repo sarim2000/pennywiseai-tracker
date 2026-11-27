@@ -43,6 +43,8 @@ import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 // ── Security ──
@@ -402,9 +404,12 @@ internal fun DataPage(
         if (exportedBackupFile != null && message == UiText.Res(R.string.settings_backup_created_choose)) {
             showExportOptionsDialog = true
         } else {
-            LaunchedEffect(message) {
-                kotlinx.coroutines.delay(5000)
-                settingsViewModel.clearImportExportMessage()
+            // A restore's progress stays up until it's done: decrypting can outlast the delay.
+            if (message != UiText.Res(R.string.settings_importing_backup)) {
+                LaunchedEffect(message) {
+                    kotlinx.coroutines.delay(5000)
+                    settingsViewModel.clearImportExportMessage()
+                }
             }
 
             AlertDialog(
@@ -568,6 +573,12 @@ private fun BackupPassphraseDialog(wrongPassphrase: Boolean, onRestore: (CharArr
     // Plain remember, not saveable: the passphrase must not land in saved instance state.
     val passphraseState = remember { TextFieldState() }
     ClearOnDispose(passphraseState)
+    // A retry opens a new dialog; the error goes once the user starts typing again.
+    var edited by remember { mutableStateOf(false) }
+    LaunchedEffect(passphraseState) {
+        snapshotFlow { passphraseState.text }.drop(1).first()
+        edited = true
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Lock, contentDescription = null) },
@@ -578,7 +589,7 @@ private fun BackupPassphraseDialog(wrongPassphrase: Boolean, onRestore: (CharArr
                 PassphraseField(
                     passphraseState,
                     stringResource(R.string.settings_backup_passphrase_label),
-                    error = if (wrongPassphrase) stringResource(R.string.settings_backup_passphrase_wrong) else null
+                    error = if (wrongPassphrase && !edited) stringResource(R.string.settings_backup_passphrase_wrong) else null
                 )
             }
         },

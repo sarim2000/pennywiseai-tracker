@@ -36,6 +36,7 @@ class ManualBalanceCurrencyTest {
         coEvery { getLatestBalance(any(), any()) } returns null
         coEvery { getOpeningRow(BANK, ACCT) } answers { opening }
         coEvery { getLatestBalance(BANK, ACCT) } answers { current }
+        coEvery { getLatestBalanceByLast4(ACCT) } answers { current }
         coEvery { getManualCurrentRow(BANK, ACCT) } answers { current }
         coEvery { countSmsSourcedBalances(BANK, ACCT) } returns 0
         coEvery { getEarliestBalanceTimestamp(BANK, ACCT) } returns time
@@ -125,6 +126,28 @@ class ManualBalanceCurrencyTest {
         import(transfer, row(2, "100", "INR"))
 
         assertBalance("900")
+    }
+
+    /** What an edit does: pin from the old version, write the new one, reflect it. */
+    private suspend fun edit(original: TransactionEntity, updated: TransactionEntity) {
+        repo.pinManualOpenings(original, updated)
+        ledger.replaceAll { if (it.id == original.id) updated else it }
+        repo.reflectTransactionEdit(original, updated)
+    }
+
+    @Test
+    fun `a legacy transfer leg with no bank is pinned before its edit`() = runBlocking {
+        opening = null
+        current = balanceRow(AccountBalanceRepository.SOURCE_MANUAL, "900")
+        val transfer = row(1, "100", "INR").copy(
+            transactionType = TransactionType.TRANSFER, bankName = "Other Bank", accountNumber = "9999",
+            fromBankName = null, fromAccount = ACCT, toBankName = "Other Bank", toAccount = "9999"
+        )
+        ledger += transfer
+
+        edit(transfer, transfer.copy(amount = BigDecimal("200")))
+
+        assertBalance("800")
     }
 
     private companion object {

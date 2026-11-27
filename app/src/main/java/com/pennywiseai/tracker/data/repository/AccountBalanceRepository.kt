@@ -910,7 +910,7 @@ open class AccountBalanceRepository @Inject constructor(
      * balance would never move (#913). No-op for SMS accounts.
      */
     suspend fun pinManualOpenings(vararg transactions: TransactionEntity?) {
-        transactions.filterNotNull().flatMap(::accountsOf).distinct()
+        transactions.filterNotNull().flatMap { accountsOf(it) }.distinct()
             .forEach { (bank, acct) -> ensureManualOpening(bank, acct) }
     }
 
@@ -919,21 +919,28 @@ open class AccountBalanceRepository @Inject constructor(
      * re-derives every manual account they move (see [accountsOf]), once each.
      */
     suspend fun recomputeManualBalances(transactions: Collection<TransactionEntity>) {
-        transactions.flatMap(::accountsOf).distinct()
+        transactions.flatMap { accountsOf(it) }.distinct()
             .forEach { (bank, acct) -> recomputeManualBalance(bank, acct) }
     }
 
     /**
      * The accounts [t] moves, as [signedTransactionSum] counts it: a transfer
      * its named legs (a marked pair's leg, its own account), anything else its
-     * own account.
+     * own account. A legacy leg with no bank is found by its last 4, as
+     * [shiftTransferLeg] finds it.
      */
-    private fun accountsOf(t: TransactionEntity): List<Pair<String, String>> =
+    private suspend fun accountsOf(t: TransactionEntity): List<Pair<String, String>> =
         if (t.transactionType == TransactionType.TRANSFER && !t.isPairedTransferLeg) {
             listOf(t.fromBankName to t.fromAccount, t.toBankName to t.toAccount)
         } else {
             listOf(t.bankName to t.accountNumber)
-        }.mapNotNull { (bank, acct) -> if (bank != null && acct != null) bank to acct else null }
+        }.mapNotNull { (bank, acct) ->
+            when {
+                acct == null -> null
+                bank != null -> bank to acct
+                else -> accountBalanceDao.getLatestBalanceByLast4(acct)?.let { it.bankName to it.accountLast4 }
+            }
+        }
 
     /**
      * After an edit replacing [original] with [updated] is written (call

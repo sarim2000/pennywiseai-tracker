@@ -1,12 +1,20 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
-import com.pennywiseai.tracker.data.database.dao.*
+import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
+import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
+import io.mockk.coEvery
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -24,40 +32,12 @@ class AccountBalanceRepositoryAccountTypeTest {
     private lateinit var repository: AccountBalanceRepository
 
     private val balanceRows = mutableListOf<AccountBalanceEntity>()
-
-    private class TestDb : PennyWiseDatabase() {
-        override fun transactionDao(): TransactionDao = error("unused")
-        override fun subscriptionDao(): SubscriptionDao = error("unused")
-        override fun chatDao(): ChatDao = error("unused")
-        override fun merchantMappingDao(): MerchantMappingDao = error("unused")
-        override fun merchantAliasDao(): MerchantAliasDao = error("unused")
-        override fun categoryDao(): CategoryDao = error("unused")
-        override fun accountBalanceDao(): AccountBalanceDao = error("unused")
-        override fun unrecognizedSmsDao(): UnrecognizedSmsDao = error("unused")
-        override fun cardDao(): CardDao = error("unused")
-        override fun ruleDao(): RuleDao = error("unused")
-        override fun ruleApplicationDao(): RuleApplicationDao = error("unused")
-        override fun exchangeRateDao(): ExchangeRateDao = error("unused")
-        override fun budgetDao(): BudgetDao = error("unused")
-        override fun budgetSnapshotDao(): BudgetSnapshotDao = error("unused")
-        override fun transactionSplitDao(): TransactionSplitDao = error("unused")
-        override fun bankNotificationDao(): BankNotificationDao = error("unused")
-        override fun loanDao(): LoanDao = error("unused")
-        override fun transactionGroupDao(): TransactionGroupDao = error("unused")
-        override fun profileDao(): ProfileDao = error("unused")
-        override fun tagDao(): TagDao = error("unused")
-        override fun recurringTransactionDao(): RecurringTransactionDao = error("unused")
-        override fun webhookProfileDao(): WebhookProfileDao = error("unused")
-        override fun webhookLogDao(): WebhookLogDao = error("unused")
-        override fun webhookCursorDao(): WebhookCursorDao = error("unused")
-        override fun goalDao(): com.pennywiseai.tracker.data.database.dao.GoalDao = error("unused")
-        override fun webhookDeliveredTransactionDao(): WebhookDeliveredTransactionDao = error("unused")
-        override suspend fun clearAllTables() = Unit
-    }
+    private val cardTransactions = mutableListOf<TransactionEntity>()
 
     @Before
     fun setUp() {
         balanceRows.clear()
+        cardTransactions.clear()
 
         accountBalanceDao = Proxy.newProxyInstance(
             AccountBalanceDao::class.java.classLoader,
@@ -98,6 +78,20 @@ class AccountBalanceRepositoryAccountTypeTest {
                     }
                     updated
                 }
+                "getBalanceHistoryForAccount" ->
+                    balanceRows
+                        .filter { it.bankName == args[0] && it.accountLast4 == args[1] }
+                        .sortedByDescending { it.timestamp }
+                "deleteAccount" -> {
+                    val before = balanceRows.size
+                    balanceRows.removeAll { it.bankName == args[0] && it.accountLast4 == args[1] }
+                    before - balanceRows.size
+                }
+                "deleteTransactionDerivedBalances" -> {
+                    val before = balanceRows.size
+                    balanceRows.removeAll { it.transactionId != null && it.smsSource == null }
+                    before - balanceRows.size
+                }
                 else -> null
             }
         } as AccountBalanceDao
@@ -105,15 +99,30 @@ class AccountBalanceRepositoryAccountTypeTest {
         transactionDao = Proxy.newProxyInstance(
             TransactionDao::class.java.classLoader,
             arrayOf(TransactionDao::class.java)
-        ) { _, _, _ -> null } as TransactionDao
+        ) { _, method, args ->
+            when (method.name) {
+                "getTransactionsForAccountStrict" ->
+                    cardTransactions.filter { it.bankName == args[0] && it.accountNumber == args[1] }
+                else -> null
+            }
+        } as TransactionDao
+
+        mockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
+        val database = mockk<PennyWiseDatabase>()
+        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
+            secondArg<suspend () -> Any?>().invoke()
+        }
 
         repository = AccountBalanceRepository(
             accountBalanceDao = accountBalanceDao,
             transactionDao = transactionDao,
-            database = TestDb(),
+            database = database,
             userPreferencesRepository = io.mockk.mockk(relaxed = true)
         )
     }
+
+    @After
+    fun tearDown() = unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
 
     @Test
     fun `insertBalanceFromTransaction preserves existing non-default accountType CURRENT`() = runBlocking {
@@ -336,5 +345,265 @@ class AccountBalanceRepositoryAccountTypeTest {
         val latest = repository.getLatestBalance("Test Bank", "7777")!!
         assertFalse(latest.isCreditCard)
         assertTrue(latest.isLoan)
+    }
+
+    private val cardCreatedAt: LocalDateTime = LocalDateTime.now().minusDays(10)
+
+    private suspend fun markCredit(bankName: String = "Test Bank", last4: String = "4321") =
+        repository.ensureCreditCardAccount(bankName, last4, cardCreatedAt)
+
+    private fun cardTxn(
+        id: Long,
+        daysAgo: Long,
+        type: TransactionType,
+        amount: String,
+        statedBalance: String? = null,
+        currency: String = "INR",
+        bankName: String = "Test Bank"
+    ) = TransactionEntity(
+        id = id,
+        amount = BigDecimal(amount),
+        merchantName = "Test Merchant",
+        category = "Others",
+        transactionType = type,
+        dateTime = LocalDateTime.now().minusDays(daysAgo),
+        smsBody = "Test SMS $id",
+        bankName = bankName,
+        accountNumber = "4321",
+        balanceAfter = statedBalance?.let(::BigDecimal),
+        transactionHash = "hash-$id",
+        currency = currency
+    )
+
+    /** The balance row the live receiver writes for an unlinked debit card's spend. */
+    private fun liveDebitRow(txn: TransactionEntity, balance: String) = AccountBalanceEntity(
+        bankName = "Test Bank",
+        accountLast4 = "4321",
+        balance = BigDecimal(balance),
+        timestamp = txn.dateTime,
+        transactionId = txn.id,
+        smsSource = txn.smsBody,
+        sourceType = "TRANSACTION",
+        currency = txn.currency
+    )
+
+    private fun assertOwed(expected: String) {
+        val account = balanceRows.filter { it.bankName == "Test Bank" && it.accountLast4 == "4321" }
+            .maxByOrNull { it.timestamp }!!
+        assertTrue(account.isCreditCard)
+        assertEquals(AccountType.CREDIT, account.getAccountType())
+        assertEquals("owed", 0, BigDecimal(expected).compareTo(account.balance))
+    }
+
+    @Test
+    fun `a card with no transactions gets a manual zero row stamped when the card was first seen`() = runBlocking {
+        markCredit()
+
+        val account = repository.getLatestBalance("Test Bank", "4321")!!
+        assertOwed("0")
+        assertEquals(AccountBalanceRepository.SOURCE_MANUAL, account.sourceType)
+        assertEquals(cardCreatedAt, account.timestamp)
+        assertEquals(1, balanceRows.size)
+    }
+
+    @Test
+    fun `an SMS imported after the placeholder sorts after it and sets the balance`() = runBlocking {
+        markCredit()
+
+        // An older first SMS (still newer than when the card was first seen) found by a later scan.
+        repository.insertBalanceFromTransaction(
+            bankName = "Test Bank",
+            accountLast4 = "4321",
+            balance = BigDecimal("800.00"),
+            timestamp = LocalDateTime.now().minusDays(5),
+            transactionId = 41L,
+            isCreditCard = true
+        )
+
+        assertEquals(0, BigDecimal("800.00").compareTo(repository.getLatestBalance("Test Bank", "4321")!!.balance))
+    }
+
+    @Test
+    fun `spends replay in time order and a repayment lowers what is owed`() = runBlocking {
+        // Saved out of order: the replay must follow time, not insertion.
+        cardTransactions += cardTxn(2, daysAgo = 2, TransactionType.EXPENSE, "500.00")
+        cardTransactions += cardTxn(1, daysAgo = 3, TransactionType.EXPENSE, "1000.00")
+        cardTransactions += cardTxn(3, daysAgo = 1, TransactionType.INCOME, "300.00")
+
+        markCredit()
+
+        assertOwed("1200.00")
+        // A MANUAL zero anchor first, then one row per transaction in time order.
+        val ordered = balanceRows.sortedBy { it.timestamp }
+        assertEquals(listOf(null, 1L, 2L, 3L), ordered.map { it.transactionId })
+        assertEquals(AccountBalanceRepository.SOURCE_MANUAL, ordered.first().sourceType)
+        assertEquals(0, BigDecimal.ZERO.compareTo(ordered.first().balance))
+        // An hour before the first transaction, not at the card's createdAt.
+        assertEquals(ordered[1].timestamp.minusHours(1), ordered.first().timestamp)
+    }
+
+    @Test
+    fun `fix 1 - an account the live receiver wrote as a bank account is replayed, not relabelled`() = runBlocking {
+        val spend = cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "1000.00", currency = "USD")
+        cardTransactions += spend
+        // Bank math: the spend took the account to -1,000.
+        balanceRows += liveDebitRow(spend, "-1000.00")
+
+        markCredit()
+
+        assertOwed("1000.00")
+        assertEquals(2, balanceRows.size)
+        assertTrue(balanceRows.all { it.currency == "USD" })
+    }
+
+    @Test
+    fun `a rebuilt account keeps the alias, profile, alert and statement day set on it`() = runBlocking {
+        val spend = cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "1000.00")
+        cardTransactions += spend
+        balanceRows += liveDebitRow(spend, "-1000.00").copy(
+            alias = "Travel card",
+            profileId = 7L,
+            lowBalanceThreshold = BigDecimal("50.00"),
+            statementDay = 12
+        )
+
+        markCredit()
+
+        val row = balanceRows.maxBy { it.timestamp }
+        assertOwed("1000.00")
+        assertEquals("Travel card", row.alias)
+        assertEquals(7L, row.profileId)
+        assertEquals(0, BigDecimal("50.00").compareTo(row.lowBalanceThreshold))
+        assertEquals(12, row.statementDay)
+    }
+
+    @Test
+    fun `an account with rows from elsewhere only switches its type`() = runBlocking {
+        val spend = cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "1000.00")
+        cardTransactions += spend
+        balanceRows += liveDebitRow(spend, "4000.00")
+        balanceRows += AccountBalanceEntity(
+            bankName = "Test Bank",
+            accountLast4 = "4321",
+            balance = BigDecimal("5000.00"),
+            timestamp = LocalDateTime.now().minusDays(4),
+            sourceType = AccountBalanceRepository.SOURCE_MANUAL
+        )
+
+        markCredit()
+
+        assertOwed("4000.00")
+        assertEquals(2, balanceRows.size)
+        assertTrue(balanceRows.all { it.isCreditCard })
+    }
+
+    @Test
+    fun `fix 2 - clearing local history keeps the replayed account`() = runBlocking {
+        cardTransactions += cardTxn(1, daysAgo = 2, TransactionType.EXPENSE, "1000.00")
+        cardTransactions += cardTxn(2, daysAgo = 1, TransactionType.EXPENSE, "500.00")
+        markCredit()
+
+        repository.deleteTransactionDerivedBalances()
+
+        assertOwed("1500.00")
+        assertEquals(
+            listOf("Test SMS 1", "Test SMS 2"),
+            balanceRows.filter { it.transactionId != null }.sortedBy { it.timestamp }.map { it.smsSource }
+        )
+    }
+
+    @Test
+    fun `fix 3 - the account takes the currency its SMS are in, not a fallback`() = runBlocking {
+        // A bank no parser knows: getBankBaseCurrency would fall back to INR.
+        cardTransactions += cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "40.00", currency = "AED", bankName = "Unknown Test Bank")
+
+        repository.ensureCreditCardAccount("Unknown Test Bank", "4321", cardCreatedAt)
+
+        val account = repository.getLatestBalance("Unknown Test Bank", "4321")!!
+        assertEquals("AED", account.currency)
+        assertEquals(0, BigDecimal("40.00").compareTo(account.balance))
+    }
+
+    @Test
+    fun `a new account takes its bank parser's currency, not the one its spends share`() = runBlocking {
+        // An INR bank whose card was only used abroad.
+        cardTransactions += cardTxn(1, daysAgo = 2, TransactionType.EXPENSE, "40.00", currency = "USD", bankName = "ICICI Bank")
+        cardTransactions += cardTxn(2, daysAgo = 1, TransactionType.EXPENSE, "25.00", currency = "USD", bankName = "ICICI Bank")
+
+        repository.ensureCreditCardAccount("ICICI Bank", "4321", cardCreatedAt)
+
+        assertEquals("INR", repository.getLatestBalance("ICICI Bank", "4321")!!.currency)
+    }
+
+    @Test
+    fun `a rebuilt account keeps its currency when its transactions are in several`() = runBlocking {
+        val usd = cardTxn(1, daysAgo = 2, TransactionType.EXPENSE, "100.00", currency = "USD")
+        val eur = cardTxn(2, daysAgo = 1, TransactionType.EXPENSE, "50.00", currency = "EUR")
+        cardTransactions += usd
+        cardTransactions += eur
+        // The live receiver's USD account: the EUR spend left it as it was.
+        balanceRows += liveDebitRow(usd, "-100.00")
+        balanceRows += liveDebitRow(eur, "-100.00").copy(currency = "USD")
+
+        markCredit()
+
+        assertOwed("100.00")
+        assertTrue(balanceRows.all { it.currency == "USD" })
+    }
+
+    @Test
+    fun `an account whose figure the user corrected is relabelled, not rebuilt`() = runBlocking {
+        val spend = cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "1000.00")
+        cardTransactions += spend
+        // Balance History edit: same source and transaction, the user's figure.
+        balanceRows += liveDebitRow(spend, "-1000.00").copy(balance = BigDecimal("2500.00"))
+
+        markCredit()
+
+        assertOwed("2500.00")
+        assertEquals(1, balanceRows.size)
+    }
+
+    @Test
+    fun `clearing local history keeps an account whose transactions were recorded by hand`() = runBlocking {
+        cardTransactions += cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "1000.00").copy(smsBody = null)
+        markCredit()
+
+        repository.deleteTransactionDerivedBalances()
+
+        assertOwed("0")
+        assertEquals(AccountBalanceRepository.SOURCE_MANUAL, balanceRows.single().sourceType)
+    }
+
+    @Test
+    fun `fix 4 - a repayment marked as a transfer pair lowers what is owed`() = runBlocking {
+        cardTransactions += cardTxn(1, daysAgo = 2, TransactionType.EXPENSE, "1000.00")
+        // The card's leg of a marked pair: stored as TRANSFER, arriving on 4321.
+        cardTransactions += cardTxn(2, daysAgo = 1, TransactionType.TRANSFER, "300.00").copy(
+            transferPairId = "pair-1",
+            fromAccount = "9999",
+            toAccount = "4321"
+        )
+
+        markCredit()
+
+        assertOwed("700.00")
+    }
+
+    @Test
+    fun `fix 5 - an available balance in a debit-read SMS is not taken as what is owed`() = runBlocking {
+        cardTransactions += cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "125.50", statedBalance = "3250.75", currency = "AED")
+
+        markCredit()
+
+        assertOwed("125.50")
+    }
+
+    @Test
+    fun `an existing credit card account is left alone`() = runBlocking {
+        markCredit()
+        markCredit()
+
+        assertEquals(1, balanceRows.size)
     }
 }

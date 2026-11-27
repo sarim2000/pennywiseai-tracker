@@ -476,19 +476,33 @@ class ManageAccountsViewModel @Inject constructor(
                     }
                     return@launch
                 }
-                // updatedAt is stamped inside CardRepository.updateCard, so
-                // we leave it alone here.
-                cardRepository.updateCard(
-                    existing.copy(
-                        bankName = bankName.trim(),
-                        cardType = cardType,
-                        nickname = nickname?.trim()?.takeIf { it.isNotEmpty() }
+                // One transaction: if the account can't be made, the card stays as it
+                // was rather than becoming a CREDIT card that no list shows.
+                database.withTransaction {
+                    // updatedAt is stamped inside CardRepository.updateCard, so
+                    // we leave it alone here.
+                    cardRepository.updateCard(
+                        existing.copy(
+                            bankName = bankName.trim(),
+                            cardType = cardType,
+                            nickname = nickname?.trim()?.takeIf { it.isNotEmpty() }
+                        )
                     )
-                )
+                    // A credit card is its own account. The card list drops it once it
+                    // isn't DEBIT, so give it that account now rather than at its next SMS.
+                    // Under the card's bank before this edit: its SMS are stored there,
+                    // and the parser keeps sending new ones there after a rename.
+                    if (cardType == CardType.CREDIT) {
+                        accountBalanceRepository.ensureCreditCardAccount(
+                            bankName = existing.bankName,
+                            cardLast4 = existing.cardLast4,
+                            cardCreatedAt = existing.createdAt
+                        )
+                    }
+                }
                 _uiState.update { it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_card_updated)) }
                 delay(2000)
                 _uiState.update { it.copy(successMessage = null) }
-                loadCards()
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to update card", e)
                 _uiState.update {

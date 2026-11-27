@@ -124,12 +124,17 @@ class CategoryPieWidget : GlanceAppWidget() {
         val donut = minOf(height, size.width * DONUT_WIDTH_SHARE).coerceAtLeast(Spacing.xl)
         val legendRows = (height.value / LEGEND_ROW.value).toInt().coerceAtLeast(1)
         val total = data.total.toBigDecimalOrNull()
+        // The legend is ranked by spend, so it goes too while amounts are hidden; the ring sits centred.
+        val hidden = amountsHidden()
 
         Box(modifier = GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            WidgetRow(
+                modifier = if (hidden) GlanceModifier else GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 item {
                     Box(contentAlignment = Alignment.Center) {
-                        if (amountsHidden()) {
+                        if (hidden) {
                             // The split gives the amounts away: one plain ring until they're shown.
                             Image(
                                 provider = ImageProvider(renderDonut(context, listOf(HIDDEN_RING), donut) { android.graphics.Color.WHITE }),
@@ -169,8 +174,8 @@ class CategoryPieWidget : GlanceAppWidget() {
                         }
                     }
                 }
-                item { Spacer(modifier = GlanceModifier.width(Spacing.md)) }
-                item {
+                if (!hidden) item { Spacer(modifier = GlanceModifier.width(Spacing.md)) }
+                if (!hidden) item {
                     Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
                         data.slices.take(legendRows).forEach { LegendRow(it) }
                     }
@@ -183,8 +188,6 @@ class CategoryPieWidget : GlanceAppWidget() {
     private fun LegendRow(slice: CategoryPieSlice) {
         val context = LocalContext.current
         val argb = slice.colorArgb.toInt()
-        // A slice's share gives the amounts away, so only its name shows while they're hidden.
-        val showPercent = !amountsHidden()
         WidgetRow(
             modifier = GlanceModifier.fillMaxWidth().padding(vertical = Spacing.xxs),
             verticalAlignment = Alignment.CenterVertically
@@ -210,8 +213,8 @@ class CategoryPieWidget : GlanceAppWidget() {
                     )
                 )
             }
-            if (showPercent) item { Spacer(modifier = GlanceModifier.width(Spacing.sm)) }
-            if (showPercent) item {
+            item { Spacer(modifier = GlanceModifier.width(Spacing.sm)) }
+            item {
                 Text(
                     text = context.latinString(R.string.widget_pie_percent, slice.percent.roundToInt()),
                     style = TextStyle(

@@ -58,12 +58,16 @@ All values below are made up.
 ### adb
 
 ```sh
-adb shell am start \
+adb shell 'am start \
   -a com.pennywiseai.tracker.action.ADD_TRANSACTION \
   -p com.pennywiseai.tracker \
   --es amount 12.50 --es currency USD \
-  --es merchant "Test Cafe" --es note "from tasker" --es type EXPENSE
+  --es merchant "Test Cafe" --es note "from tasker" --es type EXPENSE'
 ```
+
+The single quotes send the whole command to the device as one line, so the
+device's shell keeps `"Test Cafe"` as one value. Without them, your computer's
+shell drops the inner quotes and the merchant arrives as just `Test`.
 
 ### Tasker
 

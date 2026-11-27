@@ -255,6 +255,14 @@ internal fun DataPage(
     }
 
     SectionHeaderV2(title = stringResource(R.string.settings_group_auto_backup))
+    // Encryption can be chosen before backups are turned on, so the first one isn't written plain.
+    val showFolderEncryption = scheduledFolderBackupEnabled || isProEntitled
+    val folderPassphraseLost = showFolderEncryption && folderBackupEncryption == FolderBackupPassphrase.Status.LOST
+    val autoBackupRows = 1 +
+        (if (scheduledFolderBackupEnabled) 3 else 0) +
+        (if (showFolderEncryption) 1 else 0) +
+        (if (folderPassphraseLost) 1 else 0)
+    var autoBackupRow = 0
     SettingsGroup {
         SettingsSwitchRow(
             icon = Icons.Default.Backup,
@@ -277,7 +285,7 @@ internal fun DataPage(
                     settingsViewModel.setScheduledFolderBackupEnabled(enabled)
                 }
             },
-            position = if (scheduledFolderBackupEnabled) ListItemPosition.Top else ListItemPosition.Single
+            position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
         )
         if (scheduledFolderBackupEnabled) {
             SettingsNavItem(
@@ -299,7 +307,7 @@ internal fun DataPage(
                     }
                 } ?: stringResource(R.string.settings_backup_now_subtitle),
                 onClick = { settingsViewModel.backupToFolderNow() },
-                position = ListItemPosition.Middle
+                position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
             )
             SettingsSwitchRow(
                 icon = Icons.Default.Receipt,
@@ -307,8 +315,10 @@ internal fun DataPage(
                 subtitle = stringResource(R.string.settings_folder_backup_include_receipts_subtitle),
                 checked = folderBackupIncludeReceipts,
                 onCheckedChange = { settingsViewModel.setFolderBackupIncludeReceipts(it) },
-                position = ListItemPosition.Middle
+                position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
             )
+        }
+        if (showFolderEncryption) {
             SettingsSwitchRow(
                 icon = Icons.Default.Lock,
                 title = stringResource(R.string.settings_folder_backup_encrypt_title),
@@ -321,24 +331,26 @@ internal fun DataPage(
                 onCheckedChange = { encrypt ->
                     if (encrypt) showFolderPassphraseDialog = true else settingsViewModel.turnOffFolderBackupEncryption()
                 },
-                position = ListItemPosition.Middle
+                position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
             )
             // Backups stop rather than go out plain: say so until the passphrase is entered again.
-            if (folderBackupEncryption == FolderBackupPassphrase.Status.LOST) {
+            if (folderPassphraseLost) {
                 SettingsNavItem(
                     icon = Icons.Default.Warning,
                     title = stringResource(R.string.settings_folder_backup_passphrase_lost_title),
                     subtitle = stringResource(R.string.settings_folder_backup_passphrase_lost_subtitle),
                     onClick = { showFolderPassphraseDialog = true },
-                    position = ListItemPosition.Middle
+                    position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
                 )
             }
+        }
+        if (scheduledFolderBackupEnabled) {
             SettingsNavItem(
                 icon = Icons.Default.FolderOpen,
                 title = stringResource(R.string.settings_change_backup_folder_title),
                 subtitle = stringResource(R.string.settings_change_backup_folder_subtitle),
                 onClick = { settingsViewModel.requestChangeBackupFolder() },
-                position = ListItemPosition.Bottom
+                position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
             )
         }
     }

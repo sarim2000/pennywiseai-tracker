@@ -19,10 +19,12 @@ import com.pennywiseai.tracker.worker.DailySummaryWorker
 import com.pennywiseai.tracker.worker.FolderBackupRunner
 import com.pennywiseai.tracker.worker.WeeklySummaryWorker
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -159,6 +161,31 @@ class BackupMomentsTest {
 
         assertEquals(3, threads.size)
         assertTrue("SAF and the Keystore stay off the main thread", threads.none { it == mainThread })
+    }
+
+    @Test
+    fun `encryption chosen before automatic backups are on makes their first backup encrypted`() {
+        var saved: CharArray? = null
+        every { passphrase.save(any()) } answers { saved = firstArg<CharArray>().copyOf() }
+        every { passphrase.load() } answers { saved?.copyOf() }
+        var exportedWithPassphrase: Boolean? = null
+        coEvery { exporter.exportBackup(any(), any(), any()) } answers {
+            exportedWithPassphrase = thirdArg<CharArray?>() != null
+            ExportResult.Success(backupFile)
+        }
+        every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Success
+        coEvery { preferences.isScheduledFolderBackupEnabled() } returns false
+
+        viewModel.setFolderBackupPassphrase("synthetic phrase".toCharArray())
+        // Backups are still off: the passphrase is kept, and nothing is written yet.
+        coVerify(timeout = 5_000) { preferences.isScheduledFolderBackupEnabled() }
+        verify(exactly = 0) { writer.writeBackup(any(), any()) }
+
+        viewModel.setScheduledFolderBackupEnabled(true)
+        awaitMessage()
+
+        assertEquals(UiText.Res(R.string.settings_folder_backup_enabled), viewModel.importExportMessage.value)
+        assertEquals(true, exportedWithPassphrase)
     }
 
     @Test

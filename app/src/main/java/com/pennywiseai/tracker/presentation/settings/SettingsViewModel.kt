@@ -198,8 +198,9 @@ class SettingsViewModel @Inject constructor(
     val folderBackupEncryption: StateFlow<FolderBackupPassphrase.Status> = folderBackupPassphrase.status
 
     /**
-     * Encrypts automatic backups with [passphrase] (cleared once it's saved), then backs up
-     * straight away so the folder doesn't keep a plain copy until the next night.
+     * Encrypts automatic backups with [passphrase] (cleared once it's saved). When they're on,
+     * backs up straight away so the folder doesn't keep a plain copy until the next night;
+     * before that, the first backup they write is already encrypted.
      */
     fun setFolderBackupPassphrase(passphrase: CharArray) {
         viewModelScope.launch {
@@ -212,7 +213,9 @@ class SettingsViewModel @Inject constructor(
             } finally {
                 passphrase.fill('\u0000')
             }
-            performFolderBackup(showSuccessMessage = true)
+            if (userPreferencesRepository.isScheduledFolderBackupEnabled()) {
+                performFolderBackup(showSuccessMessage = true)
+            }
         }
     }
 

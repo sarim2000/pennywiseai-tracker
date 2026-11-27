@@ -907,16 +907,24 @@ open class AccountBalanceRepository @Inject constructor(
      * balance would never move (#913). No-op for SMS accounts.
      */
     suspend fun pinManualOpenings(vararg transactions: TransactionEntity?) {
-        for (t in transactions.filterNotNull()) {
-            for ((bank, acct) in listOf(
-                t.bankName to t.accountNumber,
-                t.fromBankName to t.fromAccount,
-                t.toBankName to t.toAccount
-            )) {
-                if (bank != null && acct != null) ensureManualOpening(bank, acct)
-            }
-        }
+        transactions.filterNotNull().flatMap(::accountsOf).distinct()
+            .forEach { (bank, acct) -> ensureManualOpening(bank, acct) }
     }
+
+    /**
+     * After [transactions] are inserted (pin with [pinManualOpenings] before):
+     * re-derives every manual account they land on, own account and both
+     * transfer legs, once each.
+     */
+    suspend fun recomputeManualBalances(transactions: Collection<TransactionEntity>) {
+        transactions.flatMap(::accountsOf).distinct()
+            .forEach { (bank, acct) -> recomputeManualBalance(bank, acct) }
+    }
+
+    /** The accounts [t] moves: its own and both transfer legs, where named. */
+    private fun accountsOf(t: TransactionEntity): List<Pair<String, String>> =
+        listOf(t.bankName to t.accountNumber, t.fromBankName to t.fromAccount, t.toBankName to t.toAccount)
+            .mapNotNull { (bank, acct) -> if (bank != null && acct != null) bank to acct else null }
 
     /**
      * After an edit replacing [original] with [updated] is written (call

@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.statement.ImportRules
 import com.pennywiseai.tracker.data.statement.ImportRulesSource
@@ -25,7 +26,8 @@ import javax.inject.Singleton
  * parses it, dedups the parsed rows against what's already in the DB (by the
  * deterministic import hash) and inserts the rest. A row without a category
  * of its own ("Others") gets the learned merchant category and the user's
- * rules; block rules apply to every row.
+ * rules; block rules apply to every row. A manual account's balance follows
+ * its new rows.
  *
  * Free feature (onboarding/migration) — not gated behind Pro.
  */
@@ -36,7 +38,8 @@ class ImportCsvUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val userPreferencesRepository: CurrencyPreferences,
     private val importRules: ImportRulesSource,
-    private val database: PennyWiseDatabase
+    private val database: PennyWiseDatabase,
+    private val accountBalanceRepository: AccountBalanceRepository
 ) {
 
     sealed class Result {
@@ -88,10 +91,16 @@ class ImportCsvUseCase @Inject constructor(
             // recorded against the new rows (its history row would break the batch).
             val (imported, blocked) = if (toInsert.isEmpty()) 0 to 0 else database.withTransaction {
                 val (kept, blockedCount) = applyRules(toInsert, importRules.load())
-                // A row the database ignored (-1: its hash is already there) wasn't imported.
-                val ids = if (kept.isEmpty()) emptyList() else transactionRepository.insertTransactions(kept.map { it.entity })
+                val rows = kept.map { it.entity }
+                // A manual account's opening is pinned before its rows land, so the
+                // recompute adds them instead of absorbing them into the opening.
+                accountBalanceRepository.pinManualOpenings(*rows.toTypedArray())
+                val ids = if (rows.isEmpty()) emptyList() else transactionRepository.insertTransactions(rows)
                 ids.zip(kept).forEach { (id, row) -> importRules.record(id, row.applications) }
-                ids.count { it != -1L } to blockedCount
+                // A row the database ignored (-1: its hash is already there) wasn't imported.
+                val inserted = ids.zip(rows).filter { (id, _) -> id != -1L }.map { (_, row) -> row }
+                accountBalanceRepository.recomputeManualBalances(inserted)
+                inserted.size to blockedCount
             }
 
             Result.Success(

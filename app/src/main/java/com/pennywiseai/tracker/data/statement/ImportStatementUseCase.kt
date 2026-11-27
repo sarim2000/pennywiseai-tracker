@@ -121,20 +121,20 @@ class ImportStatementUseCase @Inject constructor(
     suspend fun commit(parsed: List<ParsedTransaction>, keep: Set<Int>): StatementImportResult.Success =
         withContext(Dispatchers.IO) {
             database.withTransaction {
-                // The accounts the new rows land in; the store adds any a rule moves a row to.
-                val accounts = LinkedHashSet<Pair<String, String>>()
-                val processor = StatementImportProcessor(repositoryStore(accounts), importRules.load())
+                // The rows the import adds, as written; the store fills it.
+                val inserted = mutableListOf<TransactionEntity>()
+                val processor = StatementImportProcessor(repositoryStore(inserted), importRules.load())
                 val plan = processor.plan(parsed)
                 val excluded = plan.rows.indices.toSet() - keep
-                plan.newIndices.filter { it !in excluded }
-                    .map { plan.rows[it].parsed }
-                    .mapNotNull { row -> row.accountLast4?.let { row.bankName to it } }
-                    .filter(accounts::add)
-                    // Pin a legacy manual account's opening before the rows land, so the
-                    // recompute below adds them instead of absorbing them into the opening.
-                    .forEach { (bank, last4) -> accountBalanceRepository.ensureManualOpening(bank, last4) }
+                // Pin a legacy manual account's opening before the rows land, so the
+                // recompute below adds them instead of absorbing them into the opening.
+                accountBalanceRepository.pinManualOpenings(
+                    *plan.newIndices.filter { it !in excluded }
+                        .mapNotNull { (plan.rows[it].decision as? StatementRowDecision.Insert)?.entity }
+                        .toTypedArray()
+                )
                 val result = processor.apply(plan, excluded)
-                accounts.forEach { (bank, last4) -> accountBalanceRepository.recomputeManualBalance(bank, last4) }
+                accountBalanceRepository.recomputeManualBalances(inserted)
                 result
             }
         }
@@ -208,9 +208,9 @@ class ImportStatementUseCase @Inject constructor(
             }
         }
 
-    /** [accounts] collects the accounts rows are added to, each opening pinned first. */
+    /** [inserted] collects the rows the store adds, each account's opening pinned first. */
     private fun repositoryStore(
-        accounts: MutableSet<Pair<String, String>> = HashSet()
+        inserted: MutableList<TransactionEntity> = mutableListOf()
     ) = object : StatementImportProcessor.TransactionStore {
         override suspend fun getTransactionsByHashes(hashes: List<String>): List<TransactionEntity> =
             transactionRepository.getTransactionsByHashes(hashes)
@@ -223,11 +223,11 @@ class ImportStatementUseCase @Inject constructor(
         }
 
         override suspend fun insertTransactions(transactions: List<TransactionEntity>): List<Long> {
-            // A rule can move a row to another account: pin that one's opening too.
-            transactions.mapNotNull { row -> row.bankName?.let { bank -> row.accountNumber?.let { bank to it } } }
-                .filter(accounts::add)
-                .forEach { (bank, last4) -> accountBalanceRepository.ensureManualOpening(bank, last4) }
-            return transactionRepository.insertTransactions(transactions)
+            // A rule can move a row to another account or transfer leg: pin those openings too.
+            accountBalanceRepository.pinManualOpenings(*transactions.toTypedArray())
+            return transactionRepository.insertTransactions(transactions).also { ids ->
+                ids.zip(transactions).forEach { (id, row) -> if (id != -1L) inserted += row }
+            }
         }
 
         override suspend fun recordRuleApplications(transactionId: Long, applications: List<RuleApplication>) {

@@ -5,6 +5,7 @@ import android.net.Uri
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.statement.ImportRules
 import com.pennywiseai.tracker.data.statement.ImportRulesSource
@@ -46,13 +47,15 @@ class ImportCsvUseCaseTest {
         coEvery { load() } returns ImportRules(emptyMap(), emptyMap(), emptyList(), RuleEngine())
     }
     private val database = mockk<PennyWiseDatabase>()
+    private val balances = mockk<AccountBalanceRepository>(relaxed = true)
     private val useCase = ImportCsvUseCase(
         context,
         CsvTransactionImporter(),
         transactions,
         mockk<CurrencyPreferences> { every { baseCurrency } returns flowOf("INR") },
         importRules,
-        database
+        database,
+        balances
     )
 
     @Before
@@ -86,6 +89,20 @@ class ImportCsvUseCaseTest {
             database.withTransaction(any<suspend () -> Any?>())
             importRules.load()
             transactions.insertTransactions(any())
+        }
+    }
+
+    @Test
+    fun `the accounts of the rows it adds are pinned before and recomputed after`() = runBlocking {
+        coEvery { transactions.insertTransactions(any()) } returns listOf(7L, -1L)
+
+        useCase.execute(uri)
+
+        coVerifyOrder {
+            database.withTransaction(any<suspend () -> Any?>())
+            balances.pinManualOpenings(*anyVararg())
+            transactions.insertTransactions(any())
+            balances.recomputeManualBalances(match { rows -> rows.map { it.merchantName } == listOf("Coffee Hut") })
         }
     }
 }

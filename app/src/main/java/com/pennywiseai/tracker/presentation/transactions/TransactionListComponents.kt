@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -99,18 +100,20 @@ internal fun SwipeToEditCategory(
 
 /**
  * A day's heading in the Activity list: "Today", "Yesterday" or "Mon, Nov 17"
- * on the left, the day's [net] (money in less spent, already formatted per
- * currency) on the right, with [inOut] under it: one "In … · Out …" line per
- * currency (see [dayInOut]). Painted on the page background so it can stick
- * while its rows scroll under it.
+ * on the left, the day's net (money in less spent, per currency) on the right,
+ * with one "In … · Out …" line per currency under it (see [daySubtotals]).
+ * [subtotals] are raw figures; they're formatted here so the hide-amounts
+ * switch re-masks them. Painted on the page background so it can stick while
+ * its rows scroll under it.
  */
 @Composable
 internal fun ActivityDayHeader(
     title: String,
-    net: String?,
-    modifier: Modifier = Modifier,
-    inOut: List<DayInOut> = emptyList()
+    subtotals: DaySubtotals?,
+    modifier: Modifier = Modifier
 ) {
+    val net = subtotals?.let { formatDayNet(it.net) }
+    val inOut = subtotals?.inOut.orEmpty()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -194,32 +197,6 @@ private fun dayFlows(
     }
 }
 
-/**
- * The day's net (money in less spent) as text, or null when nothing in it
- * counts (only transfers, say). Rows count as [dayFlows] has them. Buckets
- * are never added together, so a mixed day reads "−₹500 · +$10".
- */
-internal fun dayNet(
-    rows: List<TransactionEntity>,
-    splitShares: CategorySplitShares?,
-    convertedAmounts: Map<Long, BigDecimal>,
-    displayCurrency: String?
-): String? {
-    val byCurrency = dayFlows(rows, splitShares, convertedAmounts, displayCurrency)
-        .sumByCurrency({ it.first }, { it.second })
-    val nonZero = byCurrency.values.filter { it.amount.signum() != 0 }
-    if (nonZero.isEmpty()) return null
-    if (AmountPrivacy.hidden) return AmountPrivacy.MASK
-    return nonZero
-        .sortedByDescending { it.amount.abs() }
-        .joinToString(" \u00B7 ") { money ->
-            CurrencyFormatter.signed(
-                if (money.amount.signum() > 0) "+" else "-",
-                CurrencyFormatter.formatCurrency(money.amount.abs(), money.currency)
-            )
-        }
-}
-
 /** What came into and went out of a day in one currency, both positive. */
 internal data class DayInOut(
     val currency: String,
@@ -227,23 +204,53 @@ internal data class DayInOut(
     val moneyOut: BigDecimal
 )
 
+/** A day's subtotals as raw figures, for [ActivityDayHeader] to format. */
+internal data class DaySubtotals(
+    /** Money in less spent per currency, largest first; zero buckets left out. */
+    val net: List<Money>,
+    /**
+     * Money in and spent per currency, only where money went both ways (one
+     * way, the net already says it). Busiest currency first.
+     */
+    val inOut: List<DayInOut>
+)
+
 /**
- * The day's money in and spent per currency, from the rows [dayNet] counts.
- * Only currencies where money went both ways: one way, the net already says it.
- * Busiest currency first; currencies are never added together.
+ * The day's net and in/out from one pass over the rows that count (see
+ * [dayFlows]). Buckets are never added together, so a mixed day keeps one
+ * figure per currency.
  */
-internal fun dayInOut(
+internal fun daySubtotals(
     rows: List<TransactionEntity>,
     splitShares: CategorySplitShares?,
     convertedAmounts: Map<Long, BigDecimal>,
     displayCurrency: String?
-): List<DayInOut> {
+): DaySubtotals {
     val flows = dayFlows(rows, splitShares, convertedAmounts, displayCurrency)
+    val net = flows.sumByCurrency({ it.first }, { it.second }).values
+        .filter { it.amount.signum() != 0 }
+        .sortedByDescending { it.amount.abs() }
     val moneyIn = flows.filter { it.second.signum() > 0 }.sumByCurrency({ it.first }, { it.second })
     val moneyOut = flows.filter { it.second.signum() < 0 }.sumByCurrency({ it.first }, { it.second.negate() })
-    return moneyIn.mapNotNull { (currency, inMoney) ->
+    val inOut = moneyIn.mapNotNull { (currency, inMoney) ->
         moneyOut[currency]?.let { outMoney -> DayInOut(currency, inMoney.amount, outMoney.amount) }
     }.sortedByDescending { it.moneyIn + it.moneyOut }
+    return DaySubtotals(net, inOut)
+}
+
+/**
+ * A day's [net] as text, "−₹500 · +$10" for a mixed day, or null when it nets
+ * to nothing. Masked while amounts are hidden.
+ */
+internal fun formatDayNet(net: List<Money>): String? {
+    if (net.isEmpty()) return null
+    if (AmountPrivacy.hidden) return AmountPrivacy.MASK
+    return net.joinToString(" \u00B7 ") { money ->
+        CurrencyFormatter.signed(
+            if (money.amount.signum() > 0) "+" else "-",
+            CurrencyFormatter.formatCurrency(money.amount.abs(), money.currency)
+        )
+    }
 }
 
 /** "Today", "Yesterday", "Mon, Nov 17", with the year when it isn't this one. */

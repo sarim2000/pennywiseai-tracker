@@ -691,19 +691,18 @@ fun TransactionsScreen(
                         val day = section.date
                         if (day != null) {
                             stickyHeader(key = "day_$day", contentType = "dayHeader") {
-                                ActivityDayHeader(
-                                    title = dayTitle(day, today),
-                                    // A lone row already says its amount; the subtotal only helps on busier days.
-                                    net = if (section.rows.size > 1) {
-                                        dayNet(section.rows, uiState.splitShares, convertedAmounts, displayCurrency)
+                                val splitShares = uiState.splitShares
+                                val subtotals = remember(section.rows, splitShares, convertedAmounts, displayCurrency) {
+                                    // A lone row already says its amount; the subtotals only help on busier days.
+                                    if (section.rows.size > 1) {
+                                        daySubtotals(section.rows, splitShares, convertedAmounts, displayCurrency)
                                     } else {
                                         null
-                                    },
-                                    inOut = if (section.rows.size > 1) {
-                                        dayInOut(section.rows, uiState.splitShares, convertedAmounts, displayCurrency)
-                                    } else {
-                                        emptyList()
-                                    },
+                                    }
+                                }
+                                ActivityDayHeader(
+                                    title = dayTitle(day, today),
+                                    subtotals = subtotals,
                                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                 )
                             }

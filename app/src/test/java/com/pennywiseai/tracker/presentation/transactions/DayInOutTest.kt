@@ -34,7 +34,7 @@ class DayInOutTest {
         splitShares: CategorySplitShares? = null,
         converted: Map<Long, BigDecimal> = emptyMap(),
         displayCurrency: String? = null,
-    ) = dayInOut(rows, splitShares, converted, displayCurrency)
+    ) = daySubtotals(rows, splitShares, converted, displayCurrency).inOut
 
     private fun flow(currency: String, moneyIn: String, moneyOut: String) =
         DayInOut(currency, BigDecimal(moneyIn), BigDecimal(moneyOut))
@@ -127,5 +127,20 @@ class DayInOutTest {
             tx(4, "200", TransactionType.INCOME),
         )
         assertEquals(listOf("INR", "USD"), inOut(rows).map { it.currency })
+    }
+
+    @Test
+    fun `the net comes from the same rows, one figure per currency, largest first`() {
+        val rows = listOf(
+            tx(1, "500"),
+            tx(2, "2000", TransactionType.INCOME),
+            tx(3, "40", currency = "AED"),
+            tx(4, "9000", TransactionType.TRANSFER),
+        )
+        val net = daySubtotals(rows, null, emptyMap(), null).net
+        assertEquals(
+            listOf("INR" to "1500", "AED" to "-40"),
+            net.map { it.currency to it.amount.stripTrailingZeros().toPlainString() }
+        )
     }
 }

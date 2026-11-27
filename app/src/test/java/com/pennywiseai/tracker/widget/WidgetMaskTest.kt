@@ -1,7 +1,17 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.tracker.data.preferences.PrivacyPreferences
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.io.IOException
 
 class WidgetMaskTest {
 
@@ -28,5 +38,33 @@ class WidgetMaskTest {
         assertEquals(shown, widgetMask(homeHidden = false, hiddenEverywhere = false, appLockOn = true, hideWhileLocked = false))
         assertEquals(totalsOnly, widgetMask(homeHidden = true, hiddenEverywhere = false, appLockOn = true, hideWhileLocked = false))
         assertEquals(WidgetMask.ALL, widgetMask(homeHidden = true, hiddenEverywhere = true, appLockOn = true, hideWhileLocked = false))
+    }
+
+    private fun prefs(appLockOn: Flow<Boolean>) = mockk<PrivacyPreferences> {
+        every { isBalanceHidden } returns flowOf(false)
+        every { isAmountHiddenEverywhere } returns flowOf(false)
+        every { isAppLockEnabled } returns appLockOn
+        every { hideWidgetAmountsWhileLocked } returns flowOf(true)
+    }
+
+    @Test
+    fun `a failing first read hides everything`() = runBlocking {
+        val mask = widgetMaskFlow(prefs(flow { throw IOException("unreadable") })).first()
+
+        assertEquals(WidgetMask.ALL, mask)
+    }
+
+    @Test
+    fun `a read that fails later hides everything instead of ending the widget`() = runBlocking {
+        val masks = widgetMaskFlow(
+            prefs(
+                flow {
+                    emit(false)
+                    throw IOException("unreadable")
+                }
+            )
+        ).toList()
+
+        assertEquals(WidgetMask.ALL, masks.last())
     }
 }

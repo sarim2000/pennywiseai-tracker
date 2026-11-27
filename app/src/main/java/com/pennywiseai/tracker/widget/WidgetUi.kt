@@ -55,6 +55,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -128,20 +129,26 @@ internal fun widgetMask(
     return WidgetMask(totals = homeHidden || locked, amounts = hiddenEverywhere || locked)
 }
 
+/**
+ * [widgetMask] followed live; [WidgetMask.ALL] once reading the preferences fails,
+ * then or later, so a broken read hides the amounts rather than ending the widget.
+ */
+internal fun widgetMaskFlow(prefs: PrivacyPreferences): Flow<WidgetMask> = combine(
+    prefs.isBalanceHidden,
+    prefs.isAmountHiddenEverywhere,
+    prefs.isAppLockEnabled,
+    prefs.hideWidgetAmountsWhileLocked
+) { home, everywhere, lockOn, hideWhileLocked ->
+    widgetMask(home, everywhere, lockOn, hideWhileLocked)
+}.catch { emit(WidgetMask.ALL) }.distinctUntilChanged()
+
 /** The [WidgetMask], read before composing so the first frame is already right, then followed live. */
 class WidgetPrivacy(val hidden: Flow<WidgetMask>, val initial: WidgetMask) {
     companion object {
         suspend fun load(context: Context): WidgetPrivacy = try {
             val prefs = EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
                 .userPreferences()
-            val flow = combine(
-                prefs.isBalanceHidden,
-                prefs.isAmountHiddenEverywhere,
-                prefs.isAppLockEnabled,
-                prefs.hideWidgetAmountsWhileLocked
-            ) { home, everywhere, lockOn, hideWhileLocked ->
-                widgetMask(home, everywhere, lockOn, hideWhileLocked)
-            }.distinctUntilChanged()
+            val flow = widgetMaskFlow(prefs)
             WidgetPrivacy(flow, flow.first())
         } catch (e: CancellationException) {
             throw e

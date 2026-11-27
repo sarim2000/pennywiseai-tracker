@@ -218,6 +218,9 @@ class ReceiptExtractorTest {
     fun `a count or weight by a total label isn't the bill`() {
         assertEquals(BigDecimal("9.45"), amount("TOTAL ITEMS 12", "TOTAL 9.45"))
         assertEquals(BigDecimal("4.20"), amount("Total qty 25", "Total weight 1.25 kg", "TOTAL 4.20"))
+        // A count note on the total line itself leaves its money figure.
+        assertEquals(BigDecimal("9.45"), amount("Bread 3.20", "TOTAL (2 ITEMS) 9.45"))
+        assertEquals(BigDecimal("9.45"), amount("Bread 3.20", "Total 2 items 9.45"))
     }
 
     @Test

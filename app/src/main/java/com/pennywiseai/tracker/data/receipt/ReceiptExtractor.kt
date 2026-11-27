@@ -63,10 +63,17 @@ object ReceiptExtractor {
     )
     private val TOTAL = Regex("""\b(?:total|net)\b|المجموع""")
 
-    // Lines that name a part of the bill, what was handed over, or a count or weight
-    // ("Total items 12"), rather than the bill.
+    // Lines that name a part of the bill, or what was handed over, rather than the bill.
     private val NOT_TOTAL = Regex(
-        """\b(?:sub\s*-?\s*total|tax|vat|gst|tip|change|cash|tendered|discount|savings?|round(?:ing)?|items?|qty|quantity|count|pcs|pieces|units?|weight|kgs?)\b|الفرعي|ضريبة"""
+        """\b(?:sub\s*-?\s*total|tax|vat|gst|tip|change|cash|tendered|discount|savings?|round(?:ing)?)\b|الفرعي|ضريبة"""
+    )
+
+    // A count or weight printed by a total ("TOTAL ITEMS 12", "TOTAL (2 ITEMS) 9.45", "Total
+    // weight 1.25 kg"): not money. It's taken out of the line, and a line left with no figure
+    // isn't a total.
+    private val COUNT_NOTE = Regex(
+        """\(?\b\d+\s*(?:items?|qty|pcs|pieces|units?)\b\)?|\b(?:items?|qty|quantity|count|pcs|pieces|units?)\s*[:=]?\s*\d+\b(?![.,]\d)|\bweight\s*[:=]?\s*\d+(?:[.,]\d+)?\s*(?:kgs?)?|\b\d+(?:[.,]\d+)?\s*kgs?\b""",
+        RegexOption.IGNORE_CASE,
     )
 
     // A date or a time would otherwise read as amounts ("12.05", "10:45").
@@ -88,7 +95,12 @@ object ReceiptExtractor {
      * than guessing another figure; only a receipt with no total label at all falls back to
      * its largest figure with decimals.
      */
-    private fun total(lines: List<String>, formCurrency: String?): Pair<BigDecimal, Set<String>>? {
+    private fun total(allLines: List<String>, formCurrency: String?): Pair<BigDecimal, Set<String>>? {
+        // A line whose only figure was a count or weight drops out; one with a count note keeps the rest.
+        val lines = allLines.mapNotNull { line ->
+            val kept = COUNT_NOTE.replace(line, " ").trim()
+            if (kept != line.trim() && !NUMBER.containsMatchIn(DATE_OR_TIME.replace(kept, " "))) null else kept
+        }
         // A figure with no currency by it is in the one the receipt declares ("Currency: AED"),
         // never one borrowed from another line: with no declaration it's the form's, unless the
         // receipt names two that can't be the same ("1 USD = 3.67 AED") and so it's unclear.

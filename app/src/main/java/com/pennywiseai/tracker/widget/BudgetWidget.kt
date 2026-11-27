@@ -132,9 +132,9 @@ class BudgetWidget : GlanceAppWidget() {
     private fun Overview(data: BudgetWidgetData, compact: Boolean, large: Boolean) {
         val context = LocalContext.current
         val statusColor = PennyWiseWidgetTheme.budgetStatusColor(data.percentageUsed)
-        // On the shown figure: 0.3 over reads "Left · JD 0", not "Over · JD 0".
-        val over = wholeUnits(data.remaining) < BigDecimal.ZERO
+        val over = budgetOver(data.remaining, amountsHidden())
         val label = when {
+            over == null -> R.string.widget_budget_title
             compact && over -> R.string.widget_summary_over
             compact -> R.string.widget_summary_left
             over -> R.string.widget_budget_over_label
@@ -163,7 +163,7 @@ class BudgetWidget : GlanceAppWidget() {
             }
         }
 
-        if (!compact) {
+        if (!compact && over != null) {
             Spacer(GlanceModifier.height(Spacing.sm))
             WidgetLabel(context.getString(label))
         }
@@ -171,7 +171,7 @@ class BudgetWidget : GlanceAppWidget() {
             text = totalText(data.remaining.abs(), data.currency),
             maxLines = 1,
             style = TextStyle(
-                color = if (over) PennyWiseWidgetTheme.savingsColor(false) else GlanceTheme.colors.onSurface,
+                color = if (over == true) PennyWiseWidgetTheme.savingsColor(false) else GlanceTheme.colors.onSurface,
                 fontSize = Typography.headlineSmall.fontSize,
                 fontWeight = FontWeight.Bold,
                 textAlign = startTextAlign()
@@ -248,6 +248,14 @@ class BudgetWidget : GlanceAppWidget() {
         val LARGE = DpSize(280.dp, 160.dp)
     }
 }
+
+/**
+ * Whether a budget figure reads "Over", or null while amounts are hidden: "Over" or
+ * "Left", and Over's red, would tell which side of the limit the hidden figure is.
+ * On the shown figure, so 0.3 over reads "Left · JD 0", not "Over · JD 0".
+ */
+internal fun budgetOver(remaining: BigDecimal, hidden: Boolean): Boolean? =
+    if (hidden) null else wholeUnits(remaining) < BigDecimal.ZERO
 
 /** "of JD 360 · JD 18/day": the limit and, while there's any left, the per-day pace. */
 @Composable

@@ -328,10 +328,10 @@ fun ExportTransactionsDialog(
                                     // Truncation case still surfaces the
                                     // paywall via the link beside this
                                     // button so they can unlock the rest.
-                                    // The cap is re-read now: a trial may have ended
-                                    // while the dialog was open.
+                                    // The view model applies the cap as the export runs:
+                                    // a trial may have ended while the dialog was open.
                                     scope.launch {
-                                        viewModel.exportTransactions(viewModel.rowsToExport(transactions)).collect { result ->
+                                        viewModel.exportTransactions(transactions).collect { result ->
                                             when (result) {
                                                 is ExportResult.Progress -> {
                                                     exportState = ExportState.Exporting(

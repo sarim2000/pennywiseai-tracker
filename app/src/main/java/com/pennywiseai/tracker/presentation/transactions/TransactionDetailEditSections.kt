@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.then
 import androidx.compose.material.icons.Icons
@@ -29,7 +28,6 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.domain.model.AmountInput
 import com.pennywiseai.tracker.presentation.add.ReceiptPickerSection
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
@@ -69,13 +67,6 @@ private val editMiddleShape: Shape @Composable get() = ListItemPosition.Middle.t
 private val editBottomShape: Shape @Composable get() = ListItemPosition.Bottom.toShape()
 internal val editFullShape: Shape @Composable get() = RoundedField.shape
 
-// The editor keeps its last amount rather than take an empty or zero one, so the field
-// doesn't show one either; a sum that doesn't come to an amount yet is still fine.
-private val PositivePlainAmount = InputTransformation {
-    val text = asCharSequence().toString()
-    if (!AmountInput.hasOperator(text) && (text.toBigDecimalOrNull()?.signum() ?: 0) <= 0) revertAllChanges()
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun EditableTransactionHeader(
@@ -107,7 +98,7 @@ internal fun EditableTransactionHeader(
             val amountSum = amount.sumHint
             TextField(
                 state = amount.state,
-                inputTransformation = amount.inputTransformation.then(PositivePlainAmount),
+                inputTransformation = amount.inputTransformation,
                 label = { Text(stringResource(R.string.txn_detail_field_amount), fontWeight = FontWeight.SemiBold) },
                 textStyle = MaterialTheme.typography.headlineSmall.money(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

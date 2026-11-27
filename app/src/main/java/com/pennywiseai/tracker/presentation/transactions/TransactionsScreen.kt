@@ -714,7 +714,9 @@ fun TransactionsScreen(
                                 item(key = "dayInOut_$day", contentType = "dayInOut") {
                                     ActivityDayInOut(
                                         inOut = inOut,
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                        modifier = Modifier
+                                            .animateItem()
+                                            .padding(horizontal = Dimensions.Padding.content)
                                     )
                                 }
                             }

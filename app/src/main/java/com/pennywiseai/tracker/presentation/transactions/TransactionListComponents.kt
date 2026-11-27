@@ -15,6 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -121,6 +123,8 @@ internal fun ActivityDayHeader(
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = Spacing.sm)
             .padding(top = Spacing.md, bottom = Spacing.sm)
+            // One heading node, so TalkBack reads the date and its totals together.
+            .semantics(mergeDescendants = true) { heading() }
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(

@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.presentation.transactions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -56,5 +58,18 @@ class ActivityDayHeaderTest {
         }
         val masked = compose.activity.getString(R.string.txn_list_day_in_out, AmountPrivacy.MASK, AmountPrivacy.MASK)
         compose.onAllNodesWithText(masked, useUnmergedTree = true).assertCountEquals(1)
+    }
+
+    @Test
+    fun theDateAndItsTotalsAreOneHeading() {
+        val subtotals = DaySubtotals(
+            net = emptyList(),
+            inOut = listOf(DayInOut("USD", BigDecimal("100"), BigDecimal("100")))
+        )
+        compose.setContent {
+            MaterialTheme { ActivityDayHeader(title = "Mon, Nov 9", subtotals = subtotals) }
+        }
+        compose.onNode(isHeading() and hasText("Mon, Nov 9") and hasText(inOutLine("100", "100")))
+            .assertIsDisplayed()
     }
 }

@@ -35,7 +35,6 @@ import com.pennywiseai.tracker.presentation.subscriptions.billTrackedMoment
 import com.pennywiseai.tracker.presentation.transactions.normalizeReference
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.pickerDefault
-import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -605,11 +604,7 @@ class AddViewModel @Inject constructor(
                 emptyList()
             }
             val scan = lines?.let {
-                ReceiptExtractor.extract(
-                    it, known, LocalDate.now(),
-                    monthFirst = AppDates.locale().country == "US",
-                    currency = _transactionUiState.value.entryCurrency
-                )
+                ReceiptExtractor.extract(it, known, LocalDate.now(), currency = _transactionUiState.value.entryCurrency)
             }
             applyReceiptScan(scan)
         }

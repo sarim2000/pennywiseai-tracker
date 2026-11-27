@@ -12,8 +12,8 @@ class ReceiptExtractorTest {
 
     private val today = LocalDate.of(2026, 3, 20)
 
-    private fun scan(vararg lines: String, known: List<String> = emptyList(), monthFirst: Boolean = false, currency: String? = "USD") =
-        ReceiptExtractor.extract(lines.toList(), known, today, monthFirst, currency)
+    private fun scan(vararg lines: String, known: List<String> = emptyList(), currency: String? = "USD") =
+        ReceiptExtractor.extract(lines.toList(), known, today, currency)
 
     private fun amount(vararg lines: String, currency: String? = "USD") = scan(*lines, currency = currency).amount
 
@@ -110,12 +110,30 @@ class ReceiptExtractorTest {
     }
 
     @Test
-    fun `numeric dates, day first unless the region reads month first`() {
-        assertEquals(LocalDate.of(2026, 3, 12), scan("Date: 12/03/2026").date)
-        assertEquals(LocalDate.of(2026, 3, 4), scan("03/04/26", monthFirst = true).date)
+    fun `numeric dates only when they read one way`() {
         assertEquals(LocalDate.of(2026, 3, 18), scan("2026-03-18 14:02").date)
-        // 18 can't be a month, whatever the region.
+        // 18 can't be a month, and December 3rd is still to come.
         assertEquals(LocalDate.of(2026, 3, 18), scan("03/18/2026").date)
+        assertEquals(LocalDate.of(2026, 3, 12), scan("Date: 12/03/2026").date)
+        assertEquals(LocalDate.of(2026, 2, 2), scan("02/02/2026").date)
+        // April 3rd is still to come, so it's March 4th.
+        assertEquals(LocalDate.of(2026, 3, 4), scan("03/04/26").date)
+        // February 3rd or March 2nd: both past, so it's left for the user, not taken from another line.
+        assertNull(scan("03/02/26").date)
+        assertNull(scan("03/02/26", "Printed 2026-01-10").date)
+    }
+
+    @Test
+    fun `the purchase date, not an expiry or a return date`() {
+        assertEquals(
+            LocalDate.of(2026, 3, 1),
+            scan("Card exp 2026-02-28", "Valid until 2026-03-15", "Purchased 2026-03-01").date
+        )
+        assertEquals(
+            LocalDate.of(2026, 3, 2),
+            scan("Ref 2026-01-15", "Date 2026-03-02").date
+        )
+        assertNull(scan("Returns accepted until 2026-03-10").date)
     }
 
     @Test

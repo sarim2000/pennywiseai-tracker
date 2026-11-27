@@ -40,7 +40,6 @@ object ReceiptExtractor {
         lines: List<String>,
         knownMerchants: List<String> = emptyList(),
         today: LocalDate = LocalDate.now(),
-        monthFirst: Boolean = false,
         currency: String? = null,
     ): Scan {
         val clean = lines.map { it.trim() }.filter { it.isNotEmpty() }
@@ -48,7 +47,7 @@ object ReceiptExtractor {
         return Scan(
             amount = total?.first,
             currencies = total?.second.orEmpty(),
-            date = clean.firstNotNullOfOrNull { date(it, today, monthFirst) },
+            date = purchaseDate(clean, today),
             merchant = merchant(clean, knownMerchants),
         )
     }
@@ -242,35 +241,53 @@ object ReceiptExtractor {
     private val DAY_MONTH = Regex("""\b(\d{1,2})(?:st|nd|rd|th)?[\s-]*$MONTH[\s,-]*(\d{4}|\d{2})\b""", RegexOption.IGNORE_CASE)
     private val MONTH_DAY = Regex("""\b$MONTH\s*(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})\b""", RegexOption.IGNORE_CASE)
 
-    /** The first date on [line] that's a real day not after [today]. */
-    internal fun date(line: String, today: LocalDate, monthFirst: Boolean = false): LocalDate? {
+    // A line naming when the purchase was made is the one to read; a line naming a later day
+    // (an expiry, a return window) is never the purchase date.
+    private val PURCHASE_DATE = Regex("""\b(?:date|dated|purchased?|sale|sold|txn|transaction|invoice|bill|issued)\b""")
+    private val NOT_PURCHASE_DATE = Regex(
+        """\b(?:exp(?:iry|ires?|iration)?|valid|until|till|thru|through|return(?:s|ed)?|refund|exchange|best|use\s+by|due)\b"""
+    )
+
+    /**
+     * The purchase date: the first readable date on a line that labels it, else the first
+     * on any other line, skipping lines about expiry or returns. Null when that date reads
+     * two ways ("03/04/2026" as March 4th or April 3rd, both past).
+     */
+    private fun purchaseDate(lines: List<String>, today: LocalDate): LocalDate? {
+        val usable = lines.filterNot { NOT_PURCHASE_DATE.containsMatchIn(it.lowercase()) }
+        val (labeled, others) = usable.partition { PURCHASE_DATE.containsMatchIn(it.lowercase()) }
+        return (labeled + others).firstNotNullOfOrNull { dateOn(it, today) }?.date
+    }
+
+    /** A date found on a line: [date] is null when it reads as two different past days. */
+    internal data class DateRead(val date: LocalDate?)
+
+    /** The first date on [line] that's a real day not after [today]; null when there's none. */
+    internal fun dateOn(line: String, today: LocalDate): DateRead? {
+        fun usable(date: LocalDate?) = date?.takeIf { !it.isAfter(today) && it.year >= 2000 }
         val candidates = sequence {
             YEAR_FIRST.findAll(line).forEach { m ->
                 val (y, mo, d) = m.destructured
-                yield(dateOf(y.toInt(), mo.toInt(), d.toInt()))
+                yield(usable(dateOf(y.toInt(), mo.toInt(), d.toInt()))?.let(::DateRead))
             }
             NUMERIC.findAll(line).forEach { m ->
                 val (a, b, y) = m.destructured
-                val first = a.toInt()
-                val second = b.toInt()
-                // Whichever can't be a month settles it; otherwise the region's order.
-                val dayFirst = when {
-                    first > 12 -> true
-                    second > 12 -> false
-                    else -> !monthFirst
-                }
-                yield(if (dayFirst) dateOf(year(y), second, first) else dateOf(year(y), first, second))
+                // Day first and month first; whichever isn't a real past day drops out.
+                val readings = listOf(dateOf(year(y), b.toInt(), a.toInt()), dateOf(year(y), a.toInt(), b.toInt()))
+                    .mapNotNull(::usable)
+                    .distinct()
+                yield(if (readings.isEmpty()) null else DateRead(readings.singleOrNull()))
             }
             DAY_MONTH.findAll(line).forEach { m ->
                 val (d, mo, y) = m.destructured
-                yield(dateOf(year(y), month(mo), d.toInt()))
+                yield(usable(dateOf(year(y), month(mo), d.toInt()))?.let(::DateRead))
             }
             MONTH_DAY.findAll(line).forEach { m ->
                 val (mo, d, y) = m.destructured
-                yield(dateOf(y.toInt(), month(mo), d.toInt()))
+                yield(usable(dateOf(y.toInt(), month(mo), d.toInt()))?.let(::DateRead))
             }
         }
-        return candidates.filterNotNull().firstOrNull { !it.isAfter(today) && it.year >= 2000 }
+        return candidates.filterNotNull().firstOrNull()
     }
 
     private fun year(text: String): Int = text.toInt().let { if (text.length == 2) 2000 + it else it }

@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 
 class FeatureTrialsTest {
 
-    private val stored = mutableMapOf<String, Long>()
+    private val stored = mutableMapOf<String, Any>()
     private var clock = START
     private val trials = testFeatureTrials(stored) { clock }
 
@@ -58,6 +58,29 @@ class FeatureTrialsTest {
         trials.start(TrialFeature.ANALYTICS_GROUPING)
         clock = START - 1
         assertEquals(TrialStatus.Expired, trials.status(TrialFeature.ANALYTICS_GROUPING))
+    }
+
+    @Test
+    fun `an ended trial stays ended when the clock goes back into it`() {
+        trials.start(TrialFeature.ANALYTICS_GROUPING)
+        clock = START + days(8)
+        assertEquals(TrialStatus.Expired, trials.status(TrialFeature.ANALYTICS_GROUPING))
+
+        clock = START + days(2)
+        assertEquals(TrialStatus.Expired, trials.status(TrialFeature.ANALYTICS_GROUPING))
+    }
+
+    @Test
+    fun `a clock behind the latest time seen reads as expired until it catches up`() {
+        trials.start(TrialFeature.CSV_EXPORT)
+        clock = START + days(3)
+        assertEquals(TrialStatus.Active(4), trials.status(TrialFeature.CSV_EXPORT))
+
+        clock = START + days(1)
+        assertEquals(TrialStatus.Expired, trials.status(TrialFeature.CSV_EXPORT))
+
+        clock = START + days(4)
+        assertEquals(TrialStatus.Active(3), trials.status(TrialFeature.CSV_EXPORT))
     }
 
     @Test
@@ -112,15 +135,17 @@ class FeatureTrialsTest {
     }
 }
 
-/** [FeatureTrials] over an in-memory [stored] map of trial starts, read at [now]. */
+/** [FeatureTrials] over an in-memory [stored] prefs map, read at [now]. */
 internal fun testFeatureTrials(
-    stored: MutableMap<String, Long> = mutableMapOf(),
+    stored: MutableMap<String, Any> = mutableMapOf(),
     now: () -> Long = System::currentTimeMillis,
 ): FeatureTrials {
     val editor = mockk<SharedPreferences.Editor>(relaxed = true)
-    every { editor.putLong(any(), any()) } answers { stored[firstArg()] = secondArg(); editor }
+    every { editor.putLong(any(), any()) } answers { stored[firstArg()] = secondArg<Long>(); editor }
+    every { editor.putBoolean(any(), any()) } answers { stored[firstArg()] = secondArg<Boolean>(); editor }
     val prefs = mockk<SharedPreferences> {
-        every { getLong(any(), any()) } answers { stored[firstArg()] ?: secondArg() }
+        every { getLong(any(), any()) } answers { stored[firstArg()] as Long? ?: secondArg() }
+        every { getBoolean(any(), any()) } answers { stored[firstArg()] as Boolean? ?: secondArg() }
         every { contains(any()) } answers { firstArg<String>() in stored }
         every { edit() } returns editor
     }

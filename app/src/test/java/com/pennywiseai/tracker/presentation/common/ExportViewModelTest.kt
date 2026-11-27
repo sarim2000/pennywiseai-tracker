@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 class ExportViewModelTest {
 
     private val rows = (1..250).toList()
-    private val stored = mutableMapOf<String, Long>()
+    private val stored = mutableMapOf<String, Any>()
     private var clock = TimeUnit.DAYS.toMillis(20_000)
     private val trials = testFeatureTrials(stored) { clock }
 

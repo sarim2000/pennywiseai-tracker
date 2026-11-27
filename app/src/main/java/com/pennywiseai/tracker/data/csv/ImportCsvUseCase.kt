@@ -84,12 +84,14 @@ class ImportCsvUseCase @Inject constructor(
                 toInsert.add(transaction)
             }
 
-            val (kept, blocked) = applyRules(toInsert, importRules.load())
-            // A row the database ignored (-1: its hash is already there) wasn't imported.
-            val imported = if (kept.isEmpty()) 0 else database.withTransaction {
-                val ids = transactionRepository.insertTransactions(kept.map { it.entity })
+            // Rules are read inside the write: one deleted meanwhile can't be
+            // recorded against the new rows (its history row would break the batch).
+            val (imported, blocked) = if (toInsert.isEmpty()) 0 to 0 else database.withTransaction {
+                val (kept, blockedCount) = applyRules(toInsert, importRules.load())
+                // A row the database ignored (-1: its hash is already there) wasn't imported.
+                val ids = if (kept.isEmpty()) emptyList() else transactionRepository.insertTransactions(kept.map { it.entity })
                 ids.zip(kept).forEach { (id, row) -> importRules.record(id, row.applications) }
-                ids.count { it != -1L }
+                ids.count { it != -1L } to blockedCount
             }
 
             Result.Success(

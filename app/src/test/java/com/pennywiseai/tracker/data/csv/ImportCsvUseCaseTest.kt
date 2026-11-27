@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.statement.ImportRulesSource
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -73,5 +74,18 @@ class ImportCsvUseCaseTest {
 
         assertEquals(1, result.imported)
         coVerify { importRules.record(7L, any()) }
+    }
+
+    @Test
+    fun `rules are read inside the write transaction`() = runBlocking {
+        coEvery { transactions.insertTransactions(any()) } returns listOf(7L, 8L)
+
+        useCase.execute(uri)
+
+        coVerifyOrder {
+            database.withTransaction(any<suspend () -> Any?>())
+            importRules.load()
+            transactions.insertTransactions(any())
+        }
     }
 }

@@ -204,7 +204,7 @@ class SettingsViewModel @Inject constructor(
     fun setFolderBackupPassphrase(passphrase: CharArray) {
         viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) { folderBackupRunner.saveEncryption(passphrase) }
+                folderBackupRunner.saveEncryption(passphrase)
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Failed to save the folder backup passphrase", e)
                 _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_passphrase_save_failed)
@@ -219,7 +219,7 @@ class SettingsViewModel @Inject constructor(
     fun turnOffFolderBackupEncryption() {
         viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) { folderBackupRunner.clearEncryption() }
+                folderBackupRunner.clearEncryption()
             } catch (e: Exception) {
                 Log.e("SettingsViewModel", "Failed to turn off folder backup encryption", e)
                 _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_encryption_off_failed)
@@ -954,13 +954,17 @@ class SettingsViewModel @Inject constructor(
             return null
         }
 
-        if (!folderBackupWriter.canWriteToFolder(treeUri)) {
+        // SAF and the Keystore block: off the main thread (the runner writes on IO too).
+        if (!withContext(Dispatchers.IO) { folderBackupWriter.canWriteToFolder(treeUri) }) {
             _importExportMessage.value = UiText.Res(R.string.settings_folder_not_writable)
             return null
         }
 
         return when (val result = folderBackupRunner.run(treeUri)) {
             is FolderBackupRunner.Result.Success -> {
+                // Only the user reaches here (back up now, a new folder, turning it on);
+                // the scheduled worker writes its backups on its own.
+                mascotMoments.announce(MascotMoment.BackupSaved)
                 if (showSuccessMessage) {
                     _importExportMessage.value = if (result.skippedReceipts > 0) {
                         UiText.Plural(R.plurals.settings_folder_backup_saved_skipped_receipts, result.skippedReceipts)
@@ -968,9 +972,6 @@ class SettingsViewModel @Inject constructor(
                         UiText.Res(R.string.settings_folder_backup_saved)
                     }
                 }
-                // Only the user reaches here (back up now, a new folder, turning it on);
-                // the scheduled worker writes its backups on its own.
-                mascotMoments.announce(MascotMoment.BackupSaved)
                 result.skippedReceipts
             }
             FolderBackupRunner.Result.PassphraseLost -> {
@@ -989,7 +990,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     private suspend fun enableScheduledFolderBackup(treeUri: String) {
-        if (!folderBackupWriter.canWriteToFolder(treeUri)) {
+        if (!withContext(Dispatchers.IO) { folderBackupWriter.canWriteToFolder(treeUri) }) {
             _importExportMessage.value = UiText.Res(R.string.settings_folder_not_writable)
             return
         }

@@ -38,6 +38,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayOutputStream
@@ -105,10 +106,10 @@ class BackupMomentsTest {
     }
 
     /**
-     * saveBackupToFile copies on Dispatchers.IO, which the test Main dispatcher doesn't run:
-     * wait for its message, which it sets after announcing, and after failing.
+     * Saving to a file and folder backups run on Dispatchers.IO, which the test Main dispatcher
+     * doesn't run: wait for their message, which they set after announcing, and after failing.
      */
-    private fun awaitSaveResult() = runBlocking {
+    private fun awaitMessage() = runBlocking {
         withTimeout(5_000) { viewModel.importExportMessage.first { it != null } }
     }
 
@@ -125,6 +126,7 @@ class BackupMomentsTest {
         every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Success
 
         viewModel.backupToFolderNow()
+        awaitMessage()
 
         assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
     }
@@ -135,9 +137,28 @@ class BackupMomentsTest {
         every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Success
 
         viewModel.setScheduledFolderBackupEnabled(true)
+        awaitMessage()
 
         assertEquals(UiText.Plural(R.plurals.settings_folder_backup_enabled_skipped_receipts, 2), viewModel.importExportMessage.value)
         assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
+    }
+
+    @Test
+    fun `back up now unlocks the passphrase and writes off the main thread`() {
+        val mainThread = Thread.currentThread()
+        val threads = mutableListOf<Thread>()
+        every { passphrase.load() } answers { threads += Thread.currentThread(); null }
+        every { writer.canWriteToFolder(any()) } answers { threads += Thread.currentThread(); true }
+        every { writer.writeBackup(any(), any()) } answers {
+            threads += Thread.currentThread()
+            FolderBackupWriter.Result.Success
+        }
+
+        viewModel.backupToFolderNow()
+        awaitMessage()
+
+        assertEquals(3, threads.size)
+        assertTrue("SAF and the Keystore stay off the main thread", threads.none { it == mainThread })
     }
 
     @Test
@@ -145,6 +166,7 @@ class BackupMomentsTest {
         every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Failure("no space")
 
         viewModel.backupToFolderNow()
+        awaitMessage()
 
         assertEquals(emptyList<MascotMoment>(), heard)
     }
@@ -155,6 +177,7 @@ class BackupMomentsTest {
         every { passphrase.load() } throws FolderBackupPassphrase.LostException(IllegalStateException("key gone"))
 
         viewModel.backupToFolderNow()
+        awaitMessage()
 
         assertEquals(UiText.Res(R.string.settings_folder_backup_passphrase_lost_subtitle), viewModel.importExportMessage.value)
         assertEquals(emptyList<MascotMoment>(), heard)
@@ -169,7 +192,7 @@ class BackupMomentsTest {
 
         viewModel.clearImportExportMessage()
         viewModel.saveBackupToFile(mockk(), backupFile.path)
-        awaitSaveResult()
+        awaitMessage()
 
         assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
     }
@@ -181,7 +204,7 @@ class BackupMomentsTest {
 
         viewModel.clearImportExportMessage()
         viewModel.saveBackupToFile(mockk(), backupFile.path)
-        awaitSaveResult()
+        awaitMessage()
 
         assertEquals(emptyList<MascotMoment>(), heard)
     }

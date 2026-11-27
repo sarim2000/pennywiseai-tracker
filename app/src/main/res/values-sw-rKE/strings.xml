@@ -8,6 +8,7 @@
     <string name="widget_description_category_pie">Matumizi ya mwezi huu kwa kategoria kama chati ya duara yenye ufunguo.</string>
     <string name="widget_name_add_transaction">Matumizi ya pesa taslimu</string>
     <string name="widget_name_summary">Muhtasari wa Matumizi</string>
+    <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Ongeza Muamala</string>
     <string name="shortcut_add_transaction_short">Ongeza</string>
@@ -28,6 +29,7 @@
     <string name="duplicate_accounts_message">Tofauti za miundo ya SMS za benki au usomaji wa awali huenda zimeunda akaunti zilizojirudia zenye tarakimu tatu na nne. Ikiwa %1$s na %2$s ni akaunti moja, ziunganishwe? Miamala itahamia kwenye akaunti ya tarakimu nne, historia ya salio lake itahifadhiwa, na SMS zijazo zitaitumia moja kwa moja.</string>
     <string name="duplicate_accounts_merge">Unganisha na ukumbuke</string>
     <string name="duplicate_accounts_keep">Ziache tofauti</string>
+    <!-- Top-bar eye, shown on every screen while the user has hidden amounts: tapping it shows them again -->
     <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
     <!-- AI chat: the badge by the latest reply's mascot. Saved: the rows of an Add card were just saved -->
     <!-- Developer mode: a screen showing the mascot in every shape and mood, for checking it on a device -->
@@ -41,4 +43,6 @@
     <!-- rd:plan -->
     <!-- rd:settings -->
     <!-- rd:lead -->
+    <!-- Settings → Security, shown while App Lock is on -->
+    <!-- Goal widgets: what TalkBack reads for a goal's ring while amounts are hidden -->
 </resources>

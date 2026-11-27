@@ -54,6 +54,7 @@
     <string name="goal_detail_history_empty">Noch nichts eingezahlt. Nutzen Sie „Geld hinzufügen“, wenn Sie etwas zurücklegen.</string>
     <string name="goal_add_money">Geld hinzufügen</string>
     <string name="goal_take_out">Entnehmen</string>
+    <!-- Snackbar when Add money takes a goal past 25 / 50 / 75% of its target -->
     <string name="goal_more">Weitere Optionen</string>
     <string name="goal_menu_edit">Bearbeiten</string>
     <string name="goal_menu_repeat">Für nächstes Jahr wiederholen</string>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-labelledby="owl-t">
+  <title id="owl-t">PennyWise owl</title>
+  <defs>
+    <mask id="owl-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+      <path fill="#fff" stroke="#fff" stroke-width="5" stroke-linejoin="round" d="M50 22C58 22 64 23 70 25L77 17Q81 13 82 19L83 31C87 38 89 45 89 53C89 74 72 89 50 89C28 89 11 74 11 53C11 45 13 38 17 31L18 19Q19 13 23 17L30 25C36 23 42 22 50 22Z"/>
+      <g fill="none" stroke="#000" stroke-width="4.5">
+        <circle cx="36" cy="54" r="13.5"/>
+        <circle cx="64" cy="54" r="13.5"/>
+      </g>
+      <path fill="#000" stroke="#000" stroke-width="3" stroke-linejoin="round" d="M50 66L53 70L50 75L47 70Z"/>
+      <rect fill="#000" x="33.47" y="47.95" width="5.06" height="12.1" rx="2.53"/>
+      <rect fill="#000" x="61.47" y="47.95" width="5.06" height="12.1" rx="2.53"/>
+    </mask>
+  </defs>
+  <ellipse cx="50" cy="95" rx="26" ry="2.6" fill="#1A1B20" fill-opacity=".12"/>
+  <rect width="100" height="100" fill="#475D92" mask="url(#owl-cut)"/>
+</svg>

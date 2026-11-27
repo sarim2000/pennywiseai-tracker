@@ -165,6 +165,27 @@ decode to no shares; older apps ignore them.
   `(transaction_id, loan_id)` index backs this up.
 - `upi_id` fills in a missing one and never replaces one set on this device.
 
+## Reimbursable expenses (#1389)
+
+Two nullable columns on each transaction, no new table. Older backups lack
+the keys and restore as not reimbursable; older apps ignore them.
+
+```json
+"transactions": [ { "id": 3, "reimbursementStatus": "REIMBURSED", "reimbursedById": 9, … } ]
+```
+
+- `reimbursementStatus` is `PENDING`, `REIMBURSED` or absent (not
+  reimbursable). An unknown name decodes to absent rather than failing the file.
+- `reimbursedById` is the id of the incoming payment that paid it back, or
+  absent when the user marked it reimbursed without one. Several expenses can
+  point at one payment.
+- **Import (both strategies):** every transaction is inserted without the
+  link, then each row this import inserted is pointed at its payment through
+  the old→local id map once all rows are in (`reimbursementLinks`). A payment
+  that didn't restore leaves the row reimbursed, unlinked. In a MERGE the
+  payment may be a local hash duplicate; a matched local expense keeps its own
+  state.
+
 ## Resilience
 
 Beyond schema tolerance, the importer skips and **counts** any single row that

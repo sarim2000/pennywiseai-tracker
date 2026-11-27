@@ -8,6 +8,7 @@
     <string name="widget_description_category_pie">إنفاق هذا الشهر حسب الفئة في مخطط دائري مع وسيلة إيضاح.</string>
     <string name="widget_name_add_transaction">مصروف نقدي</string>
     <string name="widget_name_summary">ملخص الإنفاق</string>
+    <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">إضافة معاملة</string>
     <string name="shortcut_add_transaction_short">إضافة</string>
@@ -28,6 +29,7 @@
     <string name="duplicate_accounts_message">قد تؤدي الاختلافات في صيغ الرسائل البنكية القصيرة، أو قراءتها بطريقة سابقة، إلى إنشاء حسابات مكررة بأرقام من ثلاث خانات وأربع خانات. إذا كان %1$s و%2$s الحساب نفسه، فهل تريد دمجهما؟ ستنتقل المعاملات إلى الحساب ذي الخانات الأربع، وسيُحتفظ بسجل رصيده، وستُسجَّل عليه الرسائل القادمة تلقائيًا.</string>
     <string name="duplicate_accounts_merge">دمج وتذكّر ذلك</string>
     <string name="duplicate_accounts_keep">إبقاؤهما منفصلين</string>
+    <!-- Top-bar eye, shown on every screen while the user has hidden amounts: tapping it shows them again -->
     <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
     <plurals name="dock_result_description">
         <item quantity="zero">لا معاملات جديدة</item>
@@ -49,4 +51,6 @@
     <!-- rd:plan -->
     <!-- rd:settings -->
     <!-- rd:lead -->
+    <!-- Settings → Security, shown while App Lock is on -->
+    <!-- Goal widgets: what TalkBack reads for a goal's ring while amounts are hidden -->
 </resources>

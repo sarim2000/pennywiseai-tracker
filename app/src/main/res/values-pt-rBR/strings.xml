@@ -8,6 +8,7 @@
     <string name="widget_description_category_pie">Gastos do mês por categoria em um gráfico de pizza com legenda.</string>
     <string name="widget_name_add_transaction">Gasto em dinheiro</string>
     <string name="widget_name_summary">Resumo de gastos</string>
+    <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Adicionar transação</string>
     <string name="shortcut_add_transaction_short">Adicionar</string>
@@ -28,6 +29,7 @@
     <string name="duplicate_accounts_message">Diferenças no formato dos SMS do banco ou leituras antigas podem ter criado contas duplicadas com três e quatro dígitos. Se %1$s e %2$s forem a mesma conta, quer juntá-las? As transações vão para a conta de quatro dígitos, o histórico de saldo dela é mantido e os próximos SMS vão usá-la automaticamente.</string>
     <string name="duplicate_accounts_merge">Juntar e lembrar</string>
     <string name="duplicate_accounts_keep">Manter separadas</string>
+    <!-- Top-bar eye, shown on every screen while the user has hidden amounts: tapping it shows them again -->
     <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
     <!-- AI chat: the badge by the latest reply's mascot. Saved: the rows of an Add card were just saved -->
     <!-- Developer mode: a screen showing the mascot in every shape and mood, for checking it on a device -->
@@ -41,4 +43,6 @@
     <!-- rd:plan -->
     <!-- rd:settings -->
     <!-- rd:lead -->
+    <!-- Settings → Security, shown while App Lock is on -->
+    <!-- Goal widgets: what TalkBack reads for a goal's ring while amounts are hidden -->
 </resources>

@@ -33,7 +33,6 @@
     <string name="home_resync_scan_again">فحص جميع الرسائل مجددًا</string>
     <string name="home_resync_scan_again_desc">يضيف أي شيء فاتنا. تبقى تعديلاتك وجميع المعاملات الحالية كما هي.</string>
     <string name="home_resync_rebuild">إعادة البناء من البداية</string>
-    <string name="home_resync_rebuild_desc">يعيد قراءة معاملات الرسائل القصيرة للاستفادة من تحسينات قراءة الرسائل. تُلغى تعديلاتك على هذه المعاملات، ويُحتفظ بالمعاملات اليدوية والمستوردة ومعاملات القروض والمعاملات المجمّعة.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">المزيد من الخيارات</string>
     <string name="home_menu_edit_home">تعديل الشاشة الرئيسية</string>
@@ -442,4 +441,9 @@
     <string name="safe_to_spend_choose_accounts">اختيار الحسابات</string>
     <string name="safe_to_spend_done">تم</string>
     <string name="safe_to_spend_footnote">تأتي الفواتير من اشتراكاتك النشطة. لا تُحتسب البطاقات الائتمانية والقروض أموالًا قابلة للإنفاق.</string>
+    <!-- Weekly guess: a Home card and its sheet. %1$s is a category name, %2$s a currency code. -->
+    <!-- %1$s is the setting's name, "Count card spend as expense". -->
+    <!-- %1$s is the guessed amount. -->
+    <!-- %1$d is a whole percent. -->
+    <!-- %1$s is an amount, %2$d a whole percent. -->
 </resources>

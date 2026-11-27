@@ -4,12 +4,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 
-private const val TABULAR = "tnum"
+internal const val TABULAR = "tnum"
 
 /**
  * Tabular figures on any role, for a number that counts in place on a style
@@ -20,15 +19,14 @@ private const val TABULAR = "tnum"
 fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = TABULAR)
 
 /**
- * Any role drawn as money — square body-family figures with `tnum`, at the
- * role's own size and weight. For an amount sized like a role none of the
+ * Any role drawn as money — square (ROND 0) figures with `tnum`, at the role's
+ * own size, weight and optical size. For an amount sized like a role none of the
  * named [PennyWiseText] money styles match (e.g. `titleLarge`); prefer those
  * when one fits. Never put an amount in a bare heading role: with Google Sans
  * Flex those are rounded and their digits proportional.
  */
 @Composable @ReadOnlyComposable
-fun TextStyle.money(): TextStyle =
-    copy(fontFamily = MaterialTheme.typography.bodyLarge.fontFamily, fontFeatureSettings = TABULAR)
+fun TextStyle.money(): TextStyle = asMoney(MaterialTheme.typography.bodyLarge.fontFamily)
 
 /**
  * Named styles for the handful of jobs the plain Material roles don't cover on
@@ -42,68 +40,46 @@ fun TextStyle.money(): TextStyle =
  * These are derived from the theme typography rather than declared from
  * scratch, so they follow the user's font choice and any future scale change.
  *
- * Money styles also take the *body* family even when sized from a heading
- * role: with Google Sans Flex that keeps figures square (ROND 0) while the
- * words around them are rounded. For SYSTEM and SN Pro the two are the same.
+ * Money styles are square (ROND 0) even when sized from a heading role, so
+ * with Google Sans Flex figures stay crisp while the words around them are
+ * rounded; each still takes the optical size of its own font size (the hero
+ * amount draws at `opsz` 36, not the body's 16). For SYSTEM and SN Pro they
+ * take the body family, which is the same family.
  */
 object PennyWiseText {
-
-    private val moneyFamily: FontFamily?
-        @Composable @ReadOnlyComposable
-        get() = MaterialTheme.typography.bodyLarge.fontFamily
 
     /** The one big number on a screen — Home's month spent, transaction detail,
      *  a Period Review card. */
     val heroAmount: TextStyle
         @Composable @ReadOnlyComposable
-        get() = MaterialTheme.typography.displaySmallEmphasized.copy(
-            fontFamily = moneyFamily,
-            fontFeatureSettings = TABULAR
-        )
+        get() = MaterialTheme.typography.displaySmallEmphasized.money()
 
     /** A screen's headline total — the Analytics period total. One line: pair
      *  with `TextAutoSize` rather than letting a long amount wrap or clip. */
     val amountHeadline: TextStyle
         @Composable @ReadOnlyComposable
-        get() = MaterialTheme.typography.headlineLarge.copy(
-            fontFamily = moneyFamily,
-            fontWeight = FontWeight.Bold,
-            fontFeatureSettings = TABULAR
-        )
+        get() = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold).money()
 
     /** A section total: monthly spend, budget cap, card balance. */
     val amountLarge: TextStyle
         @Composable @ReadOnlyComposable
-        get() = MaterialTheme.typography.headlineSmall.copy(
-            fontFamily = moneyFamily,
-            fontWeight = FontWeight.Bold,
-            fontFeatureSettings = TABULAR
-        )
+        get() = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold).money()
 
     /** A summary figure inside a card or tile. */
     val amountMedium: TextStyle
         @Composable @ReadOnlyComposable
-        get() = MaterialTheme.typography.titleMedium.copy(
-            fontFamily = moneyFamily,
-            fontWeight = FontWeight.Bold,
-            fontFeatureSettings = TABULAR
-        )
+        get() = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold).money()
 
     /** The trailing amount on a transaction / list row. */
     val amountRow: TextStyle
         @Composable @ReadOnlyComposable
-        get() = MaterialTheme.typography.bodyLarge.copy(
-            fontWeight = FontWeight.SemiBold,
-            fontFeatureSettings = TABULAR
-        )
+        get() = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold).money()
 
     /** A small secondary figure — the native-currency amount under a
      *  converted one, a per-day average. */
     val amountSmall: TextStyle
         @Composable @ReadOnlyComposable
-        get() = MaterialTheme.typography.bodySmall.copy(
-            fontFeatureSettings = TABULAR
-        )
+        get() = MaterialTheme.typography.bodySmall.money()
 
     /** Heading above a group of rows or cards. Pair with `onSurface`. */
     val sectionHeader: TextStyle

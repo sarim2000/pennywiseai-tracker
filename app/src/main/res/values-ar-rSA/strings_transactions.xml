@@ -77,6 +77,8 @@
     <string name="txn_detail_more_actions">المزيد من الإجراءات</string>
     <string name="txn_detail_menu_add_to_group">إضافة إلى مجموعة</string>
     <string name="txn_detail_menu_duplicate">إنشاء نسخة</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">الإبلاغ عن مشكلة</string>
     <string name="txn_detail_delete_title">حذف المعاملة</string>
     <string name="txn_detail_delete_message">هل تريد حذف هذه المعاملة؟ لا يمكن التراجع عن هذا الإجراء.</string>
@@ -222,6 +224,7 @@
     <string name="txn_list_group_yesterday">أمس</string>
     <string name="txn_list_group_this_week">هذا الأسبوع</string>
     <string name="txn_list_group_earlier">سابقًا</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">الأحدث أولاً</string>
     <string name="txn_list_sort_oldest">الأقدم أولاً</string>
     <string name="txn_list_sort_amount_highest">أعلى مبلغ</string>
@@ -441,6 +444,7 @@
     <string name="category_picker_all">الكل</string>
     <string name="category_picker_create">إنشاء \"%1$s\"</string>
     <string name="category_picker_no_match">لا توجد فئات مطابقة</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">ليست مصروفًا</string>
     <string name="quick_category_not_income">ليست دخلًا</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

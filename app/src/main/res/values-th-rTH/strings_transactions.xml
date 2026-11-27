@@ -66,6 +66,8 @@
     <string name="txn_detail_more_actions">การทำงานเพิ่มเติม</string>
     <string name="txn_detail_menu_add_to_group">เพิ่มลงกลุ่ม</string>
     <string name="txn_detail_menu_duplicate">ทำซ้ำ</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">รายงานปัญหา</string>
     <string name="txn_detail_delete_title">ลบรายการธุรกรรม</string>
     <string name="txn_detail_delete_message">คุณแน่ใจหรือว่าต้องการลบรายการธุรกรรมนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</string>
@@ -195,6 +197,7 @@
     <string name="txn_list_group_yesterday">เมื่อวาน</string>
     <string name="txn_list_group_this_week">สัปดาห์นี้</string>
     <string name="txn_list_group_earlier">ก่อนหน้านี้</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">ใหม่ที่สุดก่อน</string>
     <string name="txn_list_sort_oldest">เก่าที่สุดก่อน</string>
     <string name="txn_list_sort_amount_highest">จำนวนสูงสุด</string>
@@ -373,6 +376,7 @@
     <string name="share_banner_dismiss">ปิด</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">เปลี่ยนหมวดหมู่</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">ไม่ใช่รายจ่าย</string>
     <string name="quick_category_not_income">ไม่ใช่รายรับ</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

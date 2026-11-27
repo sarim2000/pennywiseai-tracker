@@ -218,15 +218,20 @@ internal fun ThemeStyle.palette(): BaseColorScheme? = when (this) {
  * the system font, which ignores the picked weight there: headings render
  * regular and the two scripts clash. Those locales get the system font, whose
  * per-script families carry every weight.
+ *
+ * Google Sans Flex also takes the theme's grade: [darkTheme] draws it a notch
+ * lighter, since light-on-dark text reads heavier.
  */
-internal fun typographyFor(appFont: AppFont, latinScript: Boolean): Typography =
+internal fun typographyFor(appFont: AppFont, latinScript: Boolean, darkTheme: Boolean = false): Typography =
     if (!latinScript) {
         getTypography(FontFamily.Default)
     } else {
         when (appFont) {
             AppFont.SYSTEM -> getTypography(FontFamily.Default)
             AppFont.SN_PRO -> getTypography(SNProFontFamily)
-            AppFont.GOOGLE_SANS_FLEX -> getTypography(GoogleSansFlexFamily, GoogleSansFlexHeadingFamily)
+            AppFont.GOOGLE_SANS_FLEX -> googleSansFlexTypography(
+                if (darkTheme) GoogleSansFlexAxes.DARK_GRADE else GoogleSansFlexAxes.LIGHT_GRADE
+            )
         }
     }
 
@@ -240,6 +245,9 @@ fun PennyWiseTheme(
     appFont: AppFont = AppFont.DEFAULT,
     blurEffects: Boolean = true,
     redSpending: Boolean = true,
+    // Light or dark bar icons. Apart from darkTheme only while what's drawn under a bar lags it.
+    darkStatusBars: Boolean = darkTheme,
+    darkNavigationBars: Boolean = darkTheme,
     content: @Composable () -> Unit
 ) {
     val colorScheme = pennyWiseColorScheme(themeStyle, darkTheme, dynamicColor, accentColor, isAmoledMode)
@@ -254,16 +262,20 @@ fun PennyWiseTheme(
 
             // Control whether status bar icons should be dark or light
             val windowInsetsController = WindowCompat.getInsetsController(window, view)
-            windowInsetsController.isAppearanceLightStatusBars = !darkTheme
-            windowInsetsController.isAppearanceLightNavigationBars = !darkTheme
+            windowInsetsController.isAppearanceLightStatusBars = !darkStatusBars
+            windowInsetsController.isAppearanceLightNavigationBars = !darkNavigationBars
         }
     }
 
     val locale = LocalConfiguration.current.locales[0]
     val latinScript = remember(locale) { ULocale.addLikelySubtags(ULocale.forLocale(locale)).script == "Latn" }
-    val typography = remember(appFont, latinScript) { typographyFor(appFont, latinScript) }
+    val typography = remember(appFont, latinScript, darkTheme) { typographyFor(appFont, latinScript, darkTheme) }
 
-    CompositionLocalProvider(LocalBlurEffects provides blurEffects, LocalRedSpending provides redSpending) {
+    CompositionLocalProvider(
+        LocalBlurEffects provides blurEffects,
+        LocalRedSpending provides redSpending,
+        LocalGoogleSansFlexActive provides (latinScript && appFont == AppFont.GOOGLE_SANS_FLEX),
+    ) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,
             // Springy, overshooting spatial motion for every M3 component.

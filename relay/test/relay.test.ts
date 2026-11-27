@@ -1,6 +1,7 @@
 import { runInDurableObject } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { hideNoteConditions, refuseDryRun, refuseHiddenConditions, requireAppliedToPast, requireFilterEcho } from "../src/tools";
 
 const BASE = "https://relay.test";
 const REDIRECT = "https://client.test/callback";
@@ -103,6 +104,14 @@ describe("AI relay", () => {
 
 		const init = (await (await mcp(token!, { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-06-18" } })).json()) as any;
 		expect(init.result.protocolVersion).toBe("2025-06-18");
+		// The connector's picture: named in serverInfo and served from this host.
+		const icon = init.result.serverInfo.icons[0].src as string;
+		expect(new URL(icon).pathname).toBe("/icon.png");
+		for (const path of ["/icon.png", "/favicon.ico"]) {
+			const res = await call(path);
+			expect(res.status).toBe(200);
+			expect(res.headers.get("Content-Type")).toMatch(/^image\//);
+		}
 		const list = (await (await mcp(token!, { jsonrpc: "2.0", id: 2, method: "tools/list" })).json()) as any;
 		expect(list.result.tools.map((t: { name: string }) => t.name)).toContain("spending_summary");
 
@@ -199,5 +208,96 @@ describe("dashboard", () => {
 		await signIn(await pair(auth), "Claude");
 		const { connections } = (await (await call("/device/connections", { headers: auth })).json()) as any;
 		expect(connections.map((c: any) => c.clientName).sort()).toEqual(["Claude", "PennyWise dashboard"]);
+	});
+});
+
+describe("older apps behind the relay", () => {
+	const answer = (body: object) => ({ content: [{ type: "text" as const, text: JSON.stringify(body) }] });
+
+	it("refuses create_rule and update_rule with a condition on SMS text or a note, and passes the rest", () => {
+		for (const name of ["create_rule", "update_rule"]) {
+			for (const field of ["SMS_TEXT", "NARRATION"]) {
+				const out = refuseHiddenConditions(name, { conditions: [{ field: "MERCHANT" }, { field, operator: "CONTAINS", value: "x" }] });
+				expect(out?.isError).toBe(true);
+				expect(out?.content[0].text).toContain("hidden from AI apps");
+			}
+			expect(refuseHiddenConditions(name, { conditions: [{ field: "MERCHANT", operator: "CONTAINS", value: "x" }] })).toBeNull();
+			for (const conditions of ["SMS_TEXT", { field: "SMS_TEXT" }, [null, 3, "NARRATION"], []]) expect(refuseHiddenConditions(name, { conditions })).toBeNull();
+			expect(refuseHiddenConditions(name, null)).toBeNull();
+			expect(refuseHiddenConditions(name, undefined)).toBeNull();
+		}
+		expect(refuseHiddenConditions("preview_rule", { conditions: [{ field: "SMS_TEXT" }] })).toBeNull();
+	});
+
+	it("refuses a rule that writes a note, and hides note condition text an older app lists", () => {
+		const out = refuseHiddenConditions("create_rule", { conditions: [{ field: "MERCHANT" }], actions: [{ field: "NARRATION", actionType: "SET", value: "x" }] });
+		expect(out?.content[0].text).toContain("write a transaction's note");
+		expect(refuseHiddenConditions("update_rule", { actions: [{ field: "CATEGORY", actionType: "SET", value: "Food" }] })).toBeNull();
+		const listed = (value: string) => ({ content: [{ type: "text" as const, text: JSON.stringify({ rules: [{ name: "N", conditions: [{ field: "NARRATION", value }, { field: "MERCHANT", value: "cafe" }], actions: [{ field: "NARRATION", actionType: "SET", value }] }] }) }] });
+		const shown = hideNoteConditions("list_rules", listed("my private note"));
+		expect(shown.content[0].text).not.toContain("my private note");
+		expect(shown.content[0].text).toContain("(note hidden)");
+		expect(shown.content[0].text).toContain("cafe");
+		const already = listed("(note hidden)");
+		expect(hideNoteConditions("list_rules", already)).toBe(already);
+		const other = listed("my private note");
+		expect(hideNoteConditions("search_transactions", other)).toBe(other);
+	});
+
+	it("refuses dry_run on create_rule and update_rule, and nothing else", () => {
+		for (const name of ["create_rule", "update_rule"]) {
+			const out = refuseDryRun(name, { dry_run: false });
+			expect(out?.isError).toBe(true);
+			expect(out?.content[0].text).toContain("preview_rule");
+		}
+		expect(refuseDryRun("create_rule", { name: "x" })).toBeNull();
+		expect(refuseDryRun("preview_rule", { dry_run: true })).toBeNull();
+		expect(refuseDryRun("create_rule", undefined)).toBeNull();
+	});
+
+	it("says so when an older app created the rule but applied nothing", () => {
+		const out = requireAppliedToPast("create_rule", { apply_to_past: "all" }, answer({ created: "Cafe" }));
+		expect(out.isError).toBeFalsy();
+		expect(out.content[0].text).toContain('"created":"Cafe"');
+		expect(out.content[0].text).toContain("needs a newer version of the PennyWise app");
+	});
+
+	it("passes results that are counted, errors, or not asked to apply", () => {
+		const counted = answer({ created: "Cafe", past_transactions_updated: 0 });
+		expect(requireAppliedToPast("create_rule", { apply_to_past: "all" }, counted)).toBe(counted);
+		const created = answer({ created: "Cafe" });
+		expect(requireAppliedToPast("create_rule", { apply_to_past: "none" }, created)).toBe(created);
+		expect(requireAppliedToPast("create_rule", {}, created)).toBe(created);
+		const failed = { ...created, isError: true };
+		expect(requireAppliedToPast("create_rule", { apply_to_past: "all" }, failed)).toBe(failed);
+		expect(requireAppliedToPast("update_rule", { apply_to_past: "all" }, created)).toBe(created);
+		const pastFailed = answer({ created: "Cafe", past_error: "failed" });
+		expect(requireAppliedToPast("create_rule", { apply_to_past: "all" }, pastFailed)).toBe(pastFailed);
+	});
+});
+
+describe("requireFilterEcho", () => {
+	const answer = (body: object) => ({ content: [{ type: "text" as const, text: JSON.stringify(body) }] });
+	const args = { from: "2026-09-01", to: "2026-09-30", exclude_categories: ["Shopping"] };
+
+	it("refuses an unfiltered answer to a filtered request", () => {
+		const out = requireFilterEcho("spending_summary", args, answer({ grand_total: [] }));
+		expect(out.isError).toBe(true);
+		expect(out.content[0].text).toContain("needs a newer version of the PennyWise app");
+	});
+
+	it("passes an answer that echoes the filters", () => {
+		const result = answer({ grand_total: [], filters: { tag: [], exclude_categories: ["Shopping"], exclude_tags: [] } });
+		expect(requireFilterEcho("search_transactions", args, result)).toBe(result);
+	});
+
+	it("passes an answer when no filter was asked for", () => {
+		const result = answer({ grand_total: [] });
+		expect(requireFilterEcho("spending_summary", { from: "2026-09-01", to: "2026-09-30", exclude_tags: [] }, result)).toBe(result);
+		expect(requireFilterEcho("list_accounts", args, result)).toBe(result);
+		// Not names to the app either: numbers, nested lists, blanks.
+		for (const tag of [5, true, [["Trip"]], [1, null, ""], "  ", "\ufeff", "\u001f", "\u0085", "\u180e"]) {
+			expect(requireFilterEcho("spending_summary", { tag }, result)).toBe(result);
+		}
 	});
 });

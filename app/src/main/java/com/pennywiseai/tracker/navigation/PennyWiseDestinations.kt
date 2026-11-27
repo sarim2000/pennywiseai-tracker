@@ -60,10 +60,10 @@ data object Categories : NavKey
 
 /** What the Plan tab shows. */
 @Serializable
-enum class PlanSection { BUDGETS, BILLS, GOALS }
+enum class PlanSection { BUDGETS, BILLS, GOALS, CHALLENGES }
 
 /**
- * The Plan tab: budgets, bills and goals behind one switch. [request] makes each explicit
+ * The Plan tab: budgets, bills, goals and challenges behind one switch. [request] makes each explicit
  * "open Plan on X" a new key, so it shows X even when the tab last showed another section.
  * [focusId] is the budget or bill (by [section]) a Home row was tapped on, shown first.
  */
@@ -104,6 +104,8 @@ data class AddTransaction(
     val type: String? = null,
     val dateTime: String? = null,
     val unrecognizedSmsId: Long? = null,
+    // An automation app's note (see AddAutomation).
+    val note: String? = null,
     // Bills' "+" opens the Subscription form directly.
     val form: AddForm = AddForm.TRANSACTION,
     // Unique per open, so two Add screens on the stack never share one ViewModel/draft
@@ -167,6 +169,10 @@ data class GoalEdit(val goalId: Long = -1L) : NavKey
 @Serializable
 data object Loans : NavKey
 
+/** Reimbursable expenses, pending and reimbursed (#1389). */
+@Serializable
+data object Reimbursements : NavKey
+
 @Serializable
 data object RecurringTransactions : NavKey
 
@@ -188,6 +194,10 @@ data object Webhooks : NavKey
 @Serializable
 data object AiAccess : NavKey
 
+/** The conscience's own screen, in a language that has its lines. Opens inside the tab. */
+@Serializable
+data object Conscience : NavKey
+
 /** Developer mode's mascot playground. It opens inside the tab, under the bottom bar. */
 @Serializable
 data object MascotPlayground : NavKey
@@ -206,6 +216,8 @@ data object LearnedCategories : NavKey
 data class TransactionsWithFilter(
     /** Null lists every category: a calendar day's transactions. */
     val category: String? = null,
+    /** A raw merchant name, searched for: a transaction's "More from". */
+    val merchant: String? = null,
     val period: String? = null,
     val currency: String? = null,
     val startDate: Long? = null,
@@ -213,7 +225,11 @@ data class TransactionsWithFilter(
     /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
     val currencyOnly: Boolean = false,
     /** Every profile's rows, whatever profile is selected: the list behind a budget, which counts them all. */
-    val allProfiles: Boolean = false
+    val allProfiles: Boolean = false,
+    /** A "More from"/"More in" row's profile: the list keeps to it when one profile is selected. */
+    val rowProfileId: Long? = null,
+    /** A budget's other lines, which count their own spend: left out of [category]'s list where they're its sub-categories (#1425). */
+    val withoutCategories: List<String> = emptyList()
 ) : NavKey
 
 /**

@@ -58,6 +58,7 @@ import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.TrackingProblem
 import com.pennywiseai.tracker.utils.canReceiveSms
 import com.pennywiseai.tracker.utils.trackingProblem
@@ -78,6 +79,8 @@ fun HomeScreen(
     onNavigateToSubscriptions: () -> Unit = {},
     onBillClick: (Long) -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
+    /** Opens the Week review on the week starting that day. */
+    onNavigateToWeekReview: (java.time.LocalDate) -> Unit = {},
     onNavigateToInsights: () -> Unit = {},
     onNavigateToNetWorth: (currency: String) -> Unit = {},
     onNavigateToShareStudio: () -> Unit = {},
@@ -104,8 +107,9 @@ fun HomeScreen(
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // Time to full display: the balance and recent list show data, not skeletons.
-    ReportDrawnWhen { !uiState.isLoading && uiState.isBalanceReady }
+    val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
+    // Time to full display: the hero and recent list show data, not skeletons.
+    ReportDrawnWhen { !uiState.isLoading && uiState.isHeroReady(safeToSpend) }
     val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
     val currentCycleWindow by viewModel.currentCycleWindow.collectAsStateWithLifecycle()
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
@@ -118,10 +122,11 @@ fun HomeScreen(
     val homeShortcuts by viewModel.homeShortcuts.collectAsStateWithLifecycle()
     val showSafeToSpend = homeSectionLayout.any { it.first == HomeSection.SAFE_TO_SPEND && it.second }
     val reviewPrompt by viewModel.reviewPrompt.collectAsStateWithLifecycle()
+    val weeklyGuess by viewModel.weeklyGuess.collectAsStateWithLifecycle()
+    val guessSheet by viewModel.guessSheet.collectAsStateWithLifecycle()
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
     val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
     val recurringSuggestions by viewModel.recurringSuggestions.collectAsStateWithLifecycle()
-    val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
     val unsorted by viewModel.unsorted.collectAsStateWithLifecycle()
     var showSafeToSpendSheet by rememberSaveable { mutableStateOf(false) }
     val activity = LocalActivity.current
@@ -416,7 +421,7 @@ fun HomeScreen(
                 // 1. The hero: what's left in the overall budget, or this month's spending.
                 item(key = "hero") {
                     StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
-                        if (!uiState.isBalanceReady) {
+                        if (!uiState.isHeroReady(safeToSpend)) {
                             BalanceCardSkeleton(
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                             )
@@ -511,6 +516,7 @@ fun HomeScreen(
                     // rather than asking a favour, and only appears when the finished period
                     // actually has enough in it to be worth reading.
                     val prompt = reviewPrompt
+                    val guess = weeklyGuess
                     if (prompt != null) {
                         item {
                             ReviewPromptBanner(
@@ -555,6 +561,19 @@ fun HomeScreen(
                                     showUpgradeSheet = true
                                 },
                                 onDismiss = { viewModel.markProHomeCardHandled() },
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                            )
+                        }
+                    } else if (guess != null && !uiState.isScanning && !AmountPrivacy.hidden) {
+                        // Last week's guess comes back every week, so it waits behind the
+                        // one-time cards above, and for a running import (the figure would
+                        // move under it). Hidden amounts hide it.
+                        item {
+                            WeeklyGuessCard(
+                                question = guess,
+                                onOpen = viewModel::openWeeklyGuess,
+                                onDismiss = viewModel::dismissWeeklyGuess,
+                                onStop = viewModel::stopWeeklyGuess,
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                             )
                         }
@@ -885,6 +904,21 @@ fun HomeScreen(
                 onAccountClick(card.bankName, card.accountLast4)
             },
             onDismiss = { showSafeToSpendSheet = false }
+        )
+    }
+
+    // Hiding amounts closes the guess: its gap and grading would still give the figure away.
+    LaunchedEffect(AmountPrivacy.hidden) { if (AmountPrivacy.hidden) viewModel.closeWeeklyGuess() }
+    guessSheet?.takeUnless { AmountPrivacy.hidden }?.let { sheet ->
+        WeeklyGuessSheet(
+            sheet = sheet,
+            onLockIn = viewModel::lockInWeeklyGuess,
+            onSeeWeek = {
+                viewModel.closeWeeklyGuess()
+                onNavigateToWeekReview(sheet.question.weekStart)
+            },
+            onCelebrated = viewModel::onWeeklyGuessCelebrated,
+            onDismiss = viewModel::closeWeeklyGuess,
         )
     }
 

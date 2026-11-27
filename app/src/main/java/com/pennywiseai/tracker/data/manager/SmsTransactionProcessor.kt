@@ -35,6 +35,7 @@ import com.pennywiseai.tracker.domain.model.rule.tagChanges
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
+import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.withLock
@@ -327,7 +328,11 @@ class SmsTransactionProcessor @Inject constructor(
                 transactionWidgets.refresh()
                 // Every live path saves here (SMS, bank notifications, their retries); the inbox scan doesn't.
                 moneyAlerts.onTransactionSaved()
-                transactionEvents.onSaved(finalEntity.transactionType, TransactionOrigin.BANK_MESSAGE)
+                transactionEvents.onSaved(
+                    finalEntity.transactionType,
+                    TransactionOrigin.BANK_MESSAGE,
+                    money = Money(finalEntity.amount, finalEntity.currency)
+                )
 
                 return ProcessingResult(
                     true,

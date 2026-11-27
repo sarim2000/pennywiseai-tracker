@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
+import com.pennywiseai.tracker.data.database.dao.deleteRebuildableSmsTransactions
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -9,6 +11,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.currentNameFor
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
+import com.pennywiseai.tracker.data.model.MerchantSuggestion
+import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
@@ -46,6 +50,9 @@ open class TransactionRepository @Inject constructor(
 
     fun getAllTransactions(): Flow<List<TransactionEntity>> =
         transactionDao.getAllTransactions()
+
+    open fun observeTransaction(id: Long): Flow<TransactionEntity?> =
+        transactionDao.observeTransaction(id)
 
     open suspend fun getTransactionById(id: Long): TransactionEntity? =
         transactionDao.getTransactionById(id)
@@ -120,6 +127,17 @@ open class TransactionRepository @Inject constructor(
     fun getAllMerchants(): Flow<List<String>> =
         transactionDao.getAllMerchants()
 
+    /**
+     * Up to [MerchantSuggestions.LIMIT] past merchants for a merchant field showing [typed],
+     * from [profileId] (null for all profiles); none for a blank field.
+     */
+    suspend fun suggestMerchants(typed: String, profileId: Long?): List<MerchantSuggestion> {
+        if (typed.isBlank()) return emptyList()
+        // One spare: the name already typed is dropped from what's shown.
+        val found = transactionDao.suggestMerchants(MerchantSuggestions.likeTerm(typed), profileId, MerchantSuggestions.LIMIT + 1)
+        return MerchantSuggestions.shown(found, typed)
+    }
+
     suspend fun getTotalAmountByTypeAndPeriod(
         type: TransactionType,
         startDate: LocalDateTime,
@@ -156,6 +174,16 @@ open class TransactionRepository @Inject constructor(
     }
 
     /**
+     * Undo of a transfer pair: writes [transaction] back with the reimbursement (#1389) that
+     * becoming a transfer cleared, in one database transaction so neither lands alone.
+     */
+    suspend fun restoreTransaction(transaction: TransactionEntity, reimbursement: ReimbursementStatus?, reimbursedById: Long?) =
+        goalRepository.writeAndCap(transaction.id) {
+            writeKeepingSplit(transaction)
+            if (reimbursement != null) setReimbursement(transaction.id, reimbursement, reimbursedById)
+        }
+
+    /**
      * Marks a debit and its credit as one transfer (#385): both rows turn TRANSFER with the
      * same from/to and a shared [TransactionEntity.transferPairId], so each stays one leg.
      * Balances stay untouched: the money moved when the two SMS arrived.
@@ -184,14 +212,15 @@ open class TransactionRepository @Inject constructor(
      * Writes [transaction] so a split bill (#346) survives a stale copy of the
      * row: whether it's split comes from its loan_shares rows, not the stored
      * total; it stays an expense in its currency, at least its shares; and
-     * `lent_shares_total` is written from those same rows.
+     * `lent_shares_total` is written from those same rows. Its reimbursement
+     * (#1389) survives too: see [keepReimbursement].
      */
     private suspend fun writeKeepingSplit(transaction: TransactionEntity) {
         val amounts = transactionDao.getShareAmounts(transaction.id)
         val shares = if (amounts.isEmpty()) null else amounts.fold(java.math.BigDecimal.ZERO, java.math.BigDecimal::add)
-        val persisted = if (shares == null) null else transactionDao.getTransactionById(transaction.id)
-        val safe = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(persisted, transaction, shares)
-        transactionDao.updateTransaction(safe.copy(lentSharesTotal = shares, updatedAt = LocalDateTime.now()))
+        val persisted = transactionDao.getTransactionById(transaction.id)
+        val safe = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(persisted.takeIf { shares != null }, transaction, shares)
+        transactionDao.updateTransaction(keepReimbursement(persisted, safe).copy(lentSharesTotal = shares, updatedAt = LocalDateTime.now()))
     }
 
     open suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean = false) {
@@ -226,11 +255,12 @@ open class TransactionRepository @Inject constructor(
     suspend fun countAllTransactions(): Int =
         transactionDao.countAllTransactions()
 
-    /** See [TransactionDao.deleteRebuildableSmsTransactions]. */
-    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime) =
+    /** See [deleteRebuildableSmsTransactions]; run inside one database transaction. */
+    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime, inboxMessages: Map<Pair<String, String>, Int>) =
         transactionDao.deleteRebuildableSmsTransactions(
             BankNotificationConfig.notificationAliases.toList(),
-            from
+            from,
+            inboxMessages
         )
 
     /** See [TransactionDao.getTransactionByAmountAndDateIncludingDeleted]. */
@@ -372,7 +402,7 @@ open class TransactionRepository @Inject constructor(
             !transactionDao.moveSharesToKeeper(duplicateId, keeperId)
         ) return false
         goalRepository.moveContributions(duplicateId, keeperId)
-        deleteTransactionById(duplicateId)
+        transactionDao.softDeleteDuplicate(duplicateId, keeperId)
         return true
     }
 
@@ -396,6 +426,33 @@ open class TransactionRepository @Inject constructor(
      */
     suspend fun setExcludedFromAnalytics(transactionId: Long, excluded: Boolean): Int =
         transactionDao.setExcludedFromAnalytics(transactionId, excluded, LocalDateTime.now())
+
+    /**
+     * Marks the row reimbursable ([ReimbursementStatus.PENDING]), reimbursed (optionally by
+     * the incoming payment [reimbursedById]) or, with null, not reimbursable (#1389). Only
+     * these columns are written, like [setExcludedFromAnalytics]. A link without
+     * REIMBURSED is dropped.
+     */
+    suspend fun setReimbursement(transactionId: Long, status: ReimbursementStatus?, reimbursedById: Long? = null): Int =
+        transactionDao.setReimbursement(
+            transactionId,
+            status?.name,
+            reimbursedById.takeIf { status == ReimbursementStatus.REIMBURSED && it != transactionId },
+            LocalDateTime.now()
+        )
+
+    fun observeReimbursables(): Flow<List<TransactionEntity>> = transactionDao.observeReimbursables()
+
+    fun observeReimbursedBy(paymentId: Long): Flow<List<TransactionEntity>> = transactionDao.observeReimbursedBy(paymentId)
+
+    fun observeReimbursementPayment(paymentId: Long): Flow<TransactionEntity?> = transactionDao.observeReimbursementPayment(paymentId)
+
+    /**
+     * Incoming payments that could have paid [expense] back: same currency, dated no earlier
+     * than the expense's day, newest first.
+     */
+    suspend fun getReimbursementCandidates(expense: TransactionEntity): List<TransactionEntity> =
+        transactionDao.getReimbursementCandidates(expense.currency, expense.dateTime.toLocalDate().atStartOfDay())
 
     /** See [TransactionDao.getMovableMerchantRowIds]. */
     suspend fun getMovableMerchantRowIds(merchantName: String, category: String, types: Collection<TransactionType>): List<Long> =
@@ -591,13 +648,12 @@ open class TransactionRepository @Inject constructor(
         return transactionDao.getTransactionsBetweenDatesList(startDate, endDate)
     }
 
-    suspend fun getUncategorizedTransactions(): List<TransactionEntity> {
-        // Without a category, or in "Others" under whatever name the user gave it.
-        val others = com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current("Others")
-        return getAllTransactionsList().filter { transaction ->
-            transaction.category.isNullOrBlank() || transaction.category == others
-        }
-    }
+    suspend fun getTransactionsPageAfter(after: Long, upTo: Long, limit: Int): List<TransactionEntity> =
+        transactionDao.getTransactionsPageAfter(after, upTo, limit)
+
+    suspend fun maxLiveTransactionId(): Long? = transactionDao.maxLiveTransactionId()
+
+    suspend fun countLiveTransactions(): Int = transactionDao.countLiveTransactions()
 
     // ========== Transaction Split Methods ==========
 
@@ -693,4 +749,18 @@ open class TransactionRepository @Inject constructor(
      */
     suspend fun deleteSplit(split: TransactionSplitEntity) =
         transactionSplitDao.deleteSplit(split)
+}
+
+/**
+ * [updated] as it may be written over [persisted] (#1389). Only [TransactionRepository.setReimbursement]
+ * sets the reimbursement columns, so a full-row write keeps the stored ones: an edit opened
+ * before the row was marked can't unmark it. Only money out waits to be paid back, so a row
+ * retyped to anything else (income, a transfer) drops them.
+ */
+internal fun keepReimbursement(persisted: TransactionEntity?, updated: TransactionEntity): TransactionEntity {
+    val moneyOut = updated.transactionType == TransactionType.EXPENSE || updated.transactionType == TransactionType.CREDIT
+    return updated.copy(
+        reimbursementStatus = persisted?.reimbursementStatus?.takeIf { moneyOut },
+        reimbursedById = persisted?.reimbursedById?.takeIf { moneyOut },
+    )
 }

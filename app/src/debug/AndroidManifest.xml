@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <activity android:name="com.pennywiseai.tracker.debug.UiVerificationActivity" android:exported="false" />
+        <receiver
+            android:name="com.pennywiseai.tracker.debug.DemoSeedReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
         <!-- Debug-only LLM prompt harness; see LlmProbeReceiver. DUMP is held by
              adb shell but not grantable to third-party apps. -->
         <receiver

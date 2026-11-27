@@ -176,6 +176,20 @@ class BackupExportSessionTest {
     }
 
     @Test
+    fun `a restore stays in progress while another backup action posts its status`() {
+        val restoring = CompletableDeferred<ImportResult>()
+        coEvery { importer.importBackup(any(), any(), any()) } coAnswers { restoring.await() }
+        coEvery { exporter.exportBackup(any(), any(), any()) } returns ExportResult.Error("synthetic")
+
+        viewModel.importBackup(mockk())
+        viewModel.exportBackup()
+
+        assertTrue(viewModel.isRestoringBackup.value)
+        restoring.complete(ImportResult.PassphraseRequired)
+        assertFalse(viewModel.isRestoringBackup.value)
+    }
+
+    @Test
     fun `the restore passphrase is cleared once the import is done`() {
         coEvery { importer.importBackup(any(), any(), any()) } returns ImportResult.WrongPassphrase
         val passphrase = "synthetic".toCharArray()

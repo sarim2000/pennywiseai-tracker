@@ -135,6 +135,12 @@ class SettingsViewModel @Inject constructor(
     private val _exportSkippedReceipts = MutableStateFlow(0)
     val exportSkippedReceipts: StateFlow<Int> = _exportSkippedReceipts.asStateFlow()
 
+    // True while a restore runs. Its progress follows the restore itself, not the shared
+    // message, which another backup action finishing meanwhile could replace.
+    private val _isRestoringBackup = MutableStateFlow(false)
+    val isRestoringBackup: StateFlow<Boolean> = _isRestoringBackup.asStateFlow()
+    private var restoreJob: Job? = null
+
     // An encrypted backup picked for restore, waiting for its passphrase.
     private val _backupPassphrasePrompt = MutableStateFlow<BackupPassphrasePrompt?>(null)
     val backupPassphrasePrompt: StateFlow<BackupPassphrasePrompt?> = _backupPassphrasePrompt.asStateFlow()
@@ -720,9 +726,9 @@ class SettingsViewModel @Inject constructor(
     /** An encrypted backup asks for its [passphrase] first; the array is cleared once it's used. */
     fun importBackup(uri: android.net.Uri, passphrase: CharArray? = null) {
         _backupPassphrasePrompt.value = null
-        viewModelScope.launch {
+        _isRestoringBackup.value = true
+        val job = viewModelScope.launch {
             try {
-                _importExportMessage.value = UiText.Res(R.string.settings_importing_backup)
                 val baseBefore = userPreferencesRepository.baseCurrency.first()
                 val result = backupImporter.importBackup(uri, ImportStrategy.MERGE, passphrase)
                 when (result) {
@@ -773,6 +779,8 @@ class SettingsViewModel @Inject constructor(
                 passphrase?.fill('\u0000')
             }
         }
+        restoreJob = job
+        job.invokeOnCompletion { if (restoreJob === job) _isRestoringBackup.value = false }
     }
 
     fun cancelBackupPassphrase() {

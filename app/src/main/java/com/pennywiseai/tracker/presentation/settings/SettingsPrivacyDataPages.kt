@@ -132,6 +132,7 @@ internal fun DataPage(
     val exportSkippedReceipts by settingsViewModel.exportSkippedReceipts.collectAsStateWithLifecycle()
     val exportedBackupEncrypted by settingsViewModel.exportedBackupEncrypted.collectAsStateWithLifecycle()
     val isExportingBackup by settingsViewModel.isExportingBackup.collectAsStateWithLifecycle()
+    val isRestoringBackup by settingsViewModel.isRestoringBackup.collectAsStateWithLifecycle()
     val deleteAllTransactionsCount by settingsViewModel.deleteAllTransactionsCount.collectAsStateWithLifecycle()
     val isDeletingAllTransactions by settingsViewModel.isDeletingAllTransactions.collectAsStateWithLifecycle()
     val deleteAllTransactionsResult by settingsViewModel.deleteAllTransactionsResult.collectAsStateWithLifecycle()
@@ -413,17 +414,30 @@ internal fun DataPage(
         )
     }
 
+    // A restore's progress stays up until it's done (decrypting can take a while), whatever
+    // other status shows meanwhile. OK only hides it; the restore's result still shows.
+    var restoreProgressHidden by remember(isRestoringBackup) { mutableStateOf(false) }
+    if (isRestoringBackup && !restoreProgressHidden) {
+        AlertDialog(
+            onDismissRequest = { restoreProgressHidden = true },
+            title = { Text(stringResource(R.string.settings_backup_status_title)) },
+            text = { Text(stringResource(R.string.settings_importing_backup)) },
+            confirmButton = {
+                TextButton(onClick = { restoreProgressHidden = true }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.settings_action_ok))
+                }
+            }
+        )
+    }
+
     // Show import/export message
     importExportMessage?.let { message ->
         if (exportedBackupFile != null && message == UiText.Res(R.string.settings_backup_created_choose)) {
             showExportOptionsDialog = true
         } else {
-            // A restore's progress stays up until it's done: decrypting can outlast the delay.
-            if (message != UiText.Res(R.string.settings_importing_backup)) {
-                LaunchedEffect(message) {
-                    kotlinx.coroutines.delay(5000)
-                    settingsViewModel.clearImportExportMessage()
-                }
+            LaunchedEffect(message) {
+                kotlinx.coroutines.delay(5000)
+                settingsViewModel.clearImportExportMessage()
             }
 
             AlertDialog(

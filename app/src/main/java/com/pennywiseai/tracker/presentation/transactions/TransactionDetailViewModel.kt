@@ -596,6 +596,7 @@ class TransactionDetailViewModel @Inject constructor(
     fun enterEditMode() {
         _editableTransaction.value = _transaction.value?.copy()
         editStart = _transaction.value
+        amountTextInvalid = false
         editStartTags = null
         // A cancelled edit can leave these on an unsaved pick (e.g. the Refund answer).
         _budgetImpactType.value = _transaction.value?.budgetImpactType
@@ -715,8 +716,13 @@ class TransactionDetailViewModel @Inject constructor(
         validateMerchantName(name)
     }
 
+    // True while the amount field's text is empty or not a positive amount: the editor then
+    // still holds the last valid amount, which Save must not write behind the field's back.
+    private var amountTextInvalid = false
+
     fun updateAmount(amountStr: String) {
         val amount = amountStr.toBigDecimalOrNull()
+        amountTextInvalid = amount == null || amount <= BigDecimal.ZERO
         if (amount != null && amount > BigDecimal.ZERO) {
             _editableTransaction.update { current ->
                 current?.copy(amount = amount)
@@ -1023,6 +1029,11 @@ class TransactionDetailViewModel @Inject constructor(
         // Validate before saving
         if (toSave.merchantName.isBlank()) {
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_merchant_required)
+            return
+        }
+
+        if (amountTextInvalid) {
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_amount_positive_number)
             return
         }
 

@@ -199,4 +199,20 @@ class TransactionDetailStaleSaveTest {
         assertEquals(false, vm.isEditMode.value)
         io.mockk.coVerify(exactly = 0) { balances.reflectTransactionEdit(any(), any()) }
     }
+
+    @Test
+    fun `a cleared amount field blocks the save until a valid amount is typed`() {
+        val vm = viewModel()
+        vm.enterEditMode()
+        vm.updateAmount("")
+        vm.saveChanges()
+        assertTrue(written.isEmpty())
+        assertEquals(UiText.Res(R.string.txn_detail_error_amount_positive_number), vm.errorMessage.value)
+        vm.updateAmount("0")
+        vm.saveChanges()
+        assertTrue(written.isEmpty())
+        vm.updateAmount("55")
+        vm.saveChanges()
+        assertEquals(BigDecimal("55"), written.single().amount)
+    }
 }

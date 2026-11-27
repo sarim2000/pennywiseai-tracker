@@ -61,6 +61,7 @@ object AddAutomation {
      */
     private fun amount(raw: String): String? = raw.takeIf { it.length <= MAX_AMOUNT_CHARS }
         ?.toBigDecimalOrNull()
-        ?.takeIf { it.signum() > 0 && it.precision() - it.scale() <= MAX_DIGITS && it.scale() <= MAX_DIGITS }
+        // Long math: "1E2147483647" has scale Int.MIN_VALUE + 1, and in Int precision - scale wraps negative.
+        ?.takeIf { it.signum() > 0 && it.precision().toLong() - it.scale() <= MAX_DIGITS && it.scale() <= MAX_DIGITS }
         ?.toPlainString()
 }

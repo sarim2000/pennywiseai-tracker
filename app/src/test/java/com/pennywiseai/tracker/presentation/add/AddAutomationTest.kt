@@ -49,6 +49,22 @@ class AddAutomationTest {
     }
 
     @Test
+    fun `an exponent at the Int limit is dropped, not expanded`() {
+        // precision - scale overflows an Int here; it must still count as far too many digits.
+        listOf("1E2147483647", "99E2147483647", "1E2147483640").forEach {
+            assertNull(it, prefill("amount" to it).amount)
+        }
+    }
+
+    @Test
+    fun `fifteen whole digits is the most an amount can have`() {
+        assertEquals("999999999999999", prefill("amount" to "999999999999999").amount)
+        assertEquals("100000000000000", prefill("amount" to "1E14").amount)
+        assertNull(prefill("amount" to "1000000000000000").amount)
+        assertNull(prefill("amount" to "1E15").amount)
+    }
+
+    @Test
     fun `a number extra is read as its text`() {
         assertEquals("12.5", prefill("amount" to 12.5).amount)
         assertEquals("40", prefill("amount" to 40).amount)

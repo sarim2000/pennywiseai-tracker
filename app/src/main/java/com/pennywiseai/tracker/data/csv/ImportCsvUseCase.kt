@@ -70,26 +70,28 @@ class ImportCsvUseCase @Inject constructor(
 
             // Dedup against existing rows by hash — one batch query for the whole
             // file instead of a per-row lookup (a large CSV would otherwise issue
-            // N queries). Also guard against duplicates *within* the same CSV.
-            val existingHashes = transactionRepository
-                .getExistingHashes(parseResult.transactions.map { it.transactionHash })
-                .toHashSet()
-            val toInsert = mutableListOf<TransactionEntity>()
-            val seenHashes = HashSet<String>()
-            var skippedDuplicate = 0
-
-            for (transaction in parseResult.transactions) {
-                val hash = transaction.transactionHash
-                if (!seenHashes.add(hash) || hash in existingHashes) {
-                    skippedDuplicate++
-                    continue
-                }
-                toInsert.add(transaction)
-            }
-
-            // Rules are read inside the write: one deleted meanwhile can't be
+            // N queries). Also guard against duplicates *within* the same CSV. The
+            // lookup, the rules and the write share one transaction: a row saved
+            // meanwhile is a duplicate, and a rule deleted meanwhile can't be
             // recorded against the new rows (its history row would break the batch).
-            val (imported, ignored, blocked) = if (toInsert.isEmpty()) Triple(0, 0, 0) else database.withTransaction {
+            val parsed = parseResult.transactions
+            val (imported, skippedDuplicate, blocked) = if (parsed.isEmpty()) Triple(0, 0, 0) else database.withTransaction {
+                val existingHashes = transactionRepository
+                    .getExistingHashes(parsed.map { it.transactionHash })
+                    .toHashSet()
+                val toInsert = mutableListOf<TransactionEntity>()
+                val seenHashes = HashSet<String>()
+                var duplicates = 0
+
+                for (transaction in parsed) {
+                    val hash = transaction.transactionHash
+                    if (!seenHashes.add(hash) || hash in existingHashes) {
+                        duplicates++
+                        continue
+                    }
+                    toInsert.add(transaction)
+                }
+
                 val (kept, blockedCount) = applyRules(toInsert, importRules.load())
                 val rows = kept.map { it.entity }
                 // A manual account's opening is pinned before its rows land, so the
@@ -100,12 +102,12 @@ class ImportCsvUseCase @Inject constructor(
                 // A row the database ignored (-1: its hash is already there) is a duplicate.
                 val inserted = ids.zip(rows).filter { (id, _) -> id != -1L }.map { (_, row) -> row }
                 accountBalanceRepository.recomputeManualBalances(inserted)
-                Triple(inserted.size, ids.count { it == -1L }, blockedCount)
+                Triple(inserted.size, duplicates + ids.count { it == -1L }, blockedCount)
             }
 
             Result.Success(
                 imported = imported,
-                skippedDuplicate = skippedDuplicate + ignored,
+                skippedDuplicate = skippedDuplicate,
                 failed = parseResult.failedCount,
                 blockedByRules = blocked
             )

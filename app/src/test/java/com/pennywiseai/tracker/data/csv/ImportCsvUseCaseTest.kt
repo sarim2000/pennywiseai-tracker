@@ -81,13 +81,14 @@ class ImportCsvUseCaseTest {
     }
 
     @Test
-    fun `rules are read inside the write transaction`() = runBlocking {
+    fun `the hash lookup and the rules are read inside the write transaction`() = runBlocking {
         coEvery { transactions.insertTransactions(any()) } returns listOf(7L, 8L)
 
         useCase.execute(uri)
 
         coVerifyOrder {
             database.withTransaction(any<suspend () -> Any?>())
+            transactions.getExistingHashes(any())
             importRules.load()
             transactions.insertTransactions(any())
         }

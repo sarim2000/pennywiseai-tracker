@@ -68,7 +68,7 @@ internal fun SecurityPage(
             position = ListItemPosition.Top
         )
         AnimatedVisibility(visible = appLockUiState.isLockEnabled, enter = pwExpand(), exit = pwCollapse()) {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)) {
                 SettingsNavItem(
                     icon = Icons.Default.Timer,
                     title = stringResource(R.string.settings_lock_timeout_title),

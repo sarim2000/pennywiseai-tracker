@@ -3,12 +3,15 @@ package com.pennywiseai.tracker.widget
 import com.pennywiseai.tracker.data.preferences.PrivacyPreferences
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.IOException
@@ -56,16 +59,21 @@ class WidgetMaskTest {
 
     @Test
     fun `a read that fails later hides everything instead of ending the widget`() = runBlocking {
-        val masks = widgetMaskFlow(
-            prefs(
-                flow {
-                    emit(false)
-                    throw IOException("unreadable")
-                }
-            )
-        ).toList()
+        // The read fails only once the widget has drawn its amounts, so it's a later failure.
+        val drawn = CompletableDeferred<Unit>()
+        val masks = withTimeout(5_000) {
+            widgetMaskFlow(
+                prefs(
+                    flow {
+                        emit(false)
+                        drawn.await()
+                        throw IOException("unreadable")
+                    }
+                )
+            ).onEach { if (it == shown) drawn.complete(Unit) }.toList()
+        }
 
-        assertEquals(WidgetMask.ALL, masks.last())
+        assertEquals(listOf(shown, WidgetMask.ALL), masks)
     }
 
     @Test

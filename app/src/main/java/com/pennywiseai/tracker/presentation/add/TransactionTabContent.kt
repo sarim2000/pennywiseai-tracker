@@ -450,7 +450,8 @@ fun TransactionTabContent(
                     receiptError = uiState.receiptError?.asString(),
                     checking = uiState.checkingReceipt,
                     onCancelCheck = viewModel::cancelReceiptCheck,
-                    onScanReceipt = if (viewModel.canScanReceipts) viewModel::scanReceipt else null,
+                    // A transfer has no merchant or receipt total to fill in.
+                    onScanReceipt = if (viewModel.canScanReceipts && !isTransfer) viewModel::scanReceipt else null,
                     scanning = uiState.scanningReceipt
                 )
             }
@@ -654,7 +655,8 @@ fun ReceiptPickerSection(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { onReceiptSelected(it) } }
 
-    var cameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    // Saved with [scanPick]: the camera app can outlive this activity, and its photo still lands here.
+    var cameraUri by rememberSaveable { mutableStateOf<android.net.Uri?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success -> deliver(cameraUri?.takeIf { success }) }

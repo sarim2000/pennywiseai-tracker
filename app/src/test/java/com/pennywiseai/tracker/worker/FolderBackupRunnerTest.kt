@@ -79,6 +79,17 @@ class FolderBackupRunnerTest {
     }
 
     @Test
+    fun `a backup kept under an unconfirmed name is a success that says so`() = runBlocking {
+        coEvery { passphrase.load() } returns null
+        every { writer.writeBackup(treeUri, any()) } returns FolderBackupWriter.Result.NameUnconfirmed
+
+        val result = runner.run(treeUri)
+
+        assertEquals(FolderBackupRunner.Result.Success(skippedReceipts = 0, nameUnconfirmed = true), result)
+        coVerify { preferences.recordScheduledFolderBackup(any(), 0) }
+    }
+
+    @Test
     fun `a passphrase that can't be unlocked writes nothing, not a plain backup`() = runBlocking {
         coEvery { passphrase.load() } throws FolderBackupPassphrase.LockedException(GeneralSecurityException("key gone"))
 

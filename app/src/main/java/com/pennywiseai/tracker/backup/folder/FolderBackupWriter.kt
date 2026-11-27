@@ -22,8 +22,9 @@ class FolderBackupWriter @Inject constructor(
 
     /**
      * Copies the backup [file] into the folder, streamed rather than loaded into memory.
-     * Success means the backup file now holds it under its own name: a refused delete, or a
-     * provider that names the copy "name (1)", is a failure.
+     * Success means the backup file now holds it under its own name: a refused delete is a
+     * failure. A renamed copy whose name can't be confirmed is kept, never deleted: it is the
+     * newest backup, and the old one may already be gone.
      */
     fun writeBackup(treeUri: String, file: File): Result {
         val folder = DocumentFile.fromTreeUri(context, Uri.parse(treeUri))
@@ -59,10 +60,13 @@ class FolderBackupWriter @Inject constructor(
             return Result.Failure("Could not replace the previous backup file")
         }
         if (tempFile.renameTo(ScheduledFolderBackupConstants.BACKUP_FILE_NAME)) {
-            if (tempFile.name == ScheduledFolderBackupConstants.BACKUP_FILE_NAME) return Result.Success
-            // The provider suffixed the name, so the old file is still there: drop the extra copy.
-            tempFile.delete()
-            return Result.Failure("Could not replace the previous backup file")
+            // A suffixed name ("name (1)") or none at all (a failed query) can't be confirmed.
+            // Either way the copy stays: deleting it could leave the folder with no backup.
+            return if (tempFile.name == ScheduledFolderBackupConstants.BACKUP_FILE_NAME) {
+                Result.Success
+            } else {
+                Result.NameUnconfirmed
+            }
         }
 
         // Some SAF providers don't support rename. Fall back to a direct write of the
@@ -98,6 +102,9 @@ class FolderBackupWriter @Inject constructor(
 
     sealed class Result {
         data object Success : Result()
+
+        /** Written and kept, but under a name that couldn't be confirmed as the backup file's. */
+        data object NameUnconfirmed : Result()
         data class Failure(val message: String) : Result()
     }
 }

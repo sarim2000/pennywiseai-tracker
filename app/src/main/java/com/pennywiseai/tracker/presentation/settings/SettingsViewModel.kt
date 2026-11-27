@@ -978,7 +978,10 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /** Writes a backup to the folder; returns how many receipts it left out, or null when it failed. */
+    /**
+     * Writes a backup to the folder; returns how many receipts it left out, or null when it
+     * already said why: it failed, or its file name couldn't be confirmed.
+     */
     private suspend fun performFolderBackup(showSuccessMessage: Boolean): Int? {
         if (!folderBackupPassphraseSaved()) return null
         val treeUri = userPreferencesRepository.getScheduledFolderBackupTreeUri()
@@ -998,6 +1001,11 @@ class SettingsViewModel @Inject constructor(
                 // Only the user reaches here (back up now, a new folder, turning it on);
                 // the scheduled worker writes its backups on its own.
                 mascotMoments.announce(MascotMoment.BackupSaved)
+                if (result.nameUnconfirmed) {
+                    // Saved, so not a failure; but the user should check the folder.
+                    _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_name_unconfirmed)
+                    return null
+                }
                 if (showSuccessMessage) {
                     _importExportMessage.value = if (result.skippedReceipts > 0) {
                         UiText.Plural(R.plurals.settings_folder_backup_saved_skipped_receipts, result.skippedReceipts)

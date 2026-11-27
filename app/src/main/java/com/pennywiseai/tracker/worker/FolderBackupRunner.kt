@@ -33,8 +33,11 @@ class FolderBackupRunner @Inject constructor(
     private val preferences: BackupPreferences
 ) {
     sealed class Result {
-        /** Written; [skippedReceipts] PDFs were too large to include. */
-        data class Success(val skippedReceipts: Int) : Result()
+        /**
+         * Written; [skippedReceipts] PDFs were too large to include. With [nameUnconfirmed]
+         * the copy is in the folder under a name that couldn't be confirmed.
+         */
+        data class Success(val skippedReceipts: Int, val nameUnconfirmed: Boolean = false) : Result()
 
         /** The saved passphrase couldn't be unlocked. Nothing was written; a later try, or entering it again, may work. */
         data object PassphraseLocked : Result()
@@ -86,10 +89,13 @@ class FolderBackupRunner @Inject constructor(
                     exportResult.file.delete()
                 }
                 when (writeResult) {
-                    is FolderBackupWriter.Result.Success -> {
+                    FolderBackupWriter.Result.Success, FolderBackupWriter.Result.NameUnconfirmed -> {
                         // Settings' "Last backup" line names left-out PDFs: nobody reads a log at 2 AM.
                         preferences.recordScheduledFolderBackup(System.currentTimeMillis(), exportResult.skippedReceipts)
-                        Result.Success(exportResult.skippedReceipts)
+                        Result.Success(
+                            exportResult.skippedReceipts,
+                            nameUnconfirmed = writeResult == FolderBackupWriter.Result.NameUnconfirmed
+                        )
                     }
                     is FolderBackupWriter.Result.Failure -> Result.Failure(writeResult.message)
                 }

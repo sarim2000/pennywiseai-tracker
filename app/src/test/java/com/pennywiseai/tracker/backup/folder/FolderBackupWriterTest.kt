@@ -61,14 +61,25 @@ class FolderBackupWriterTest {
     }
 
     @Test
-    fun `a rename the provider suffixes is a failure, and no extra copy is left beside the old one`() {
+    fun `a rename the provider suffixes keeps the new copy and says its name is unconfirmed`() {
         tree.put(final, "old")
         tree.lyingDeletes += final // says it deleted, keeps the file: the rename gets "name (1)"
 
         val result = writer.writeBackup("tree", backup("new"))
 
-        assertTrue(result is FolderBackupWriter.Result.Failure)
-        assertEquals(mapOf(final to "old"), tree.contents())
+        assertEquals(FolderBackupWriter.Result.NameUnconfirmed, result)
+        assertEquals(mapOf(final to "old", "$final (1)" to "new"), tree.contents())
+    }
+
+    @Test
+    fun `a renamed backup whose name can't be read back is kept, never deleted`() {
+        tree.put(final, "old")
+        tree.unreadableNames += final // the name query after the rename fails
+
+        val result = writer.writeBackup("tree", backup("new"))
+
+        assertEquals(FolderBackupWriter.Result.NameUnconfirmed, result)
+        assertEquals(mapOf(final to "new"), tree.contents())
     }
 
     @Test
@@ -142,7 +153,7 @@ class FolderBackupWriterTest {
         private inner class Entry(var name: String, var content: String) {
             val uri = mockk<Uri>()
             val doc = mockk<DocumentFile> {
-                every { name } answers { this@Entry.name }
+                every { name } answers { this@Entry.name.takeUnless { it in unreadableNames } }
                 every { uri } returns this@Entry.uri
                 every { delete() } answers {
                     when {
@@ -166,6 +177,7 @@ class FolderBackupWriterTest {
         val undeletable = mutableSetOf<String>()
         val unwritable = mutableSetOf<String>()
         val lyingDeletes = mutableSetOf<String>()
+        val unreadableNames = mutableSetOf<String>()
         var renameSupported = true
 
         val folder = mockk<DocumentFile> {

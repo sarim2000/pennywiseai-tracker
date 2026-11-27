@@ -37,7 +37,12 @@ class ScheduledFolderBackupWorker @AssistedInject constructor(
 
         return when (val result = folderBackupRunner.run(treeUri)) {
             is FolderBackupRunner.Result.Success -> {
-                Log.i(TAG, "Scheduled folder backup completed")
+                // Not retried: another run would only add another copy beside this one.
+                if (result.nameUnconfirmed) {
+                    Log.w(TAG, "Scheduled folder backup written, but its file name couldn't be confirmed")
+                } else {
+                    Log.i(TAG, "Scheduled folder backup completed")
+                }
                 Result.success()
             }
             // Never a plain backup instead: try again later, and Settings asks for the passphrase meanwhile.

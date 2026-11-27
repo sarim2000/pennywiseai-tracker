@@ -391,7 +391,8 @@ open class AccountBalanceRepository @Inject constructor(
      * write, not in MoneyAlertWorker, which only sees the newest figure and doesn't
      * run after an edit. Never fails the write around it; worst case is one missed alert.
      * Fire-and-forget so a caller inside a database transaction is never held up by it;
-     * a re-arm for a write that later rolls back is harmless (worst case one extra alert).
+     * the launched job re-checks the stored balance when it runs, so a stale or rolled-back
+     * re-arm does nothing.
      */
     private fun rearmLowBalanceAlert(
         bankName: String,
@@ -400,7 +401,15 @@ open class AccountBalanceRepository @Inject constructor(
         threshold: BigDecimal?
     ) {
         if (threshold != null && balance <= threshold) return
-        scope.launch { runCatching { userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false) } }
+        scope.launch {
+            runCatching {
+                val stored = accountBalanceDao.getLatestBalance(bankName, accountLast4)
+                val limit = stored?.lowBalanceThreshold
+                if (stored != null && (limit == null || stored.balance > limit)) {
+                    userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false)
+                }
+            }
+        }
     }
 
     suspend fun updateAccountCurrency(bankName: String, accountLast4: String, currency: String): Int {

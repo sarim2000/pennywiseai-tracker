@@ -15,7 +15,12 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -64,6 +69,10 @@ class ManualLowBalanceRearmTest {
         coEvery { balanceDao.getOpeningRow(BANK, ACCT) } returns row("OPENING", threshold)
     }
 
+    private fun storedLatest(threshold: String?, balance: String) {
+        coEvery { balanceDao.getLatestBalance(BANK, ACCT) } returns row("MANUAL", threshold, balance)
+    }
+
     private fun verifyRearms(times: Int) = coVerify(exactly = times) {
         preferences.claimLowBalanceAlert(BANK, ACCT, false)
     }
@@ -71,6 +80,7 @@ class ManualLowBalanceRearmTest {
     @Test
     fun `typing a balance back above the threshold rearms`() = runBlocking {
         openingWithThreshold("500")
+        storedLatest("500", "900")
         repo.setManualCurrentBalance(BANK, ACCT, BigDecimal("900"))
         verifyRearms(1)
     }
@@ -78,8 +88,29 @@ class ManualLowBalanceRearmTest {
     @Test
     fun `a claim that never finishes does not hold up the recompute`() = runBlocking {
         openingWithThreshold("500")
+        storedLatest("500", "900")
         coEvery { preferences.claimLowBalanceAlert(BANK, ACCT, false) } coAnswers { CompletableDeferred<Boolean>().await() }
-        repo.setManualCurrentBalance(BANK, ACCT, BigDecimal("900"))
+        withTimeout(5_000) { repo.setManualCurrentBalance(BANK, ACCT, BigDecimal("900")) }
+        verifyRearms(1)
+    }
+
+    @Test
+    fun `a queued rearm does nothing once the stored balance dipped again`() = runTest {
+        val queued = AccountBalanceRepository(balanceDao, transactionDao, database, preferences, CoroutineScope(StandardTestDispatcher(testScheduler)))
+        openingWithThreshold("500")
+        queued.setManualCurrentBalance(BANK, ACCT, BigDecimal("900"))
+        storedLatest("500", "300")
+        advanceUntilIdle()
+        verifyRearms(0)
+    }
+
+    @Test
+    fun `a queued rearm still clears the flag while the stored balance is above`() = runTest {
+        val queued = AccountBalanceRepository(balanceDao, transactionDao, database, preferences, CoroutineScope(StandardTestDispatcher(testScheduler)))
+        openingWithThreshold("500")
+        storedLatest("500", "900")
+        queued.setManualCurrentBalance(BANK, ACCT, BigDecimal("900"))
+        advanceUntilIdle()
         verifyRearms(1)
     }
 
@@ -94,6 +125,7 @@ class ManualLowBalanceRearmTest {
     @Test
     fun `income rearms at once, so an expense right after it can alert`() = runBlocking {
         openingWithThreshold("500")
+        storedLatest("500", "500.01")
         val income = mockk<TransactionEntity> {
             every { transactionType } returns TransactionType.INCOME
             every { amount } returns BigDecimal("500")
@@ -106,7 +138,7 @@ class ManualLowBalanceRearmTest {
 
     @Test
     fun `lowering the threshold under the balance rearms`() = runBlocking {
-        coEvery { balanceDao.getLatestBalance(BANK, ACCT) } returns row("MANUAL", "500", balance = "400")
+        storedLatest("300", "400")
         repo.setLowBalanceThreshold(BANK, ACCT, BigDecimal("300"))
         verifyRearms(1)
     }
@@ -120,7 +152,7 @@ class ManualLowBalanceRearmTest {
 
     @Test
     fun `clearing the threshold rearms`() = runBlocking {
-        coEvery { balanceDao.getLatestBalance(BANK, ACCT) } returns row("MANUAL", "500", balance = "400")
+        storedLatest(null, "400")
         repo.setLowBalanceThreshold(BANK, ACCT, null)
         verifyRearms(1)
     }

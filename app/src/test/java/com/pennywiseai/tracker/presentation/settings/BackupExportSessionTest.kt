@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.settings
 
 import android.content.Context
 import android.net.Uri
+import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.backup.BackupExporter
@@ -20,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -34,6 +36,9 @@ import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.OutputStream
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /** One export at a time, and Save writes the export the user chose to save. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -136,6 +141,38 @@ class BackupExportSessionTest {
             UiText.Res(R.string.settings_backup_save_failed, listOf("The backup is no longer available. Export it again")),
             message
         )
+    }
+
+    @Test
+    fun `a slow save of an older export leaves a newer export and its status alone`() {
+        val opened = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val slowStream = object : OutputStream() {
+            override fun write(b: Int) {
+                release.await()
+            }
+        }
+        every { context.contentResolver.openOutputStream(any<Uri>()) } answers {
+            opened.countDown()
+            slowStream
+        }
+        coEvery { exporter.exportBackup(any(), any(), null) } returns ExportResult.Success(plainFile)
+        viewModel.exportBackup()
+        val shownPath = viewModel.exportedBackupFile.value?.path
+        viewModel.clearImportExportMessage()
+        val scope = viewModel.viewModelScope.coroutineContext.job
+        val before = scope.children.toSet()
+        viewModel.saveBackupToFile(mockk(), shownPath)
+        val save = (scope.children.toSet() - before).single()
+        assertTrue(opened.await(5, TimeUnit.SECONDS))
+
+        coEvery { exporter.exportBackup(any(), any(), any<CharArray>()) } returns ExportResult.Success(encryptedFile)
+        viewModel.exportBackup("synthetic".toCharArray())
+        release.countDown()
+        runBlocking { withTimeout(5_000) { save.join() } }
+
+        assertEquals(encryptedFile, viewModel.exportedBackupFile.value)
+        assertEquals(UiText.Res(R.string.settings_backup_created_choose), viewModel.importExportMessage.value)
     }
 
     @Test

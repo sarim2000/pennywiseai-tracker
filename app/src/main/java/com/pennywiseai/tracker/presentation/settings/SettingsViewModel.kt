@@ -644,6 +644,9 @@ class SettingsViewModel @Inject constructor(
 
     /** Saves the export the user chose to save, [exportedPath]; not one made since. */
     fun saveBackupToFile(uri: android.net.Uri, exportedPath: String?) {
+        // The status as Save starts. A slow save reports only over that, never over a newer
+        // export's or restore's status, and clears only the export it saved.
+        val shownMessage = _importExportMessage.value
         // Copying a backup with receipts can take a while; keep it off the main thread.
         viewModelScope.launch(Dispatchers.IO) {
             var opened = false
@@ -662,8 +665,8 @@ class SettingsViewModel @Inject constructor(
                 }
                 // Announced before the message, so whoever sees "Backup saved" has the moment too.
                 mascotMoments.announce(MascotMoment.BackupSaved)
-                _importExportMessage.value = UiText.Res(R.string.settings_backup_saved)
-                _exportedBackupFile.value = null
+                _importExportMessage.compareAndSet(shownMessage, UiText.Res(R.string.settings_backup_saved))
+                _exportedBackupFile.compareAndSet(file, null)
             } catch (e: Exception) {
                 // Drop the empty or half-written file so it isn't mistaken for a backup
                 // later. A file the user chose to replace keeps its old content if we never
@@ -671,7 +674,7 @@ class SettingsViewModel @Inject constructor(
                 if (opened || isEmptyDocument(uri)) {
                     runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
                 }
-                _importExportMessage.value = UiText.Res(R.string.settings_backup_save_failed, listOf("${e.message}"))
+                _importExportMessage.compareAndSet(shownMessage, UiText.Res(R.string.settings_backup_save_failed, listOf("${e.message}")))
                 Log.e("SettingsViewModel", "Error saving backup", e)
             }
         }

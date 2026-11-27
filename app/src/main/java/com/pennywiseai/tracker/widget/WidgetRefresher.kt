@@ -1,7 +1,12 @@
 package com.pennywiseai.tracker.widget
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.util.Log
+import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.updateAll
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -36,19 +41,50 @@ object WidgetRefresher {
     fun redrawAll(context: Context) {
         val app = context.applicationContext
         scope.launch {
-            listOf(
-                RecentTransactionsWidget(), SpendingSummaryWidget(), BudgetWidget(), CategoryPieWidget(),
-                GoalWidget(), GoalsListWidget(), AddTransactionWidget(), TrackingCheckupWidget()
-            ).forEach { widget ->
+            val launcher = AppWidgetManager.getInstance(app)
+            val glance = GlanceAppWidgetManager(app)
+            redrawEach(WIDGET_RECEIVERS, { launcher.getAppWidgetIds(ComponentName(app, it)) }) { widget, id ->
+                widget.update(app, glance.getGlanceIdBy(id))
+            }
+        }
+    }
+
+    /**
+     * Redraws each widget of [receivers] the launcher has placed, by the ids [placedIds]
+     * reports. Not updateAll: that only finds receivers Glance has recorded, and a widget
+     * set up through its configure screen may never have been. One failure skips only
+     * that widget.
+     */
+    internal suspend fun redrawEach(
+        receivers: List<Class<out GlanceAppWidgetReceiver>>,
+        placedIds: (Class<out GlanceAppWidgetReceiver>) -> IntArray,
+        redraw: suspend (GlanceAppWidget, Int) -> Unit
+    ) {
+        for (receiver in receivers) {
+            val (widget, ids) = try {
+                receiver.getDeclaredConstructor().newInstance().glanceAppWidget to placedIds(receiver)
+            } catch (e: Exception) {
+                Log.w("WidgetRefresher", "Couldn't find the ${receiver.simpleName} widgets", e)
+                continue
+            }
+            for (id in ids) {
                 try {
-                    widget.updateAll(app)
+                    redraw(widget, id)
                 } catch (e: Exception) {
                     if (e is CancellationException) throw e
-                    Log.w("WidgetRefresher", "Couldn't redraw ${widget.javaClass.simpleName}", e)
+                    Log.w("WidgetRefresher", "Couldn't redraw ${widget.javaClass.simpleName} $id", e)
                 }
             }
         }
     }
+
+    /** Every widget's receiver: what [redrawAll] asks the launcher about. */
+    internal val WIDGET_RECEIVERS: List<Class<out GlanceAppWidgetReceiver>> = listOf(
+        RecentTransactionsWidgetReceiver::class.java, SpendingSummaryWidgetReceiver::class.java,
+        BudgetWidgetReceiver::class.java, CategoryPieWidgetReceiver::class.java, GoalWidgetReceiver::class.java,
+        GoalsListWidgetReceiver::class.java, AddTransactionWidgetReceiver::class.java,
+        TrackingCheckupWidgetReceiver::class.java
+    )
 
     /**
      * Redraws the tracking check-up, which has no snapshot: it reads SMS access and

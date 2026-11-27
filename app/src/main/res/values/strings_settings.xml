@@ -573,7 +573,7 @@
     <string name="faq_wallet_credit_question">Why are wallet transactions marked as Card spend?</string>
     <string name="faq_wallet_credit_answer">Wallet transactions (Amazon Pay, Paytm, etc.) are marked as Card spend because they\'re charged to your bank account or credit card first, not direct bank debits. This helps track the actual payment method used.</string>
     <string name="faq_transaction_types_question">What\'s the difference between the 5 transaction types?</string>
-    <string name="faq_transaction_types_answer">• Expense: Money going out of your account (debits, purchases, bill payments)\n• Income: Money coming into your account (salary, refunds, cashback)\n• Investment: Mutual funds, stocks, SIPs, trading accounts\n• Credit: Credit card transactions and wallet payments (money you\'ll pay later)\n• Transfer: Money moved between your own accounts (self-transfers)</string>
+    <string name="faq_transaction_types_answer">• Expense: Money going out of your account (debits, purchases, bill payments)\n• Income: Money coming into your account (salary, refunds, cashback)\n• Investment: Mutual funds, stocks, SIPs, trading accounts\n• Card spend: Credit card transactions and wallet payments (money you\'ll pay later)\n• Transfer: Money moved between your own accounts (self-transfers)</string>
     <string name="faq_transfer_vs_expense_question">When should I use Transfer vs Expense?</string>
     <string name="faq_transfer_vs_expense_answer">Use Transfer when moving money between your own accounts (e.g., savings to checking). These don\'t affect your net worth. Use Expense for actual spending.</string>
 

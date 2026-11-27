@@ -977,6 +977,10 @@ class SettingsViewModel @Inject constructor(
                 _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_passphrase_lost_subtitle)
                 null
             }
+            FolderBackupRunner.Result.PassphraseUnavailable -> {
+                _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_passphrase_unavailable)
+                null
+            }
             is FolderBackupRunner.Result.Failure -> {
                 _importExportMessage.value = UiText.Plain(result.message)
                 null

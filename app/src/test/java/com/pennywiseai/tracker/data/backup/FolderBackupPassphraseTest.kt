@@ -10,11 +10,17 @@ import io.mockk.unmockkObject
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
+import java.security.KeyStoreException
+import java.security.ProviderException
+import java.security.UnrecoverableKeyException
+import javax.crypto.AEADBadTagException
 
 /** The folder backup passphrase setting is only "on" once it's stored, and a missing secret fails closed. */
 class FolderBackupPassphraseTest {
@@ -75,6 +81,52 @@ class FolderBackupPassphraseTest {
 
         assertEquals(FolderBackupPassphrase.Status.ON, store.status.value)
         assertArrayEquals("synthetic phrase".toCharArray(), store.load())
+    }
+
+    @Test
+    fun `a transient Keystore error retries later and doesn't mark the passphrase lost`() {
+        val store = FolderBackupPassphrase(context)
+        store.save("synthetic phrase".toCharArray())
+        every { DeviceSecretBox.open(any(), any()) } throws ProviderException("keystore busy")
+
+        assertThrows(FolderBackupPassphrase.UnavailableException::class.java) { store.load() }
+
+        assertEquals(FolderBackupPassphrase.Status.ON, store.status.value)
+        assertEquals(FolderBackupPassphrase.Status.ON, FolderBackupPassphrase(context).status.value)
+    }
+
+    @Test
+    fun `a key that no longer opens the passphrase marks it lost`() {
+        val store = FolderBackupPassphrase(context)
+        store.save("synthetic phrase".toCharArray())
+        every { DeviceSecretBox.open(any(), any()) } throws AEADBadTagException("tag mismatch")
+
+        assertThrows(FolderBackupPassphrase.LostException::class.java) { store.load() }
+
+        assertEquals(FolderBackupPassphrase.Status.LOST, store.status.value)
+        assertEquals(FolderBackupPassphrase.Status.LOST, FolderBackupPassphrase(context).status.value)
+    }
+
+    @Test
+    fun `a passphrase marked lost that opens again clears the warning`() {
+        FolderBackupPassphrase(context).save("synthetic phrase".toCharArray())
+        prefs.values[FolderBackupPassphrase.KEY_LOST] = true
+        val store = FolderBackupPassphrase(context)
+        assertEquals(FolderBackupPassphrase.Status.LOST, store.status.value)
+
+        assertArrayEquals("synthetic phrase".toCharArray(), store.load())
+
+        assertEquals(FolderBackupPassphrase.Status.ON, store.status.value)
+        assertEquals(FolderBackupPassphrase.Status.ON, FolderBackupPassphrase(context).status.value)
+    }
+
+    @Test
+    fun `only errors retrying can't fix count as permanent`() {
+        assertTrue(FolderBackupPassphrase.isPermanent(AEADBadTagException()))
+        assertTrue(FolderBackupPassphrase.isPermanent(UnrecoverableKeyException()))
+        assertTrue(FolderBackupPassphrase.isPermanent(IllegalArgumentException("bad base64")))
+        assertFalse(FolderBackupPassphrase.isPermanent(ProviderException("keystore busy")))
+        assertFalse(FolderBackupPassphrase.isPermanent(KeyStoreException("not ready")))
     }
 
     /** In-memory prefs whose commit can fail, like a full disk. */

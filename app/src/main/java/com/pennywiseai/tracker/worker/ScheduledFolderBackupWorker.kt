@@ -45,6 +45,10 @@ class ScheduledFolderBackupWorker @AssistedInject constructor(
                 Log.e(TAG, "Scheduled folder backup skipped: the backup passphrase can't be unlocked")
                 Result.failure()
             }
+            FolderBackupRunner.Result.PassphraseUnavailable -> {
+                Log.w(TAG, "Scheduled folder backup postponed: the Keystore couldn't unlock the passphrase")
+                Result.retry()
+            }
             is FolderBackupRunner.Result.Failure -> {
                 Log.e(TAG, "Scheduled folder backup failed: ${result.message}")
                 Result.retry()

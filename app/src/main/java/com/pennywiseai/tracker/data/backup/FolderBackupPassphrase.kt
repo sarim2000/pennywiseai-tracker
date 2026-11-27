@@ -2,12 +2,15 @@ package com.pennywiseai.tracker.data.backup
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import com.pennywiseai.tracker.core.DeviceSecretBox
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.IOException
+import java.security.UnrecoverableKeyException
+import javax.crypto.AEADBadTagException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,8 +38,11 @@ class FolderBackupPassphrase @Inject constructor(
         LOST
     }
 
-    /** The saved passphrase couldn't be unsealed. Never fall back to a plain backup. */
+    /** The saved passphrase can't be unsealed, now or later. Never fall back to a plain backup. */
     class LostException(cause: Throwable?) : Exception("Backup passphrase can't be unlocked", cause)
+
+    /** The Keystore failed this time (busy, locked, a provider error): try again later. */
+    class UnavailableException(cause: Throwable) : Exception("Backup passphrase can't be unlocked right now", cause)
 
     private val prefs = context.getSharedPreferences("folder_backup", Context.MODE_PRIVATE)
 
@@ -74,16 +80,23 @@ class FolderBackupPassphrase @Inject constructor(
      * The passphrase to encrypt the next folder backup with (the caller clears it), or null
      * when folder backups aren't encrypted.
      *
-     * @throws LostException when the saved passphrase is gone or can't be unsealed.
+     * @throws LostException when the saved passphrase is gone or its Keystore key no longer opens it.
+     * @throws UnavailableException when the Keystore failed this time; nothing is marked lost.
      */
     fun load(): CharArray? {
         if (!isRequired()) return null
         val sealed = prefs.getString(KEY_SEALED, null) ?: throw markLost(null)
-        return try {
+        val passphrase = try {
             DeviceSecretBox.open(sealed, ALIAS).toCharArray()
         } catch (e: Exception) {
-            throw markLost(e)
+            throw if (isPermanent(e)) markLost(e) else UnavailableException(e)
         }
+        if (_status.value != Status.ON) {
+            // It opens after all: whatever marked it lost has passed, so backups go on.
+            prefs.edit().remove(KEY_LOST).commit()
+            _status.value = Status.ON
+        }
+        return passphrase
     }
 
     // Either one means "encrypt": a half-present setting fails closed.
@@ -104,5 +117,15 @@ class FolderBackupPassphrase @Inject constructor(
         const val KEY_SEALED = "passphrase_sealed"
         const val KEY_REQUIRED = "encryption_required"
         const val KEY_LOST = "passphrase_lost"
+
+        /**
+         * Errors that retrying can't fix: the key was invalidated or replaced (a missing key is
+         * recreated, so the old sealed value fails its tag), or the sealed value is malformed.
+         */
+        fun isPermanent(e: Throwable): Boolean = e is KeyPermanentlyInvalidatedException ||
+            e is AEADBadTagException ||
+            e is UnrecoverableKeyException ||
+            e is IllegalArgumentException ||
+            e is IndexOutOfBoundsException
     }
 }

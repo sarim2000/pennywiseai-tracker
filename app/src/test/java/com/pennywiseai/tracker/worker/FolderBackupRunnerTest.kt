@@ -85,6 +85,16 @@ class FolderBackupRunnerTest {
     }
 
     @Test
+    fun `a Keystore that fails this time writes nothing and can be retried`() = runBlocking {
+        every { passphrase.load() } throws FolderBackupPassphrase.UnavailableException(IllegalStateException("busy"))
+
+        val result = runner.run(treeUri)
+
+        assertEquals(FolderBackupRunner.Result.PassphraseUnavailable, result)
+        verify(exactly = 0) { writer.writeBackup(any(), any()) }
+    }
+
+    @Test
     fun `without a passphrase the folder backup stays plain`() = runBlocking {
         every { passphrase.load() } returns null
 

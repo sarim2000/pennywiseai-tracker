@@ -28,6 +28,9 @@ class FolderBackupRunner @Inject constructor(
         /** The saved passphrase can't be unlocked: the user has to enter it again. Nothing was written. */
         data object PassphraseLost : Result()
 
+        /** The Keystore failed this time; nothing was written and a later try may work. */
+        data object PassphraseUnavailable : Result()
+
         data class Failure(val message: String) : Result()
     }
 
@@ -36,6 +39,8 @@ class FolderBackupRunner @Inject constructor(
             folderBackupPassphrase.load()
         } catch (e: FolderBackupPassphrase.LostException) {
             return Result.PassphraseLost
+        } catch (e: FolderBackupPassphrase.UnavailableException) {
+            return Result.PassphraseUnavailable
         }
         val exportResult = try {
             backupExporter.exportBackup(

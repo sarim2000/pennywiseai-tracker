@@ -144,6 +144,7 @@ class SettingsViewModel @Inject constructor(
     // An encrypted backup picked for restore, waiting for its passphrase.
     private val _backupPassphrasePrompt = MutableStateFlow<BackupPassphrasePrompt?>(null)
     val backupPassphrasePrompt: StateFlow<BackupPassphrasePrompt?> = _backupPassphrasePrompt.asStateFlow()
+    private var backupPassphraseAttempt = 0
 
     // "Delete all transactions": null while the confirmation isn't open, else the
     // number of rows the delete would remove — observed, not snapshotted, so the
@@ -737,7 +738,11 @@ class SettingsViewModel @Inject constructor(
                     ImportResult.PassphraseRequired, ImportResult.WrongPassphrase -> {
                         // Nothing was imported: ask (again), with the error on a retry.
                         _importExportMessage.value = null
-                        _backupPassphrasePrompt.value = BackupPassphrasePrompt(uri, wrongPassphrase = result == ImportResult.WrongPassphrase)
+                        _backupPassphrasePrompt.value = BackupPassphrasePrompt(
+                            uri,
+                            wrongPassphrase = result == ImportResult.WrongPassphrase,
+                            attempt = ++backupPassphraseAttempt
+                        )
                     }
                     is ImportResult.Success -> {
                         // A restored base currency moves this device's budgets with it, as picking it in Settings does.
@@ -1063,8 +1068,11 @@ private const val BYTES_PER_MB = 1024L * 1024L
 
 data class BudgetConversionPrompt(val from: String, val to: String, val rate: java.math.BigDecimal)
 
-/** An encrypted backup at [uri] waiting for its passphrase; [wrongPassphrase] after a failed try. */
-data class BackupPassphrasePrompt(val uri: Uri, val wrongPassphrase: Boolean = false)
+/**
+ * An encrypted backup at [uri] waiting for its passphrase; [wrongPassphrase] after a failed try.
+ * [attempt] is new for every prompt, so two wrong tries in a row never look like the same one.
+ */
+data class BackupPassphrasePrompt(val uri: Uri, val wrongPassphrase: Boolean = false, val attempt: Int = 0)
 
 enum class DownloadState {
     NOT_DOWNLOADED,

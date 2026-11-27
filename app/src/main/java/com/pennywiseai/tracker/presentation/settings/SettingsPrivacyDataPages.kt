@@ -550,11 +550,14 @@ internal fun DataPage(
     }
 
     backupPassphrasePrompt?.let { prompt ->
-        BackupPassphraseDialog(
-            wrongPassphrase = prompt.wrongPassphrase,
-            onRestore = { passphrase -> settingsViewModel.importBackup(prompt.uri, passphrase) },
-            onDismiss = { settingsViewModel.cancelBackupPassphrase() }
-        )
+        // A fresh dialog per attempt: a second wrong passphrase shows its error again.
+        key(prompt.attempt) {
+            BackupPassphraseDialog(
+                wrongPassphrase = prompt.wrongPassphrase,
+                onRestore = { passphrase -> settingsViewModel.importBackup(prompt.uri, passphrase) },
+                onDismiss = { settingsViewModel.cancelBackupPassphrase() }
+            )
+        }
     }
 }
 

@@ -32,6 +32,7 @@ import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -213,5 +214,19 @@ class BackupExportSessionTest {
         assertArrayEquals(CharArray(restorePassphrase.size), restorePassphrase)
         assertFalse(viewModel.isExportingBackup.value)
         assertFalse(viewModel.isRestoringBackup.value)
+    }
+
+    @Test
+    fun `each wrong passphrase gets a prompt of its own`() {
+        coEvery { importer.importBackup(any(), any(), any()) } returns ImportResult.WrongPassphrase
+        val uri = mockk<Uri>()
+
+        viewModel.importBackup(uri, "synthetic".toCharArray())
+        val first = viewModel.backupPassphrasePrompt.value
+        viewModel.importBackup(uri, "synthetic".toCharArray())
+        val second = viewModel.backupPassphrasePrompt.value
+
+        assertTrue(first!!.wrongPassphrase && second!!.wrongPassphrase)
+        assertNotEquals(first, second)
     }
 }

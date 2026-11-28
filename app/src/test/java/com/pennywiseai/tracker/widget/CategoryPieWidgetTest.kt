@@ -143,4 +143,40 @@ class CategoryPieWidgetTest {
         )
         assertEquals(0, BigDecimal("20").compareTo(spend.total))
     }
+
+    /** Unified mode in JOD: USD converts at 0.7, as the worker's amountIn does with a rate. */
+    private fun unifiedSpendOf(rows: List<TransactionWithSplits>) = runBlocking {
+        pieSpend(rows, creditAsExpense = false) { tx, amount ->
+            when (tx.currency) {
+                "JOD" -> amount
+                "USD" -> amount * BigDecimal("0.7")
+                else -> null
+            }
+        }
+    }
+
+    @Test
+    fun `in unified mode a refund in a currency with no spend leaves the total alone, like Home`() {
+        val spend = unifiedSpendOf(
+            listOf(
+                row(1, "100", "Food"),
+                row(2, "10", "Food", TransactionType.INCOME, currency = "USD", refundOf = "Food")
+            )
+        )
+        assertEquals(0, BigDecimal("100").compareTo(spend.total))
+    }
+
+    @Test
+    fun `in unified mode a refund comes off its own currency's spend`() {
+        val spend = unifiedSpendOf(
+            listOf(
+                row(1, "100", "Food"),
+                row(2, "20", "Shopping", currency = "USD"),
+                row(3, "10", "Shopping", TransactionType.INCOME, currency = "USD", refundOf = "Shopping")
+            )
+        )
+        // JOD 100 + (USD 20 - USD 10) at 0.7
+        assertEquals(0, BigDecimal("107").compareTo(spend.total))
+        assertEquals(0, BigDecimal("7").compareTo(spend.byCategory.getValue("Shopping")))
+    }
 }

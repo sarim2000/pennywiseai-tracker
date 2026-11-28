@@ -161,8 +161,9 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
             // the pie never shows two grey catch-alls.
             val othersCategory = byCategory.remove("Others") ?: BigDecimal.ZERO
             val ranked = byCategory.entries.sortedByDescending { it.value }
-            // Home's "Spent": net of every refund. The slices share out what they
-            // add up to, which only exceeds [total] when a refund outgrows its category.
+            // Home's "Spent": net of refunds. The slices share out what they add up
+            // to, which differs from [total] only when a refund outgrows its category
+            // or its currency's spend.
             val total = spend.total
             val sliceTotal = ranked.fold(othersCategory) { acc, e -> acc + e.value }
             val categories = categoryRepository.getAllCategories().first()
@@ -223,7 +224,8 @@ internal class PieSpend(val byCategory: Map<String, BigDecimal>, val total: BigD
  * This cycle's spend by category, in the pie's currency, defined as Home's "Spent"
  * and the Analytics spend view: expense rows (plus card spend when [creditAsExpense]),
  * minus refunds (INCOME + DEDUCT_SPENT). A refund comes off its budget category
- * (floored at zero) and in full off [PieSpend.total], as in Analytics (#704).
+ * (floored at zero), as in Analytics (#704), and off [PieSpend.total] in full up to
+ * its own currency's spend, as on Home.
  *
  * [rows] is the scoped cycle, every type. [amountIn] gives an amount of a row in the
  * pie's currency, or null to leave it out (another currency, or no rate).
@@ -235,19 +237,31 @@ internal suspend fun pieSpend(
 ): PieSpend {
     val filter = defaultTypeFilter(creditAsExpense)
     val byCategory = mutableMapOf<String, BigDecimal>()
-    var gross = BigDecimal.ZERO
+    val grossByCurrency = mutableMapOf<String, BigDecimal>()
     for (tw in analyticsRowsFor(rows, filter)) {
         for ((category, amount) in tw.getAmountByCategory()) {
             val counted = amountIn(tw.transaction, amount) ?: continue
             byCategory.merge(category.ifBlank { "Others" }, counted, BigDecimal::add)
-            gross += counted
+            grossByCurrency.merge(tw.transaction.currency.uppercase(), counted, BigDecimal::add)
         }
     }
-    val refunds = refundNetting(rows, filter, categoryFilter = null, parentOf = emptyMap()) { amountIn(it, it.amount) }
-    refunds.byCategory.forEach { (category, refund) ->
+    // Home floors spend at zero per original currency before converting
+    // (breakdownByCurrency), so a USD refund with no USD spend this cycle
+    // takes nothing off the JOD total. Net each currency on its own, then add.
+    val refundsByCurrency = rows.groupBy { it.transaction.currency.uppercase() }.mapValues { (_, group) ->
+        refundNetting(group, filter, categoryFilter = null, parentOf = emptyMap()) { amountIn(it, it.amount) }
+    }
+    val refundByCategory = mutableMapOf<String, BigDecimal>()
+    refundsByCurrency.values.forEach { refunds ->
+        refunds.byCategory.forEach { (category, refund) -> refundByCategory.merge(category, refund, BigDecimal::add) }
+    }
+    refundByCategory.forEach { (category, refund) ->
         byCategory[category]?.let { byCategory[category] = netOf(it, refund) }
     }
-    return PieSpend(byCategory.filterValues { it.signum() > 0 }, netOf(gross, refunds.total))
+    val total = (grossByCurrency.keys + refundsByCurrency.keys).fold(BigDecimal.ZERO) { acc, currency ->
+        acc + netOf(grossByCurrency[currency] ?: BigDecimal.ZERO, refundsByCurrency[currency]?.total)
+    }
+    return PieSpend(byCategory.filterValues { it.signum() > 0 }, total)
 }
 
 /**

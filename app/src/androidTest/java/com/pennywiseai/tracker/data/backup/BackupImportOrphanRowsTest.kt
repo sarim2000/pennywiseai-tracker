@@ -5,6 +5,8 @@ import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
+import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
 import com.pennywiseai.tracker.data.database.entity.RuleEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -90,4 +92,25 @@ class BackupImportOrphanRowsTest {
     @Test fun mergeKeepsImportableRowsAndSkipsOrphans() = runBlocking { assertOnlyOrphansSkipped(ImportStrategy.MERGE) }
 
     @Test fun replaceAllKeepsImportableRowsAndSkipsOrphans() = runBlocking { assertOnlyOrphansSkipped(ImportStrategy.REPLACE_ALL) }
+
+    // Both contributions pass the parent check (their goal restores) and then clash on the unique uid
+    // index: a SQL failure no pre-check can catch. It must fail the import, never come back as a
+    // Success that saved nothing. (Only REPLACE_ALL reaches it: MERGE dedups contributions by uid.)
+    @Test fun replaceAllFailsOnASqlErrorInsteadOfReportingSuccess() = runBlocking {
+        val backup = PennyWiseBackup(
+            database = DatabaseSnapshot(
+                transactions = listOf(tx(1), tx(2)),
+                goals = listOf(GoalEntity(id = 1, uid = "goal")),
+                goalContributions = listOf(
+                    GoalContributionEntity(uid = "dup", goalId = 1, amount = BigDecimal("5")),
+                    GoalContributionEntity(uid = "dup", goalId = 1, amount = BigDecimal("6"))
+                )
+            )
+        )
+
+        val result = importer.importBackup(android.net.Uri.fromFile(file(backup)), ImportStrategy.REPLACE_ALL)
+
+        assertTrue("$result", result is ImportResult.Error)
+        assertEquals(0, db.transactionDao().getAllTransactions().first().size)
+    }
 }

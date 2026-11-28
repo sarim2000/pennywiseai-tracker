@@ -83,4 +83,34 @@ class OnboardingBackTest {
         assertFalse(shown.scanCompleted)
         assertEquals(0, shown.scanSaved)
     }
+
+    @Test
+    fun `saved choices come back, so Finish saves the picked currency and not the default`() {
+        val colors = listOf(10, 20, 30)
+        val chosen = OnBoardingUiState(
+            currentStep = OnBoardingStep.PERMISSIONS, userName = " Sam ", selectedAvatarIndex = 2,
+            selectedBackgroundColor = 1, selectedCurrency = "AUD", currencyPicked = true
+        )
+
+        val saved = chosen.toProgress(colors)
+        val restored = OnBoardingUiState(selectedCurrency = "USD")
+            .restoredFrom(saved, OnBoardingStep.PERMISSIONS, smsGranted = false, backgroundColors = colors)
+
+        assertEquals("AUD", restored.selectedCurrency)
+        assertTrue(restored.currencyPicked)
+        assertEquals("Sam", restored.userName)
+        assertEquals(2, restored.selectedAvatarIndex)
+        assertEquals(1, restored.selectedBackgroundColor)
+    }
+
+    @Test
+    fun `an unpicked currency guess is not saved and stays the fresh guess`() {
+        val saved = OnBoardingUiState(selectedCurrency = "AUD").toProgress(listOf(10))
+
+        assertEquals(null, saved.pickedCurrency)
+        val restored = OnBoardingUiState(selectedCurrency = "USD")
+            .restoredFrom(saved, OnBoardingStep.PROFILE, smsGranted = false, backgroundColors = listOf(10))
+        assertEquals("USD", restored.selectedCurrency)
+        assertFalse(restored.currencyPicked)
+    }
 }

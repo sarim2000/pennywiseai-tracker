@@ -14,6 +14,7 @@ import androidx.work.Data
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.preferences.OnboardingProgress
 import com.pennywiseai.tracker.data.preferences.UserPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -108,18 +109,11 @@ class OnBoardingViewModel @Inject constructor(
      */
     private fun resumeOnboarding() {
         viewModelScope.launch {
-            val (savedStep, name) = userPreferencesRepository.getOnboardingProgress() ?: return@launch
+            val progress = userPreferencesRepository.getOnboardingProgress() ?: return@launch
             val smsGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) ==
                 PackageManager.PERMISSION_GRANTED
-            val step = resumeStep(savedStep, smsGranted)
-            _uiState.update {
-                // Typing before the restore lands wins over the stored name.
-                it.copy(
-                    currentStep = step,
-                    userName = it.userName.ifEmpty { name },
-                    smsPermissionGranted = smsGranted
-                )
-            }
+            val step = resumeStep(progress.step, smsGranted)
+            _uiState.update { it.restoredFrom(progress, step, smsGranted, AvatarHelper.backgroundColors) }
             if (step >= OnBoardingStep.SMS_SCAN) {
                 observeScanProgress()
                 if (smsGranted) {
@@ -142,7 +136,7 @@ class OnBoardingViewModel @Inject constructor(
     private fun saveProgress() {
         val state = _uiState.value
         viewModelScope.launch {
-            userPreferencesRepository.saveOnboardingProgress(state.currentStep.name, state.userName.trim())
+            userPreferencesRepository.saveOnboardingProgress(state.toProgress(AvatarHelper.backgroundColors))
         }
     }
 
@@ -414,3 +408,42 @@ internal fun OnBoardingUiState.withStoredTransactions(stored: Int): OnBoardingUi
             scanTotal = maxOf(scanTotal, stored)
         )
     }
+
+/** The choices to keep across a kill, in the forms onboarding finally writes them. */
+internal fun OnBoardingUiState.toProgress(backgroundColors: List<Int>) = OnboardingProgress(
+    step = currentStep.name,
+    name = userName.trim(),
+    profileImageUri = profileImageUri?.toString() ?: "avatar://$selectedAvatarIndex".takeIf { selectedAvatarIndex >= 0 },
+    backgroundColor = backgroundColors.getOrNull(selectedBackgroundColor),
+    pickedCurrency = selectedCurrency.takeIf { currencyPicked }
+)
+
+/**
+ * This state with [progress] put back: step, name, avatar or photo, background colour and an
+ * explicitly picked currency (so Finish saves it, not the default). Typing before the restore
+ * lands wins over the stored name; an unpicked currency stays the fresh guess.
+ */
+internal fun OnBoardingUiState.restoredFrom(
+    progress: OnboardingProgress,
+    step: OnBoardingStep,
+    smsGranted: Boolean,
+    backgroundColors: List<Int>
+): OnBoardingUiState {
+    val avatar = progress.profileImageUri?.takeIf { it.startsWith("avatar://") }
+        ?.removePrefix("avatar://")?.toIntOrNull()
+    return copy(
+        currentStep = step,
+        userName = userName.ifEmpty { progress.name },
+        smsPermissionGranted = smsGranted,
+        selectedAvatarIndex = when {
+            avatar != null -> avatar
+            progress.profileImageUri != null -> -1
+            else -> selectedAvatarIndex
+        },
+        profileImageUri = if (avatar == null) progress.profileImageUri?.toUri() else null,
+        selectedBackgroundColor = backgroundColors.indexOf(progress.backgroundColor).takeIf { it >= 0 }
+            ?: selectedBackgroundColor,
+        selectedCurrency = progress.pickedCurrency ?: selectedCurrency,
+        currencyPicked = progress.pickedCurrency != null || currencyPicked
+    )
+}

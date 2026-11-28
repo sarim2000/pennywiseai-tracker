@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.viewmodel
 
+import com.pennywiseai.tracker.data.preferences.OnboardingProgress
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -24,7 +25,7 @@ class ThemeViewModelOnboardingTest {
 
     @Test
     fun `an onboarding in progress is not marked complete`() {
-        coEvery { prefs.getOnboardingProgress() } returns ("SMS_SCAN" to "A")
+        coEvery { prefs.getOnboardingProgress() } returns OnboardingProgress("SMS_SCAN", "A")
         ThemeViewModel(prefs).markOnboardingCompleted()
         coVerify(exactly = 0) { prefs.updateHasCompletedOnboarding(any(), any()) }
     }

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Next bills widget: the next three payments due. -->
+<resources>
+    <string name="widget_name_next_bills">Next bills</string>
+    <string name="widget_description_next_bills">Your next three subscriptions, recurring payments and card bills, soonest first.</string>
+    <string name="widget_next_bills_title">Next bills</string>
+    <string name="widget_next_bills_empty">Nothing due</string>
+    <string name="widget_next_bills_empty_hint">Subscriptions and card bills you track show here</string>
+    <!-- Sample content for the widget picker preview only -->
+    <string name="widget_next_bills_preview_name" translatable="false">Streaming</string>
+    <string name="widget_next_bills_preview_when" translatable="false">Due tomorrow</string>
+    <string name="widget_next_bills_preview_amount" translatable="false">$12.99</string>
+    <string name="widget_next_bills_preview_name_2" translatable="false">Credit card</string>
+    <string name="widget_next_bills_preview_when_2" translatable="false">Due in 5 days</string>
+    <string name="widget_next_bills_preview_amount_2" translatable="false">₹8,450</string>
+    <string name="widget_next_bills_preview_name_3" translatable="false">Gym</string>
+    <string name="widget_next_bills_preview_when_3" translatable="false">Due in 9 days</string>
+    <string name="widget_next_bills_preview_amount_3" translatable="false">€35.00</string>
+</resources>

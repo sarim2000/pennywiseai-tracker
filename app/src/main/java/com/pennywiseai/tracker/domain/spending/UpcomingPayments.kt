@@ -31,6 +31,9 @@ object UpcomingPayments {
      *   card counts, even when the charge names only its last digits.
      * @param isExcluded an account whose payments don't count (ignored, or in another
      *   profile); null accounts never are.
+     * @param includeOverdue also return each subscription whose scheduled date passed
+     *   unpaid, once, on that date, as Bills and Home show it ("Overdue"). The calendar
+     *   leaves it out: that day is behind it.
      */
     fun of(
         subscriptions: List<SubscriptionEntity>,
@@ -41,11 +44,14 @@ object UpcomingPayments {
         end: LocalDate,
         isExcluded: (bankName: String?, accountLast4: String?) -> Boolean = { _, _ -> false },
         from: LocalDate = today,
+        includeOverdue: Boolean = false,
     ): List<Bill> {
         val start = maxOf(today, from)
         val hidden = cards.filter { isExcluded(it.bankName, it.accountLast4) }
         fun counts(bank: String?, last4: String?) = !isExcluded(bank, last4) && !onCard(bank, last4, hidden)
-        val subs = subscriptions(subscriptions.filter { counts(it.bankName, it.accountLast4) }, start, end)
+        val subs = subscriptions(
+            subscriptions.filter { counts(it.bankName, it.accountLast4) }, start, end, overdueBefore = today.takeIf { includeOverdue },
+        )
         // A template for the same payment as a subscription is shown once.
         val templates = recurring(recurring.filter { counts(it.bankName, it.accountLast4) }, today, start, end)
             .filter { t -> subs.none { it.sameOccurrence(t) } }
@@ -60,19 +66,26 @@ object UpcomingPayments {
      * Each occurrence of the active expense [subscriptions] due [start]..[end], counted
      * from the scheduled date as the Subscriptions screen counts it, so a bill due on the
      * 31st comes back to the 31st after February. The guard counts from [start], so a
-     * far window isn't cut short.
+     * far window isn't cut short. One scheduled before [overdueBefore] is also returned on
+     * its scheduled date.
      */
-    private fun subscriptions(subscriptions: List<SubscriptionEntity>, start: LocalDate, end: LocalDate): List<Bill> =
+    private fun subscriptions(
+        subscriptions: List<SubscriptionEntity>,
+        start: LocalDate,
+        end: LocalDate,
+        overdueBefore: LocalDate? = null,
+    ): List<Bill> =
         subscriptions
             .filter { it.state == SubscriptionState.ACTIVE && it.direction == SubscriptionDirection.EXPENSE }
             .flatMap { s ->
                 val scheduled = s.nextPaymentDate ?: return@flatMap emptyList()
-                generateSequence(0L) { it + 1 }.map { RecurringCharge.advance(scheduled, s.billingCycle, it) }
+                val overdue = if (overdueBefore != null && scheduled.isBefore(overdueBefore)) listOf(scheduled) else emptyList()
+                val due = generateSequence(0L) { it + 1 }.map { RecurringCharge.advance(scheduled, s.billingCycle, it) }
                     .dropWhile { it.isBefore(start) }
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
-                    .map { Bill(s.merchantName, Money(s.amount, s.currency), it, source = BillSource.Subscription) }
                     .toList()
+                (overdue + due).map { Bill(s.merchantName, Money(s.amount, s.currency), it, source = BillSource.Subscription, seriesId = s.id) }
             }
 
     /**
@@ -93,7 +106,7 @@ object UpcomingPayments {
                     .dropWhile { it.isBefore(start) }
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
-                    .map { Bill(t.merchantName, Money(t.amount, t.currency), it, source = BillSource.Recurring) }
+                    .map { Bill(t.merchantName, Money(t.amount, t.currency), it, source = BillSource.Recurring, seriesId = t.id) }
                     .toList()
             }
 

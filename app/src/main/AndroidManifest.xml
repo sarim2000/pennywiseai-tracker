@@ -315,6 +315,19 @@
                 android:resource="@xml/goals_list_widget_info" />
         </receiver>
 
+        <!-- Next bills: the next three payments due -->
+        <receiver
+            android:name=".widget.NextBillsWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name_next_bills">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/next_bills_widget_info" />
+        </receiver>
+
         <!-- Picks the goal a 2x2 goal widget shows; the launcher opens it on add. -->
         <activity
             android:name=".widget.GoalWidgetConfigActivity"

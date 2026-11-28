@@ -56,6 +56,7 @@ class MainActivity : FragmentActivity() {
         private const val KEY_LAUNCH_PENDING = "launch_request_pending"
         const val EXTRA_OPEN_GOALS = "com.pennywiseai.tracker.OPEN_GOALS"
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
+        const val EXTRA_OPEN_BILLS = "com.pennywiseai.tracker.OPEN_BILLS"
         const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
 
         /** The tracking check-up widget: open the SMS check-up. */
@@ -236,6 +237,8 @@ class MainActivity : FragmentActivity() {
                 )
             intent.getBooleanExtra(EXTRA_OPEN_GOALS, false) ->
                 com.pennywiseai.tracker.navigation.Plan(PlanSection.GOALS)
+            intent.getBooleanExtra(EXTRA_OPEN_BILLS, false) ->
+                com.pennywiseai.tracker.navigation.Plan(PlanSection.BILLS)
             intent.getBooleanExtra(EXTRA_OPEN_BUDGETS, false) ->
                 com.pennywiseai.tracker.navigation.Plan()
             else -> return

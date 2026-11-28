@@ -61,6 +61,9 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     @Inject
     lateinit var goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository
 
+    @Inject
+    lateinit var nextBillsWidgetChanges: com.pennywiseai.tracker.widget.NextBillsWidgetChanges
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
     private var isInForeground = false
@@ -151,6 +154,10 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 com.pennywiseai.tracker.widget.GoalWidgetUpdateWorker.enqueueOneShot(this@PennyWiseApplication)
             }
         }
+
+        // Next bills widget: whatever changes the bills it lists (transactions also reach it
+        // through WidgetRefresher).
+        applicationScope.launch { nextBillsWidgetChanges.watch() }
 
         // Keep CurrencyFormatter's number-format style in sync with the user's
         // preference. CurrencyFormatter is a stateless object used from non-Compose

@@ -207,12 +207,14 @@ class TransactionDetailStaleSaveTest {
         vm.updateAmount("")
         vm.saveChanges()
         assertTrue(written.isEmpty())
-        assertEquals(UiText.Res(R.string.txn_detail_error_amount_positive_number), vm.errorMessage.value)
+        assertEquals(1, vm.amountRefusals.value)
         vm.updateAmount("0")
         vm.saveChanges()
         assertTrue(written.isEmpty())
+        assertEquals(2, vm.amountRefusals.value)
         vm.updateAmount("55")
         vm.saveChanges()
         assertEquals(BigDecimal("55"), written.single().amount)
+        assertEquals(0, vm.amountRefusals.value)
     }
 }

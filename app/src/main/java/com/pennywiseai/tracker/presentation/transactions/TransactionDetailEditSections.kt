@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -96,16 +98,25 @@ internal fun EditableTransactionHeader(
                 transaction.currency.ifEmpty { primaryCurrency }
             )
             val amountSum = amount.sumHint
+            // A refused Save: the error sits under the field (a snackbar hides behind the
+            // keyboard), and the field is scrolled into view each time.
+            val refusals by viewModel.amountRefusals.collectAsStateWithLifecycle()
+            val amountInView = remember { BringIntoViewRequester() }
+            LaunchedEffect(refusals) { if (refusals > 0) amountInView.bringIntoView() }
             TextField(
                 state = amount.state,
                 inputTransformation = amount.inputTransformation,
                 label = { Text(stringResource(R.string.txn_detail_field_amount), fontWeight = FontWeight.SemiBold) },
                 textStyle = MaterialTheme.typography.headlineSmall.money(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                isError = amountSum?.isError == true,
-                supportingText = amountSum.orSupporting(),
+                isError = amountSum?.isError == true || refusals > 0,
+                supportingText = amountSum.orSupporting(
+                    if (refusals > 0) {
+                        { Text(stringResource(R.string.txn_detail_error_amount_positive_number)) }
+                    } else null
+                ),
                 lineLimits = TextFieldLineLimits.SingleLine,
-                modifier = Modifier.weight(1f).then(amount.modifier),
+                modifier = Modifier.weight(1f).bringIntoViewRequester(amountInView).then(amount.modifier),
                 shape = editFullShape,
                 colors = editFilledColors()
             )

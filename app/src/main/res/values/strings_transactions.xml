@@ -55,7 +55,7 @@
     <!-- Transaction types -->
     <string name="txn_type_income">Income</string>
     <string name="txn_type_expense">Expense</string>
-    <string name="txn_type_credit">Credit</string>
+    <string name="txn_type_credit">Card spend</string>
     <string name="txn_type_transfer">Transfer</string>
     <string name="txn_type_investment">Investment</string>
 
@@ -210,7 +210,7 @@
     <string name="txn_totals_income">Income</string>
     <string name="txn_totals_expense">Expense</string>
     <string name="txn_totals_expenses">Expenses</string>
-    <string name="txn_totals_credit">Credit</string>
+    <string name="txn_totals_credit">Card spend</string>
     <string name="txn_totals_transfer">Transfer</string>
     <string name="txn_totals_invest">Invest</string>
     <string name="txn_totals_net">Net</string>
@@ -391,6 +391,19 @@
     </plurals>
     <string name="groups_new_title">New Group</string>
     <string name="groups_create_confirm">Create</string>
+    <string name="trip_switch_title">Trip</string>
+    <string name="trip_switch_hint">New spending dated in this window joins the group on its own. Subscriptions, income and transfers stay out.</string>
+    <string name="trip_starts">Starts</string>
+    <string name="trip_ends">Ends</string>
+    <string name="trip_until_stopped">Until I stop it</string>
+    <string name="trip_status_scheduled">Scheduled</string>
+    <string name="trip_status_running">Running</string>
+    <string name="trip_status_ended">Ended</string>
+    <string name="trip_stop">Stop trip</string>
+    <string name="trip_window">%1$s – %2$s</string>
+    <string name="trip_window_open">From %1$s</string>
+    <string name="trip_overlap_error">These dates overlap “%1$s”. Only one trip can run at a time.</string>
+    <string name="trip_picker_ok">OK</string>
     <string name="group_back">Back</string>
     <string name="group_name">Group name</string>
     <string name="group_note">Note (optional)</string>

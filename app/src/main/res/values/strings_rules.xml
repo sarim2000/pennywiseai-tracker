@@ -237,6 +237,7 @@
     <string name="onboarding_no_accounts">No accounts were detected yet. You can set up your main account later in Settings.</string>
     <string name="onboarding_main_account_title">Select Your Main Account</string>
     <string name="onboarding_main_account_body">Choose the account you use most often. This will be shown on your home screen.</string>
+    <string name="onboarding_pick_account_hint">Pick your main account to finish, or skip for now.</string>
     <string name="onboarding_back">Back</string>
     <string name="onboarding_get_started">Get Started</string>
     <string name="onboarding_save_continue">Save &amp; Continue</string>
@@ -608,7 +609,7 @@
     <!-- Transaction type labels (stored value stays the enum name) -->
     <string name="rules_type_income">Income</string>
     <string name="rules_type_expense">Expense</string>
-    <string name="rules_type_credit">Credit</string>
+    <string name="rules_type_credit">Card spend</string>
     <string name="rules_type_transfer">Transfer</string>
     <string name="rules_type_investment">Investment</string>
     <string name="rules_select_transaction_type">Select transaction type:</string>

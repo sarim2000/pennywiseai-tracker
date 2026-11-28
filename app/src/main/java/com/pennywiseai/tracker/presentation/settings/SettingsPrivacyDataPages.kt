@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
+import androidx.compose.foundation.text.input.clearText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -19,10 +24,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.backup.BackupCrypto
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.presentation.common.ExportTransactionsDialog
@@ -38,6 +45,8 @@ import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 // ── Security ──
@@ -132,7 +141,11 @@ internal fun DataPage(
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
+    val exportChoicePending by settingsViewModel.exportChoicePending.collectAsStateWithLifecycle()
     val exportSkippedReceipts by settingsViewModel.exportSkippedReceipts.collectAsStateWithLifecycle()
+    val exportedBackupEncrypted by settingsViewModel.exportedBackupEncrypted.collectAsStateWithLifecycle()
+    val isExportingBackup by settingsViewModel.isExportingBackup.collectAsStateWithLifecycle()
+    val isRestoringBackup by settingsViewModel.isRestoringBackup.collectAsStateWithLifecycle()
     val deleteAllTransactionsCount by settingsViewModel.deleteAllTransactionsCount.collectAsStateWithLifecycle()
     val isDeletingAllTransactions by settingsViewModel.isDeletingAllTransactions.collectAsStateWithLifecycle()
     val deleteAllTransactionsResult by settingsViewModel.deleteAllTransactionsResult.collectAsStateWithLifecycle()
@@ -143,7 +156,8 @@ internal fun DataPage(
     val folderBackupIncludeReceipts by settingsViewModel.folderBackupIncludeReceipts.collectAsStateWithLifecycle(initialValue = false)
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
-    var showExportOptionsDialog by remember { mutableStateOf(false) }
+    var showEncryptedExportDialog by remember { mutableStateOf(false) }
+    val backupPassphrasePrompt by settingsViewModel.backupPassphrasePrompt.collectAsStateWithLifecycle()
 
     // File picker for import
     val importLauncher = rememberLauncherForActivityResult(
@@ -165,13 +179,15 @@ internal fun DataPage(
         }
     )
 
-    // File saver for export
+    // File saver for export. Saves the export whose dialog the user picked "Save" in.
+    var saveExportPath by rememberSaveable { mutableStateOf<String?>(null) }
     val exportSaveLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
         onResult = { uri ->
             uri?.let {
-                settingsViewModel.saveBackupToFile(it)
+                settingsViewModel.saveBackupToFile(it, saveExportPath)
             }
+            saveExportPath = null
         }
     )
 
@@ -194,9 +210,27 @@ internal fun DataPage(
         SettingsNavItem(
             icon = Icons.Default.Upload,
             title = stringResource(R.string.settings_export_data_title),
-            subtitle = stringResource(R.string.settings_export_data_subtitle),
+            subtitle = if (isExportingBackup) {
+                stringResource(R.string.settings_export_running_subtitle)
+            } else {
+                stringResource(R.string.settings_export_data_subtitle)
+            },
             onClick = { settingsViewModel.exportBackup() },
-            position = ListItemPosition.Top
+            position = ListItemPosition.Top,
+            // One export at a time, plain or encrypted: a second would replace the file the first offers.
+            enabled = !isExportingBackup
+        )
+        SettingsNavItem(
+            icon = Icons.Default.Lock,
+            title = stringResource(R.string.settings_export_encrypted_title),
+            subtitle = if (isExportingBackup) {
+                stringResource(R.string.settings_export_running_subtitle)
+            } else {
+                stringResource(R.string.settings_export_encrypted_subtitle)
+            },
+            onClick = { showEncryptedExportDialog = true },
+            position = ListItemPosition.Middle,
+            enabled = !isExportingBackup
         )
         SettingsSwitchRow(
             icon = Icons.Default.Receipt,
@@ -216,9 +250,15 @@ internal fun DataPage(
         SettingsNavItem(
             icon = Icons.Default.Download,
             title = stringResource(R.string.settings_import_data_title),
-            subtitle = stringResource(R.string.settings_import_data_subtitle),
+            subtitle = if (isRestoringBackup) {
+                stringResource(R.string.settings_import_running_subtitle)
+            } else {
+                stringResource(R.string.settings_import_data_subtitle)
+            },
             onClick = { importLauncher.launch("*/*") },
-            position = ListItemPosition.Bottom
+            position = ListItemPosition.Bottom,
+            // One restore at a time: an older one finishing late would replace a newer pick's prompt.
+            enabled = !isRestoringBackup
         )
     }
 
@@ -392,31 +432,43 @@ internal fun DataPage(
         )
     }
 
-    // Show import/export message
-    importExportMessage?.let { message ->
-        if (exportedBackupFile != null && message == UiText.Res(R.string.settings_backup_created_choose)) {
-            showExportOptionsDialog = true
-        } else {
-            LaunchedEffect(message) {
-                kotlinx.coroutines.delay(5000)
-                settingsViewModel.clearImportExportMessage()
-            }
-
-            AlertDialog(
-                onDismissRequest = { settingsViewModel.clearImportExportMessage() },
-                title = { Text(stringResource(R.string.settings_backup_status_title)) },
-                text = { Text(message.asString()) },
-                confirmButton = {
-                    TextButton(onClick = { settingsViewModel.clearImportExportMessage() }, shapes = ButtonDefaults.shapes()) {
-                        Text(stringResource(R.string.settings_action_ok))
-                    }
+    // A restore's progress stays up until it's done (decrypting can take a while), whatever
+    // other status shows meanwhile. OK only hides it; the restore's result still shows.
+    var restoreProgressHidden by remember(isRestoringBackup) { mutableStateOf(false) }
+    if (isRestoringBackup && !restoreProgressHidden) {
+        AlertDialog(
+            onDismissRequest = { restoreProgressHidden = true },
+            title = { Text(stringResource(R.string.settings_backup_status_title)) },
+            text = { Text(stringResource(R.string.settings_importing_backup)) },
+            confirmButton = {
+                TextButton(onClick = { restoreProgressHidden = true }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.settings_action_ok))
                 }
-            )
-        }
+            }
+        )
     }
 
-    // Export options dialog
-    if (showExportOptionsDialog && exportedBackupFile != null) {
+    // Show import/export message
+    importExportMessage?.let { message ->
+        LaunchedEffect(message) {
+            kotlinx.coroutines.delay(5000)
+            settingsViewModel.clearImportExportMessage()
+        }
+
+        AlertDialog(
+            onDismissRequest = { settingsViewModel.clearImportExportMessage() },
+            title = { Text(stringResource(R.string.settings_backup_status_title)) },
+            text = { Text(message.asString()) },
+            confirmButton = {
+                TextButton(onClick = { settingsViewModel.clearImportExportMessage() }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.settings_action_ok))
+                }
+            }
+        )
+    }
+
+    // Export options dialog: stays pending until Save, Share or Cancel, whatever status shows meanwhile.
+    if (exportChoicePending && exportedBackupFile != null) {
         val timestamp = java.time.LocalDateTime.now().format(
             java.time.format.DateTimeFormatter.ofPattern("yyyy_MM_dd_HHmmss")
         )
@@ -424,10 +476,17 @@ internal fun DataPage(
 
         AlertDialog(
             onDismissRequest = {
-                showExportOptionsDialog = false
-                settingsViewModel.clearImportExportMessage()
+                settingsViewModel.dismissExportChoice()
             },
-            title = { Text(stringResource(R.string.settings_save_backup_title)) },
+            title = {
+                Text(
+                    if (exportedBackupEncrypted) {
+                        stringResource(R.string.settings_save_backup_title_encrypted)
+                    } else {
+                        stringResource(R.string.settings_save_backup_title)
+                    }
+                )
+            },
             text = {
                 Column {
                     Text(
@@ -449,9 +508,9 @@ internal fun DataPage(
                 Row {
                     TextButton(
                         onClick = {
+                            saveExportPath = exportedBackupFile?.path
                             exportSaveLauncher.launch(fileName)
-                            showExportOptionsDialog = false
-                            settingsViewModel.clearImportExportMessage()
+                            settingsViewModel.dismissExportChoice()
                         },
                         shapes = ButtonDefaults.shapes()
                     ) {
@@ -462,9 +521,8 @@ internal fun DataPage(
 
                     TextButton(
                         onClick = {
-                            settingsViewModel.shareBackup()
-                            showExportOptionsDialog = false
-                            settingsViewModel.clearImportExportMessage()
+                            settingsViewModel.shareBackup(exportedBackupFile?.path)
+                            settingsViewModel.dismissExportChoice()
                         },
                         shapes = ButtonDefaults.shapes()
                     ) {
@@ -477,8 +535,7 @@ internal fun DataPage(
             dismissButton = {
                 TextButton(
                     onClick = {
-                        showExportOptionsDialog = false
-                        settingsViewModel.clearImportExportMessage()
+                        settingsViewModel.dismissExportChoice()
                     },
                     shapes = ButtonDefaults.shapes()
                 ) {
@@ -491,4 +548,158 @@ internal fun DataPage(
     if (showUpgradeSheet) {
         UpgradeSheet(onDismiss = { showUpgradeSheet = false })
     }
+
+    if (showEncryptedExportDialog) {
+        EncryptedExportDialog(
+            onExport = { passphrase ->
+                showEncryptedExportDialog = false
+                settingsViewModel.exportBackup(passphrase)
+            },
+            onDismiss = { showEncryptedExportDialog = false }
+        )
+    }
+
+    backupPassphrasePrompt?.let { prompt ->
+        // A fresh dialog per attempt: a second wrong passphrase shows its error again.
+        key(prompt.attempt) {
+            BackupPassphraseDialog(
+                wrongPassphrase = prompt.wrongPassphrase,
+                onRestore = { passphrase -> settingsViewModel.importBackup(prompt.uri, passphrase) },
+                onDismiss = { settingsViewModel.cancelBackupPassphrase() }
+            )
+        }
+    }
+}
+
+/** Picks the passphrase for an encrypted backup export. Never stored. */
+@Composable
+private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -> Unit) {
+    // Plain remember, not saveable: the passphrase must not land in saved instance state.
+    val passphraseState = remember { TextFieldState() }
+    val confirmState = remember { TextFieldState() }
+    ClearOnDispose(passphraseState, confirmState)
+    // Compared and copied char by char: no String copies of the passphrase.
+    val matches = confirmState.text.contentEquals(passphraseState.text)
+    val mismatch = confirmState.text.isNotEmpty() && !matches
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Lock, contentDescription = null) },
+        title = { Text(stringResource(R.string.settings_backup_passphrase_export_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(stringResource(R.string.settings_backup_passphrase_export_body))
+                PassphraseField(
+                    passphraseState,
+                    stringResource(R.string.settings_backup_passphrase_label),
+                    supportingText = pluralStringResource(
+                        R.plurals.settings_backup_passphrase_min_length,
+                        BackupCrypto.MIN_NEW_PASSPHRASE_LENGTH,
+                        BackupCrypto.MIN_NEW_PASSPHRASE_LENGTH
+                    )
+                )
+                PassphraseField(
+                    confirmState,
+                    stringResource(R.string.settings_backup_passphrase_confirm_label),
+                    error = if (mismatch) stringResource(R.string.settings_backup_passphrase_mismatch) else null
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val passphrase = passphraseState.toCharArray()
+                    passphraseState.wipe()
+                    confirmState.wipe()
+                    onExport(passphrase)
+                },
+                enabled = canCreateEncryptedBackup(passphraseState.text, confirmState.text),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Text(stringResource(R.string.settings_backup_passphrase_export_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.settings_action_cancel)) }
+        }
+    )
+}
+
+/** Asks for an encrypted backup's passphrase before restoring it. Never stored. */
+@Composable
+private fun BackupPassphraseDialog(wrongPassphrase: Boolean, onRestore: (CharArray) -> Unit, onDismiss: () -> Unit) {
+    // Plain remember, not saveable: the passphrase must not land in saved instance state.
+    val passphraseState = remember { TextFieldState() }
+    ClearOnDispose(passphraseState)
+    // A retry opens a new dialog; the error goes once the user starts typing again.
+    var edited by remember { mutableStateOf(false) }
+    LaunchedEffect(passphraseState) {
+        snapshotFlow { passphraseState.text }.drop(1).first()
+        edited = true
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Lock, contentDescription = null) },
+        title = { Text(stringResource(R.string.settings_backup_passphrase_restore_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Text(stringResource(R.string.settings_backup_passphrase_restore_body))
+                PassphraseField(
+                    passphraseState,
+                    stringResource(R.string.settings_backup_passphrase_label),
+                    error = if (wrongPassphrase && !edited) stringResource(R.string.settings_backup_passphrase_wrong) else null
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val passphrase = passphraseState.toCharArray()
+                    passphraseState.wipe()
+                    onRestore(passphrase)
+                },
+                enabled = passphraseState.text.isNotEmpty(),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Text(stringResource(R.string.settings_backup_passphrase_restore_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.settings_action_cancel)) }
+        }
+    )
+}
+
+/** A new encrypted backup needs a long enough passphrase, typed the same twice. */
+internal fun canCreateEncryptedBackup(passphrase: CharSequence, confirm: CharSequence): Boolean =
+    passphrase.length >= BackupCrypto.MIN_NEW_PASSPHRASE_LENGTH && confirm.contentEquals(passphrase)
+
+private fun TextFieldState.toCharArray(): CharArray = text.let { text -> CharArray(text.length) { text[it] } }
+
+/** Empties the fields when the dialog closes, however it closes. */
+@Composable
+private fun ClearOnDispose(vararg states: TextFieldState) {
+    DisposableEffect(Unit) {
+        onDispose { states.forEach { it.wipe() } }
+    }
+}
+
+/** Empties the field and its undo history, which would otherwise still hold the old text. */
+@OptIn(ExperimentalFoundationApi::class)
+internal fun TextFieldState.wipe() {
+    clearText()
+    undoState.clearHistory()
+}
+
+@Composable
+private fun PassphraseField(state: TextFieldState, label: String, error: String? = null, supportingText: String? = null) {
+    OutlinedSecureTextField(
+        state = state,
+        textObfuscationMode = TextObfuscationMode.Hidden,
+        label = { Text(label) },
+        isError = error != null,
+        supportingText = (error ?: supportingText)?.let { { Text(it) } },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedField.shape
+    )
 }

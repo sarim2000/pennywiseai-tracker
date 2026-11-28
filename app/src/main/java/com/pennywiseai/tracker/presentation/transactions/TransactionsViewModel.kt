@@ -135,6 +135,10 @@ class TransactionsViewModel @Inject constructor(
     private val _tagFilter = MutableStateFlow<String?>(null)
     val tagFilter: StateFlow<String?> = _tagFilter.asStateFlow()
 
+    // A second required tag, only ever set by an Analytics drill-down; there is no picker for it.
+    private val _alsoTagFilter = MutableStateFlow<String?>(null)
+    val alsoTagFilter: StateFlow<String?> = _alsoTagFilter.asStateFlow()
+
     val availableTags: StateFlow<List<String>> = tagRepository.observeAllTagNames()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -684,10 +688,7 @@ class TransactionsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             availableTags.collect { tags ->
-                val current = _tagFilter.value
-                if (current != null && tags.none { it.equals(current, ignoreCase = true) }) {
-                    _tagFilter.value = null
-                }
+                setTags(_tagFilter.value, _alsoTagFilter.value) { name -> tags.any { it.equals(name, ignoreCase = true) } }
             }
         }
 
@@ -780,6 +781,7 @@ class TransactionsViewModel @Inject constructor(
             _ignoredAccountKeys.map { "ignoredAccounts" },
             _accountFilter.map { "accountFilter" },
             tagFilter.map { "tagFilter" },
+            alsoTagFilter.map { "alsoTagFilter" },
             selectedCurrency.map { "currency" },
             _isUnifiedMode.map { "unifiedMode" },
             sortOption.map { "sort" },
@@ -801,6 +803,7 @@ class TransactionsViewModel @Inject constructor(
                 val profileId = _selectedProfileId.value
                 val accountKey = _accountFilter.value
                 val tag = _tagFilter.value
+                val alsoTag = _alsoTagFilter.value
 
                 // Resolve the cycle window up-front so the inner (non-suspend)
                 // filter helper can reuse it for the cycle-following periods.
@@ -824,7 +827,8 @@ class TransactionsViewModel @Inject constructor(
                                 accountKey
                             ),
                             tag,
-                            transactionTagsMap.value
+                            transactionTagsMap.value,
+                            alsoTag
                         )
                         val transactions = scoped(allTransactions)
                         val refunds = scoped(allRefunds)
@@ -957,9 +961,26 @@ class TransactionsViewModel @Inject constructor(
     /** Sets the tag filter; null clears it ("All tags"). */
     fun setTagFilter(tag: String?) {
         _tagFilter.value = tag?.takeIf { it.isNotBlank() }
+        _alsoTagFilter.value = null
+    }
+
+    /** Removes the first tag chip; the second tag, if any, becomes the filter. */
+    fun removeTagFilter() = setTags(null, _alsoTagFilter.value)
+
+    /** The one place the two tag fields are written together: [normalizeTags] keeps them in agreement. */
+    private fun setTags(first: String?, also: String?, exists: (String) -> Boolean = { true }) {
+        val (f, a) = normalizeTags(first, also, exists)
+        _tagFilter.value = f
+        _alsoTagFilter.value = a
+    }
+
+    /** Removes the second tag chip, leaving the first. */
+    fun removeAlsoTagFilter() {
+        _alsoTagFilter.value = null
     }
 
     fun clearTagFilter() {
+        _alsoTagFilter.value = null
         _tagFilter.value = null
     }
 
@@ -1149,7 +1170,8 @@ class TransactionsViewModel @Inject constructor(
         endDateEpochDay: Long? = null,
         account: String? = null,
         tag: String? = null,
-        type: String? = null
+        type: String? = null,
+        alsoTag: String? = null
     ) {
         if (!hasAppliedInitialFilters) {
             // Only apply filters once, when first navigating to the screen
@@ -1160,6 +1182,7 @@ class TransactionsViewModel @Inject constructor(
             setSortOption(SortOption.DATE_NEWEST)
             setAccountFilter(account)
             setTagFilter(tag)
+            if (tag != null) _alsoTagFilter.value = alsoTag?.takeIf { it.isNotBlank() }
 
             // Typed nav keys carry names as they are: "Savings 10%" isn't URL-encoded.
             category?.let { setCategoryFilter(it) }
@@ -1209,11 +1232,12 @@ class TransactionsViewModel @Inject constructor(
         endDateEpochDay: Long? = null,
         account: String? = null,
         tag: String? = null,
-        type: String? = null
+        type: String? = null,
+        alsoTag: String? = null
     ) {
         // Create current params to compare
         val currentParams = NavigationParams(
-            category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type
+            category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type, alsoTag
         )
 
         // Only apply navigation filters if:
@@ -1235,6 +1259,7 @@ class TransactionsViewModel @Inject constructor(
         setSortOption(SortOption.DATE_NEWEST)
         setAccountFilter(account)
         setTagFilter(tag)
+        if (tag != null) _alsoTagFilter.value = alsoTag?.takeIf { it.isNotBlank() }
 
         category?.let { setCategoryFilter(it) }
         merchant?.let { updateSearchQuery(it) }
@@ -1403,20 +1428,16 @@ class TransactionsViewModel @Inject constructor(
         return categoriesFilteredFlow.map { (rows, splitShares) ->
             fun searched(list: List<TransactionEntity>) =
                 filterBySearch(list, searchQuery, transactionTagsMap.value, merchantAliases.value, splitShares.amountOf())
+            val refundRows = if (typeFilter.netsRefunds) searched(rows.filter { it.isRefund() }) else emptyList()
+            // Under a category filter a spend view lists the refunds that came off the category
+            // too, so the rows add up to the figure the list was opened from; the totals then
+            // count them as listed rows instead of netting them again. Unfiltered, a spend view
+            // drops refunds from its rows but nets them off its total, as Home and Insights do (#629).
+            val listRefunds = effectiveCategories != null
             FilteredRows(
-                rows = searched(filterByType(rows, typeFilter)),
+                rows = searched(filterByType(rows, typeFilter)) + if (listRefunds) refundRows else emptyList(),
                 splitShares = splitShares,
-                // A spend view drops refunds from its rows but nets them off its total, as
-                // Home and Insights do (#629), so a Spent figure opens a list that matches it.
-                refunds = if (typeFilter.netsRefunds) {
-                    searched(
-                        rows.filter {
-                            it.transactionType == TransactionType.INCOME && it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
-                        }
-                    )
-                } else {
-                    emptyList()
-                },
+                refunds = if (listRefunds) emptyList() else refundRows,
             )
         }
     }
@@ -1511,7 +1532,8 @@ private data class NavigationParams(
     val endDateEpochDay: Long? = null,
     val account: String? = null,
     val tag: String? = null,
-    val type: String? = null
+    val type: String? = null,
+    val alsoTag: String? = null
 )
 
 /**

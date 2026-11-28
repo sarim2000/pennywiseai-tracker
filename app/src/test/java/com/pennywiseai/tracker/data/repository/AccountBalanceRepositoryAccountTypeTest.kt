@@ -111,7 +111,8 @@ class AccountBalanceRepositoryAccountTypeTest {
             accountBalanceDao = accountBalanceDao,
             transactionDao = transactionDao,
             database = TestDb(),
-            userPreferencesRepository = io.mockk.mockk(relaxed = true)
+            userPreferencesRepository = io.mockk.mockk(relaxed = true),
+            scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
         )
     }
 

@@ -30,14 +30,14 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.trip.nextTripBoundary
 import com.pennywiseai.tracker.data.trip.tripWindowOf
-import com.pennywiseai.tracker.presentation.goals.toUtcDate
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.toUtcDate
+import com.pennywiseai.tracker.utils.toUtcMillis
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZoneOffset
 
 /** The Trip switch's state while a group is being created or edited; [end] null is "until I stop it". */
 data class TripDraft(
@@ -143,7 +143,7 @@ fun TripFields(
     picking?.let { target ->
         val initial = if (target == PickTarget.START) draft.start else draft.end ?: draft.start
         val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = initial.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+            initialSelectedDateMillis = initial.toUtcMillis()
         )
         DatePickerDialog(
             onDismissRequest = { picking = null },

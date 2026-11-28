@@ -279,6 +279,17 @@ interface TransactionDao {
     """)
     suspend fun getRunningTrip(now: LocalDateTime): com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity?
 
+    /**
+     * Repair for a trip deleted between the lookup and the insert (transactions.group_id has no
+     * foreign key): a row stored with a group that no longer exists goes back to no group. Plain
+     * statements, no transaction scope of their own, so they are safe inside the callers' ones.
+     */
+    @Query("UPDATE transactions SET group_id = NULL WHERE id = :id AND group_id IS NOT NULL AND group_id NOT IN (SELECT id FROM transaction_groups)")
+    suspend fun clearDanglingGroup(id: Long)
+
+    @Query("UPDATE transactions SET group_id = NULL WHERE transaction_hash IN (:hashes) AND group_id IS NOT NULL AND group_id NOT IN (SELECT id FROM transaction_groups)")
+    suspend fun clearDanglingGroups(hashes: List<String>)
+
     @Query("SELECT transaction_hash FROM trip_exclusions WHERE group_id = :groupId")
     suspend fun getTripExclusions(groupId: Long): List<String>
 

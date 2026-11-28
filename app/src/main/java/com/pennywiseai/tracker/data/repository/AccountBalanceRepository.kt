@@ -581,9 +581,9 @@ open class AccountBalanceRepository @Inject constructor(
             ensureManualOpening(bankName, accountLast4)
         }
         // A running trip (#1463) claims manual adds here; scheduled templates opt out.
-        val rowId = transactionDao.insertTransaction(
-            if (joinTrip) transactionDao.withTripGroup(listOf(transaction)).single() else transaction
-        )
+        val row = if (joinTrip) transactionDao.withTripGroup(listOf(transaction)).single() else transaction
+        val rowId = transactionDao.insertTransaction(row)
+        if (joinTrip && rowId != -1L && row.groupId != null) transactionDao.clearDanglingGroup(rowId)
         if (rowId != -1L && bankName != null && accountLast4 != null) {
             applyTransactionToBalance(
                 bankName = bankName,

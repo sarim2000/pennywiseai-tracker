@@ -79,7 +79,6 @@ import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.presentation.add.AddDatePickerDialog
 import com.pennywiseai.tracker.presentation.add.PickerRow
 import com.pennywiseai.tracker.presentation.add.SaveBar
-import com.pennywiseai.tracker.presentation.goals.toUtcDate
 import com.pennywiseai.tracker.presentation.settings.SettingsChoice
 import com.pennywiseai.tracker.presentation.settings.SettingsChoiceSheet
 import com.pennywiseai.tracker.ui.components.CategoryIcon
@@ -107,6 +106,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.toUtcDate
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch

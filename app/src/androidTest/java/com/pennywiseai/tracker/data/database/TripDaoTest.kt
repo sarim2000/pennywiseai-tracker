@@ -82,4 +82,20 @@ class TripDaoTest {
         assertEquals(newId, transactions.getTransactionById(id)!!.groupId)
         assertEquals(listOf("h1"), transactions.getTripExclusions(tripId))
     }
+
+    @Test fun aRowCarryingADeletedTripIsRepairedAndOneWithALiveTripKeepsIt() = runBlocking {
+        val tripId = groups.insertGroup(TransactionGroupEntity(name = "Synthetic trip", tripStart = at.minusDays(1)))
+        val live = transactions.insertTransaction(txn("live").copy(groupId = tripId))
+        val orphan = transactions.insertTransaction(txn("orphan").copy(groupId = tripId + 100))
+        transactions.insertTransactions(listOf(txn("batch-live").copy(groupId = tripId), txn("batch-orphan").copy(groupId = tripId + 100)))
+
+        transactions.clearDanglingGroup(live)
+        transactions.clearDanglingGroup(orphan)
+        transactions.clearDanglingGroups(listOf("batch-live", "batch-orphan"))
+
+        assertEquals(tripId, transactions.getTransactionById(live)!!.groupId)
+        assertNull(transactions.getTransactionById(orphan)!!.groupId)
+        assertEquals(tripId, transactions.getTransactionByHash("batch-live")!!.groupId)
+        assertNull(transactions.getTransactionByHash("batch-orphan")!!.groupId)
+    }
 }

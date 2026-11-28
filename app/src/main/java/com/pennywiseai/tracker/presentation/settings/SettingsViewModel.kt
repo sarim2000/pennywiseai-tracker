@@ -826,7 +826,17 @@ class SettingsViewModel @Inject constructor(
                 _importExportMessage.value = UiText.Res(R.string.settings_importing_transactions)
                 when (val result = importCsvUseCase.execute(uri)) {
                     is com.pennywiseai.tracker.data.csv.ImportCsvUseCase.Result.Success -> {
-                        _importExportMessage.value = if (result.failed > 0) {
+                        _importExportMessage.value = if (result.blockedByRules > 0 && result.failed > 0) {
+                            UiText.Res(
+                                R.string.settings_import_csv_success_with_blocked_and_failed_rows,
+                                listOf(result.imported, result.skippedDuplicate, result.blockedByRules, result.failed)
+                            )
+                        } else if (result.blockedByRules > 0) {
+                            UiText.Res(
+                                R.string.settings_import_csv_success_with_blocked,
+                                listOf(result.imported, result.skippedDuplicate, result.blockedByRules)
+                            )
+                        } else if (result.failed > 0) {
                             UiText.Res(
                                 R.string.settings_import_csv_success_with_failed_rows,
                                 listOf(result.imported, result.skippedDuplicate, result.failed)

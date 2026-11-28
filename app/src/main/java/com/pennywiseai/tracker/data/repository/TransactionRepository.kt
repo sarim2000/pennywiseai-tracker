@@ -156,9 +156,10 @@ open class TransactionRepository @Inject constructor(
         return if (joinTrip) transactionDao.insertClearingDanglingGroup(row) else transactionDao.insertTransaction(row)
     }
 
-    suspend fun insertTransactions(transactions: List<TransactionEntity>) {
+    /** Each row's id, in order; -1 for a row the database ignored (its hash is already there). */
+    suspend fun insertTransactions(transactions: List<TransactionEntity>): List<Long> {
         val rows = transactionDao.withTripGroup(withCurrentCategoryNames(transactions))
-        transactionDao.insertAllClearingDanglingGroups(rows)
+        return transactionDao.insertAllClearingDanglingGroups(rows)
     }
 
     /**

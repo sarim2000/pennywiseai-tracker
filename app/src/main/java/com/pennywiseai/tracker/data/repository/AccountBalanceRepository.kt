@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.ledger.BalanceCalculator
 import com.pennywiseai.tracker.data.ledger.isPairedTransferLeg
 import com.pennywiseai.tracker.data.ledger.ledgerType
+import com.pennywiseai.tracker.data.ledger.signedAccountSum
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.data.trip.withTripGroup
 import com.pennywiseai.tracker.domain.model.AccountType
@@ -830,34 +831,20 @@ open class AccountBalanceRepository @Inject constructor(
      * separately by their `from_account`/`to_account` (money in when this account is the
      * destination, out when it's the source) and excluded from the direct sum so they're
      * never double-counted — a transfer *into* a manual account would otherwise be dropped.
+     * Only rows in the account's [currency] count: the sum doesn't convert, so a $10 row
+     * would otherwise come off a ₹ balance as ₹10.
      */
     private suspend fun signedTransactionSum(
         bankName: String,
         accountLast4: String,
+        currency: String,
         after: LocalDateTime? = null
-    ): BigDecimal {
-        fun inWindow(tx: TransactionEntity) = after == null || tx.dateTime > after
-        var sum = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
-            .filter { it.transactionType != TransactionType.TRANSFER && inWindow(it) }
-            .fold(BigDecimal.ZERO) { acc, tx ->
-                if (tx.transactionType == TransactionType.INCOME) acc + tx.amount else acc - tx.amount
-            }
-        for (tx in transactionDao.getTransfersForAccount(accountLast4).filter(::inWindow)) {
-            if (tx.isPairedTransferLeg) {
-                if (tx.bankName == bankName && tx.accountNumber == accountLast4) {
-                    when (tx.ledgerType()) {
-                        TransactionType.INCOME -> sum += tx.amount
-                        TransactionType.EXPENSE -> sum -= tx.amount
-                        else -> Unit
-                    }
-                }
-                continue
-            }
-            if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) sum += tx.amount
-            if (tx.fromAccount == accountLast4 && (tx.fromBankName == null || tx.fromBankName == bankName)) sum -= tx.amount
-        }
-        return sum
-    }
+    ): BigDecimal = signedAccountSum(
+        bankName,
+        accountLast4,
+        direct = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4),
+        transfers = transactionDao.getTransfersForAccount(accountLast4)
+    ) { it.currency == currency && (after == null || it.dateTime > after) }
 
     /**
      * The account's balance at [end], as well as the ledger knows it (#13). A
@@ -868,7 +855,7 @@ open class AccountBalanceRepository @Inject constructor(
     suspend fun balanceAsOf(bankName: String, accountLast4: String, end: LocalDateTime): BigDecimal? {
         val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return null
         if (isManualAccount(bankName, accountLast4)) {
-            return latest.balance - signedTransactionSum(bankName, accountLast4, after = end)
+            return latest.balance - signedTransactionSum(bankName, accountLast4, latest.currency, after = end)
         }
         return accountBalanceDao.getBalanceHistoryForAccount(bankName, accountLast4) // newest first
             .firstOrNull { it.timestamp <= end && it.sourceType != SOURCE_OPENING }
@@ -947,21 +934,42 @@ open class AccountBalanceRepository @Inject constructor(
 
     /**
      * Before an edit is written: pin the OPENING anchor of every manual account
-     * (own account and both transfer legs) of each version, from the PRE-update
+     * each version moves (see [accountsOf]), from the PRE-update
      * snapshot. Pinned after the update, an opening would absorb the edit and the
      * balance would never move (#913). No-op for SMS accounts.
      */
     suspend fun pinManualOpenings(vararg transactions: TransactionEntity?) {
-        for (t in transactions.filterNotNull()) {
-            for ((bank, acct) in listOf(
-                t.bankName to t.accountNumber,
-                t.fromBankName to t.fromAccount,
-                t.toBankName to t.toAccount
-            )) {
-                if (bank != null && acct != null) ensureManualOpening(bank, acct)
+        transactions.filterNotNull().flatMap { accountsOf(it) }.distinct()
+            .forEach { (bank, acct) -> ensureManualOpening(bank, acct) }
+    }
+
+    /**
+     * After [transactions] are inserted (pin with [pinManualOpenings] before):
+     * re-derives every manual account they move (see [accountsOf]), once each.
+     */
+    suspend fun recomputeManualBalances(transactions: Collection<TransactionEntity>) {
+        transactions.flatMap { accountsOf(it) }.distinct()
+            .forEach { (bank, acct) -> recomputeManualBalance(bank, acct) }
+    }
+
+    /**
+     * The accounts [t] moves, as [signedTransactionSum] counts it: a transfer
+     * its named legs (a marked pair's leg, its own account), anything else its
+     * own account. A legacy leg with no bank is found by its last 4, as
+     * [shiftTransferLeg] finds it.
+     */
+    private suspend fun accountsOf(t: TransactionEntity): List<Pair<String, String>> =
+        if (t.transactionType == TransactionType.TRANSFER && !t.isPairedTransferLeg) {
+            listOf(t.fromBankName to t.fromAccount, t.toBankName to t.toAccount)
+        } else {
+            listOf(t.bankName to t.accountNumber)
+        }.mapNotNull { (bank, acct) ->
+            when {
+                acct == null -> null
+                bank != null -> bank to acct
+                else -> accountBalanceDao.getLatestBalanceByLast4(acct)?.let { it.bankName to it.accountLast4 }
             }
         }
-    }
 
     /**
      * After an edit replacing [original] with [updated] is written (call
@@ -981,6 +989,9 @@ open class AccountBalanceRepository @Inject constructor(
         // Also covers amount/date edits on an unchanged manual account.
         if (newBank != null && newAccount != null) recomputeManualBalance(newBank, newAccount)
         if (accountChanged && oldBank != null && oldAccount != null) recomputeManualBalance(oldBank, oldAccount)
+        // A manual account counts only rows in its currency, so a currency change moves a
+        // transfer's legs too, which the shift above only reaches when something else changed.
+        if (original != null && original.currency != updated.currency) recomputeManualBalances(listOf(original, updated))
     }
 
     /**
@@ -995,7 +1006,7 @@ open class AccountBalanceRepository @Inject constructor(
             // Re-check inside the transaction in case a concurrent call just created it.
             if (accountBalanceDao.getOpeningRow(bankName, accountLast4) != null) return@withTransaction
             val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return@withTransaction
-            val sum = signedTransactionSum(bankName, accountLast4)
+            val sum = signedTransactionSum(bankName, accountLast4, latest.currency)
             val earliest = accountBalanceDao.getEarliestBalanceTimestamp(bankName, accountLast4)
                 ?: latest.timestamp
             accountBalanceDao.insertBalance(
@@ -1022,7 +1033,7 @@ open class AccountBalanceRepository @Inject constructor(
         database.withTransaction {
             ensureManualOpening(bankName, accountLast4)
             val opening = accountBalanceDao.getOpeningRow(bankName, accountLast4) ?: return@withTransaction
-            val current = opening.balance + signedTransactionSum(bankName, accountLast4)
+            val current = opening.balance + signedTransactionSum(bankName, accountLast4, opening.currency)
             writeManualCurrentRow(bankName, accountLast4, opening, current)
         }
     }
@@ -1037,7 +1048,7 @@ open class AccountBalanceRepository @Inject constructor(
         database.withTransaction {
             ensureManualOpening(bankName, accountLast4)
             val opening = accountBalanceDao.getOpeningRow(bankName, accountLast4) ?: return@withTransaction
-            val sum = signedTransactionSum(bankName, accountLast4)
+            val sum = signedTransactionSum(bankName, accountLast4, opening.currency)
             accountBalanceDao.updateBalanceById(opening.id, target - sum)
             // current = (target − sum) + sum = target — write it directly instead of
             // re-summing via recomputeManualBalance.

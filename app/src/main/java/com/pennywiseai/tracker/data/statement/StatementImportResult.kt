@@ -8,6 +8,8 @@ sealed class StatementImportResult {
         val skippedByAmountDate: Int,
         val skippedByHash: Int,
         val totalParsed: Int,
-        val enriched: Int = 0
+        val enriched: Int = 0,
+        /** New rows a block rule kept out. */
+        val blockedByRules: Int = 0
     ) : StatementImportResult()
 }

@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.editMovesBalances
+import com.pennywiseai.tracker.data.statement.isStatementSender
 import com.pennywiseai.tracker.domain.loan.LoanMath
 import com.pennywiseai.tracker.domain.loan.SplitRules
 import com.pennywiseai.tracker.domain.model.rule.RuleApplication
@@ -172,7 +173,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
 
                 var solo: PendingWrite? = null
                 try {
-                    val smsBody = transaction.smsBody
+                    val smsBody = transaction.ruleSmsText
                     if (ruleEngine.shouldBlockTransaction(transaction, smsBody, rules) != null) {
                         pending.add(
                             PendingWrite(
@@ -267,7 +268,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                 if (transaction.isDeleted) continue
                 totalScanned++
 
-                val smsBody = transaction.smsBody
+                val smsBody = transaction.ruleSmsText
 
                 val wouldBlock = ruleEngine.shouldBlockTransaction(
                     transaction, smsBody, listOf(rule)
@@ -367,3 +368,11 @@ internal fun List<RuleApplication>.landedOn(kept: TransactionEntity, raw: Transa
 /** Blank, or Others under its current name, as before; plus #1475: a row that counts for nothing isn't asked about. */
 fun TransactionEntity.awaitsCategoryForRules(): Boolean =
     (category.isBlank() || category == BuiltinCategoryNames.current("Others")) && countedAmount().signum() > 0
+
+/**
+ * The SMS text rules read for a stored row: none for a statement row, whose
+ * smsBody holds the file's line. An import read it as none, so a later run of
+ * the rules must too, or "SMS text doesn't contain X" deletes imported rows.
+ */
+internal val TransactionEntity.ruleSmsText: String?
+    get() = smsBody?.takeUnless { smsSender?.let(::isStatementSender) == true }

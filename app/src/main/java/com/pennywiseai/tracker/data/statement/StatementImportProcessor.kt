@@ -5,13 +5,15 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.ledgerType
 import com.pennywiseai.tracker.data.mapper.toEntity
+import com.pennywiseai.tracker.domain.model.rule.RuleApplication
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
 internal class StatementImportProcessor(
-    private val transactionStore: TransactionStore
+    private val transactionStore: TransactionStore,
+    private val rules: ImportRules = ImportRules.NONE
 ) {
     interface TransactionStore {
         /** Stored transactions (deleted ones included) with any of [hashes]. */
@@ -19,7 +21,10 @@ internal class StatementImportProcessor(
         /** Active transactions dated within [start]..[end]. */
         suspend fun getTransactionsBetween(start: LocalDateTime, end: LocalDateTime): List<TransactionEntity>
         suspend fun updateTransaction(transaction: TransactionEntity)
-        suspend fun insertTransactions(transactions: List<TransactionEntity>)
+        /** The new rows' ids, in order; -1 for a row that wasn't inserted. */
+        suspend fun insertTransactions(transactions: List<TransactionEntity>): List<Long>
+        /** Records the rules that changed the added row [transactionId]. */
+        suspend fun recordRuleApplications(transactionId: Long, applications: List<RuleApplication>)
     }
 
     /** Match and write in one go: [plan] then [apply] with every new row kept. */
@@ -105,10 +110,17 @@ internal class StatementImportProcessor(
 
         val decisions = arrayOfNulls<StatementRowDecision>(parsedTransactions.size)
 
-        // 1. Exact re-imports.
+        // 1. Exact re-imports. A row an import wrote from this very line has
+        //    nothing to gain from it: what differs is a rule's or the user's
+        //    edit (a merchant a rule cleared), so it's left as it is.
         hashes.forEachIndexed { i, hash ->
             byHash[hash]?.current()?.let { hashMatch ->
-                decisions[i] = matchDecision(hashMatch, entities[i], StatementRowDecision.SkipReason.HASH)
+                decisions[i] = if (hashMatch.smsSender?.let(::isStatementSender) == true) {
+                    claim(hashMatch)
+                    StatementRowDecision.Skip(StatementRowDecision.SkipReason.HASH)
+                } else {
+                    matchDecision(hashMatch, entities[i], StatementRowDecision.SkipReason.HASH)
+                }
             }
         }
 
@@ -176,7 +188,9 @@ internal class StatementImportProcessor(
 
     /**
      * Writes [plan]: every enrichment, and the new rows except the indices in
-     * [excluded] (rows the user unticked in the preview).
+     * [excluded] (rows the user unticked in the preview). New rows go through
+     * [rules] first; matching above used the rows as the file has them, so it
+     * is the same with or without rules.
      */
     suspend fun apply(plan: StatementImportPlan, excluded: Set<Int> = emptySet()): StatementImportResult.Success {
         // The last enrichment of a stored transaction already carries the earlier ones.
@@ -185,25 +199,44 @@ internal class StatementImportProcessor(
             .values
             .forEach { transactionStore.updateTransaction(it) }
 
+        var blocked = 0
         val toInsert = plan.rows.mapIndexedNotNull { i, row ->
-            (row.decision as? StatementRowDecision.Insert)?.entity?.takeIf { i !in excluded }
+            val entity = (row.decision as? StatementRowDecision.Insert)?.entity?.takeIf { i !in excluded }
+                ?: return@mapIndexedNotNull null
+            when (val outcome = rules.apply(entity)) {
+                ImportRules.Outcome.Blocked -> null.also { blocked++ }
+                is ImportRules.Outcome.Kept -> outcome
+            }
         }
+        // A row the database ignored (-1: its hash is already there, e.g. the same
+        // line twice in one file) wasn't imported: it's a duplicate by hash.
+        var imported = 0
+        var ignored = 0
         if (toInsert.isNotEmpty()) {
-            transactionStore.insertTransactions(toInsert)
+            val ids = transactionStore.insertTransactions(toInsert.map { it.entity })
+            ids.zip(toInsert).forEach { (id, row) ->
+                if (id == -1L) {
+                    ignored++
+                    return@forEach
+                }
+                imported++
+                if (row.applications.isNotEmpty()) transactionStore.recordRuleApplications(id, row.applications)
+            }
         }
 
-        val skippedByHash = plan.count(StatementRowDecision.SkipReason.HASH)
+        val skippedByHash = plan.count(StatementRowDecision.SkipReason.HASH) + ignored
         val skippedByReference = plan.count(StatementRowDecision.SkipReason.REFERENCE)
         val skippedByAmountDate = plan.count(StatementRowDecision.SkipReason.AMOUNT_DATE)
 
         return StatementImportResult.Success(
-            imported = toInsert.size,
+            imported = imported,
             skippedDuplicates = skippedByHash + skippedByReference + skippedByAmountDate,
             skippedByReference = skippedByReference,
             skippedByAmountDate = skippedByAmountDate,
             skippedByHash = skippedByHash,
             enriched = plan.rows.count { it.decision is StatementRowDecision.Enrich },
-            totalParsed = plan.rows.size
+            totalParsed = plan.rows.size,
+            blockedByRules = blocked
         )
     }
 }

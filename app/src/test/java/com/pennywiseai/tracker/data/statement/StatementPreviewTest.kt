@@ -1,9 +1,9 @@
 package com.pennywiseai.tracker.data.statement
 
 import com.pennywiseai.parser.core.ParsedTransaction
-import com.pennywiseai.parser.core.TransactionType as ParsedType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.model.rule.RuleApplication
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -13,6 +13,7 @@ import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import com.pennywiseai.parser.core.TransactionType as ParsedType
 
 /** The preview (#13) must say exactly what the import then does. */
 class StatementPreviewTest {
@@ -412,9 +413,13 @@ class StatementPreviewTest {
             rows.replaceAll { if (it.id == transaction.id) transaction else it }
         }
 
-        override suspend fun insertTransactions(transactions: List<TransactionEntity>) {
+        override suspend fun insertTransactions(transactions: List<TransactionEntity>): List<Long> {
             writes++
-            transactions.forEach { t -> if (rows.none { it.transactionHash == t.transactionHash }) seed(t) }
+            return transactions.map { t ->
+                if (rows.none { it.transactionHash == t.transactionHash }) { seed(t); rows.last().id } else -1L
+            }
         }
+
+        override suspend fun recordRuleApplications(transactionId: Long, applications: List<RuleApplication>) {}
     }
 }

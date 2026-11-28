@@ -3,9 +3,14 @@ package com.pennywiseai.tracker.data.csv
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.statement.ImportRules
+import com.pennywiseai.tracker.data.statement.ImportRulesSource
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -19,7 +24,10 @@ import javax.inject.Singleton
  * Imports historical transactions from a CSV in PennyWise's own export format
  * (see [CsvTransactionImporter]). Opens the picked [Uri] via the ContentResolver,
  * parses it, dedups the parsed rows against what's already in the DB (by the
- * deterministic import hash) and inserts the rest.
+ * deterministic import hash) and inserts the rest. A row without a category
+ * of its own ("Others") gets the learned merchant category and the user's
+ * rules; block rules apply to every row. A manual account's balance follows
+ * its new rows.
  *
  * Free feature (onboarding/migration) — not gated behind Pro.
  */
@@ -28,14 +36,18 @@ class ImportCsvUseCase @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val importer: CsvTransactionImporter,
     private val transactionRepository: TransactionRepository,
-    private val userPreferencesRepository: CurrencyPreferences
+    private val userPreferencesRepository: CurrencyPreferences,
+    private val importRules: ImportRulesSource,
+    private val database: PennyWiseDatabase,
+    private val accountBalanceRepository: AccountBalanceRepository
 ) {
 
     sealed class Result {
         data class Success(
             val imported: Int,
             val skippedDuplicate: Int,
-            val failed: Int
+            val failed: Int,
+            val blockedByRules: Int = 0
         ) : Result()
 
         data class Error(val message: String) : Result()
@@ -58,35 +70,69 @@ class ImportCsvUseCase @Inject constructor(
 
             // Dedup against existing rows by hash — one batch query for the whole
             // file instead of a per-row lookup (a large CSV would otherwise issue
-            // N queries). Also guard against duplicates *within* the same CSV.
-            val existingHashes = transactionRepository
-                .getExistingHashes(parseResult.transactions.map { it.transactionHash })
-                .toHashSet()
-            val toInsert = mutableListOf<TransactionEntity>()
-            val seenHashes = HashSet<String>()
-            var skippedDuplicate = 0
+            // N queries). Also guard against duplicates *within* the same CSV. The
+            // lookup, the rules and the write share one transaction: a row saved
+            // meanwhile is a duplicate, and a rule deleted meanwhile can't be
+            // recorded against the new rows (its history row would break the batch).
+            val parsed = parseResult.transactions
+            val (imported, skippedDuplicate, blocked) = if (parsed.isEmpty()) Triple(0, 0, 0) else database.withTransaction {
+                val existingHashes = transactionRepository
+                    .getExistingHashes(parsed.map { it.transactionHash })
+                    .toHashSet()
+                val toInsert = mutableListOf<TransactionEntity>()
+                val seenHashes = HashSet<String>()
+                var duplicates = 0
 
-            for (transaction in parseResult.transactions) {
-                val hash = transaction.transactionHash
-                if (!seenHashes.add(hash) || hash in existingHashes) {
-                    skippedDuplicate++
-                    continue
+                for (transaction in parsed) {
+                    val hash = transaction.transactionHash
+                    if (!seenHashes.add(hash) || hash in existingHashes) {
+                        duplicates++
+                        continue
+                    }
+                    toInsert.add(transaction)
                 }
-                toInsert.add(transaction)
-            }
 
-            if (toInsert.isNotEmpty()) {
-                transactionRepository.insertTransactions(toInsert)
+                val (kept, blockedCount) = applyRules(toInsert, importRules.load())
+                val rows = kept.map { it.entity }
+                // A manual account's opening is pinned before its rows land, so the
+                // recompute adds them instead of absorbing them into the opening.
+                accountBalanceRepository.pinManualOpenings(*rows.toTypedArray())
+                val ids = if (rows.isEmpty()) emptyList() else transactionRepository.insertTransactions(rows)
+                ids.zip(kept).forEach { (id, row) -> importRules.record(id, row.applications) }
+                // A row the database ignored (-1: its hash is already there) is a duplicate.
+                val inserted = ids.zip(rows).filter { (id, _) -> id != -1L }.map { (_, row) -> row }
+                accountBalanceRepository.recomputeManualBalances(inserted)
+                Triple(inserted.size, duplicates + ids.count { it == -1L }, blockedCount)
             }
 
             Result.Success(
-                imported = toInsert.size,
+                imported = imported,
                 skippedDuplicate = skippedDuplicate,
-                failed = parseResult.failedCount
+                failed = parseResult.failedCount,
+                blockedByRules = blocked
             )
         } catch (e: Exception) {
             Log.e("ImportCsvUseCase", "CSV import failed", e)
             Result.Error("Import failed: ${e.message}")
+        }
+    }
+
+    internal companion object {
+        /** The rows [rules] keep, and how many they blocked. The file's own category wins. */
+        fun applyRules(rows: List<TransactionEntity>, rules: ImportRules): Pair<List<ImportRules.Outcome.Kept>, Int> {
+            var blocked = 0
+            // Others under either name: a file exported after the user renamed it carries the new one.
+            val others = com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(CsvTransactionImporter.DEFAULT_CATEGORY)
+            val uncategorized = setOf(CsvTransactionImporter.DEFAULT_CATEGORY, others)
+            val kept = rows.mapNotNull { raw ->
+                // Rules and the saved row see it under its current name, as a blank cell already is.
+                val row = if (raw.category in uncategorized) raw.copy(category = others) else raw
+                when (val outcome = rules.apply(row, categorize = row.category == others)) {
+                    ImportRules.Outcome.Blocked -> null.also { blocked++ }
+                    is ImportRules.Outcome.Kept -> outcome
+                }
+            }
+            return kept to blocked
         }
     }
 }

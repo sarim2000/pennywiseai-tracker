@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.database.converter.Converters
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.findUnlinkedTransferPairs
+import com.pennywiseai.tracker.data.ledger.signedAccountSum
 import java.math.BigDecimal
 import java.util.UUID
 
@@ -644,6 +645,91 @@ object PennyWiseMigrations {
     }
 
     /**
+     * A manual account's balance now counts only rows in its own currency (#1488).
+     * Its opening was back-solved under the old sum, which counted every currency,
+     * so without this the balance the user set would move by the rows that stop
+     * counting. Adds their signed sum (any date: the old sum had no cutoff) back onto
+     * the account's opening, so opening + the new sum is the balance it showed before
+     * the update. As a migration it runs once, before anything reads the balance,
+     * and in the same transaction as the version bump. The sum is computed in Kotlin
+     * ([signedAccountSum], the repository's own); the SQL is the plain SELECT and
+     * UPDATE that SQLite 3.18 runs. An account with a row that can't be read is left
+     * as it was: it must not fail the update for the whole database.
+     */
+    val MIGRATION_73_74 = object : Migration(73, 74) {
+        override suspend fun migrate(db: SQLiteConnection) {
+            val accounts = db.prepare(
+                "SELECT DISTINCT bank_name, account_last4 FROM account_balances WHERE source_type = 'OPENING'"
+            ).use { stmt -> buildList { while (stmt.step()) add(stmt.getText(0) to stmt.getText(1)) } }
+            for ((bank, last4) in accounts) {
+                // The row AccountBalanceDao.getOpeningRow picks.
+                val opening = db.prepare("""
+                        SELECT id, balance, currency FROM account_balances
+                        WHERE bank_name = ? AND account_last4 = ? AND source_type = 'OPENING'
+                        ORDER BY timestamp ASC LIMIT 1
+                """.trimIndent()).use { stmt ->
+                    stmt.bindText(1, bank)
+                    stmt.bindText(2, last4)
+                    if (stmt.step()) Triple(stmt.getLong(0), stmt.getText(1), stmt.getText(2)) else null
+                } ?: continue
+                val (id, balance, currency) = opening
+                val foreign = runCatching {
+                    signedAccountSum(
+                        bank,
+                        last4,
+                        direct = db.ledgerRows("bank_name = ? AND account_number = ?", bank, last4),
+                        transfers = db.ledgerRows(
+                            "transaction_type = 'TRANSFER' AND (from_account = ? OR to_account = ?)", last4, last4
+                        )
+                    ) { it.currency != currency }
+                }.getOrNull() ?: continue
+                if (foreign.signum() == 0) continue
+                db.execSQL(
+                    "UPDATE account_balances SET balance = ? WHERE id = ?",
+                    arrayOf((BigDecimal(balance) + foreign).toString(), id)
+                )
+            }
+        }
+    }
+
+    /** Live transaction rows matching [where], with the columns [signedAccountSum] reads. */
+    internal fun SQLiteConnection.ledgerRows(where: String, vararg args: String): List<TransactionEntity> {
+        val converters = Converters()
+        return prepare("""
+                SELECT id, amount, currency, transaction_type, date_time, bank_name, account_number,
+                       from_account, to_account, from_bank_name, to_bank_name, transfer_pair_id
+                FROM transactions
+                WHERE is_deleted = 0 AND $where
+        """.trimIndent()).use { stmt ->
+            args.forEachIndexed { i, arg -> stmt.bindText(i + 1, arg) }
+            fun text(column: Int) = if (stmt.isNull(column)) null else stmt.getText(column)
+            buildList {
+                while (stmt.step()) {
+                    add(
+                        TransactionEntity(
+                            id = stmt.getLong(0),
+                            amount = BigDecimal(stmt.getText(1)),
+                            merchantName = "",
+                            category = "",
+                            transactionType = converters.toTransactionType(stmt.getText(3)),
+                            currency = stmt.getText(2),
+                            dateTime = converters.toLocalDateTime(stmt.getText(4))!!,
+                            transactionHash = "",
+                            bankName = text(5),
+                            accountNumber = text(6),
+                            fromAccount = text(7),
+                            toAccount = text(8),
+                            fromBankName = text(9),
+                            toBankName = text(10),
+                            transferPairId = text(11)
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    /**
      * Single source of truth for the migration list. Both the Hilt-built
      * database (DatabaseModule.providePennyWiseDatabase) and the
      * BroadcastReceiver fallback path (PennyWiseDatabase.getInstance) reference this
@@ -683,6 +769,7 @@ object PennyWiseMigrations {
         MIGRATION_69_70,
         MIGRATION_70_71,
         MIGRATION_71_72,
+        MIGRATION_73_74,
     )
 }
 

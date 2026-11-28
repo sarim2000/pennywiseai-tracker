@@ -72,7 +72,7 @@ import com.pennywiseai.tracker.data.database.entity.WebhookProfileEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 73
+const val SCHEMA_VERSION = 74
 
 /**
  * The PennyWise Room database.

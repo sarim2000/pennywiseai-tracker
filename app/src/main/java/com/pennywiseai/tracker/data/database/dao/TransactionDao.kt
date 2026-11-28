@@ -302,11 +302,12 @@ interface TransactionDao {
         return id
     }
 
-    /** [insertClearingDanglingGroup] for a batch: one read-free repair per 500 grouped rows. */
+    /** [insertClearingDanglingGroup] for a batch: one read-free repair per 500 grouped rows. Returns each row's id, -1 if ignored. */
     @Transaction
-    suspend fun insertAllClearingDanglingGroups(transactions: List<TransactionEntity>) {
-        insertTransactions(transactions)
+    suspend fun insertAllClearingDanglingGroups(transactions: List<TransactionEntity>): List<Long> {
+        val ids = insertTransactions(transactions)
         transactions.filter { it.groupId != null }.map { it.transactionHash }.chunked(500).forEach { clearDanglingGroups(it) }
+        return ids
     }
 
     @Query("SELECT transaction_hash FROM trip_exclusions WHERE group_id = :groupId")
@@ -316,7 +317,7 @@ interface TransactionDao {
     suspend fun insertTransaction(transaction: TransactionEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insertTransactions(transactions: List<TransactionEntity>)
+    suspend fun insertTransactions(transactions: List<TransactionEntity>): List<Long>
 
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)

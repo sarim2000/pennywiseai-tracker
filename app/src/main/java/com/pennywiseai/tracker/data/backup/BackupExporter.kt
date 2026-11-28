@@ -30,6 +30,10 @@ import javax.inject.Singleton
 // OutOfMemoryError isn't an Exception: without this, too many photos crash the app.
 private const val TOO_LARGE = "Export failed: too many receipts for one backup. Turn off \"Include receipts\" and try again."
 
+/** The children whose parent transaction is in [exportedIds]: a soft-deleted parent isn't exported, so its children would only be skipped on import. */
+internal fun <T> List<T>.forTransactions(exportedIds: Set<Long>, transactionIdOf: (T) -> Long?): List<T> =
+    filter { transactionIdOf(it) in exportedIds }
+
 @Singleton
 class BackupExporter @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -168,9 +172,15 @@ class BackupExporter @Inject constructor(
         val exportedExchangeRates = if (privacy == ExportPrivacy.FULL) exchangeRates else emptyList()
         val exportedBudgets = if (privacy == ExportPrivacy.FULL) budgets else emptyList()
         val exportedBudgetCategories = if (privacy == ExportPrivacy.FULL) budgetCategories else emptyList()
-        val exportedTransactionSplits = if (privacy == ExportPrivacy.FULL) transactionSplits else emptyList()
+        // Children of a soft-deleted transaction (not exported) would be skipped on import.
+        val exportedTransactionIds = finalTransactions.mapTo(HashSet()) { it.id }
+        val exportedTransactionSplits = if (privacy == ExportPrivacy.FULL) {
+            transactionSplits.forTransactions(exportedTransactionIds) { it.transactionId }
+        } else emptyList()
         val exportedBankNotifications = if (privacy == ExportPrivacy.FULL) bankNotifications else emptyList()
-        val exportedRuleApplications = if (privacy == ExportPrivacy.FULL) ruleApplications else emptyList()
+        val exportedRuleApplications = if (privacy == ExportPrivacy.FULL) {
+            ruleApplications.forTransactions(exportedTransactionIds) { it.transactionId.toLongOrNull() }
+        } else emptyList()
         // Loans / groups / profiles / budget snapshots: kept on FULL only, like
         // every other relational table; in MASKED/ANONYMOUS the transaction
         // references are stripped to "Merchant" anyway so re-attaching them is
@@ -187,7 +197,9 @@ class BackupExporter @Inject constructor(
         // Tags are user-defined labels (no PII), so tag names are kept in all modes;
         // the cross-refs point at transaction ids that only survive a FULL export.
         val exportedTags = tags
-        val exportedTransactionTagCrossRefs = if (privacy == ExportPrivacy.FULL) transactionTagCrossRefs else emptyList()
+        val exportedTransactionTagCrossRefs = if (privacy == ExportPrivacy.FULL) {
+            transactionTagCrossRefs.forTransactions(exportedTransactionIds) { it.transactionId }
+        } else emptyList()
         // Recurring templates carry raw merchant names + notes, so they're kept
         // on FULL only — same treatment as loans / other relational tables.
         val exportedRecurringTransactions = if (privacy == ExportPrivacy.FULL) recurringTransactions else emptyList()
@@ -199,8 +211,7 @@ class BackupExporter @Inject constructor(
         // Only shares whose bill is in the backup: a soft-deleted bill isn't, and
         // its debt stays on the exported loan's principal, as for loan-linked bills.
         val exportedLoanShares = if (privacy == ExportPrivacy.FULL) {
-            val billIds = finalTransactions.mapTo(HashSet()) { it.id }
-            loanShares.filter { it.transactionId in billIds }
+            loanShares.forTransactions(exportedTransactionIds) { it.transactionId }
         } else emptyList()
         // Receipt photos (#839): only when the caller opts in, and only in FULL
         // exports — a photo of a bill is exactly what masking is meant to hide.

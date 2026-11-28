@@ -794,7 +794,8 @@ class SettingsViewModel @Inject constructor(
                         }
                     }
                     is ImportResult.Error -> {
-                        _importExportMessage.value = UiText.Res(R.string.settings_import_failed, listOf("${result.message}"))
+                        _importExportMessage.value = result.userMessageRes?.let { UiText.Res(it) }
+                            ?: UiText.Res(R.string.settings_import_failed, listOf("${result.message}"))
                         Log.e("SettingsViewModel", "Import failed: ${result.message}")
                     }
                 }

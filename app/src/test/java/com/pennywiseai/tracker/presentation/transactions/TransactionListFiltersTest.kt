@@ -272,6 +272,15 @@ class TransactionListFiltersTest {
         assertEquals(listOf(1L, 2L), ids(filterByTag(rows, "Work", tags)))
     }
 
+    @Test
+    fun `a removed or deleted first tag promotes the second`() {
+        assertEquals("Trip" to null, normalizeTags(null, "Trip")) // first chip removed
+        assertEquals("Trip" to null, normalizeTags("Work", "Trip") { it == "Trip" }) // first deleted
+        assertEquals("Work" to null, normalizeTags("Work", "Trip") { it == "Work" }) // second deleted
+        assertEquals(null to null, normalizeTags("Work", "Trip") { false })
+        assertEquals("Work" to "Trip", normalizeTags("Work", "Trip"))
+    }
+
     // ─── Filterable categories ───────────────────────────────────────────────
 
     @Test

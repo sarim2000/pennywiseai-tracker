@@ -118,6 +118,16 @@ private fun amountMatchesSearch(query: String, amount: BigDecimal): Boolean {
 }
 
 /**
+ * The (first, second) tag filter after dropping any tag for which [exists] is false; a second tag
+ * with no first is promoted to first, so the picker and chips always match what the list filters by.
+ */
+internal fun normalizeTags(first: String?, also: String?, exists: (String) -> Boolean = { true }): Pair<String?, String?> {
+    val f = first?.takeIf(exists)
+    val a = also?.takeIf(exists)
+    return if (f == null) a to null else f to a
+}
+
+/**
  * Rows carrying exactly [tag], ignoring case; null means no tag filter. A non-null [alsoTag]
  * (an Analytics drill-down into a tag row under a tag filter) is required as well.
  */

@@ -688,14 +688,7 @@ class TransactionsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             availableTags.collect { tags ->
-                val current = _tagFilter.value
-                if (current != null && tags.none { it.equals(current, ignoreCase = true) }) {
-                    _tagFilter.value = null
-                }
-                val also = _alsoTagFilter.value
-                if (also != null && tags.none { it.equals(also, ignoreCase = true) }) {
-                    _alsoTagFilter.value = null
-                }
+                setTags(_tagFilter.value, _alsoTagFilter.value) { name -> tags.any { it.equals(name, ignoreCase = true) } }
             }
         }
 
@@ -972,9 +965,13 @@ class TransactionsViewModel @Inject constructor(
     }
 
     /** Removes the first tag chip; the second tag, if any, becomes the filter. */
-    fun removeTagFilter() {
-        _tagFilter.value = _alsoTagFilter.value
-        _alsoTagFilter.value = null
+    fun removeTagFilter() = setTags(null, _alsoTagFilter.value)
+
+    /** The one place the two tag fields are written together: [normalizeTags] keeps them in agreement. */
+    private fun setTags(first: String?, also: String?, exists: (String) -> Boolean = { true }) {
+        val (f, a) = normalizeTags(first, also, exists)
+        _tagFilter.value = f
+        _alsoTagFilter.value = a
     }
 
     /** Removes the second tag chip, leaving the first. */

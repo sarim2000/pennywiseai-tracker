@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.data.repository.accountSharesOf
 import com.pennywiseai.tracker.data.repository.groupTotalsOf
 import com.pennywiseai.tracker.data.trip.TripOverlapException
 import com.pennywiseai.tracker.data.trip.isTrip
+import com.pennywiseai.tracker.data.trip.tripEditNeedsPro
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -40,7 +41,8 @@ data class TransactionGroupDetailUiState(
     val ungroupedTransactions: List<TransactionEntity> = emptyList(),
     val addSearchQuery: String = "",
     val tripOverlap: String? = null,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    val upgradeRequested: Boolean = false
 )
 
 @HiltViewModel
@@ -135,7 +137,12 @@ class TransactionGroupDetailViewModel @Inject constructor(
     fun updateGroupName(name: String, note: String?, trip: TripDraft) {
         val group = _uiState.value.group ?: return
         // Turning a plain group into a trip is Pro; an existing trip keeps working after a lapse.
-        if (trip.enabled && !group.isTrip && !isProEntitled.value) return
+        val (newStart, newEnd) = trip.window
+        // Free: no starting a trip, no moving its dates, no "until I stop it" again.
+        if (tripEditNeedsPro(group, trip.enabled, newStart, newEnd) && !isProEntitled.value) {
+            _uiState.value = _uiState.value.copy(upgradeRequested = true)
+            return
+        }
         if (_uiState.value.isSaving) return
         _uiState.value = _uiState.value.copy(isSaving = true)
         viewModelScope.launch {
@@ -157,6 +164,10 @@ class TransactionGroupDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun dismissUpgrade() { _uiState.value = _uiState.value.copy(upgradeRequested = false) }
+
+    fun clearTripOverlap() { _uiState.value = _uiState.value.copy(tripOverlap = null) }
 
     fun stopTrip() {
         viewModelScope.launch {

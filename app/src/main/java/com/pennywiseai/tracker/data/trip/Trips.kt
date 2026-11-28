@@ -103,3 +103,40 @@ fun nextTripBoundary(groups: List<TransactionGroupEntity>, now: LocalDateTime): 
 /** What removing [tx] from [group] must remember: its hash, for a trip, when it has one (a manual row has none). */
 fun tripExclusionFor(tx: TransactionEntity, group: TransactionGroupEntity?): TripExclusionEntity? =
     if (group != null && group.isTrip && tx.transactionHash.isNotBlank()) TripExclusionEntity(group.id, tx.transactionHash) else null
+
+/** A rebuild re-creates rows that were deliberately outside any trip; only a normal scan may join one. */
+fun joinsTripOnScan(rebuildStartedAt: LocalDateTime?): Boolean = rebuildStartedAt == null
+
+/**
+ * Lets a new trip start right after a trip stopped earlier (today): when every conflict of
+ * [candidate] is a trip already ended before [now] that covers the head of its window, the
+ * candidate starts the instant after the latest such end. Anything else (a running or future
+ * trip, an ended trip inside the window's middle, or no room left) comes back unchanged and
+ * still overlaps, so the caller refuses it.
+ */
+fun startAfterEndedTrips(candidate: TransactionGroupEntity, others: List<TransactionGroupEntity>, now: LocalDateTime): TransactionGroupEntity {
+    val start = candidate.tripStart ?: return candidate
+    val conflicts = others.filter { it.id != candidate.id && candidate.overlaps(it) }
+    if (conflicts.isEmpty()) return candidate
+    val ends = conflicts.map { other ->
+        val end = other.tripEnd
+        val otherStart = other.tripStart
+        if (end == null || !end.isBefore(now) || otherStart == null || otherStart.isAfter(start)) return candidate
+        end
+    }
+    val newStart = ends.max().plusNanos(1)
+    val candidateEnd = candidate.tripEnd
+    if (candidateEnd != null && newStart.isAfter(candidateEnd)) return candidate
+    return candidate.copy(tripStart = newStart)
+}
+
+/** In a MERGE restore an imported trip that overlaps one already kept becomes an ordinary group. */
+fun demoteIfOverlapping(imported: TransactionGroupEntity, keptTrips: List<TransactionGroupEntity>): TransactionGroupEntity =
+    if (findOverlappingTrip(imported, keptTrips) != null) imported.copy(tripStart = null, tripEnd = null) else imported
+
+/**
+ * Without Pro a trip's dates can't be set or changed: starting one, moving its start or end, or
+ * re-enabling "until I stop it". Name and note edits, Stop and switching the trip off stay free.
+ */
+fun tripEditNeedsPro(stored: TransactionGroupEntity, enabled: Boolean, newStart: LocalDateTime?, newEnd: LocalDateTime?): Boolean =
+    enabled && (stored.tripStart == null || newStart != stored.tripStart || newEnd != stored.tripEnd)

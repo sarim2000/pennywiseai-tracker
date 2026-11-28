@@ -61,4 +61,15 @@ class TripDaoTest {
         groups.unlinkAndDeleteGroup(group.copy(id = tripId))
         assertEquals(0, groups.getAllTripExclusions().size)
     }
+
+    @Test fun movingToAnotherGroupExcludesFromTheTripItLeft() = runBlocking {
+        val tripId = groups.insertGroup(TransactionGroupEntity(name = "Synthetic trip", tripStart = at.minusDays(1)))
+        val otherId = groups.insertGroup(TransactionGroupEntity(name = "Synthetic other"))
+        val id = transactions.insertTransaction(txn("h1").copy(groupId = tripId))
+
+        groups.addToGroup(id, otherId)
+
+        assertEquals(otherId, transactions.getTransactionById(id)!!.groupId)
+        assertEquals(listOf("h1"), transactions.getTripExclusions(tripId))
+    }
 }

@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TripExclusionEntity
 import com.pennywiseai.tracker.data.trip.TripOverlapException
 import com.pennywiseai.tracker.data.trip.findOverlappingTrip
+import com.pennywiseai.tracker.data.trip.startAfterEndedTrips
 import com.pennywiseai.tracker.data.trip.tripExclusionFor
 import kotlinx.coroutines.flow.Flow
 
@@ -79,20 +80,24 @@ interface TransactionGroupDao {
     /** The overlap check and the write in one transaction, so two quick saves can't both pass (#1463). */
     @Transaction
     suspend fun insertGroupChecked(group: TransactionGroupEntity): Long {
-        if (group.tripStart != null) {
-            findOverlappingTrip(group, getAllTrips())?.let { throw TripOverlapException(it.name) }
-        }
-        return insertGroup(group)
+        val toSave = if (group.tripStart == null) group else resolveAgainstTrips(group)
+        return insertGroup(toSave)
     }
 
     /** Checks only when the window changed, so renaming a trip that already overlaps stays possible. */
     @Transaction
     suspend fun updateGroupChecked(group: TransactionGroupEntity) {
         val stored = getGroupById(group.id)
-        if (group.tripStart != null && (stored == null || stored.tripStart != group.tripStart || stored.tripEnd != group.tripEnd)) {
-            findOverlappingTrip(group, getAllTrips())?.let { throw TripOverlapException(it.name) }
-        }
-        updateGroup(group)
+        val changed = stored == null || stored.tripStart != group.tripStart || stored.tripEnd != group.tripEnd
+        updateGroup(if (group.tripStart != null && changed) resolveAgainstTrips(group) else group)
+    }
+
+    // Starts the trip after trips already ended today if that clears every conflict; else refuses.
+    private suspend fun resolveAgainstTrips(group: TransactionGroupEntity): TransactionGroupEntity {
+        val trips = getAllTrips()
+        val adjusted = startAfterEndedTrips(group, trips, java.time.LocalDateTime.now())
+        findOverlappingTrip(adjusted, trips)?.let { throw TripOverlapException(it.name) }
+        return adjusted
     }
 
     @Query("SELECT * FROM transaction_groups WHERE trip_start IS NOT NULL")
@@ -133,7 +138,11 @@ interface TransactionGroupDao {
     /** Putting a row back by hand clears its exclusion (#1463). */
     @Transaction
     suspend fun addToGroup(transactionId: Long, groupId: Long) {
-        getTransactionById(transactionId)?.transactionHash?.let { deleteTripExclusion(groupId, it) }
+        val tx = getTransactionById(transactionId)
+        // Moving a row out of a trip into another group leaves that trip like a removal does.
+        val from = tx?.groupId?.takeIf { it != groupId }
+        if (tx != null && from != null) tripExclusionFor(tx, getGroupById(from))?.let { insertTripExclusion(it) }
+        tx?.transactionHash?.let { deleteTripExclusion(groupId, it) }
         linkTransaction(transactionId, groupId)
     }
 

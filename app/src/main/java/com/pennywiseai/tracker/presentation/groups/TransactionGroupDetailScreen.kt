@@ -429,13 +429,14 @@ fun TransactionGroupDetailScreen(
             isPro = isPro,
             tripOverlap = uiState.tripOverlap,
             isSaving = uiState.isSaving,
+            onTripDatesChanged = { viewModel.clearTripOverlap() },
             onNeedUpgrade = { showUpgradeSheet = true },
             onDismiss = { viewModel.hideEditDialog() },
             onSave = { name, note, trip -> viewModel.updateGroupName(name, note, trip) }
         )
     }
-    if (showUpgradeSheet) {
-        UpgradeSheet(onDismiss = { showUpgradeSheet = false })
+    if (showUpgradeSheet || uiState.upgradeRequested) {
+        UpgradeSheet(onDismiss = { showUpgradeSheet = false; viewModel.dismissUpgrade() })
     }
 
     // Export dialog — reuses the transactions CSV exporter (same Pro/free
@@ -678,6 +679,7 @@ private fun EditGroupDialog(
     isPro: Boolean,
     tripOverlap: String?,
     isSaving: Boolean,
+    onTripDatesChanged: () -> Unit,
     onNeedUpgrade: () -> Unit,
     onDismiss: () -> Unit,
     onSave: (String, String?, TripDraft) -> Unit
@@ -720,7 +722,8 @@ private fun EditGroupDialog(
                     isPro = isPro,
                     alreadyTrip = alreadyTrip,
                     onNeedUpgrade = onNeedUpgrade,
-                    error = tripOverlap?.let { stringResource(R.string.trip_overlap_error, it) }
+                    error = tripOverlap?.let { stringResource(R.string.trip_overlap_error, it) },
+                    onDatesChanged = onTripDatesChanged
                 )
             }
         },

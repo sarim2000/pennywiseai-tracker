@@ -144,6 +144,7 @@ fun TransactionGroupsScreen(
             isPro = isPro,
             tripOverlap = uiState.tripOverlap,
             isSaving = uiState.isSaving,
+            onTripDatesChanged = { viewModel.clearTripOverlap() },
             onNeedUpgrade = { showUpgradeSheet = true },
             onDismiss = { viewModel.hideCreateDialog() },
             onCreate = { name, note, trip -> viewModel.createGroup(name, note, trip) }
@@ -257,6 +258,7 @@ private fun CreateGroupDialog(
     isPro: Boolean,
     tripOverlap: String?,
     isSaving: Boolean,
+    onTripDatesChanged: () -> Unit,
     onNeedUpgrade: () -> Unit,
     onDismiss: () -> Unit,
     onCreate: (String, String?, TripDraft) -> Unit
@@ -299,7 +301,8 @@ private fun CreateGroupDialog(
                     isPro = isPro,
                     alreadyTrip = false,
                     onNeedUpgrade = onNeedUpgrade,
-                    error = tripOverlap?.let { stringResource(R.string.trip_overlap_error, it) }
+                    error = tripOverlap?.let { stringResource(R.string.trip_overlap_error, it) },
+                    onDatesChanged = onTripDatesChanged
                 )
             }
         },

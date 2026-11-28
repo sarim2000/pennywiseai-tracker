@@ -28,6 +28,7 @@ import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.data.repository.mappingFits
+import com.pennywiseai.tracker.data.trip.joinsTripOnScan
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.model.rule.tagChanges
 import com.pennywiseai.tracker.domain.repository.RuleRepository
@@ -267,7 +268,8 @@ internal class ScanTransactionWriter(
                 // One transaction: a charge that commits without its schedule advance
                 // would leave the bill due forever — a re-scan skips the row by hash.
                 val rowId = database.withTransaction {
-                    transactionRepository.insertTransaction(finalEntity).also { id ->
+                    // A rebuild re-creates rows that sat outside any trip on purpose, so only a normal scan joins one.
+                    transactionRepository.insertTransaction(finalEntity, joinTrip = joinsTripOnScan(scanContext.rebuildStartedAt)).also { id ->
                         if (id != -1L) matchedSub?.let { subscriptionRepository.recordCharge(it, finalEntity.dateTime.toLocalDate()) }
                     }
                 }

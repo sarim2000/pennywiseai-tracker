@@ -46,6 +46,8 @@ class TransactionGroupsViewModel @Inject constructor(
     }
 
     fun showCreateDialog() { _uiState.value = _uiState.value.copy(showCreateDialog = true) }
+    fun clearTripOverlap() { _uiState.value = _uiState.value.copy(tripOverlap = null) }
+
     fun hideCreateDialog() { _uiState.value = _uiState.value.copy(showCreateDialog = false, tripOverlap = null) }
 
     fun createGroup(name: String, note: String?, trip: TripDraft = TripDraft()) {

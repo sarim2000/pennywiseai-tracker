@@ -75,8 +75,14 @@ fun TripFields(
     alreadyTrip: Boolean,
     onNeedUpgrade: () -> Unit,
     error: String?,
+    onDatesChanged: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Changing a date makes a refused-overlap message stale, so it goes.
+    val changeDates = { next: TripDraft ->
+        if (next.start != draft.start || next.end != draft.end) onDatesChanged()
+        onChange(next)
+    }
     var picking by remember { mutableStateOf<PickTarget?>(null) }
     val dates = AppDates.dateFormatter()
 
@@ -113,7 +119,7 @@ fun TripFields(
                     ) { picking = PickTarget.END }
                 }
                 if (draft.end != null) {
-                    TextButton(onClick = { onChange(draft.copy(end = null)) }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { changeDates(draft.copy(end = null)) }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.trip_until_stopped))
                     }
                 }
@@ -135,7 +141,7 @@ fun TripFields(
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { ms ->
                         val date = ms.toUtcDate()
-                        onChange(
+                        changeDates(
                             if (target == PickTarget.START) {
                                 draft.copy(start = date, end = draft.end?.takeIf { !it.isBefore(date) })
                             } else {

@@ -139,4 +139,69 @@ class TripsTest {
         assertEquals(rows, dao.withTripGroup(rows, now))
         coVerify(exactly = 0) { dao.getTripExclusions(any()) }
     }
+
+    @Test
+    fun rebuildNeverJoinsButANormalScanDoes() {
+        assertFalse(joinsTripOnScan(LocalDateTime.of(2026, 12, 2, 9, 0)))
+        assertTrue(joinsTripOnScan(null))
+    }
+
+    @Test
+    fun newTripStartsAfterATripStoppedEarlierToday() {
+        val now = LocalDateTime.of(2026, 12, 2, 18, 0)
+        val stoppedAt = LocalDateTime.of(2026, 12, 2, 14, 30)
+        val stopped = TransactionGroupEntity(id = 1, name = "Stopped", tripStart = LocalDateTime.of(2026, 12, 1, 0, 0), tripEnd = stoppedAt)
+        val fresh = TransactionGroupEntity(id = 2, name = "New", tripStart = LocalDateTime.of(2026, 12, 2, 0, 0), tripEnd = null)
+
+        val adjusted = startAfterEndedTrips(fresh, listOf(stopped), now)
+
+        assertEquals(stoppedAt.plusNanos(1), adjusted.tripStart)
+        assertNull(findOverlappingTrip(adjusted, listOf(stopped)))
+    }
+
+    @Test
+    fun runningFutureOrMiddleTripsStillRefuse() {
+        val now = LocalDateTime.of(2026, 12, 2, 18, 0)
+        val fresh = TransactionGroupEntity(id = 2, name = "New", tripStart = LocalDateTime.of(2026, 12, 2, 0, 0), tripEnd = LocalDateTime.of(2026, 12, 9, 23, 59))
+        val running = TransactionGroupEntity(id = 1, name = "Running", tripStart = LocalDateTime.of(2026, 12, 1, 0, 0), tripEnd = null)
+        val future = TransactionGroupEntity(id = 3, name = "Future", tripStart = LocalDateTime.of(2026, 12, 5, 0, 0), tripEnd = null)
+        val middle = TransactionGroupEntity(id = 4, name = "Middle", tripStart = LocalDateTime.of(2026, 12, 3, 0, 0), tripEnd = LocalDateTime.of(2026, 12, 4, 0, 0))
+        val ended = TransactionGroupEntity(id = 5, name = "Ended", tripStart = LocalDateTime.of(2026, 12, 1, 0, 0), tripEnd = LocalDateTime.of(2026, 12, 2, 14, 0))
+
+        listOf(running, future, middle).forEach {
+            assertEquals(it.name, fresh, startAfterEndedTrips(fresh, listOf(it), now))
+        }
+        // a head conflict doesn't excuse a second, middle one
+        assertEquals(fresh, startAfterEndedTrips(fresh, listOf(ended, middle), now))
+        // and the new trip must still have room after the stop
+        val tiny = fresh.copy(tripEnd = LocalDateTime.of(2026, 12, 2, 10, 0))
+        assertEquals(tiny, startAfterEndedTrips(tiny, listOf(ended), now))
+    }
+
+    @Test
+    fun mergedTripOverlappingAKeptOneBecomesAnOrdinaryGroup() {
+        val kept = TransactionGroupEntity(id = 1, name = "Kept", tripStart = start, tripEnd = null)
+        val imported = TransactionGroupEntity(id = 2, name = "Imported", tripStart = start, tripEnd = null)
+        val demoted = demoteIfOverlapping(imported, listOf(kept))
+        assertNull(demoted.tripStart)
+        assertNull(demoted.tripEnd)
+        assertEquals("Imported", demoted.name)
+        val apart = imported.copy(tripStart = end.plusDays(5))
+        assertEquals(apart, demoteIfOverlapping(apart, listOf(kept.copy(tripEnd = end))))
+    }
+
+    @Test
+    fun freeUsersCannotMoveTripDatesButCanRenameOrSwitchOff() {
+        assertFalse(tripEditNeedsPro(trip, true, start, end)) // same window: name/note edit
+        assertTrue(tripEditNeedsPro(trip, true, start, end.plusDays(5)))
+        assertTrue(tripEditNeedsPro(trip, true, start.plusDays(1), end))
+        assertTrue("until I stop it again", tripEditNeedsPro(trip, true, start, null))
+        assertFalse("switch off", tripEditNeedsPro(trip, false, null, null))
+        assertTrue("new trip", tripEditNeedsPro(TransactionGroupEntity(name = "plain"), true, start, end))
+    }
+
+    @Test
+    fun movingOutOfATripRecordsThatTripsExclusion() {
+        assertEquals(TripExclusionEntity(7, "h1"), tripExclusionFor(tx(groupId = 7), trip))
+    }
 }

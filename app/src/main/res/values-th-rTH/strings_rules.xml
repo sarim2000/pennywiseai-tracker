@@ -443,7 +443,6 @@
     <!-- Transaction type labels (stored value stays the enum name) -->
     <string name="rules_type_income">รายได้</string>
     <string name="rules_type_expense">ค่าใช้จ่าย</string>
-    <string name="rules_type_credit">เครดิต</string>
     <string name="rules_type_transfer">โอน</string>
     <string name="rules_type_investment">การลงทุน</string>
     <string name="rules_select_transaction_type">เลือกประเภทธุรกรรม:</string>

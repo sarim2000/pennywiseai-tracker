@@ -90,6 +90,11 @@
     <string name="settings_transaction_groups_subtitle">Organiza transacciones bajo un tema</string>
     <string name="settings_export_data_title">Exportar datos</string>
     <string name="settings_export_data_subtitle">Guarda una copia de seguridad de todos los datos en un archivo</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <!-- Subtitle of both export rows while a backup export runs; they can't be tapped then -->
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Copia de seguridad automática en carpeta</string>
     <string name="settings_folder_backup_subtitle_enabled">Copia diaria a las 2:00 en la carpeta que elegiste</string>
@@ -105,6 +110,7 @@
     <string name="settings_change_backup_folder_subtitle">Elige otra carpeta para las copias automáticas</string>
     <string name="settings_import_data_title">Importar datos</string>
     <string name="settings_import_data_subtitle">Restaura datos desde una copia de seguridad</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
     <string name="settings_import_csv_title">Importar transacciones (CSV)</string>
     <string name="settings_import_csv_subtitle">Importa desde un CSV exportado de PennyWise</string>
     <string name="settings_import_statement_title">Importar estado de cuenta</string>
@@ -191,6 +197,7 @@
     <string name="settings_folder_backup_enabled">Copia de seguridad automática en carpeta activada. Las copias se hacen cada día a las 2:00.</string>
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Guardar copia de seguridad</string>
+    <!-- Title of the Save/Share dialog when the backup was exported with a passphrase -->
     <string name="settings_save_backup_created">¡Copia de seguridad creada!</string>
     <string name="settings_save_backup_choose">Elige cómo quieres guardarla:</string>
     <string name="settings_save_backup_to_files">Guardar en Archivos</string>
@@ -392,10 +399,7 @@
     <string name="faq_expand">Expandir</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Tipos de transacciones</string>
-    <string name="faq_wallet_credit_question">¿Por qué las transacciones de billeteras aparecen como Crédito?</string>
-    <string name="faq_wallet_credit_answer">Las transacciones de billeteras (Amazon Pay, Paytm, etc.) se marcan como Crédito porque primero se cargan a tu cuenta bancaria o tarjeta de crédito, no son débitos bancarios directos. Así se sigue el medio de pago que realmente usaste.</string>
     <string name="faq_transaction_types_question">¿Cuál es la diferencia entre los 5 tipos de transacciones?</string>
-    <string name="faq_transaction_types_answer">• Gasto: dinero que sale de tu cuenta (débitos, compras, pagos de facturas)\n• Ingreso: dinero que entra a tu cuenta (sueldo, reembolsos, cashback)\n• Inversión: fondos de inversión, acciones, SIP, cuentas de trading\n• Crédito: transacciones con tarjeta de crédito y pagos con billeteras (dinero que pagarás después)\n• Transferencia: dinero que mueves entre tus propias cuentas</string>
     <string name="faq_transfer_vs_expense_question">¿Cuándo uso Transferencia y cuándo Gasto?</string>
     <string name="faq_transfer_vs_expense_answer">Usa Transferencia cuando muevas dinero entre tus propias cuentas (p. ej., de ahorros a la cuenta corriente). No afecta tu patrimonio neto. Usa Gasto para lo que realmente gastas.</string>
     <!-- SMS Parsing -->

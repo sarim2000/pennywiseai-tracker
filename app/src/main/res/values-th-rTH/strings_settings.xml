@@ -89,6 +89,11 @@
     <string name="settings_transaction_groups_subtitle">จัดธุรกรรมไว้ภายใต้หัวข้อเดียวกัน</string>
     <string name="settings_export_data_title">ส่งออกข้อมูล</string>
     <string name="settings_export_data_subtitle">สำรองข้อมูลทั้งหมดเป็นไฟล์</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <!-- Subtitle of both export rows while a backup export runs; they can't be tapped then -->
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">สำรองข้อมูลลงโฟลเดอร์อัตโนมัติ</string>
     <string name="settings_folder_backup_subtitle_enabled">สำรองข้อมูลทุกวันตอน 2:00 น. ลงโฟลเดอร์ที่คุณเลือก</string>
@@ -104,6 +109,7 @@
     <string name="settings_change_backup_folder_subtitle">เลือกโฟลเดอร์อื่นสำหรับการสำรองข้อมูลอัตโนมัติ</string>
     <string name="settings_import_data_title">นำเข้าข้อมูล</string>
     <string name="settings_import_data_subtitle">กู้คืนข้อมูลจากการสำรอง</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
     <string name="settings_import_csv_title">นำเข้าธุรกรรม (CSV)</string>
     <string name="settings_import_csv_subtitle">นำเข้าจากไฟล์ CSV ที่ส่งออกจาก PennyWise</string>
     <string name="settings_import_statement_title">นำเข้า Statement</string>
@@ -183,6 +189,7 @@
     <string name="settings_folder_backup_enabled">เปิดการสำรองข้อมูลลงโฟลเดอร์อัตโนมัติแล้ว จะสำรองทุกวันตอน 2:00 น.</string>
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">บันทึกข้อมูลสำรอง</string>
+    <!-- Title of the Save/Share dialog when the backup was exported with a passphrase -->
     <string name="settings_save_backup_created">สร้างข้อมูลสำรองแล้ว!</string>
     <string name="settings_save_backup_choose">เลือกวิธีบันทึก:</string>
     <string name="settings_save_backup_to_files">บันทึกลงไฟล์</string>
@@ -387,10 +394,7 @@
     <string name="faq_expand">ขยาย</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">ประเภทธุรกรรม</string>
-    <string name="faq_wallet_credit_question">ทำไมธุรกรรมวอลเล็ตถึงเป็นเครดิต?</string>
-    <string name="faq_wallet_credit_answer">ธุรกรรมวอลเล็ต (Amazon Pay, Paytm ฯลฯ) ถูกจัดเป็นเครดิต เพราะจะเรียกเก็บจากบัญชีธนาคารหรือบัตรเครดิตของคุณก่อน ไม่ใช่การตัดเงินจากธนาคารโดยตรง ช่วยให้ติดตามวิธีชำระเงินจริงที่ใช้ได้</string>
     <string name="faq_transaction_types_question">ธุรกรรมทั้ง 5 ประเภทต่างกันอย่างไร?</string>
-    <string name="faq_transaction_types_answer">• ค่าใช้จ่าย: เงินออกจากบัญชีของคุณ (การตัดเงิน การซื้อ การจ่ายบิล)\n• รายได้: เงินเข้าบัญชีของคุณ (เงินเดือน เงินคืน แคชแบ็ก)\n• การลงทุน: กองทุนรวม หุ้น การลงทุนแบบ SIP บัญชีเทรด\n• เครดิต: ธุรกรรมบัตรเครดิตและการจ่ายผ่านวอลเล็ต (เงินที่คุณจะจ่ายทีหลัง)\n• โอน: เงินที่ย้ายระหว่างบัญชีของคุณเอง (โอนเข้าบัญชีตัวเอง)</string>
     <string name="faq_transfer_vs_expense_question">เมื่อไหร่ควรใช้โอน และเมื่อไหร่ควรใช้ค่าใช้จ่าย?</string>
     <string name="faq_transfer_vs_expense_answer">ใช้โอนเมื่อย้ายเงินระหว่างบัญชีของคุณเอง (เช่น จากบัญชีออมทรัพย์ไปบัญชีกระแสรายวัน) ซึ่งไม่กระทบมูลค่าสุทธิ ใช้ค่าใช้จ่ายสำหรับการใช้จ่ายจริง</string>
     <!-- SMS Parsing -->

@@ -117,6 +117,11 @@
     <string name="settings_transaction_groups_subtitle">تنظيم المعاملات تحت موضوع</string>
     <string name="settings_export_data_title">تصدير البيانات</string>
     <string name="settings_export_data_subtitle">حفظ نسخة احتياطية من كل البيانات في ملف</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <!-- Subtitle of both export rows while a backup export runs; they can't be tapped then -->
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">النسخ الاحتياطي التلقائي إلى مجلد</string>
     <string name="settings_folder_backup_subtitle_enabled">نسخة احتياطية يومية الساعة 2:00 صباحًا في المجلد الذي اخترته</string>
@@ -132,6 +137,7 @@
     <string name="settings_change_backup_folder_subtitle">اختيار مجلد مختلف للنسخ الاحتياطية التلقائية</string>
     <string name="settings_import_data_title">استيراد البيانات</string>
     <string name="settings_import_data_subtitle">استعادة البيانات من النسخة الاحتياطية</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
     <string name="settings_import_csv_title">استيراد المعاملات (CSV)</string>
     <string name="settings_import_csv_subtitle">استيراد من ملف CSV صدّرته من PennyWise</string>
     <string name="settings_import_statement_title">استيراد كشف حساب</string>
@@ -246,6 +252,7 @@
     <string name="settings_folder_backup_enabled">تم تفعيل النسخ الاحتياطي التلقائي إلى المجلد. يتم النسخ يوميًا الساعة 2:00 صباحًا.</string>
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">حفظ النسخة الاحتياطية</string>
+    <!-- Title of the Save/Share dialog when the backup was exported with a passphrase -->
     <string name="settings_save_backup_created">تم إنشاء النسخة الاحتياطية بنجاح!</string>
     <string name="settings_save_backup_choose">اختر طريقة حفظها:</string>
     <string name="settings_save_backup_to_files">حفظ في الملفات</string>
@@ -514,10 +521,7 @@
     <string name="faq_expand">توسيع</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">أنواع المعاملات</string>
-    <string name="faq_wallet_credit_question">لماذا تُصنَّف معاملات المحفظة كائتمان؟</string>
-    <string name="faq_wallet_credit_answer">تُصنَّف معاملات المحفظة (Amazon Pay وPaytm وغيرها) كائتمان لأنها تُخصم أولًا من حسابك البنكي أو بطاقتك الائتمانية، وليست خصمًا مباشرًا من البنك. يساعد ذلك على تتبّع طريقة الدفع الفعلية.</string>
     <string name="faq_transaction_types_question">ما هو الفرق بين أنواع المعاملات الخمسة؟</string>
-    <string name="faq_transaction_types_answer">• مصروف: أموال تخرج من حسابك (خصومات، مشتريات، دفع فواتير)\n• دخل: أموال تدخل إلى حسابك (راتب، مبالغ مستردة، استرداد نقدي)\n• استثمار: صناديق استثمار مشتركة، أسهم، استثمارات دورية (SIP)، حسابات تداول\n• ائتمان: معاملات بطاقات الائتمان ومدفوعات المحافظ (أموال ستدفعها لاحقًا)\n• تحويل: أموال تنتقل بين حساباتك الخاصة (تحويلات ذاتية)</string>
     <string name="faq_transfer_vs_expense_question">متى أستخدم التحويل ومتى أستخدم المصروف؟</string>
     <string name="faq_transfer_vs_expense_answer">استخدم التحويل عند نقل المال بين حساباتك (مثلًا من حساب التوفير إلى الحساب الجاري). لا يؤثر ذلك على صافي ثروتك. واستخدم المصروف للإنفاق الفعلي.</string>
     <!-- SMS Parsing -->

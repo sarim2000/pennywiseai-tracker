@@ -83,7 +83,6 @@
     <string name="type_filter_all">सभी</string>
     <string name="type_filter_income">आय</string>
     <string name="type_filter_expense">व्यय</string>
-    <string name="type_filter_credit">क्रेडिट</string>
     <string name="type_filter_spending">खर्च</string>
     <string name="type_filter_transfer">स्थानांतरण</string>
     <string name="type_filter_investment">निवेश</string>
@@ -200,11 +199,9 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">घूमता पैसा</string>
     <string name="cash_flow_subtitle">इस महीने आपके नेट कैश फ़्लो से बाहर के लेन-देन</string>
-    <string name="cash_flow_credit">क्रेडिट</string>
     <string name="cash_flow_invested">निवेश किया</string>
     <string name="cash_flow_transferred">ट्रांसफ़र किया</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">क्रेडिट</string>
     <string name="txn_item_tag_transfer">स्थानांतरण</string>
     <string name="txn_item_tag_investment">निवेश</string>
     <string name="txn_item_tag_recurring">दोहराव</string>

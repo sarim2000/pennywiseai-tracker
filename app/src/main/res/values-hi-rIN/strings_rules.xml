@@ -458,7 +458,6 @@
     <!-- Transaction type labels (stored value stays the enum name) -->
     <string name="rules_type_income">आय</string>
     <string name="rules_type_expense">व्यय</string>
-    <string name="rules_type_credit">क्रेडिट</string>
     <string name="rules_type_transfer">स्थानांतरण</string>
     <string name="rules_type_investment">निवेश</string>
     <string name="rules_select_transaction_type">लेन-देन का प्रकार चुनें:</string>

@@ -88,6 +88,11 @@
     <string name="settings_transaction_groups_subtitle">Organiser les transactions sous un thème</string>
     <string name="settings_export_data_title">Exporter les données</string>
     <string name="settings_export_data_subtitle">Sauvegarder toutes les données dans un fichier</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <!-- Subtitle of both export rows while a backup export runs; they can't be tapped then -->
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Sauvegarde automatique du dossier</string>
     <string name="settings_folder_backup_subtitle_enabled">Sauvegarde quotidienne à 2h00 du matin dans le dossier de votre choix</string>
@@ -103,6 +108,7 @@
     <string name="settings_change_backup_folder_subtitle">Choisir un dossier différent pour les sauvegardes automatiques</string>
     <string name="settings_import_data_title">Importer des données</string>
     <string name="settings_import_data_subtitle">Restaurer les données depuis la sauvegarde</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
     <string name="settings_import_csv_title">Importer des transactions (CSV)</string>
     <string name="settings_import_csv_subtitle">Importer depuis un export CSV PennyWise</string>
     <string name="settings_import_statement_title">Importer un relevé</string>
@@ -189,6 +195,7 @@
     <string name="settings_folder_backup_enabled">Sauvegarde automatique du dossier activée. Les sauvegardes s\'exécutent tous les jours à 2:00 AM.</string>
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Enregistrer la sauvegarde</string>
+    <!-- Title of the Save/Share dialog when the backup was exported with a passphrase -->
     <string name="settings_save_backup_created">Sauvegarde créée avec succès !</string>
     <string name="settings_save_backup_choose">Choisissez comment vous voulez l\'enregistrer :</string>
     <string name="settings_save_backup_to_files">Enregistrer dans les fichiers</string>
@@ -392,10 +399,7 @@
     <string name="faq_expand">Développer</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Types de transaction</string>
-    <string name="faq_wallet_credit_question">Pourquoi les transactions de portefeuille sont-elles marquées comme Crédit?</string>
-    <string name="faq_wallet_credit_answer">Les transactions de portefeuille (Amazon Pay, Paytm, etc.) sont marquées comme Crédit parce qu\'elles sont débitées sur votre compte bancaire ou votre carte de crédit en premier, pas des débits bancaires directs. Cela permet de suivre le mode de paiement utilisé.</string>
     <string name="faq_transaction_types_question">Quelle est la différence entre les 5 types d\'opérations ?</string>
-    <string name="faq_transaction_types_answer">• Dépenses : Argent sortant de votre compte (débits, achats, paiements de factures)\n• Revenus : Argent entrant dans votre compte (salaire, remboursement, remise)\n• Investissement: Fonds mutuels, stocks, SIPs, comptes de trading\n• Crédit : transactions par carte de crédit et paiements de portefeuille (argent que vous paierez plus tard)\n• Transfert: Argent déplacé entre vos propres comptes (auto-transferts)</string>
     <string name="faq_transfer_vs_expense_question">Quand devrais-je utiliser le transfert vs dépenses ?</string>
     <string name="faq_transfer_vs_expense_answer">Utilisez le transfert lorsque vous transférez de l\'argent entre vos propres comptes (par exemple, l\'épargne pour vérifier). Cela n\'affecte pas votre valeur nette. Utilisez les dépenses pour les dépenses réelles.</string>
     <!-- SMS Parsing -->

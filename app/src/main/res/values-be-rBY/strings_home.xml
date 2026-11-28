@@ -87,7 +87,6 @@
     <string name="type_filter_all">Усе</string>
     <string name="type_filter_income">Даход</string>
     <string name="type_filter_expense">Выдатак</string>
-    <string name="type_filter_credit">Крэдыт</string>
     <string name="type_filter_spending">Траты</string>
     <string name="type_filter_transfer">Перавод</string>
     <string name="type_filter_investment">Інвест.</string>
@@ -223,11 +222,9 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">Рух грошай</string>
     <string name="cash_flow_subtitle">Плыні па-за вашым чыстым грашовым патокам у гэтым месяцы</string>
-    <string name="cash_flow_credit">Крэдыт</string>
     <string name="cash_flow_invested">Укладзена</string>
     <string name="cash_flow_transferred">Пераведзена</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">Крэдыт</string>
     <string name="txn_item_tag_transfer">Перавод</string>
     <string name="txn_item_tag_investment">Інвестыцыя</string>
     <string name="txn_item_tag_recurring">Рэгулярная</string>

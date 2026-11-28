@@ -11,7 +11,6 @@
     <string name="filter_type_all">Усе</string>
     <string name="filter_type_income">Даход</string>
     <string name="filter_type_expense">Выдатак</string>
-    <string name="filter_type_credit">Крэдыт</string>
     <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_spending">Выдаткі (выдатак + картка)</string>
     <string name="filter_type_transfer">Перавод</string>

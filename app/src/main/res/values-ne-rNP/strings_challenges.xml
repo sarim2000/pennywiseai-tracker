@@ -6,7 +6,7 @@
     <!-- TalkBack label of a Start button; %1$s: the challenge's title -->
     <!-- %1$d: today's day number, %2$d: days in the challenge -->
     <!-- %1$d: clean days so far, %2$d: clean days needed -->
-    <!-- TalkBack for one day: %1$s the date ("Thursday, 20 Nov"), %2$s its state -->
+    <!-- TalkBack for one day: %1$s names the day (the date in Plan, "Thursday, 20 Nov"; "Day 2" on the widget), %2$s its state -->
     <!-- %1$s: the merchants that counted against the day -->
     <!-- TalkBack action on a missed day: "Double tap to see what counted" -->
     <!-- Heading over a missed day's transactions; %1$s: the date -->

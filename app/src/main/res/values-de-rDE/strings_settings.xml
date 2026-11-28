@@ -92,6 +92,11 @@
     <string name="settings_transaction_groups_subtitle">Transaktionen unter einem Thema organisieren</string>
     <string name="settings_export_data_title">Daten exportieren</string>
     <string name="settings_export_data_subtitle">Alle Daten in eine Datei sichern</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <!-- Subtitle of both export rows while a backup export runs; they can't be tapped then -->
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Automatische Ordnersicherung</string>
     <string name="settings_folder_backup_subtitle_enabled">Tägliches Backup um 2:00 Uhr in den ausgewählten Ordner</string>
@@ -107,6 +112,7 @@
     <string name="settings_change_backup_folder_subtitle">Wähle einen anderen Ordner für automatische Sicherungen</string>
     <string name="settings_import_data_title">Daten importieren</string>
     <string name="settings_import_data_subtitle">Daten aus Backup wiederherstellen</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
     <string name="settings_import_csv_title">Importiere Transaktionen (CSV)</string>
     <string name="settings_import_csv_subtitle">Import aus einem PennyWise CSV Export</string>
     <string name="settings_import_statement_title">Statement importieren</string>
@@ -193,6 +199,7 @@
     <string name="settings_folder_backup_enabled">Automatische Ordnersicherung aktiviert. Sicherungen laufen täglich um 2:00 Uhr.</string>
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Backup speichern</string>
+    <!-- Title of the Save/Share dialog when the backup was exported with a passphrase -->
     <string name="settings_save_backup_created">Sicherung erfolgreich erstellt!</string>
     <string name="settings_save_backup_choose">Wähle wie du es speichern möchtest:</string>
     <string name="settings_save_backup_to_files">In Dateien speichern</string>
@@ -395,10 +402,7 @@
     <string name="faq_expand">Ausklappen</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Transaktionstypen</string>
-    <string name="faq_wallet_credit_question">Warum sind Wallet-Transaktionen als Credit gekennzeichnet?</string>
-    <string name="faq_wallet_credit_answer">Wallet-Transaktionen (Amazon Pay, Paytm, usw.) sind als Guthaben gekennzeichnet, da diese zuerst auf Ihr Bankkonto oder Ihre Kreditkarte belastet werden, nicht auf Bankeinzahlungen. Dies hilft die aktuelle Zahlungsmethode zu verfolgen.</string>
     <string name="faq_transaction_types_question">Was ist der Unterschied zwischen den 5 Transaktionstypen?</string>
-    <string name="faq_transaction_types_answer">• Kosten: Geld geht aus Ihrem Konto (Debits, Käufe und Käufe Zahlungen)\n• Einnahmen: Geld auf Ihr Konto (Gehalt, Rückerstattung)\n• Investition: Gegenseitiges Guthaben lager, SIPs, Handelskonten\n• Guthaben: Kreditkartentransaktionen und Wallet-Zahlungen (Geld, das Sie später bezahlen)\n• Überweisung: Geld bewegt sich zwischen Ihren eigenen Konten (Selbstüberweisung)</string>
     <string name="faq_transfer_vs_expense_question">Wann sollte ich Transfer gegen Kosten verwenden?</string>
     <string name="faq_transfer_vs_expense_answer">Verwenden Sie Überweisung, wenn Sie Geld zwischen Ihren eigenen Konten verschieben (z. B. Einsparungen zum Überprüfen). Dies wirkt sich nicht auf Ihren Nettowert aus. Verwenden Sie Ausgaben für tatsächliche Ausgaben.</string>
     <!-- SMS Parsing -->

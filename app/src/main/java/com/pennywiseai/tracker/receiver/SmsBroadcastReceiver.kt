@@ -17,6 +17,7 @@ import com.pennywiseai.tracker.PennyWiseApplication
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
@@ -29,6 +30,7 @@ import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import com.pennywiseai.tracker.data.trip.isTrip
 import com.pennywiseai.tracker.domain.model.Suggestion
 import com.pennywiseai.tracker.domain.model.draft
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
@@ -71,6 +73,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun recurringSuggestionPreferences(): com.pennywiseai.tracker.data.preferences.RecurringSuggestionPreferences
         fun conscienceManager(): ConscienceManager
         fun scanPreferences(): com.pennywiseai.tracker.data.preferences.ScanPreferences
+        fun transactionGroupRepository(): com.pennywiseai.tracker.data.repository.TransactionGroupRepository
     }
 
     companion object {
@@ -90,6 +93,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         private const val CATEGORY_SLOT_BASE = 10
         private const val PICKER_SLOT = 9
         private const val TRACK_SLOT = 7
+        private const val TRIP_SLOT = 6
 
         internal fun categoryRequestCode(transactionId: Long, slotIndex: Int): Int =
             (transactionId * CATEGORY_SLOT_BASE + slotIndex).toInt()
@@ -114,17 +118,20 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
          * spending, so it never also offers "Not an expense". Otherwise expenses
          * and income get "Not an expense"/"Not income", so an unsorted one keeps
          * a single quick pick; transfers and investments aren't counted as
-         * either, so they keep both. Returns (quick picks, exclude?).
+         * either, so they keep both. A row that joined a running trip ([tripAction]) gets
+         * "Remove from trip" before the picker, which takes a quick pick's slot. Returns
+         * (quick picks, exclude?).
          */
         internal fun alertLayout(
             type: TransactionType,
             uncategorized: Boolean,
             alreadyExcluded: Boolean,
-            billAction: Boolean = false
+            billAction: Boolean = false,
+            tripAction: Boolean = false
         ): Pair<Int, Boolean> {
             val exclude = !billAction && !alreadyExcluded &&
                 type != TransactionType.TRANSFER && type != TransactionType.INVESTMENT
-            val picks = if (uncategorized) 2 - listOf(billAction, exclude).count { it } else 0
+            val picks = if (uncategorized) 2 - listOf(billAction, exclude, tripAction).count { it } else 0
             return picks to exclude
         }
 
@@ -556,6 +563,28 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             updateAlertGroup(context, removedId = notificationId)
         }
 
+        /**
+         * Replaces the alert after "Remove from trip": a short, silent note outside the stack.
+         * The row stays; it just left the trip (and the trip remembers not to take it back).
+         */
+        fun showRemovedFromTripNotification(context: Context, notificationId: Int, transaction: TransactionEntity, tripName: String) {
+            if (notificationId == -1) return
+            val merchant = context.bidiIsolate(transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) })
+            ensureChannel(context).notify(
+                notificationId,
+                NotificationCompat.Builder(context, CHANNEL_ID)
+                    .setSmallIcon(R.drawable.ic_notification)
+                    .setContentTitle(context.getString(R.string.notif_txn_removed_from_trip, context.bidiIsolate(tripName)))
+                    .setContentText("$merchant · ${CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency, maskIfHidden = false)}")
+                    .setContentIntent(openTransactionIntent(context, transaction.id))
+                    .setAutoCancel(true)
+                    .setSilent(true)
+                    .setTimeoutAfter(LEARNED_TIMEOUT_MS)
+                    .build()
+            )
+            updateAlertGroup(context, removedId = notificationId)
+        }
+
         // Long enough to reach Undo after the picker closes the shade.
         private const val LEARNED_TIMEOUT_MS = 15_000L
         private const val UNDO_SLOT = 8
@@ -813,9 +842,13 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     CurrencyFormatter.formatCurrency(saved.amount, saved.currency, maskIfHidden = false)
                 )
             }
+            // Joined a running trip on its own? The alert says so and offers to undo it.
+            val trip = runCatching {
+                saved.groupId?.let { entryPoint.transactionGroupRepository().getGroupById(it) }?.takeIf { it.isTrip }
+            }.onFailure { Log.e(TAG, "Couldn't read the trip for the alert", it) }.getOrNull()
             val posted = showTransactionNotification(
                 context, saved, repository, entryPoint.categoryRepository(),
-                priceLine, trackCycle, offerPriceUpdate = result.priceChange != null
+                priceLine, trackCycle, offerPriceUpdate = result.priceChange != null, trip = trip
             )
             if (trackCycle != null && !posted) {
                 runCatching { entryPoint.recurringSuggestionPreferences().releaseRecurringOffer(offerKey, today) }
@@ -849,7 +882,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         categoryRepository: CategoryRepository,
         priceLine: String? = null,
         trackCycle: String? = null,
-        offerPriceUpdate: Boolean = false
+        offerPriceUpdate: Boolean = false,
+        trip: TransactionGroupEntity? = null
     ): Boolean {
         try {
             val notificationManager = ensureChannel(context)
@@ -872,7 +906,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             // No bank: the user knows which account they paid from. The question
             // and a price change wait for the expanded view, beside the buttons they explain.
             val askLine = if (uncategorized) context.getString(R.string.notif_txn_ask_category) else null
-            val expanded = listOfNotNull(merchant, askLine, priceLine).joinToString("\n")
+            val tripLine = trip?.let { context.getString(R.string.notif_txn_added_to_trip, context.bidiIsolate(it.name)) }
+            val expanded = listOfNotNull(merchant, tripLine, askLine, priceLine).joinToString("\n")
 
             val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_notification)
@@ -933,7 +968,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 )
             }
             val (pickCount, canExclude) =
-                alertLayout(transaction.transactionType, uncategorized, transaction.excludedFromAnalytics, billAction)
+                alertLayout(transaction.transactionType, uncategorized, transaction.excludedFromAnalytics, billAction, tripAction = trip != null)
             if (pickCount > 0) {
                 quickPicksFor(transaction, repository, categoryRepository).take(pickCount).forEachIndexed { index, pick ->
                     val categoryIntent = Intent(context, NotificationActionReceiver::class.java).apply {
@@ -965,6 +1000,20 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                         transactionId,
                         notificationId,
                         undo = false
+                    )
+                )
+            }
+
+            if (trip != null) {
+                notificationBuilder.addAction(
+                    0,
+                    context.getString(R.string.notif_txn_action_remove_from_trip),
+                    NotificationActionReceiver.removeFromTripIntent(
+                        context,
+                        categoryRequestCode(transactionId, TRIP_SLOT),
+                        transactionId,
+                        notificationId,
+                        trip.id
                     )
                 )
             }

@@ -9,6 +9,20 @@ class SmsBroadcastReceiverAlertLayoutTest {
     private fun layout(type: TransactionType, uncategorized: Boolean, excluded: Boolean = false, bill: Boolean = false) =
         SmsBroadcastReceiver.alertLayout(type, uncategorized, excluded, bill)
 
+    private fun inTrip(type: TransactionType, uncategorized: Boolean, excluded: Boolean = false, bill: Boolean = false) =
+        SmsBroadcastReceiver.alertLayout(type, uncategorized, excluded, bill, tripAction = true)
+
+    @Test
+    fun `a trip row's Remove from trip takes a quick pick's slot and never pushes past three actions`() {
+        // Not an expense + Remove from trip + Change
+        assertEquals(0 to true, inTrip(TransactionType.EXPENSE, uncategorized = false))
+        assertEquals(0 to true, inTrip(TransactionType.EXPENSE, uncategorized = true))
+        // Track/Update price + Remove from trip + More
+        assertEquals(0 to false, inTrip(TransactionType.EXPENSE, uncategorized = true, bill = true))
+        // an already-excluded unsorted row keeps one quick pick
+        assertEquals(1 to false, inTrip(TransactionType.EXPENSE, uncategorized = true, excluded = true))
+    }
+
     @Test
     fun `sorted spending and income get Not an expense plus Change`() {
         listOf(TransactionType.EXPENSE, TransactionType.CREDIT, TransactionType.INCOME).forEach {

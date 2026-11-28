@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.manager.ConscienceNotifier
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
+import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
@@ -45,6 +46,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         fun taughtMessageBooker(): com.pennywiseai.tracker.data.manager.TaughtMessageBooker
         fun notificationPreferences(): NotificationPreferences
         fun transactionWidgets(): TransactionWidgets
+        fun transactionGroupRepository(): TransactionGroupRepository
     }
 
     companion object {
@@ -63,6 +65,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_TRACK_RECURRING = "com.pennywiseai.tracker.ACTION_TRACK_RECURRING"
         const val ACTION_UPDATE_PRICE = "com.pennywiseai.tracker.ACTION_UPDATE_PRICE"
         const val ACTION_ADD_TAUGHT = "com.pennywiseai.tracker.ACTION_ADD_TAUGHT"
+        const val ACTION_REMOVE_FROM_TRIP = "com.pennywiseai.tracker.ACTION_REMOVE_FROM_TRIP"
+        private const val EXTRA_TRIP_ID = "trip_id"
         private const val EXTRA_UNRECOGNIZED_SMS_ID = "unrecognized_sms_id"
         const val ACTION_CONSCIENCE_RETIRE = "com.pennywiseai.tracker.ACTION_CONSCIENCE_RETIRE"
         const val ACTION_CONSCIENCE_LIKE = "com.pennywiseai.tracker.ACTION_CONSCIENCE_LIKE"
@@ -128,6 +132,20 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     action = if (undo) ACTION_UNDO_EXCLUDE else ACTION_EXCLUDE
                     putExtra(EXTRA_TRANSACTION_ID, transactionId)
                     putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+        /** The alert's "Remove from trip": takes the transaction out of trip [tripId] through the same path as the screens. */
+        fun removeFromTripIntent(context: Context, requestCode: Int, transactionId: Long, notificationId: Int, tripId: Long): PendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    action = ACTION_REMOVE_FROM_TRIP
+                    putExtra(EXTRA_TRANSACTION_ID, transactionId)
+                    putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+                    putExtra(EXTRA_TRIP_ID, tripId)
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -275,6 +293,20 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             if (exclude && txn != null) SmsBroadcastReceiver.showExcludedNotification(context, notificationId, txn)
                             else dismissNotification(context, notificationId)
                         }.onFailure { Log.e(TAG, "Error setting excluded=$exclude", it) }
+                    }
+                    ACTION_REMOVE_FROM_TRIP -> {
+                        runCatching {
+                            val groups = entryPoint.transactionGroupRepository()
+                            val txn = entryPoint.transactionRepository().getTransactionById(transactionId)
+                            val trip = groups.getGroupById(intent.getLongExtra(EXTRA_TRIP_ID, -1L))
+                            // Only while the row is still in that trip: a stale tap after a move does nothing.
+                            if (txn != null && trip != null && txn.groupId == trip.id) {
+                                groups.removeTransactionFromGroup(transactionId)
+                                SmsBroadcastReceiver.showRemovedFromTripNotification(context, notificationId, txn, trip.name)
+                            } else {
+                                dismissNotification(context, notificationId)
+                            }
+                        }.onFailure { Log.e(TAG, "Error removing a transaction from its trip", it) }
                     }
                     ACTION_CONSCIENCE_LIKE, ACTION_CONSCIENCE_RETIRE -> {
                         runCatching { reactToConscience(context, entryPoint.notificationPreferences(), intent) }

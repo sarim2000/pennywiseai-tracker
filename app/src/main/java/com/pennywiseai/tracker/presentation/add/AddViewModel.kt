@@ -19,7 +19,9 @@ import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.receipt.ReceiptExtractor
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
+import com.pennywiseai.tracker.data.receipt.ReceiptTextRecognizer
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
@@ -40,6 +42,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -64,6 +67,7 @@ class AddViewModel @Inject constructor(
     private val merchantMappingRepository: MerchantMappingRepository,
     private val tagRepository: TagRepository,
     private val receiptManager: ReceiptManager,
+    private val receiptTextRecognizer: ReceiptTextRecognizer,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val learnedSendersStore: LearnedSendersStore,
     private val profilePreferences: UserPreferencesRepository,
@@ -170,7 +174,8 @@ class AddViewModel @Inject constructor(
                 isRecurring = source.isRecurring,
                 currency = source.currency,
                 budgetImpactType = source.budgetImpactType,
-                budgetCategory = source.budgetCategory
+                budgetCategory = source.budgetCategory,
+                edited = currentState.edited + ScanField.CURRENCY
             )
         }
 
@@ -302,7 +307,13 @@ class AddViewModel @Inject constructor(
                     category = draftCategory ?: it.category,
                     currency = draftCurrency ?: it.currency,
                     date = draftDateTime ?: it.date,
-                    notes = draftNote ?: it.notes
+                    notes = draftNote ?: it.notes,
+                    // The quick sheet always hands on its currency: only one other than the
+                    // base was picked, so the base stays open for a receipt's own currency.
+                    edited = it.edited + setOfNotNull(
+                        ScanField.CURRENCY.takeIf { draftCurrency != null && draftCurrency != baseCurrency },
+                        ScanField.DATE.takeIf { draftDateTime != null }
+                    )
                 )
             }
             // The same draft starts the Subscription form, so switching forms keeps what was
@@ -333,11 +344,11 @@ class AddViewModel @Inject constructor(
             val currency = account?.let {
                 CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, it.bankName)
             } ?: currentState.currency
-            currentState.copy(
+            currentState.withoutScannedAmountIn(currency).copy(
                 selectedAccount = account,
                 currency = currency,
                 toAccount = currentState.toAccount?.takeIf { it.currency == currency && it.id != account?.id }
-            )
+            ).let { if (account != null) it.userSet(ScanField.CURRENCY) else it }
         }
     }
 
@@ -358,7 +369,9 @@ class AddViewModel @Inject constructor(
             currentState.copy(
                 amount = validAmount,
                 amountError = validateAmount(validAmount)
-            )
+            ).userSet(ScanField.AMOUNT)
+                // Typed in the currency a scan picked: the user keeps that currency with it.
+                .let { if (ScanField.CURRENCY in it.scanned) it.userSet(ScanField.CURRENCY) else it }
         }
     }
 
@@ -377,9 +390,13 @@ class AddViewModel @Inject constructor(
                 budgetCategory = if (type != TransactionType.INCOME) null else currentState.budgetCategory,
                 // The To account only applies to a transfer — drop it when leaving
                 // TRANSFER so a stale selection can't silently pre-fill a later one.
-                toAccount = if (type == TransactionType.TRANSFER) currentState.toAccount else null
+                toAccount = if (type == TransactionType.TRANSFER) currentState.toAccount else null,
+                // The type picked its own category: a later scan has none of its own to put back.
+                scanned = currentState.scanned - ScanField.CATEGORY
             )
         }
+        // A transfer has no receipt total or shop: a photo still being read fills nothing in.
+        if (type == TransactionType.TRANSFER) cancelReceiptScan()
     }
 
     fun updateTransactionMerchant(merchant: String) {
@@ -388,12 +405,17 @@ class AddViewModel @Inject constructor(
             currentState.copy(
                 merchant = merchant,
                 merchantError = validateMerchant(merchant)
-            )
+            ).userSet(ScanField.MERCHANT)
         }
+        suggestCategoryFor(merchant)
+    }
+
+    private fun suggestCategoryFor(merchant: String, fromScan: Boolean = false) {
         // Suggest the category previously learned for this merchant (#678) — the
         // same mapping SMS parsing already applies. Only fills in when the user
         // hasn't chosen a specific category yet (still a per-type default), so an
-        // explicit choice is never overridden.
+        // explicit choice is never overridden. One a scanned shop brought in is the
+        // scan's: a scan of another photo puts the category back.
         merchantSuggestionJob?.cancel() // supersede any slower in-flight lookup
         val name = merchant.trim()
         if (name.isEmpty()) return
@@ -406,9 +428,14 @@ class AddViewModel @Inject constructor(
                 // placeholder), and no category the user has since chosen.
                 if (currentState.merchant.trim() == name &&
                     currentState.transactionType == typeAtRequest &&
-                    currentState.category in DEFAULT_CATEGORY_PLACEHOLDERS
+                    currentState.category in DEFAULT_CATEGORY_PLACEHOLDERS &&
+                    !(fromScan && ScanField.CATEGORY in currentState.edited)
                 ) {
-                    currentState.copy(category = mapped, categoryError = validateCategory(mapped))
+                    currentState.copy(
+                        category = mapped,
+                        categoryError = validateCategory(mapped),
+                        scanned = if (fromScan) currentState.scanned + ScanField.CATEGORY else currentState.scanned
+                    )
                 } else {
                     currentState
                 }
@@ -427,7 +454,7 @@ class AddViewModel @Inject constructor(
             currentState.copy(
                 category = category,
                 categoryError = validateCategory(category)
-            )
+            ).userSet(ScanField.CATEGORY)
         }
     }
 
@@ -487,7 +514,7 @@ class AddViewModel @Inject constructor(
         val newDateTime = LocalDateTime.of(localDate, currentTime)
 
         _transactionUiState.update { currentState ->
-            currentState.copy(date = newDateTime)
+            currentState.copy(date = newDateTime).userSet(ScanField.DATE)
         }
     }
 
@@ -496,7 +523,7 @@ class AddViewModel @Inject constructor(
         val newDateTime = currentDate.atTime(hour, minute)
 
         _transactionUiState.update { currentState ->
-            currentState.copy(date = newDateTime)
+            currentState.copy(date = newDateTime).userSet(ScanField.DATE)
         }
     }
 
@@ -534,11 +561,11 @@ class AddViewModel @Inject constructor(
     fun updateTransactionCurrency(currency: String) {
         _transactionUiState.update { currentState ->
             // An account in another currency can't take this amount: drop it rather than mix.
-            currentState.copy(
+            currentState.withoutScannedAmountIn(currency).copy(
                 currency = currency,
                 selectedAccount = currentState.selectedAccount?.takeIf { it.currency == currency },
                 toAccount = currentState.toAccount?.takeIf { it.currency == currency }
-            )
+            ).userSet(ScanField.CURRENCY)
         }
     }
 
@@ -547,6 +574,8 @@ class AddViewModel @Inject constructor(
 
     fun updateReceiptUri(uri: Uri?) {
         receiptCheck?.cancel()
+        // A removed or replaced receipt no longer speaks for the form.
+        cancelReceiptScan()
         if (uri == null) {
             _transactionUiState.update { it.copy(receiptUri = null, receiptError = null, checkingReceipt = false) }
             return
@@ -563,13 +592,139 @@ class AddViewModel @Inject constructor(
         }
     }
 
-    /** Stops checking the file just picked (a provider can stall); a receipt already accepted stays. */
+    /**
+     * Stops checking the file just picked (a provider can stall), and reading it if it was
+     * picked to scan; a receipt already accepted stays.
+     */
     fun cancelReceiptCheck() {
         receiptCheck?.cancel()
+        cancelReceiptScan()
         _transactionUiState.update { it.copy(checkingReceipt = false) }
     }
 
     fun createCameraUri(): Uri = receiptManager.createCameraUri()
+
+    /** False on F-Droid, which ships no OCR model: the form offers no "Scan receipt". */
+    val canScanReceipts: Boolean get() = receiptTextRecognizer.isAvailable
+
+    // The OCR of the receipt last scanned; a newer pick or a removal cancels it.
+    private var receiptScan: Job? = null
+
+    private fun cancelReceiptScan() {
+        receiptScan?.cancel()
+        _transactionUiState.update { it.copy(scanningReceipt = false) }
+    }
+
+    // The currency, date and category the form had before a scan changed them: a later
+    // scan reads another photo, so it starts from these.
+    private var beforeScan: BeforeScan? = null
+
+    /**
+     * "Scan receipt": attaches the photo like any receipt, reads it on the device, and
+     * fills the amount, date and merchant it finds into the fields the user hasn't set.
+     * Nothing is saved; the user checks the form and taps Save.
+     */
+    fun scanReceipt(uri: Uri) {
+        updateReceiptUri(uri)
+        val check = receiptCheck
+        _transactionUiState.update { state ->
+            // A field the user emptied before this scan is free for it; one emptied while it runs isn't.
+            val blank = setOfNotNull(
+                ScanField.AMOUNT.takeIf { state.amount.isBlank() },
+                ScanField.MERCHANT.takeIf { state.merchant.isBlank() }
+            )
+            state.copy(scanningReceipt = true, scanMessage = null, edited = state.edited - blank)
+        }
+        receiptScan = viewModelScope.launch {
+            val lines = async { receiptTextRecognizer.recognize(uri) }
+            // Only the photo the form holds speaks for it: one that failed its check doesn't.
+            check?.join()
+            if (_transactionUiState.value.receiptUri != uri) {
+                lines.cancel()
+                _transactionUiState.update { it.copy(scanningReceipt = false) }
+                return@launch
+            }
+            // The form holds this photo now: what the last scan read off another one goes at once.
+            _transactionUiState.update { it.withoutScan(beforeScan) }
+            // From the profile in view, like the suggestions under the field.
+            val known = try {
+                transactionRepository.getMerchantsInProfile(profilePreferences.selectedProfileId.first())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // Only for matching a past spelling: the scan works without it.
+                Log.w("AddViewModel", "Merchants for the receipt scan failed", e)
+                emptyList()
+            }
+            applyReceiptScan(lines.await(), known)
+        }
+    }
+
+    private fun applyReceiptScan(lines: List<String>?, known: List<String>) {
+        if (_transactionUiState.value.transactionType == TransactionType.TRANSFER) {
+            _transactionUiState.update { it.copy(scanningReceipt = false) }
+            return
+        }
+        // What the last scan filled in came off another photo: this one starts without it.
+        val base = _transactionUiState.value.withoutScan(beforeScan)
+        val scan = lines?.let { ReceiptExtractor.extract(it, known, LocalDate.now(), currency = base.entryCurrency) }
+        if (scan == null || scan.isEmpty) {
+            _transactionUiState.value = base.copy(scanningReceipt = false, scanMessage = UiText.Res(R.string.add_receipt_scan_failed))
+            return
+        }
+        // The amount only lands in its own currency. The form's is kept when the receipt
+        // names none, or names it; the receipt's replaces it only when it names exactly one
+        // and nobody chose the form's (no pick, no account). A shared mark ("$", "Rs") that
+        // isn't the form's, or another currency than the chosen one, leaves the amount out.
+        val chosenCurrency = ScanField.CURRENCY in base.edited || base.selectedAccount != null
+        val printed = scan.currencies
+        val currency = when {
+            printed.isEmpty() || base.entryCurrency in printed -> base.currency
+            printed.size == 1 && !chosenCurrency -> printed.single()
+            else -> null
+        }
+        val amountFree = ScanField.AMOUNT !in base.edited && base.amount.isBlank()
+        val amount = scan.amount?.takeIf { currency != null && amountFree }
+        val otherCurrency = scan.amount != null && amountFree && currency == null
+        val newCurrency = currency?.takeIf { amount != null } ?: base.currency
+        val merchant = scan.merchant?.takeIf { ScanField.MERCHANT !in base.edited && base.merchant.isBlank() }
+        val date = scan.date?.takeIf { ScanField.DATE !in base.edited }
+
+        val filled = setOfNotNull(
+            ScanField.AMOUNT.takeIf { amount != null },
+            ScanField.MERCHANT.takeIf { merchant != null },
+            ScanField.CURRENCY.takeIf { newCurrency != base.currency },
+            ScanField.DATE.takeIf { date != null }
+        )
+        beforeScan = BeforeScan(base.currency, base.date, base.category)
+        _transactionUiState.value = base.copy(
+            amount = amount?.toPlainString() ?: base.amount,
+            amountError = if (amount != null) validateAmount(amount.toPlainString()) else base.amountError,
+            currency = newCurrency,
+            toAccount = base.toAccount?.takeIf { it.currency == newCurrency },
+            merchant = merchant ?: base.merchant,
+            merchantError = if (merchant != null) validateMerchant(merchant) else base.merchantError,
+            date = date?.atTime(base.date.toLocalTime()) ?: base.date,
+            scanned = filled,
+            scanningReceipt = false,
+            scanMessage = UiText.Res(
+                when {
+                    otherCurrency -> R.string.add_receipt_scan_other_currency
+                    filled.isNotEmpty() -> R.string.add_receipt_scan_filled
+                    else -> R.string.add_receipt_scan_kept
+                }
+            )
+        )
+        merchant?.let {
+            merchantQuery.value = ""
+            suggestCategoryFor(it, fromScan = true)
+        }
+    }
+
+    /** The scan's message has been shown. */
+    fun scanMessageShown() {
+        _transactionUiState.update { it.copy(scanMessage = null) }
+    }
 
     fun updateBudgetImpactType(type: BudgetImpactType?) {
         _transactionUiState.update { it.copy(budgetImpactType = type, budgetCategory = keptBudgetCategory(type, it.budgetCategory)) }
@@ -588,7 +743,8 @@ class AddViewModel @Inject constructor(
 
     fun saveTransaction(onSuccess: () -> Unit) {
         val state = _transactionUiState.value
-        if (state.checkingReceipt) return
+        // A receipt still being checked or read isn't the one the form's figures belong to yet.
+        if (state.checkingReceipt || state.scanningReceipt) return
         val isTransfer = state.transactionType == TransactionType.TRANSFER
 
         val amountError = validateAmount(state.amount)
@@ -972,6 +1128,13 @@ data class TransactionUiState(
     val receiptError: UiText? = null,
     // A picked receipt is still being checked; Save waits for it.
     val checkingReceipt: Boolean = false,
+    // "Scan receipt" is reading the photo, and what it then has to say (shown once).
+    val scanningReceipt: Boolean = false,
+    val scanMessage: UiText? = null,
+    // The fields the user (or a draft) set: a scanned receipt never replaces them.
+    val edited: Set<ScanField> = emptySet(),
+    // The fields holding what the last scan read: a scan of another photo may replace them.
+    val scanned: Set<ScanField> = emptySet(),
     val budgetImpactType: BudgetImpactType? = null,
     val budgetCategory: String? = null,
     // False until a Duplicate/shared/voice draft has been copied in, so the
@@ -1058,4 +1221,42 @@ data class SubscriptionUiState(
             amountError == null &&
             categoryError == null &&
             !paymentsMadeError
+}
+
+/** A form field "Scan receipt" can fill. */
+enum class ScanField { AMOUNT, MERCHANT, CURRENCY, DATE, CATEGORY }
+
+/** What a scan changed, as the form had it before. */
+private data class BeforeScan(val currency: String, val date: LocalDateTime, val category: String)
+
+/** [field] set by the user: no scan replaces it, and it no longer holds a scan's reading. */
+private fun TransactionUiState.userSet(field: ScanField): TransactionUiState =
+    copy(edited = edited + field, scanned = scanned - field)
+
+/** The form about to be in [newCurrency]: a scanned amount was read in another one, so it goes. */
+private fun TransactionUiState.withoutScannedAmountIn(newCurrency: String): TransactionUiState =
+    if (ScanField.AMOUNT in scanned && newCurrency != currency) {
+        copy(amount = "", amountError = null, scanned = scanned - ScanField.AMOUNT)
+    } else {
+        this
+    }
+
+/** The form without what the last scan filled in, its currency, date and category back to [before] it. */
+private fun TransactionUiState.withoutScan(before: BeforeScan?): TransactionUiState {
+    val amountScanned = ScanField.AMOUNT in scanned
+    val merchantScanned = ScanField.MERCHANT in scanned
+    val currencyBack = before?.currency?.takeIf { ScanField.CURRENCY in scanned } ?: currency
+    val categoryBack = before?.category?.takeIf { ScanField.CATEGORY in scanned }
+    return copy(
+        amount = if (amountScanned) "" else amount,
+        amountError = if (amountScanned) null else amountError,
+        merchant = if (merchantScanned) "" else merchant,
+        merchantError = if (merchantScanned) null else merchantError,
+        currency = currencyBack,
+        toAccount = toAccount?.takeIf { it.currency == currencyBack },
+        date = before?.date?.takeIf { ScanField.DATE in scanned } ?: date,
+        category = categoryBack ?: category,
+        categoryError = if (categoryBack != null) null else categoryError,
+        scanned = emptySet()
+    )
 }

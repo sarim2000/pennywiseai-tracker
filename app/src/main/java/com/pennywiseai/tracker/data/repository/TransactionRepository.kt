@@ -128,6 +128,9 @@ open class TransactionRepository @Inject constructor(
     fun getAllMerchants(): Flow<List<String>> =
         transactionDao.getAllMerchants()
 
+    /** Past merchant names in [profileId] (null for all profiles), as [suggestMerchants] scopes them. */
+    suspend fun getMerchantsInProfile(profileId: Long?): List<String> = transactionDao.getMerchantsInProfile(profileId)
+
     /**
      * Up to [MerchantSuggestions.LIMIT] past merchants for a merchant field showing [typed],
      * from [profileId] (null for all profiles); none for a blank field.

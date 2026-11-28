@@ -188,6 +188,15 @@ fun TransactionTabContent(
     var moreOpen by rememberSaveable { mutableStateOf(false) }
 
     val isTransfer = uiState.transactionType == TransactionType.TRANSFER
+    // What "Scan receipt" filled in, or that it couldn't read the photo.
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scanMessage = uiState.scanMessage?.asString()
+    LaunchedEffect(scanMessage) {
+        if (scanMessage != null) {
+            snackbarHostState.showSnackbar(scanMessage)
+            viewModel.scanMessageShown()
+        }
+    }
     // A budget impact without its category can't be saved: keep that field in view.
     val moreExpanded = moreOpen || (uiState.budgetImpactType != null && uiState.budgetCategory == null)
 
@@ -440,7 +449,10 @@ fun TransactionTabContent(
                     onCreateCameraUri = { viewModel.createCameraUri() },
                     receiptError = uiState.receiptError?.asString(),
                     checking = uiState.checkingReceipt,
-                    onCancelCheck = viewModel::cancelReceiptCheck
+                    onCancelCheck = viewModel::cancelReceiptCheck,
+                    // A transfer has no merchant or receipt total to fill in.
+                    onScanReceipt = if (viewModel.canScanReceipts && !isTransfer) viewModel::scanReceipt else null,
+                    scanning = uiState.scanningReceipt
                 )
             }
 
@@ -481,6 +493,15 @@ fun TransactionTabContent(
             )
         }
 
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .imePadding()
+                .navigationBarsPadding()
+                .padding(bottom = Dimensions.Component.fab + Spacing.lg)
+        ) { data -> Snackbar(data, shape = MaterialTheme.shapes.large) }
+
         // While the amount is being typed, the operator row takes Save's place on the keyboard.
         if (amountFocused && WindowInsets.isImeVisible) {
             AmountKeyboardBar(
@@ -500,7 +521,8 @@ fun TransactionTabContent(
             SaveBar(
                 error = uiState.error?.asString() ?: uiState.receiptError?.takeUnless { moreExpanded }?.asString(),
                 // "120+" counts as 120 for the form, but booking it would drop the rest of the sum.
-                enabled = uiState.isValid && !uiState.isLoading && !uiState.checkingReceipt && !amountEntry.isUnfinished,
+                enabled = uiState.isValid && !uiState.isLoading && !uiState.checkingReceipt && !uiState.scanningReceipt &&
+                    !amountEntry.isUnfinished,
                 loading = uiState.isLoading,
                 // Checked again here: an operator typed in the same frame as the tap isn't drawn yet.
                 onClick = withCommittedText {
@@ -610,24 +632,35 @@ fun ReceiptPickerSection(
     onCreateCameraUri: () -> android.net.Uri,
     receiptError: String? = null,
     checking: Boolean = false,
-    onCancelCheck: () -> Unit = {}
+    onCancelCheck: () -> Unit = {},
+    // Null hides "Scan receipt" (F-Droid has no OCR, and only the Add form fills from it).
+    onScanReceipt: ((android.net.Uri) -> Unit)? = null,
+    scanning: Boolean = false
 ) {
+    // Whether the photo being picked is to be scanned, or only attached.
+    var scanPick by rememberSaveable { mutableStateOf(false) }
+    val deliver: (android.net.Uri?) -> Unit = { uri ->
+        val scan = onScanReceipt?.takeIf { scanPick }
+        scanPick = false
+        uri?.let { if (scan != null) scan(it) else onReceiptSelected(it) }
+    }
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri -> uri?.let { onReceiptSelected(it) } }
+    ) { uri -> deliver(uri) }
     // Some phones report a photo picker that is switched off; the plain file chooser still lists photos.
     val galleryFallbackLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri -> uri?.let { onReceiptSelected(it) } }
+    ) { uri -> deliver(uri) }
 
     val pdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { onReceiptSelected(it) } }
 
-    var cameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    // Saved with [scanPick]: the camera app can outlive this activity, and its photo still lands here.
+    var cameraUri by rememberSaveable { mutableStateOf<android.net.Uri?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
-    ) { success -> if (success) cameraUri?.let { onReceiptSelected(it) } }
+    ) { success -> deliver(cameraUri?.takeIf { success }) }
 
     val context = LocalContext.current
     // A picker with no app behind it says so instead of crashing.
@@ -639,6 +672,7 @@ fun ReceiptPickerSection(
         }
     }
     val pickPhoto = {
+        scanPick = false
         try {
             galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         } catch (_: ActivityNotFoundException) {
@@ -646,11 +680,21 @@ fun ReceiptPickerSection(
         }
     }
     val takePhoto = {
+        scanPick = false
         val uri = onCreateCameraUri()
         cameraUri = uri
         launchPicker { cameraLauncher.launch(uri) }
     }
     val pickPdf = { launchPicker { pdfLauncher.launch(arrayOf(ReceiptManager.PDF_MIME)) } }
+    // Photos only: a PDF keeps the attach-only flow.
+    val scanPhoto = {
+        pickPhoto()
+        scanPick = true
+    }
+    val scanWithCamera = {
+        takePhoto()
+        scanPick = true
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -682,6 +726,44 @@ fun ReceiptPickerSection(
                 // A provider that never answers would otherwise hold Save off for good.
                 TextButton(onClick = onCancelCheck, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.add_receipt_check_cancel))
+                }
+            }
+        }
+
+        if (onScanReceipt != null) {
+            var showScanMenu by remember { mutableStateOf(false) }
+            Box {
+                FilledTonalButton(
+                    onClick = { showScanMenu = true },
+                    enabled = !scanning,
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    if (scanning) {
+                        CircularProgressIndicator(modifier = Modifier.size(Dimensions.Icon.small), strokeWidth = Spacing.xxs)
+                    } else {
+                        Icon(Icons.Default.DocumentScanner, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                    }
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(if (scanning) R.string.add_receipt_scanning else R.string.add_receipt_scan))
+                }
+                DropdownMenu(expanded = showScanMenu, onDismissRequest = { showScanMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.add_receipt_gallery)) },
+                        leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) },
+                        onClick = {
+                            showScanMenu = false
+                            scanPhoto()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.add_receipt_camera)) },
+                        leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
+                        onClick = {
+                            showScanMenu = false
+                            scanWithCamera()
+                        }
+                    )
                 }
             }
         }

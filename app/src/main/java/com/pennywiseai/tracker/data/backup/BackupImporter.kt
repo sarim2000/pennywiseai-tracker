@@ -176,7 +176,9 @@ class BackupImporter @Inject constructor(
      * that fails so one bad/corrupt record can't abort the entire restore.
      * Schema-drift safety (older backups missing newer columns) is already
      * handled upstream by [backupJson] defaults — this guards the rarer case
-     * of a genuinely malformed row or a constraint violation.
+     * of a malformed row. A row whose parent isn't in the backup must be rejected
+     * BEFORE the insert (`checkNotNull` / a membership check), never left to the
+     * foreign key to throw: see [rethrowIfSql].
      */
     private inline fun <T> List<T>.insertEachCounting(
         onSkip: () -> Unit,
@@ -186,10 +188,32 @@ class BackupImporter @Inject constructor(
             try {
                 action(item)
             } catch (e: Exception) {
+                rethrowIfSql(e)
                 Log.w("BackupImporter", "Skipped a row during import: ${e.message}")
                 onSkip()
             }
         }
+    }
+
+    /**
+     * An IGNORE insert (transactions, tags, categories) that hits a unique key returns
+     * -1 and writes no row. That is a skipped row, never a parent: callers map an id
+     * and count an import only for a real row id (> 0), so no child can later point
+     * at id -1.
+     */
+    private fun rowOrSkip(insertedId: Long, what: String): Long =
+        checkNotNull(insertedId.takeIf { it > 0L }) { "$what not inserted (duplicate key)" }
+
+    /**
+     * A failed DAO call inside the import transaction can't be skipped: Room's
+     * AndroidSQLiteDriver runs it on the framework's nested transactions, where a
+     * nested failure marks the outer transaction rollback-only, so the final
+     * COMMIT silently becomes a ROLLBACK (#1513). Catching the exception only
+     * hid it, and the import reported rows it never kept. Surface it instead, so
+     * the whole import fails visibly.
+     */
+    private fun rethrowIfSql(e: Exception) {
+        if (e is android.database.SQLException) throw e
     }
 
     /**
@@ -281,7 +305,7 @@ class BackupImporter @Inject constructor(
 
                 // Import all data
                 backup.database.categories.insertEachCounting({ skippedRows++ }) { category ->
-                    database.categoryDao().insertCategory(category)
+                    rowOrSkip(database.categoryDao().insertCategory(category), "Category")
                     importedCategories++
                 }
 
@@ -289,8 +313,9 @@ class BackupImporter @Inject constructor(
                 // link to a transaction that actually restored.
                 val restoredTransactionIds = HashMap<Long, Long>()
                 backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
-                    val newId = database.transactionDao().insertTransaction(cleanTransaction(transaction))
-                    if (transaction.id != 0L && newId > 0L) restoredTransactionIds[transaction.id] = newId
+                    // A second row with the same hash is ignored (-1): skipped, and nothing maps to it.
+                    val newId = rowOrSkip(database.transactionDao().insertTransaction(cleanTransaction(transaction)), "Transaction")
+                    if (transaction.id != 0L) restoredTransactionIds[transaction.id] = newId
                     importedTransactions++
                 }
                 reimbursementLinks(backup.database.transactions, restoredTransactionIds) { it in restoredTransactionIds }
@@ -334,22 +359,32 @@ class BackupImporter @Inject constructor(
                 }
 
                 // Import new entities
+                val restoredRuleIds = HashSet<String>()
                 backup.database.rules.insertEachCounting({ skippedRows++ }) { rule ->
                     database.ruleDao().insertRule(rule)
+                    restoredRuleIds += rule.id
                 }
+                // An application whose rule or transaction isn't in the backup (a deleted
+                // transaction) is skipped and counted; its foreign key must never be hit.
                 backup.database.ruleApplications.insertEachCounting({ skippedRows++ }) { application ->
+                    check(application.ruleId in restoredRuleIds) { "Rule not restored" }
+                    check(application.transactionId.toLongOrNull() in restoredTransactionIds) { "Transaction not restored" }
                     database.ruleApplicationDao().insertApplication(application)
                 }
                 backup.database.exchangeRates.insertEachCounting({ skippedRows++ }) { rate ->
                     database.exchangeRateDao().insertExchangeRate(rate)
                 }
+                val restoredBudgetIds = HashSet<Long>()
                 backup.database.budgets.insertEachCounting({ skippedRows++ }) { budget ->
                     database.budgetDao().insertBudget(budget)
+                    restoredBudgetIds += budget.id
                 }
                 backup.database.budgetCategories.insertEachCounting({ skippedRows++ }) { category ->
+                    check(category.budgetId in restoredBudgetIds) { "Budget not restored" }
                     database.budgetDao().insertBudgetCategory(category)
                 }
                 backup.database.transactionSplits.insertEachCounting({ skippedRows++ }) { split ->
+                    check(split.transactionId in restoredTransactionIds) { "Transaction not restored" }
                     database.transactionSplitDao().insertSplit(split)
                 }
                 backup.database.bankNotifications.insertEachCounting({ skippedRows++ }) { notification ->
@@ -359,10 +394,14 @@ class BackupImporter @Inject constructor(
                 // Tags + cross-refs: ids are preserved in REPLACE_ALL (so are
                 // transaction ids), so insert tags first then the links. Insert
                 // tags before cross-refs to satisfy the foreign keys.
+                val restoredTagIds = HashSet<Long>()
                 backup.database.tags.insertEachCounting({ skippedRows++ }) { tag ->
-                    database.tagDao().insertTag(tag)
+                    // A second tag with the same name is ignored (-1): its cross-refs are skipped too.
+                    rowOrSkip(database.tagDao().insertTag(tag), "Tag")
+                    restoredTagIds += tag.id
                 }
                 backup.database.transactionTagCrossRefs.insertEachCounting({ skippedRows++ }) { ref ->
+                    check(ref.transactionId in restoredTransactionIds && ref.tagId in restoredTagIds) { "Transaction or tag not restored" }
                     database.tagDao().insertCrossRef(ref)
                 }
 
@@ -386,10 +425,13 @@ class BackupImporter @Inject constructor(
                 // Goals (#914): ids preserved like every cleared table; goals go
                 // before their contributions (FK). A link to a transaction that
                 // didn't restore is cleared, keeping the money on the goal.
+                val restoredGoalIds = HashSet<Long>()
                 backup.database.goals.insertEachCounting({ skippedRows++ }) { goal ->
                     database.goalDao().insertGoal(goal.copy(uid = goal.uid.ifBlank { java.util.UUID.randomUUID().toString() }))
+                    restoredGoalIds += goal.id
                 }
                 backup.database.goalContributions.insertEachCounting({ skippedRows++ }) { c ->
+                    check(c.goalId in restoredGoalIds) { "Goal not restored" }
                     database.goalDao().insertContribution(
                         c.copy(
                             uid = c.uid.ifBlank { java.util.UUID.randomUUID().toString() },
@@ -409,12 +451,14 @@ class BackupImporter @Inject constructor(
                 try {
                     database.budgetSnapshotDao().insertGroupSnapshots(backup.database.budgetMonthSnapshots)
                 } catch (e: Exception) {
+                    rethrowIfSql(e)
                     Log.w("BackupImporter", "Skipped snapshot batch: ${e.message}")
                     skippedRows += backup.database.budgetMonthSnapshots.size
                 }
                 try {
                     database.budgetSnapshotDao().insertCategorySnapshots(backup.database.budgetCategoryMonthSnapshots)
                 } catch (e: Exception) {
+                    rethrowIfSql(e)
                     Log.w("BackupImporter", "Skipped snapshot batch: ${e.message}")
                     skippedRows += backup.database.budgetCategoryMonthSnapshots.size
                 }
@@ -477,7 +521,7 @@ class BackupImporter @Inject constructor(
                             isSystem = category.isSystem && !duplicatesBuiltin,
                             systemName = if (duplicatesBuiltin) null else category.systemName
                         )
-                        val newId = database.categoryDao().insertCategory(newCategory)
+                        val newId = rowOrSkip(database.categoryDao().insertCategory(newCategory), "Category")
                         categoryIdMap[category.id] = newId
                         importedCategories++
                     }
@@ -558,6 +602,12 @@ class BackupImporter @Inject constructor(
                             reimbursedById = null
                         )
                         val newId = database.transactionDao().insertTransaction(newTransaction)
+                        if (newId <= 0L) {
+                            // Same hash as an earlier row of this backup: ignored, not imported, and
+                            // left unmapped so no child or link can point at id -1.
+                            skippedDuplicates++
+                            return@insertEachCounting
+                        }
                         // Track old ID -> new ID mapping directly from insert result
                         if (oldId != 0L) {
                             oldToNewTransactionIdMap[oldId] = newId
@@ -607,12 +657,16 @@ class BackupImporter @Inject constructor(
                 // Get existing rule application IDs to avoid duplicates on repeat MERGE
                 val existingRuleAppIds = database.ruleApplicationDao().getAllApplications().first()
                     .map { it.id }.toSet()
+                val localRuleIds = database.ruleDao().getAllRules().first().mapTo(HashSet()) { it.id }
                 backup.database.ruleApplications.insertEachCounting({ skippedRows++ }) { application ->
                     // Skip if application already exists locally (preserves local rule applications)
                     if (!existingRuleAppIds.contains(application.id)) {
-                        val mappedTransactionId = application.transactionId.toLongOrNull()?.let { oldId ->
-                            oldToNewTransactionIdMap[oldId]?.toString() ?: application.transactionId
-                        } ?: application.transactionId
+                        // A transaction or rule that isn't here (deleted before the export) skips
+                        // the row; the foreign key must never be hit (#1513).
+                        check(application.ruleId in localRuleIds) { "Rule not restored" }
+                        val mappedTransactionId = checkNotNull(
+                            application.transactionId.toLongOrNull()?.let { oldToNewTransactionIdMap[it] }
+                        ) { "Transaction not restored" }.toString()
                         val updatedApplication = application.copy(transactionId = mappedTransactionId)
                         database.ruleApplicationDao().insertApplication(updatedApplication)
                     }
@@ -635,8 +689,8 @@ class BackupImporter @Inject constructor(
                 val existingSplits = database.transactionSplitDao().getAllSplits().first()
                 val existingSplitKeys = existingSplits.map { "${it.transactionId}|${it.category}|${it.amount}" }.toSet()
                 backup.database.transactionSplits.insertEachCounting({ skippedRows++ }) { split ->
-                    // Map transaction ID to new ID if available
-                    val mappedTransactionId = oldToNewTransactionIdMap[split.transactionId] ?: split.transactionId
+                    // A split of a transaction that isn't here is skipped, never attached to a stranger.
+                    val mappedTransactionId = checkNotNull(oldToNewTransactionIdMap[split.transactionId]) { "Transaction not restored" }
                     // Skip if split already exists locally (preserves local splits)
                     val splitKey = "$mappedTransactionId|${split.category}|${split.amount}"
                     if (!existingSplitKeys.contains(splitKey)) {
@@ -663,17 +717,16 @@ class BackupImporter @Inject constructor(
                         val newId = existingTagIdByName[key]
                             ?: database.tagDao().insertTag(tag.copy(id = 0))
                                 .also { id -> if (id > 0L) existingTagIdByName[key] = id }
-                        if (newId > 0L && tag.id != 0L) oldToNewTagIdMap[tag.id] = newId
+                        rowOrSkip(newId, "Tag")
+                        if (tag.id != 0L) oldToNewTagIdMap[tag.id] = newId
                     }
                 }
                 backup.database.transactionTagCrossRefs.insertEachCounting({ skippedRows++ }) { ref ->
-                    val mappedTransactionId = oldToNewTransactionIdMap[ref.transactionId]
-                    val mappedTagId = oldToNewTagIdMap[ref.tagId]
-                    if (mappedTransactionId != null && mappedTagId != null) {
-                        database.tagDao().insertCrossRef(
-                            ref.copy(transactionId = mappedTransactionId, tagId = mappedTagId)
-                        )
-                    }
+                    val mappedTransactionId = checkNotNull(oldToNewTransactionIdMap[ref.transactionId]) { "Transaction not restored" }
+                    val mappedTagId = checkNotNull(oldToNewTagIdMap[ref.tagId]) { "Tag not restored" }
+                    database.tagDao().insertCrossRef(
+                        ref.copy(transactionId = mappedTransactionId, tagId = mappedTagId)
+                    )
                 }
 
                 // Profiles were already imported earlier (before transactions /
@@ -703,6 +756,7 @@ class BackupImporter @Inject constructor(
                                 categorySnapshots = categorySnapshots
                             )
                         } catch (e: Exception) {
+                            rethrowIfSql(e)
                             Log.w("BackupImporter", "Skipped snapshot batch: ${e.message}")
                             skippedRows += groupSnapshots.size + categorySnapshots.size
                         }

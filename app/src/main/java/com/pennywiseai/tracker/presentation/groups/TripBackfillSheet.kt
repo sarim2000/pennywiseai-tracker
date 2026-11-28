@@ -43,7 +43,7 @@ import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 /** Existing rows a just-saved trip could take, offered once. */
-data class TripBackfillOffer(val groupId: Long, val rows: List<TransactionEntity>)
+data class TripBackfillOffer(val groupId: Long, val rows: List<TransactionEntity>, val capped: Boolean = false)
 
 private val IdSetSaver = listSaver<Set<Long>, Long>(save = { it.toList() }, restore = { it.toSet() })
 
@@ -61,7 +61,9 @@ fun TripBackfillSheet(
     // Kept as the unticked set so "everything" is the default and survives a rotation cheaply.
     var unchecked by rememberSaveable(offer.groupId, stateSaver = IdSetSaver) { mutableStateOf(emptySet<Long>()) }
     val checkedIds = offer.rows.map { it.id }.filter { it !in unchecked }
-    val dates = AppDates.dayMonthFormatter()
+    val thisYear = java.time.LocalDate.now().year
+    val withYear = AppDates.dateFormatter()
+    val dayMonth = AppDates.dayMonthFormatter()
 
     ModalBottomSheet(
         onDismissRequest = onSkip,
@@ -82,7 +84,11 @@ fun TripBackfillSheet(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                pluralStringResource(R.plurals.trip_backfill_message, offer.rows.size, offer.rows.size),
+                if (offer.capped) {
+                    pluralStringResource(R.plurals.trip_backfill_capped, offer.rows.size, offer.rows.size)
+                } else {
+                    pluralStringResource(R.plurals.trip_backfill_message, offer.rows.size, offer.rows.size)
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -109,7 +115,7 @@ fun TripBackfillSheet(
                     ) {
                         Checkbox(checked = isChecked, onCheckedChange = null)
                         Text(
-                            "${txn.dateTime.format(dates)} · ${txn.merchantName}",
+                            "${txn.dateTime.format(if (txn.dateTime.year == thisYear) dayMonth else withYear)} · ${txn.merchantName}",
                             style = MaterialTheme.typography.bodyMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,

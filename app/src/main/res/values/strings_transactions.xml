@@ -413,6 +413,10 @@
         <item quantity="one">%1$d transaction already in the app falls inside these dates.</item>
         <item quantity="other">%1$d transactions already in the app fall inside these dates.</item>
     </plurals>
+    <plurals name="trip_backfill_capped">
+        <item quantity="one">More transactions than this fall inside these dates. Showing only the most recent %1$d.</item>
+        <item quantity="other">More transactions than this fall inside these dates. Showing only the most recent %1$d.</item>
+    </plurals>
     <string name="trip_backfill_select_all">Select all</string>
     <string name="trip_backfill_select_none">Select none</string>
     <plurals name="trip_backfill_add">

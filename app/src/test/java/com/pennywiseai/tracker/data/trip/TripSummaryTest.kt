@@ -140,8 +140,41 @@ class TripSummaryTest {
             tx("17", hash = "after", at = end.plusNanos(1)),
             tx("18", hash = "removed")
         )
-        val picked = backfillRowsFor(rows, trip, excluded = setOf("removed")).map { it.transactionHash }
+        val picked = backfillRowsFor(rows, trip, now = end, excluded = setOf("removed")).map { it.transactionHash }
         assertEquals(listOf("in", "card"), picked)
+    }
+
+    @Test
+    fun averageUsesTheCurrencysOwnDecimals() {
+        fun avg(code: String, amount: String, days: Int) =
+            averagePerDay(mapOf(code to Money(BigDecimal(amount), code)), days).getValue(code).amount
+        assertEquals(BigDecimal("59.692"), avg("JOD", "3939.680", 66))
+        assertEquals(BigDecimal("333.33"), avg("INR", "1000", 3))
+        // The app's money rule (MinorUnits) gives yen two decimals, like any other non-dinar currency.
+        assertEquals(BigDecimal("333.33"), avg("JPY", "1000", 3))
+    }
+
+    @Test
+    fun backfillWindowNeverReachesIntoTheFuture() {
+        val now = LocalDateTime.of(2026, 12, 3, 12, 0)
+        assertEquals(now, backfillWindowEnd(null, now))
+        assertEquals(now, backfillWindowEnd(end, now))
+        assertEquals(end, backfillWindowEnd(end, end.plusDays(30)))
+        val open = trip.copy(tripEnd = null)
+        val rows = listOf(tx("1", hash = "past", at = now.minusHours(1)), tx("2", hash = "future", at = LocalDateTime.of(2040, 1, 1, 0, 0)))
+        assertEquals(listOf("past"), backfillRowsFor(rows, open, now).map { it.transactionHash })
+    }
+
+    @Test
+    fun backfillSaysWhenItIsCut() {
+        val now = end
+        val rows = (1..4).map { tx("$it", hash = "r$it", at = start.plusHours(it.toLong())) }
+        val cut = tripBackfillOf(rows, trip, now, limit = 3)
+        assertEquals(3, cut.rows.size)
+        assertTrue(cut.capped)
+        val whole = tripBackfillOf(rows.take(3), trip, now, limit = 3)
+        assertEquals(3, whole.rows.size)
+        assertEquals(false, whole.capped)
     }
 
     @Test

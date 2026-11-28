@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.trip
 
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -55,7 +56,8 @@ fun averagePerDay(totals: Map<String, Money>, days: Int): Map<String, Money> =
         emptyMap()
     } else {
         totals.mapValues { (currency, money) ->
-            Money(money.amount.divide(BigDecimal(days), 2, RoundingMode.HALF_UP), currency)
+            // The currency's own decimals (three for a dinar), the same rule the formatter uses.
+            Money(money.amount.divide(BigDecimal(days), MinorUnits.digits(currency), RoundingMode.HALF_UP), currency)
         }
     }
 
@@ -91,8 +93,20 @@ fun runningTripOf(summaries: List<GroupSummary>, now: LocalDateTime): GroupSumma
 fun backfillRowsFor(
     candidates: List<TransactionEntity>,
     trip: TransactionGroupEntity,
+    now: LocalDateTime,
     excluded: Set<String> = emptySet()
-): List<TransactionEntity> = candidates.filter { joinsTrip(it, trip, excluded) }
+): List<TransactionEntity> = candidates.filter { !it.dateTime.isAfter(now) && joinsTrip(it, trip, excluded) }
+
+/** The window's upper bound for the existing-rows query: the trip's end, but never later than [now]. */
+fun backfillWindowEnd(tripEnd: LocalDateTime?, now: LocalDateTime): LocalDateTime =
+    if (tripEnd != null && tripEnd.isBefore(now)) tripEnd else now
+
+/** Rows to offer; [capped] when more than the limit matched, so the count shown is never false. */
+data class TripBackfill(val rows: List<TransactionEntity>, val capped: Boolean)
+
+/** [fetched] was read with a limit of [limit] + 1: one extra row means "there are more". */
+fun tripBackfillOf(fetched: List<TransactionEntity>, trip: TransactionGroupEntity, now: LocalDateTime, limit: Int): TripBackfill =
+    TripBackfill(backfillRowsFor(fetched.take(limit), trip, now), capped = fetched.size > limit)
 
 /** Whether saving [after] over [before] should offer the rows its window now reaches: a new trip, or a start moved earlier. */
 fun tripStartMovedEarlier(before: TransactionGroupEntity?, after: TransactionGroupEntity): Boolean {

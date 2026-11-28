@@ -62,11 +62,11 @@ class TransactionGroupsViewModel @Inject constructor(
             val (start, end) = trip.window
             try {
                 val id = repository.createGroup(name, note, start, end)
-                val rows = if (start != null) repository.tripBackfillCandidates(id) else emptyList()
+                val found = if (start != null) repository.tripBackfillCandidates(id) else null
                 _uiState.value = _uiState.value.copy(
                     showCreateDialog = false,
                     tripOverlap = null,
-                    backfill = rows.takeIf { it.isNotEmpty() }?.let { TripBackfillOffer(id, it) }
+                    backfill = found?.takeIf { it.rows.isNotEmpty() }?.let { TripBackfillOffer(id, it.rows, it.capped) }
                 )
             } catch (e: TripOverlapException) {
                 _uiState.value = _uiState.value.copy(tripOverlap = e.other)

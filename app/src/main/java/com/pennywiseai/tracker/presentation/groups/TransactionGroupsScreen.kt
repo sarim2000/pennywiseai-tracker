@@ -35,12 +35,14 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.shownGroupCardTotals
 import com.pennywiseai.tracker.ui.components.rememberTripNow
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.ui.theme.spending
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -160,6 +162,13 @@ fun TransactionGroupsScreen(
     }
 }
 
+/** The two largest currencies and an ellipsis for the rest, so the name column keeps its width; no ellipsis while amounts are hidden. */
+private fun rowTotals(totals: Map<String, com.pennywiseai.tracker.utils.Money>, signPrefix: String = ""): String {
+    val shown = shownGroupCardTotals(totals)
+    return CurrencyFormatter.formatByCurrency(shown, signPrefix = signPrefix) +
+        if (totals.size > shown.size && !AmountPrivacy.hidden) " · …" else ""
+}
+
 @Composable
 private fun GroupListItem(
     summary: GroupSummary,
@@ -232,7 +241,7 @@ private fun GroupListItem(
         Column(horizontalAlignment = Alignment.End) {
             if (summary.hasExpense) {
                 Text(
-                    CurrencyFormatter.formatByCurrency(summary.expenseByCurrency, signPrefix = "-"),
+                    rowTotals(summary.expenseByCurrency, signPrefix = "-"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.spending
                 )
@@ -241,7 +250,7 @@ private fun GroupListItem(
                 Text(
                     stringResource(
                         R.string.group_card_invested,
-                        CurrencyFormatter.formatByCurrency(summary.investedByCurrency)
+                        rowTotals(summary.investedByCurrency)
                     ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.investment
@@ -249,7 +258,7 @@ private fun GroupListItem(
             }
             if (summary.hasIncome) {
                 Text(
-                    CurrencyFormatter.formatByCurrency(summary.incomeByCurrency, signPrefix = "+"),
+                    rowTotals(summary.incomeByCurrency, signPrefix = "+"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.income
                 )

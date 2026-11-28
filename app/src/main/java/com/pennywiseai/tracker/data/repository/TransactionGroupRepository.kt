@@ -5,7 +5,9 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.trip.backfillRowsFor
+import com.pennywiseai.tracker.data.trip.TripBackfill
+import com.pennywiseai.tracker.data.trip.backfillWindowEnd
+import com.pennywiseai.tracker.data.trip.tripBackfillOf
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.coroutines.flow.Flow
@@ -167,11 +169,14 @@ class TransactionGroupRepository @Inject constructor(
     }
 
     /** Existing ungrouped rows that would have auto-joined this trip; empty for a plain group. */
-    suspend fun tripBackfillCandidates(groupId: Long): List<TransactionEntity> {
-        val trip = groupDao.getGroupById(groupId) ?: return emptyList()
-        val start = trip.tripStart ?: return emptyList()
-        // The query already leaves out the trip's exclusions; the shared rule re-checks the rest.
-        return backfillRowsFor(groupDao.getTripBackfillCandidates(groupId, start, trip.tripEnd, BACKFILL_LIMIT), trip)
+    suspend fun tripBackfillCandidates(groupId: Long, now: LocalDateTime = LocalDateTime.now()): TripBackfill {
+        val trip = groupDao.getGroupById(groupId) ?: return TripBackfill(emptyList(), false)
+        val start = trip.tripStart ?: return TripBackfill(emptyList(), false)
+        // Nothing dated in the future is offered, even for a trip with no end. The query already
+        // leaves out the trip's exclusions; the shared rule re-checks the rest. One row over the
+        // limit tells us the list is cut.
+        val fetched = groupDao.getTripBackfillCandidates(groupId, start, backfillWindowEnd(trip.tripEnd, now), BACKFILL_LIMIT + 1)
+        return tripBackfillOf(fetched, trip, now, BACKFILL_LIMIT)
     }
 
     /** Links all of [transactionIds] in one database transaction. */

@@ -160,12 +160,12 @@ class TransactionGroupDetailViewModel @Inject constructor(
                 )
                 val saved = repository.getGroupById(groupId)
                 // A trip that now reaches further back offers the rows it would have taken.
-                val rows = if (saved != null && tripStartMovedEarlier(group, saved)) repository.tripBackfillCandidates(groupId) else emptyList()
+                val found = if (saved != null && tripStartMovedEarlier(group, saved)) repository.tripBackfillCandidates(groupId) else null
                 _uiState.value = _uiState.value.copy(
                     group = saved,
                     showEditDialog = false,
                     tripOverlap = null,
-                    backfill = rows.takeIf { it.isNotEmpty() }?.let { TripBackfillOffer(groupId, it) }
+                    backfill = found?.takeIf { it.rows.isNotEmpty() }?.let { TripBackfillOffer(groupId, it.rows, it.capped) }
                 )
             } catch (e: TripOverlapException) {
                 _uiState.value = _uiState.value.copy(tripOverlap = e.other)

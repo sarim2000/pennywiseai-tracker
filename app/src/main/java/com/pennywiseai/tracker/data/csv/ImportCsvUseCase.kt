@@ -122,12 +122,12 @@ class ImportCsvUseCase @Inject constructor(
         fun applyRules(rows: List<TransactionEntity>, rules: ImportRules): Pair<List<ImportRules.Outcome.Kept>, Int> {
             var blocked = 0
             // Others under either name: a file exported after the user renamed it carries the new one.
-            val uncategorized = setOf(
-                CsvTransactionImporter.DEFAULT_CATEGORY,
-                com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(CsvTransactionImporter.DEFAULT_CATEGORY)
-            )
-            val kept = rows.mapNotNull { row ->
-                when (val outcome = rules.apply(row, categorize = row.category in uncategorized)) {
+            val others = com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(CsvTransactionImporter.DEFAULT_CATEGORY)
+            val uncategorized = setOf(CsvTransactionImporter.DEFAULT_CATEGORY, others)
+            val kept = rows.mapNotNull { raw ->
+                // Rules and the saved row see it under its current name, as a blank cell already is.
+                val row = if (raw.category in uncategorized) raw.copy(category = others) else raw
+                when (val outcome = rules.apply(row, categorize = row.category == others)) {
                     ImportRules.Outcome.Blocked -> null.also { blocked++ }
                     is ImportRules.Outcome.Kept -> outcome
                 }

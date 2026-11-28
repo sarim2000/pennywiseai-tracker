@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.data.csv
 
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.statement.ImportRules
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
@@ -66,5 +68,33 @@ class ImportCsvRulesTest {
         assertEquals(listOf("Cafes", "Travel"), kept.map { it.entity.category })
         assertEquals(1, kept[0].applications.size)
         assertTrue(kept[1].applications.isEmpty())
+    }
+
+    @Test
+    fun `a file's Others is read under the name the user renamed it to`() {
+        BuiltinCategoryNames.update(listOf(CategoryEntity(name = "Misc", color = "#000000", isSystem = true, systemName = "Others")))
+        try {
+            val (kept, blocked) = ImportCsvUseCase.applyRules(
+                rows(
+                    "2026-01-15,09:30:00,Spam Shop,Others,Expense,10.00,INR,DemoBank,1234,,",
+                    "2026-01-16,09:30:00,Book Stall,Others,Expense,40.00,INR,DemoBank,1234,,"
+                ),
+                rules(
+                    TransactionRule(
+                        name = "Block Misc spam",
+                        conditions = listOf(
+                            RuleCondition(TransactionField.CATEGORY, ConditionOperator.EQUALS, "Misc"),
+                            RuleCondition(TransactionField.MERCHANT, ConditionOperator.CONTAINS, "Spam")
+                        ),
+                        actions = listOf(RuleAction(TransactionField.CATEGORY, ActionType.BLOCK, ""))
+                    )
+                )
+            )
+
+            assertEquals(1, blocked)
+            assertEquals(listOf("Misc"), kept.map { it.entity.category })
+        } finally {
+            BuiltinCategoryNames.update(emptyList())
+        }
     }
 }

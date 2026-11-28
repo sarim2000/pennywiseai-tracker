@@ -31,6 +31,8 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -123,33 +125,43 @@ class NextBillsWidget : GlanceAppWidget() {
     @Composable
     private fun BillRow(item: NextBillItem, today: LocalDate) {
         val days = item.dueEpochDay - today.toEpochDay()
-        // Two lines overflow the 40dp row from 1.3x font scale (1.15x still fits): drop the
-        // due label there and keep its red or amber on the name, so "Overdue" isn't lost.
+        // Two lines overflow the 40dp row from 1.3x font scale (1.15x still fits): there the
+        // row is one line, with a short status word so "Overdue" doesn't rest on colour alone.
         val bigText = LocalContext.current.resources.configuration.fontScale > LARGE_FONT_SCALE
+        // The eye hides bills, as it does on the Bills screen.
+        val amount = if (amountsHidden()) HIDDEN_AMOUNT else exactText(item.amountValue, item.currency)
+        val due = dueLabel(days)
+        val status = if (bigText) shortDueLabel(days) else null
+        // TalkBack reads the whole status, which the one-line row shortens or leaves out.
+        val description = listOfNotNull(item.name, due, amount.takeUnless { it == HIDDEN_AMOUNT }).joinToString(", ")
         WidgetRow(
-            modifier = GlanceModifier.fillMaxWidth().height(ROW),
+            modifier = GlanceModifier.fillMaxWidth().height(ROW).semantics { contentDescription = description },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            item {
-                Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
-                    Text(
-                        text = item.name,
-                        maxLines = 1,
-                        style = TextStyle(
-                            color = if (bigText && days <= 1) dueColor(days) else GlanceTheme.colors.onSurface,
-                            fontSize = Typography.bodyMedium.fontSize,
-                            fontWeight = FontWeight.Medium,
-                            textAlign = startTextAlign(),
-                        ),
-                    )
-                    if (!bigText) WidgetLabel(dueLabel(days), color = dueColor(days))
+            if (bigText) {
+                // Name, status and amount share one line. The amount and the status word are
+                // measured first, so a long figure stays whole and the name gives way.
+                item {
+                    WidgetRow(modifier = GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
+                        item { BillName(item.name, GlanceModifier.defaultWeight()) }
+                        if (status != null) {
+                            item { Spacer(GlanceModifier.width(Spacing.xs)) }
+                            item { WidgetLabel(status, color = dueColor(days)) }
+                        }
+                    }
+                }
+            } else {
+                item {
+                    Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
+                        BillName(item.name)
+                        WidgetLabel(due, color = dueColor(days))
+                    }
                 }
             }
             item { Spacer(GlanceModifier.width(Spacing.sm)) }
             item {
                 Text(
-                    // The eye hides bills, as it does on the Bills screen.
-                    text = if (amountsHidden()) HIDDEN_AMOUNT else exactText(item.amountValue, item.currency),
+                    text = amount,
                     maxLines = 1,
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurface,
@@ -159,6 +171,33 @@ class NextBillsWidget : GlanceAppWidget() {
                     ),
                 )
             }
+        }
+    }
+
+    @Composable
+    private fun BillName(name: String, modifier: GlanceModifier = GlanceModifier) {
+        Text(
+            text = name,
+            maxLines = 1,
+            modifier = modifier,
+            style = TextStyle(
+                color = GlanceTheme.colors.onSurface,
+                fontSize = Typography.bodyMedium.fontSize,
+                fontWeight = FontWeight.Medium,
+                textAlign = startTextAlign(),
+            ),
+        )
+    }
+
+    /** The one-line row's status: "Overdue", "Today" or "Tomorrow"; later bills need none. */
+    @Composable
+    private fun shortDueLabel(days: Long): String? {
+        val context = LocalContext.current
+        return when {
+            days < 0 -> context.getString(R.string.home_due_overdue)
+            days == 0L -> context.getString(R.string.home_due_today)
+            days == 1L -> context.getString(R.string.home_due_tomorrow)
+            else -> null
         }
     }
 

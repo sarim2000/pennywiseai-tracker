@@ -281,16 +281,25 @@ internal fun ActionEditor(
                 }
 
                 TransactionField.BANK_NAME -> {
-                    // Account / bank the transaction belongs to.
-                    TextField(
-                        state = rememberSyncedTextFieldState(action.value) { onActionChange(action.copy(value = it)) },
-                        label = { Text(stringResource(R.string.rules_account_bank_label)) },
-                        placeholder = { Text(stringResource(R.string.rules_value_placeholder_bank)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        lineLimits = TextFieldLineLimits.SingleLine,
-                        shape = RoundedField.shape,
-                        colors = RoundedField.colors()
+                    // The account the transaction belongs to, picked from the tracked
+                    // ones so the bank and number land together (#1394).
+                    RuleAccountPicker(
+                        value = action.value,
+                        allAccounts = allAccounts,
+                        label = stringResource(R.string.rules_field_account),
+                        onSelect = { onActionChange(action.copy(value = it)) }
                     )
+                    // A rule saved before the picker holds a typed bank name; it still
+                    // works, setting the bank name alone, until an account is picked.
+                    if (action.actionType == ActionType.SET && action.value.isNotBlank() &&
+                        parseRuleAccountKey(action.value) == null
+                    ) {
+                        Text(
+                            text = stringResource(R.string.rules_account_legacy_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 TransactionField.TRANSFER_FROM_ACCOUNT,

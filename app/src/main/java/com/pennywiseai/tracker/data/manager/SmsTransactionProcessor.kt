@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.ledger.BalanceCalculator
 import com.pennywiseai.tracker.data.ledger.cashWallets
 import com.pennywiseai.tracker.data.ledger.routeAtmToCashWallet
 import com.pennywiseai.tracker.data.ledger.walletLeg
+import com.pennywiseai.tracker.data.mapper.atEnqueuedAccount
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
@@ -321,8 +322,13 @@ class SmsTransactionProcessor @Inject constructor(
                     if (add.isNotEmpty() || remove.isNotEmpty()) tagRepository.applyTagChanges(rowId, add, remove)
                 }
 
-                // Process balance updates
-                processBalanceUpdate(parsedTransaction, finalEntity, rowId)
+                // Process balance updates. A rule may have moved the row to another
+                // account: follow it as the inbox scan does, so that account moves by
+                // the amount and the SMS's balance, which is the source account's,
+                // isn't written onto it.
+                parsedTransaction.atEnqueuedAccount(parsedTransaction, finalEntity)?.let {
+                    processBalanceUpdate(it.account, finalEntity, rowId)
+                }
 
                 // Trigger widget refresh for the transaction-derived widgets
                 transactionWidgets.refresh()

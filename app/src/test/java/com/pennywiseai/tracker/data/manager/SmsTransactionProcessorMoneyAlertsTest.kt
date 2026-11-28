@@ -18,10 +18,17 @@ import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
+import com.pennywiseai.tracker.domain.model.rule.RuleAction
+import com.pennywiseai.tracker.domain.model.rule.RuleCondition
+import com.pennywiseai.tracker.domain.model.rule.TransactionField
+import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import com.pennywiseai.tracker.utils.Money
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
@@ -173,6 +180,33 @@ class SmsTransactionProcessorMoneyAlertsTest {
         assertTrue(result.reason, result.success)
         assertEquals(42L, result.transactionId)
         verify(exactly = 1) { alerts.onTransactionSaved() }
+    }
+
+    @Test
+    fun `a rule's account move takes the amount, not the source's reported balance`() = runBlocking {
+        val moved = "9876"
+        coEvery { rules.getActiveRulesByType(any()) } returns listOf(
+            TransactionRule(
+                name = "Move juice",
+                conditions = listOf(RuleCondition(TransactionField.MERCHANT, ConditionOperator.CONTAINS, "Juice")),
+                actions = listOf(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "$bank||$moved"))
+            )
+        )
+        coEvery { rules.saveRuleApplications(any()) } returns Unit
+        coEvery { balances.getLatestBalance(bank, moved) } returns null
+        val saved = slot<AccountBalanceEntity>()
+        coEvery { balances.insertSmsTransactionBalance(bank, moved, any(), any(), any()) } answers {
+            @Suppress("UNCHECKED_CAST")
+            val build = args[4] as (BigDecimal?) -> AccountBalanceEntity
+            build(BigDecimal("900")).also { saved.captured = it }
+        }
+
+        val result = processor.saveParsedTransaction(parsed(balance = BigDecimal("400")), BODY)
+
+        assertTrue(result.reason, result.success)
+        assertEquals(BigDecimal("850"), saved.captured.balance)
+        coVerify(exactly = 0) { balances.insertSmsTransactionBalance(bank, account, any(), any(), any()) }
+        verify(exactly = 0) { alerts.showLowBalance(any()) }
     }
 
     @Test

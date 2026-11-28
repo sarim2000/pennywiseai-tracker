@@ -539,7 +539,6 @@
     <string name="rules_category_name_placeholder">Např. pronájem</string>
     <string name="rules_merchant_placeholder">např. Amazon</string>
     <string name="rules_description_value_placeholder">např. měsíční platba za předplatné</string>
-    <string name="rules_account_bank_label">Název účtu / banky</string>
     <string name="rules_tag_name_label">Název tagu</string>
     <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">Náhled pravidla</string>

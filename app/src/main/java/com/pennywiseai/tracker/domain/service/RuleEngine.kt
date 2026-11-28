@@ -257,10 +257,22 @@ class RuleEngine @Inject constructor() {
                 continue
             }
 
-            val oldValue = getFieldValue(modifiedTransaction, null, action.field)
+            val oldValue = if (setsTrackedAccount(action)) {
+                trackedAccountValue(modifiedTransaction)
+            } else {
+                getFieldValue(modifiedTransaction, null, action.field)
+            }
             val (newTransaction, newValue) = applyAction(modifiedTransaction, action)
+            // A picked account's short "Bank||Last4" can read the same before and
+            // after a real move (two Cash accounts ending alike, a null number
+            // becoming ""), so its row decides.
+            val changed = if (setsTrackedAccount(action)) {
+                newTransaction != modifiedTransaction
+            } else {
+                oldValue != newValue
+            }
 
-            if (oldValue != newValue) {
+            if (changed) {
                 modifiedTransaction = newTransaction
                 modifications.add(
                     FieldModification(
@@ -318,7 +330,25 @@ class RuleEngine @Inject constructor() {
                 transaction.copy(transactionType = newType) to newType.name
             }
             TransactionField.BANK_NAME -> {
-                // The account a transaction belongs to is identified by its bank name.
+                // A picked account ("Bank||Last4") moves the row to that account,
+                // bank and number together, as picking it in the editor does.
+                val account = parseRuleAccountKey(action.value)
+                if (action.actionType == ActionType.SET && account != null) {
+                    val (bank, last4) = account
+                    // A stored full number already ending in the picked last four stays
+                    // as is. A Cash account's name can be longer than four, so it must
+                    // match whole, and "" must replace a null number.
+                    val sameNumber = transaction.accountNumber == last4 ||
+                        (last4.length == 4 && transaction.accountNumber?.takeLast(4) == last4)
+                    val updated = if (transaction.bankName == bank && sameNumber) {
+                        transaction
+                    } else {
+                        transaction.copy(bankName = bank, accountNumber = last4)
+                    }
+                    return updated to action.value
+                }
+                // A rule saved before the picker holds a free-text bank name, which
+                // sets the bank name alone.
                 val newValue = when (action.actionType) {
                     ActionType.SET -> action.value
                     ActionType.CLEAR -> ""
@@ -345,6 +375,15 @@ class RuleEngine @Inject constructor() {
             else -> transaction to getFieldValue(transaction, null, action.field)
         }
     }
+
+    /** A SET on the account field whose value is a picked "Bank||Last4" account. */
+    private fun setsTrackedAccount(action: RuleAction): Boolean =
+        action.field == TransactionField.BANK_NAME &&
+            action.actionType == ActionType.SET &&
+            parseRuleAccountKey(action.value) != null
+
+    private fun trackedAccountValue(transaction: TransactionEntity): String =
+        "${transaction.bankName.orEmpty()}||${transaction.accountNumber?.takeLast(4).orEmpty()}"
 
     fun serializeConditions(conditions: List<RuleCondition>): String {
         return json.encodeToString(conditions)

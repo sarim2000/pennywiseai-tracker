@@ -501,7 +501,6 @@
     <string name="rules_category_name_placeholder">p. ej., Alquiler</string>
     <string name="rules_merchant_placeholder">p. ej., Amazon</string>
     <string name="rules_description_value_placeholder">p. ej., Pago mensual de suscripción</string>
-    <string name="rules_account_bank_label">Cuenta / nombre del banco</string>
     <string name="rules_tag_name_label">Nombre de la etiqueta</string>
     <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">Vista previa de la regla</string>

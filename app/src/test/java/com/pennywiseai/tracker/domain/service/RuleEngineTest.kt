@@ -70,6 +70,94 @@ class RuleEngineTest {
         assertNull(result.bankName)
     }
 
+    // --- Picked account on the SET account action (#1394) ---
+
+    @Test
+    fun `SET account action with a picked account sets bank and last4 together`() {
+        val (result, applications) = engine.evaluateRules(
+            transaction(bankName = "Bank A", accountNumber = "1111", merchantName = "Coffee Shop"),
+            smsText = null,
+            rules = listOf(rule(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "Bank B||2222")))
+        )
+
+        assertEquals("Bank B", result.bankName)
+        assertEquals("2222", result.accountNumber)
+        val mod = applications.single().fieldsModified.single()
+        assertEquals("Bank A||1111", mod.oldValue)
+        assertEquals("Bank B||2222", mod.newValue)
+    }
+
+    @Test
+    fun `SET account action keeps a cash account's blank number`() {
+        val (result, _) = engine.evaluateRules(
+            transaction(bankName = "Bank A", accountNumber = "1111", merchantName = "Coffee Shop"),
+            smsText = null,
+            rules = listOf(rule(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "Cash||")))
+        )
+
+        assertEquals("Cash", result.bankName)
+        assertEquals("", result.accountNumber)
+    }
+
+    @Test
+    fun `SET account action already on that account changes nothing`() {
+        val original = transaction(bankName = "Bank B", accountNumber = "99992222", merchantName = "Coffee Shop")
+        val (result, applications) = engine.evaluateRules(
+            original,
+            smsText = null,
+            rules = listOf(rule(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "Bank B||2222")))
+        )
+
+        // The stored full number isn't trimmed to its last four.
+        assertEquals(original, result)
+        assertTrue(applications.isEmpty())
+    }
+
+    @Test
+    fun `SET account action gives a cash row with no number the cash account's blank one`() {
+        // Rows saved before #913 can hold a null number; the ACCOUNT condition
+        // only matches "Cash||" once it is "".
+        val (result, applications) = engine.evaluateRules(
+            transaction(bankName = "Cash", accountNumber = null, merchantName = "Coffee Shop"),
+            smsText = null,
+            rules = listOf(rule(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "Cash||")))
+        )
+
+        assertEquals("", result.accountNumber)
+        assertEquals("Cash||", applications.single().fieldsModified.single().newValue)
+    }
+
+    @Test
+    fun `SET account action moves between cash accounts whose names end alike`() {
+        val (result, applications) = engine.evaluateRules(
+            transaction(bankName = "Cash", accountNumber = "Home 2026", merchantName = "Coffee Shop"),
+            smsText = null,
+            rules = listOf(rule(RuleAction(TransactionField.BANK_NAME, ActionType.SET, "Cash||Trip 2026")))
+        )
+
+        assertEquals("Trip 2026", result.accountNumber)
+        assertEquals("Cash||Trip 2026", applications.single().fieldsModified.single().newValue)
+    }
+
+    @Test
+    fun `legacy free-text account action still sets the bank name only`() {
+        // A rule saved before the picker, as it decodes from the database or a backup.
+        val legacy = engine.deserializeActions(
+            """[{"field":"BANK_NAME","actionType":"SET","value":"Bank B"}]"""
+        ).single()
+
+        val (result, applications) = engine.evaluateRules(
+            transaction(bankName = "Bank A", accountNumber = "1111", merchantName = "Coffee Shop"),
+            smsText = null,
+            rules = listOf(rule(legacy))
+        )
+
+        assertTrue(legacy.validate())
+        assertEquals("Bank B", result.bankName)
+        assertEquals("1111", result.accountNumber)
+        assertEquals("Bank B", applications.single().fieldsModified.single().newValue)
+    }
+
     // --- Transfer leg actions (#1068) ---
 
     @Test

@@ -535,7 +535,6 @@
     <string name="rules_category_name_placeholder">напр., Арэнда</string>
     <string name="rules_merchant_placeholder">напр., Amazon</string>
     <string name="rules_description_value_placeholder">напр., Штомесячная аплата падпіскі</string>
-    <string name="rules_account_bank_label">Рахунак / назва банка</string>
     <string name="rules_tag_name_label">Назва тэга</string>
     <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">Прагляд правіла</string>

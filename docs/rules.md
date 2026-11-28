@@ -39,11 +39,13 @@ Rules let you auto-categorize, modify, or block transactions based on configurab
 Conditions can be combined with **AND** / **OR** logic, and multiple conditions per rule are supported.
 
 **Available actions:**
-- **Set** — Override a field (category, merchant, type, description)
+- **Set** — Override a field (category, merchant, type, description, account)
 - **Append / Prepend** — Add text to a field (merchant, description)
 - **Clear** — Remove a field value
 - **Add tag / Remove tag** — Tag or untag the transaction
 - **Block** — Prevent the transaction from being saved
+
+**Account action (BANK_NAME)** — Moves the transaction to an account picked from your tracked accounts. The value is the same `BankName||Last4` key as the ACCOUNT condition, and the rule sets the bank name and account number together. A rule saved before the picker holds a plain bank name (e.g. `HDFC Bank`); it still works and sets the bank name only.
 
 **JSON format.** Rule export files, and the `list_rules` answer of [AI access](ai-access.md) (Pro, only while an AI session you started is on), wrap rules in a versioned envelope:
 

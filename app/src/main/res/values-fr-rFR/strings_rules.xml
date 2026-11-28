@@ -508,7 +508,6 @@
     <string name="rules_category_name_placeholder">ex: Location</string>
     <string name="rules_merchant_placeholder">ex: Amazon</string>
     <string name="rules_description_value_placeholder">par exemple, paiement d\'abonnement mensuel</string>
-    <string name="rules_account_bank_label">Compte / Nom de la banque</string>
     <string name="rules_tag_name_label">Nom de l\'étiquette</string>
     <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">Aperçu de la règle</string>

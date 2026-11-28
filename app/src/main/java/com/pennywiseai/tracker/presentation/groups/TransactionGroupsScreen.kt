@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.groups
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -23,6 +24,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -217,7 +219,8 @@ private fun GroupListItem(
             )
             if (summary.group.isTrip) {
                 val status = summary.group.tripStatus(now)
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                // The Running chip moves to its own line when the dates leave it no room.
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), itemVerticalAlignment = Alignment.CenterVertically) {
                     Text(
                         tripWindowText(summary.group),
                         style = MaterialTheme.typography.bodyMedium,
@@ -238,11 +241,13 @@ private fun GroupListItem(
             }
         }
 
-        Column(horizontalAlignment = Alignment.End) {
+        // At most half the row, wrapping: long per-currency totals must not squeeze the name (#1520).
+        Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f, fill = false)) {
             if (summary.hasExpense) {
                 Text(
                     rowTotals(summary.expenseByCurrency, signPrefix = "-"),
                     style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.End,
                     color = MaterialTheme.colorScheme.spending
                 )
             }
@@ -253,6 +258,7 @@ private fun GroupListItem(
                         rowTotals(summary.investedByCurrency)
                     ),
                     style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.End,
                     color = MaterialTheme.colorScheme.investment
                 )
             }
@@ -260,6 +266,7 @@ private fun GroupListItem(
                 Text(
                     rowTotals(summary.incomeByCurrency, signPrefix = "+"),
                     style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.End,
                     color = MaterialTheme.colorScheme.income
                 )
             }

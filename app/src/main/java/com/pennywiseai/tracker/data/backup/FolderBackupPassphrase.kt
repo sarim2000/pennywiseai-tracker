@@ -9,11 +9,13 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.core.DeviceSecretBox
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retryWhen
 import java.io.IOException
@@ -58,17 +60,21 @@ class FolderBackupPassphrase internal constructor(
     /** The saved passphrase couldn't be unlocked. Never fall back to a plain backup. */
     class LockedException(cause: Throwable?) : Exception("Backup passphrase can't be unlocked", cause)
 
-    // In memory only: a later backup that unlocks it, or a new passphrase, clears it.
+    // A backup that couldn't unlock it since: a later one that can, or a new passphrase, clears it.
     private val unlockFailed = MutableStateFlow(false)
 
+    /**
+     * Opening the saved passphrase is tried each time this is read, so a key lost while the
+     * app wasn't running (an earlier failure isn't kept on disk) shows as locked too.
+     */
     val status: Flow<Status> = combine(
         store.data.map { prefs ->
             when {
                 !isRequired(prefs) -> Status.OFF
-                prefs[KEY_SEALED] == null || prefs[KEY_ALIAS] == null -> Status.LOCKED
+                !opens(prefs) -> Status.LOCKED
                 else -> Status.ON
             }
-        }.retryWhen { _, _ ->
+        }.flowOn(Dispatchers.IO).retryWhen { _, _ ->
             // An unreadable setting shows as locked meanwhile; a read that works again shows it.
             emit(Status.LOCKED)
             delay(statusRetryDelayMs)
@@ -131,15 +137,22 @@ class FolderBackupPassphrase internal constructor(
         val prefs = store.data.first()
         if (!isRequired(prefs)) return null
         val passphrase = try {
-            val sealed = prefs[KEY_SEALED] ?: throw GeneralSecurityException("No saved passphrase")
-            val alias = prefs[KEY_ALIAS] ?: throw GeneralSecurityException("No key for the saved passphrase")
-            DeviceSecretBox.open(sealed, alias).toCharArray()
+            open(prefs).toCharArray()
         } catch (e: Exception) {
             unlockFailed.value = true
             throw LockedException(e)
         }
         unlockFailed.value = false
         return passphrase
+    }
+
+    /** Whether the saved passphrase opens; the opened copy is dropped. Never creates a key. */
+    private fun opens(prefs: Preferences): Boolean = runCatching { open(prefs) }.isSuccess
+
+    private fun open(prefs: Preferences): String {
+        val sealed = prefs[KEY_SEALED] ?: throw GeneralSecurityException("No saved passphrase")
+        val alias = prefs[KEY_ALIAS] ?: throw GeneralSecurityException("No key for the saved passphrase")
+        return DeviceSecretBox.open(sealed, alias)
     }
 
     internal companion object {

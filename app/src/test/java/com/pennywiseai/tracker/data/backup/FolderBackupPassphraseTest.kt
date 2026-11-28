@@ -160,8 +160,18 @@ class FolderBackupPassphraseTest {
 
         assertTrue("unlocking never creates a key", keys.isEmpty())
         assertEquals(FolderBackupPassphrase.Status.LOCKED, store.status.first())
-        // Nothing was written: a fresh start reads the setting as it was saved.
-        assertEquals(FolderBackupPassphrase.Status.ON, FolderBackupPassphrase(disk).status.first())
+        assertTrue("nothing marked on disk", disk.data.first()[FolderBackupPassphrase.KEY_SEALED] != null)
+    }
+
+    @Test
+    fun `a key lost while the app wasn't running shows as locked after a restart`() = runBlocking {
+        FolderBackupPassphrase(disk).save("synthetic phrase".toCharArray())
+        keys.clear()
+
+        val restarted = FolderBackupPassphrase(disk)
+
+        assertEquals(FolderBackupPassphrase.Status.LOCKED, restarted.status.first())
+        assertTrue("checking never creates a key", keys.isEmpty())
     }
 
     @Test

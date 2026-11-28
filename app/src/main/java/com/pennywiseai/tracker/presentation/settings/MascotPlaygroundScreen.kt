@@ -182,7 +182,7 @@ fun MascotPlaygroundScreen(
                             .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
                             .padding(horizontal = Spacing.md + Spacing.xs, vertical = Spacing.xs)
                     ) {
-                        Mascot(size = Dimensions.Icon.medium, shape = shape, mood = mood, value = shown)
+                        Mascot(size = Dimensions.Icon.medium, shape = shape, mood = mood, value = shown, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
                 Text(

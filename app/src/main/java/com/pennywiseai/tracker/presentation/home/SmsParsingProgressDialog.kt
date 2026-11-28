@@ -25,6 +25,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
@@ -301,9 +302,12 @@ private fun ProgressDetails(workInfo: WorkInfo) {
  */
 @Composable
 private fun ScanProgressBar(workInfo: WorkInfo, modifier: Modifier = Modifier) {
+    val colors = readableProgressColors()
     val total = workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, 0)
     if (total <= 0) {
-        if (workInfo.state == WorkInfo.State.RUNNING) LinearWavyProgressIndicator(modifier = modifier)
+        if (workInfo.state == WorkInfo.State.RUNNING) {
+            LinearWavyProgressIndicator(modifier = modifier, color = colors.indicator, trackColor = colors.track)
+        }
         return
     }
     val processed = workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_PROCESSED, 0)
@@ -314,7 +318,12 @@ private fun ScanProgressBar(workInfo: WorkInfo, modifier: Modifier = Modifier) {
             animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
             label = "scan_progress"
         )
-        LinearWavyProgressIndicator(progress = { fraction }, modifier = modifier)
+        LinearWavyProgressIndicator(
+            progress = { fraction },
+            modifier = modifier,
+            color = colors.indicator,
+            trackColor = colors.track
+        )
     }
 }
 

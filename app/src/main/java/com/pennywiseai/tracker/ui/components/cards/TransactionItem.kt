@@ -354,7 +354,11 @@ fun TransactionAvatar(
                 Icon(
                     imageVector = icon.icon,
                     contentDescription = categoryLabel(category),
-                    tint = rowFill?.let { icon.tint.readableOn(listOf(wash.compositeOver(it))) } ?: icon.tint,
+                    tint = if (rowFill != null) {
+                        icon.tint.copy(alpha = 1f).readableOn(listOf(wash.compositeOver(rowFill)), GRAPHIC_CONTRAST)
+                    } else {
+                        colorScheme.inkOnWash(icon.tint, Dimensions.Alpha.categoryTint, GRAPHIC_CONTRAST)
+                    },
                     modifier = Modifier.size(glyphSize)
                 )
             }

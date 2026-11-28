@@ -116,7 +116,9 @@ tracks), `legendDot` (10dp), `calendarDot` (6dp), `fab` (56dp), `fabBottomInset`
 The Floating nav style is a pill of four icon-only tabs — Home · Transactions · Plan ·
 Insights (`floatingNavHeight` 64dp, `floatingNavBottomGap` 12dp above the
 system bar) with a sliding selected indicator (`floatingNavIndicatorWidth` ×
-`floatingNavIndicatorHeight`, a `primary` tint at `Alpha.selectedIndicator`); a
+`floatingNavIndicatorHeight`, solid `primary` under an `onPrimary` icon, so the
+open tab shows at 3:1 or more without relying on a faint tint; each icon's tint
+follows how much of the sliding pill is under it, not the selection); a
 long-press names the tab. Ask sits beside the pill as a 64dp `primaryContainer`
 squircle (`dockedActionCornerRadius` 20dp) holding the owl drawn in full
 (`chatDockMascot` 52dp); it rounds into a circle while Ask is open. A tab's one
@@ -619,9 +621,43 @@ because the same role also renders small labels.
   must carry one, pass it through `readableOn()` against what it sits on.
 - **On a coloured fill**, use the fill's own `on*` role, plus a sign, label or
   icon. Semantic colours on `primaryContainer` & co. are not guaranteed.
+  A whole card of content (Home's hero) wraps itself in
+  `onColoredFill(fill, ink)`: text roles become the ink, `primary` is nudged
+  until it reads there (a Mihon palette can make `primary` the fill itself),
+  `outline` becomes a 3:1 mark. A semantic colour that must keep its hue there
+  goes through `readableToneOn(fill, listOf(expense_light, expense_dark), …)`,
+  with `GRAPHIC_CONTRAST` for a chart line: it stays as it is where it reads,
+  else the most colourful of its light and dark bases that does wins (a pink
+  nudged dark onto a pale card goes brown; light theme's red still reads).
+- **Where a colour already meets its floor, don't move it.** `readableOn`
+  returns it unchanged then; build on that rather than on a fixed new colour.
+- **Pressed and focused.** Material's state layer is the content colour at
+  10% (`STATE_LAYER_ALPHA`) over the whole component, text included, so it
+  pulls text and fill together. Text on a clickable card is checked under it
+  (`readableOn(…, layers = listOf(ink.stateLayer()))`). On a mid-tone fill no
+  ink survives it, so the fill makes the room: `clickableFillFor(ink)` nudges
+  the card's colour a touch, hue kept.
+- **Hue is kept.** `readableOn` moves a colour's Oklab lightness and keeps as
+  much chroma as sRGB allows there, so red on a teal card becomes pink, not
+  grey. Text on a mid-tone card still ends near white or black, so a colour
+  that carries meaning there also gets a mark (the hero's trend arrow), which
+  only needs 3:1 and keeps more hue.
+- **A surface wash on a coloured card** (the hero's currency chip at 65% surface) takes
+  the surface's tone, so it takes the surface's ink, not the card's:
+  `onSurfaceWash(fill, cardInk)`. White ink on a teal card is white on pale
+  teal there.
 - **A custom fill** (a semantic or category colour as a background) has no
   `on*` role, so pass `fill.bestInk()` explicitly. `contentColorFor()` can't
   infer one, and black-or-white always clears 4.58:1.
+- **A colour on a wash of itself** (a category glyph or a chip label on its
+  own 12–20% tint) goes through `inkOnWash(color, alpha)`; pass
+  `GRAPHIC_CONTRAST` for an icon. `CategoryIcon(washAlpha = …)` does this for
+  you, and a bare `CategoryIcon` already reaches 3:1 on any surface.
+- **Meters** (`WavyMeter`, `GoalRing`, `readableProgressColors`) keep their
+  colour and move the track until the colour reads on it at 3:1: a user-picked
+  budget, category or goal colour (preset yellow) stays as picked. Only a theme
+  colour lost on its own card (`keepColor = false`; Tako dark's primary on the
+  hero) is nudged.
 - **Alpha**: check the composited colour, not the base. Never dim
   `onSurfaceVariant` (see Alpha).
 - Hand-built schemes (default, Rosé Pine) go through `withReadableInk()`. It
@@ -637,11 +673,14 @@ because the same role also renders small labels.
 
 ### Guard tests
 
-`SchemeContrastTest` (and `PaletteContrastTest` for the fixed palettes) assert
+`SchemeContrastTest` (and `PaletteContrastTest` for the fixed palettes;
+`ColoredFillContrastTest` for the hero card and its wash; `MeterContrastTest`
+and `ChartMarksTest` in the app for meters and Insights charts) assert
 the floors above for every theme and accent in light, dark and AMOLED: each
 `on*`/fill pair (including inverse), and every text and semantic ink on every
-neutral surface. A new palette or accent that fails can't merge. Dynamic
-(wallpaper) colour can't be unit-tested, so check it on a device.
+neutral surface; the hero also under its press layers. A new palette or
+accent that fails can't merge. Dynamic (wallpaper) colour can't be
+unit-tested, so check it on a device.
 
 ### What colour means
 

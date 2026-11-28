@@ -194,6 +194,16 @@ fun pennyWiseColorScheme(
     return if (darkTheme && isAmoledMode) colorScheme.withAmoledSurfaces() else colorScheme
 }
 
+/**
+ * A fixed palette's scheme, as [pennyWiseColorScheme] draws it, outside composition: what the
+ * contrast tests walk. Null for the accent-driven (BRANDED) and wallpaper (DYNAMIC) styles.
+ */
+fun ThemeStyle.fixedColorScheme(darkTheme: Boolean, isAmoledMode: Boolean = false): ColorScheme? {
+    val palette = palette() ?: return null
+    val scheme = if (darkTheme) palette.darkScheme else palette.lightScheme
+    return if (darkTheme && isAmoledMode) scheme.withAmoledSurfaces() else scheme
+}
+
 /** The fixed palette behind a style, or null for the accent-driven (BRANDED) and wallpaper (DYNAMIC) styles. */
 internal fun ThemeStyle.palette(): BaseColorScheme? = when (this) {
     ThemeStyle.BRANDED, ThemeStyle.DYNAMIC -> null
@@ -287,7 +297,8 @@ fun PennyWiseTheme(
     }
 }
 
-internal fun ColorScheme.withAmoledSurfaces(): ColorScheme = copy(
+/** This dark scheme on AMOLED black surfaces. */
+fun ColorScheme.withAmoledSurfaces(): ColorScheme = copy(
     background = amoled_background,
     surface = amoled_surface,
     surfaceVariant = amoled_surfaceVariant,

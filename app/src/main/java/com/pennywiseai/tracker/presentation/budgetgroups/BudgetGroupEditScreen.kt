@@ -552,7 +552,7 @@ private fun CategoryBadge(categoryName: String) {
             .background(color.copy(alpha = Dimensions.Alpha.categoryTint)),
         contentAlignment = Alignment.Center
     ) {
-        CategoryIcon(category = categoryName, size = Dimensions.Icon.inline, tint = color)
+        CategoryIcon(category = categoryName, size = Dimensions.Icon.inline, washAlpha = Dimensions.Alpha.categoryTint)
     }
 }
 

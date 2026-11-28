@@ -29,6 +29,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetState
@@ -222,7 +223,12 @@ private fun GoalPickRow(progress: GoalProgress, selected: Boolean, position: Lis
         onClick = onClick,
         containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        GoalRing(progress, Dimensions.Component.goalRingSmall, Dimensions.Component.goalRingSmallStroke) {}
+        GoalRing(
+            progress,
+            Dimensions.Component.goalRingSmall,
+            Dimensions.Component.goalRingSmallStroke,
+            containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else null,
+        ) {}
         RowLabels(
             title = goal.name,
             subtitle = stringResource(
@@ -230,8 +236,14 @@ private fun GoalPickRow(progress: GoalProgress, selected: Boolean, position: Lis
                 CurrencyFormatter.formatCurrency(progress.saved, goal.currency),
                 CurrencyFormatter.formatCurrency(goal.targetAmount, goal.currency),
             ),
+            titleColor = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+            subtitleColor = if (selected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        RadioButton(selected = selected, onClick = onClick)
+        RadioButton(
+            selected = selected,
+            onClick = onClick,
+            colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.onSecondaryContainer),
+        )
     }
 }
 

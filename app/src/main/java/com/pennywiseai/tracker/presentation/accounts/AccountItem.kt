@@ -47,7 +47,12 @@ internal enum class AccountBadgeKind { BANK, CARD, LOAN }
  * shape and colour role.
  */
 @Composable
-internal fun AccountBadge(name: String, kind: AccountBadgeKind, modifier: Modifier = Modifier) {
+internal fun AccountBadge(
+    name: String,
+    kind: AccountBadgeKind,
+    modifier: Modifier = Modifier,
+    rowFill: Color? = null,
+) {
     val colors = MaterialTheme.colorScheme
     val (shape, color) = when (kind) {
         AccountBadgeKind.BANK -> MaterialShapes.Cookie9Sided.toShape() to colors.primary
@@ -56,8 +61,8 @@ internal fun AccountBadge(name: String, kind: AccountBadgeKind, modifier: Modifi
     }
     val fill = color.copy(alpha = Dimensions.Alpha.categoryTint)
     // Secondary and tertiary are fills, not ink: check the letter against the tint as it composites
-    // over each neutral surface (the row sits on one).
-    val ink = color.readableOn(colors.neutralSurfaces.map { fill.compositeOver(it) })
+    // over the row ([rowFill] when tinted, else each neutral surface it could sit on).
+    val ink = color.readableOn((rowFill?.let(::listOf) ?: colors.neutralSurfaces).map { fill.compositeOver(it) })
     Box(
         modifier = modifier
             .size(Dimensions.Icon.avatarLarge)
@@ -87,11 +92,7 @@ internal fun AccountRowFrame(
     highlight: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val container = when {
-        highlight -> MaterialTheme.colorScheme.errorContainer.copy(alpha = if (isHidden) 0.4f else 0.7f)
-        isHidden -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
-        else -> MaterialTheme.colorScheme.surfaceContainerLow
-    }
+    val container = accountRowContainer(highlight, isHidden)
     val clickLabel = stringResource(R.string.manage_accounts_more_options)
     // Content colour set outright: a translucent container matches no theme colour, so the default went black.
     GroupedColumn(
@@ -99,11 +100,31 @@ internal fun AccountRowFrame(
         onClick = onClick,
         modifier = modifier.semantics { onClick(label = clickLabel) { onClick(); true } },
         containerColor = container,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+        contentColor = MaterialTheme.colorScheme.onSurface.onAccountRow(highlight, isHidden),
         contentPadding = PaddingValues(Dimensions.Padding.card),
         verticalArrangement = Arrangement.spacedBy(Spacing.smd),
         content = content,
     )
+}
+
+@Composable
+private fun accountRowContainer(highlight: Boolean, isHidden: Boolean): Color = when {
+    highlight -> MaterialTheme.colorScheme.errorContainer.copy(alpha = if (isHidden) 0.4f else 0.7f)
+    isHidden -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
+    else -> MaterialTheme.colorScheme.surfaceContainerLow
+}
+
+/**
+ * This ink on a row from [AccountRowFrame]. The low-balance tint matches no on* role
+ * (errorContainer is near-black in some light themes), so on it the ink is checked against
+ * the fill as composited on the list, and under the row's press and focus layer (the same
+ * onSurface layer other clickable text passes). Unchanged on a neutral row.
+ */
+@Composable
+internal fun Color.onAccountRow(highlight: Boolean, isHidden: Boolean): Color {
+    if (!highlight) return this
+    val fill = accountRowContainer(highlight, isHidden).compositeOver(MaterialTheme.colorScheme.background)
+    return readableOn(listOf(fill), layers = listOf(MaterialTheme.colorScheme.onSurface.stateLayer()))
 }
 
 /** Where a row's extra lines start: under its name, past the badge. */
@@ -160,6 +181,11 @@ internal fun AccountItem(
                 AccountBadge(
                     name = name,
                     kind = if (account.isLoan) AccountBadgeKind.LOAN else AccountBadgeKind.BANK,
+                    rowFill = if (isLowBalance) {
+                        accountRowContainer(highlight = true, isHidden).compositeOver(MaterialTheme.colorScheme.background)
+                    } else {
+                        null
+                    },
                 )
                 Column(
                     modifier = Modifier.weight(1f),
@@ -186,7 +212,7 @@ internal fun AccountItem(
                                 Icons.Default.VisibilityOff,
                                 contentDescription = stringResource(R.string.manage_accounts_hidden_badge),
                                 modifier = Modifier.size(Dimensions.Icon.small),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.onAccountRow(isLowBalance, isHidden)
                             )
                         }
                     }
@@ -200,7 +226,7 @@ internal fun AccountItem(
                             AccountBalanceEntity.accountLabel("", account.accountLast4).trim()
                         },
                         style = PennyWiseText.rowSubtitle,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.onAccountRow(isLowBalance, isHidden),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -219,7 +245,7 @@ internal fun AccountItem(
                             text = stringResource(R.string.manage_accounts_low_balance),
                             style = PennyWiseText.metadata,
                             fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.error.onAccountRow(isLowBalance, isHidden)
                         )
                         account.isLoan -> Text(
                             text = stringResource(R.string.manage_accounts_outstanding),
@@ -263,7 +289,11 @@ internal fun AccountItem(
             }
 
             if (linkedCards.isNotEmpty()) {
-                LinkedCards(cards = linkedCards, onUnlinkCard = onUnlinkCard)
+                LinkedCards(
+                    cards = linkedCards,
+                    onUnlinkCard = onUnlinkCard,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant.onAccountRow(isLowBalance, isHidden)
+                )
             }
         }
 
@@ -404,6 +434,7 @@ private fun BusinessBadge() {
 private fun LinkedCards(
     cards: List<com.pennywiseai.tracker.data.database.entity.CardEntity>,
     onUnlinkCard: (cardId: Long) -> Unit,
+    labelColor: Color,
 ) {
     Column(
         modifier = Modifier.padding(start = AccountRowIndent),
@@ -412,7 +443,7 @@ private fun LinkedCards(
         Text(
             text = stringResource(R.string.manage_accounts_linked_cards),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = labelColor,
             modifier = Modifier.padding(bottom = Spacing.xxs)
         )
         cards.forEachIndexed { index, card ->

@@ -28,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -423,6 +422,7 @@ private fun DetailHero(
         // Loan chip
         if (loan != null) {
             val loanColor = MaterialTheme.colorScheme.loan
+            val loanInk = MaterialTheme.colorScheme.inkOnWash(loanColor, Dimensions.Alpha.categoryTint)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -451,13 +451,13 @@ private fun DetailHero(
                             Icons.Default.SwapHoriz,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = loanColor
+                            tint = loanInk
                         )
                     },
                     colors = SuggestionChipDefaults.suggestionChipColors(
                         containerColor = loanColor.copy(alpha = Dimensions.Alpha.categoryTint),
-                        labelColor = loanColor,
-                        iconContentColor = loanColor
+                        labelColor = loanInk,
+                        iconContentColor = loanInk
                     ),
                     shape = CircleShape,
                     border = null
@@ -729,8 +729,7 @@ private fun CategoryDropdownChip(text: String, color: Color) {
     Surface(
         shape = CircleShape,
         color = fill,
-        // The wash lowers the colour's contrast with itself: check it over the row (GroupedRow's fill).
-        contentColor = color.readableOn(listOf(fill.compositeOver(MaterialTheme.colorScheme.surfaceContainerLow))),
+        contentColor = MaterialTheme.colorScheme.inkOnWash(color, Dimensions.Alpha.categoryTint),
         modifier = Modifier.heightIn(min = Dimensions.Component.chipHeight)
     ) {
         Row(

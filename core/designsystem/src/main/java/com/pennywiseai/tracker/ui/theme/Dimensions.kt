@@ -61,17 +61,17 @@ object Dimensions {
         const val divider = 0.12f
         const val surface = 0.65f
 
-        /** Secondary text sitting on a coloured container. */
-        const val subtitle = 0.75f
-
         /** Placeholder / skeleton content shown behind an empty state. */
         const val ghost = 0.12f
 
-        /** A primary tint marking the selected tab in the floating nav bar. */
-        const val selectedIndicator = 0.18f
-
         /** A category colour washed behind its own glyph (transaction rows, detail badge). */
         const val categoryTint = 0.14f
+
+        /**
+         * A meter's track moved off its token, as a wash of ink on the card: visible on the card,
+         * yet near enough to its tone to keep the meter's colour readable (MeterContrastTest).
+         */
+        const val meterTrack = 0.3f
     }
 
     // ── Icon sizes ────────────────────────────────────────────────────────
@@ -167,6 +167,9 @@ object Dimensions {
 
         /** The Pro "membership ring" edging Home's avatar. */
         val avatarRingWidth = 2.dp
+
+        /** Outline of an upcoming step dot in onboarding's progress row. */
+        val stepDotRingWidth = 1.5.dp
 
         /** Height of the floating nav pill, and the side of the action docked beside it. */
         val floatingNavHeight = 64.dp

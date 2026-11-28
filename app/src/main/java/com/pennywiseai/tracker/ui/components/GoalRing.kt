@@ -18,21 +18,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.util.lerp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.domain.goals.GOAL_MILESTONES
 import com.pennywiseai.tracker.domain.goals.percent
 import com.pennywiseai.tracker.domain.goals.ratioOf
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.bestInk
+import com.pennywiseai.tracker.ui.theme.neutralSurfaces
+import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
@@ -60,6 +64,8 @@ fun GoalRing(
     addedFrom: BigDecimal? = null,
     onAddedSettled: () -> Unit = {},
     announceProgress: Boolean = true,
+    /** The fill behind the ring when it isn't a neutral surface (a selected row's secondaryContainer). */
+    containerColor: Color? = null,
     milestones: Boolean = false,
     content: @Composable (percent: Int) -> Unit,
 ) {
@@ -88,8 +94,22 @@ fun GoalRing(
 
     if (AmountPrivacy.hidden) return
 
-    val track = MaterialTheme.colorScheme.surfaceContainerHighest
-    val color = progress.goal.color.toColorOr(MaterialTheme.colorScheme.primary)
+    val scheme = MaterialTheme.colorScheme
+    val goalColor = progress.goal.color.toColorOr(scheme.primary)
+    // Remembered: the sweep and the emphasis recompose this every frame while they run.
+    val (meter, faded) = remember(goalColor, containerColor, scheme) {
+        // The user picked the goal's colour, so it stays; the track moves until the ring reads
+        // on it at 3:1, as the meters do. [containerColor] replaces the neutral surfaces when
+        // the ring sits on a coloured row.
+        val cards = containerColor?.let { listOf(it) } ?: scheme.neutralSurfaces
+        val meter = readableMeterColors(goalColor, scheme.surfaceContainerHighest, cards, scheme.surfaceContainerHighest, keepColor = true)
+        // The emphasis fades the ring toward the track, as an opaque colour still at 3:1 on that
+        // track: a translucent stroke fell to 1.8:1 for yellow.
+        meter to meter.indicator.copy(alpha = Dimensions.Alpha.medium).compositeOver(meter.track)
+            .readableOn(cards.map { meter.track.compositeOver(it) }, GRAPHIC_CONTRAST)
+    }
+    val track = meter.track
+    val color = meter.indicator
     val description = stringResource(R.string.goals_ring_description, progress.percent())
     Box(
         modifier = modifier.size(size).clearAndSetSemantics { if (announceProgress) contentDescription = description },
@@ -100,7 +120,7 @@ fun GoalRing(
             CircularWavyProgressIndicator(
                 progress = { animated.coerceIn(0f, 1f) },
                 modifier = Modifier.size(size),
-                color = color.copy(alpha = lerp(1f, Dimensions.Alpha.medium, emphasis.value)),
+                color = lerp(color, faded, emphasis.value),
                 trackColor = track,
                 stroke = ringStroke,
                 trackStroke = ringStroke,
@@ -120,7 +140,7 @@ fun GoalRing(
             if (start == null || e == 0f || end <= start) {
                 if (end > 0f) arc(color, 0f, 360f * end)
             } else {
-                if (start > 0f) arc(color.copy(alpha = lerp(1f, Dimensions.Alpha.medium, e)), 0f, 360f * start)
+                if (start > 0f) arc(lerp(color, faded, e), 0f, 360f * start)
                 // Round caps reach half the stroke past each end, so the gap clears both before it shows.
                 val gap = if (start > 0f) e * Math.toDegrees(((width + Spacing.xs.toPx()) / (arcSize.width / 2)).toDouble()).toFloat() else 0f
                 val sweep = 360f * (end - start) - gap

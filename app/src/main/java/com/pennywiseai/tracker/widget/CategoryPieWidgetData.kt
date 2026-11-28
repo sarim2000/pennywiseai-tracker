@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import kotlinx.serialization.Serializable
 
 /**
@@ -27,5 +28,9 @@ data class CategoryPieWidgetData(
     val currency: String = "INR",
     /** Plain decimal ("241.198"); blank in snapshots from before it. */
     val total: String = "",
-    val slices: List<CategoryPieSlice> = emptyList()
+    val slices: List<CategoryPieSlice> = emptyList(),
+    /** The list filter that holds the rows the pie counts: Spending when card spend counts, else Expense. */
+    val spendingType: String = TransactionTypeFilter.EXPENSE.name,
+    /** True when the pie counts only rows written in [currency]; false when unified mode converts every currency into it. */
+    val currencyOnly: Boolean = false
 )

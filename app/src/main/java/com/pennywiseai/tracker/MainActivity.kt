@@ -58,6 +58,12 @@ class MainActivity : FragmentActivity() {
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
         const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
 
+        /** The pie widget: this cycle's spending in the pie's currency, under the pie's type filter. */
+        const val EXTRA_OPEN_SPENDING_CURRENCY = "com.pennywiseai.tracker.OPEN_SPENDING_CURRENCY"
+        const val EXTRA_OPEN_SPENDING_TYPE = "com.pennywiseai.tracker.OPEN_SPENDING_TYPE"
+        const val EXTRA_OPEN_SPENDING_CURRENCY_ONLY = "com.pennywiseai.tracker.OPEN_SPENDING_CURRENCY_ONLY"
+        const val EXTRA_OPEN_SPENDING_START = "com.pennywiseai.tracker.OPEN_SPENDING_START"
+
         /** The tracking check-up widget: open the SMS check-up. */
         const val EXTRA_OPEN_SMS_CHECKUP = "com.pennywiseai.tracker.OPEN_SMS_CHECKUP"
 
@@ -217,8 +223,29 @@ class MainActivity : FragmentActivity() {
     private fun handleWidgetIntent(intent: Intent?) {
         intent ?: return
         val goalId = intent.getLongExtra(EXTRA_OPEN_GOAL_ID, -1L)
+        val spendingCurrency = intent.getStringExtra(EXTRA_OPEN_SPENDING_CURRENCY)
+        val spendingStart = intent.getStringExtra(EXTRA_OPEN_SPENDING_START)
+            ?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
         widgetDestination = when {
             goalId > 0 -> com.pennywiseai.tracker.navigation.GoalDetail(goalId)
+            !spendingCurrency.isNullOrBlank() ->
+                com.pennywiseai.tracker.navigation.TransactionsWithFilter(
+                    // The pie's own days, cycle start through today, like Home's figure links: a
+                    // future-dated row this cycle isn't in the pie, so it isn't in the list either.
+                    // A snapshot from before the start was saved falls back to the whole cycle.
+                    period = if (spendingStart != null) {
+                        com.pennywiseai.tracker.presentation.common.TimePeriod.CUSTOM.name
+                    } else {
+                        com.pennywiseai.tracker.presentation.common.TimePeriod.THIS_MONTH.name
+                    },
+                    startDate = spendingStart?.toEpochDay(),
+                    endDate = spendingStart?.let { maxOf(it, java.time.LocalDate.now()).toEpochDay() },
+                    currency = spendingCurrency,
+                    type = intent.getStringExtra(EXTRA_OPEN_SPENDING_TYPE),
+                    // Pinned outside unified mode, so the list stays on the pie's currency
+                    // even when that isn't the base currency the list would open on.
+                    currencyOnly = intent.getBooleanExtra(EXTRA_OPEN_SPENDING_CURRENCY_ONLY, false),
+                )
             intent.getBooleanExtra(EXTRA_OPEN_UNRECOGNIZED, false) ->
                 com.pennywiseai.tracker.navigation.UnrecognizedSms
             intent.hasExtra(EXTRA_OPEN_REVIEW) ->

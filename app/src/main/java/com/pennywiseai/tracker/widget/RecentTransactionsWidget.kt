@@ -35,6 +35,8 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -143,12 +145,20 @@ class RecentTransactionsWidget : GlanceAppWidget() {
             }
             item { Spacer(GlanceModifier.width(Spacing.sm)) }
             item {
+                val hidden = everyAmountHidden()
                 val amount = exactText(item.amount, item.currency)
+                // No "+" or income/expense color on the mask: either would still say which way money went.
+                val shown = if (item.transactionType == TransactionType.INCOME && !hidden) withPlus(amount) else amount
                 Text(
-                    text = if (item.transactionType == TransactionType.INCOME) withPlus(amount) else amount,
+                    text = shown,
                     maxLines = 1,
+                    // TalkBack reads the mask as words. Set on both sides: Glance never clears a
+                    // description, so a revealed row would otherwise still read "Amount hidden".
+                    modifier = GlanceModifier.semantics {
+                        contentDescription = if (hidden) context.getString(R.string.widget_recent_amount_hidden) else shown
+                    },
                     style = TextStyle(
-                        color = PennyWiseWidgetTheme.transactionAmountColor(item.transactionType),
+                        color = if (hidden) GlanceTheme.colors.onSurface else PennyWiseWidgetTheme.transactionAmountColor(item.transactionType),
                         fontSize = Typography.titleSmall.fontSize,
                         fontWeight = FontWeight.Bold
                     )

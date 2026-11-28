@@ -231,7 +231,9 @@ data class TransactionsWithFilter(
     /** A "More from"/"More in" row's profile: the list keeps to it when one profile is selected. */
     val rowProfileId: Long? = null,
     /** A budget's other lines, which count their own spend: left out of [category]'s list where they're its sub-categories (#1425). */
-    val withoutCategories: List<String> = emptyList()
+    val withoutCategories: List<String> = emptyList(),
+    /** A [com.pennywiseai.tracker.domain.model.TransactionTypeFilter] name; null lists every type. */
+    val type: String? = null
 ) : NavKey
 
 /**

@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.widget
 
 import com.pennywiseai.tracker.utils.Money
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -68,5 +69,11 @@ class CategoryPieWidgetTest {
         listOf(0xFFFF7043, 0xFF42A5F5, 0xFFAB47BC, 0xFF26A69A, 0xFF9E9E9E, 0xFF424242).forEach {
             assertFalse(it.toString(16), isLowContrast(it.toInt()))
         }
+    }
+
+    @Test
+    fun `a snapshot from before it carried its type opens the expense list`() {
+        val old = """{"currency":"JOD","total":"40","slices":[{"name":"Food","colorArgb":4294198070,"percent":100.0}]}"""
+        assertEquals("EXPENSE", Json { ignoreUnknownKeys = true }.decodeFromString<CategoryPieWidgetData>(old).spendingType)
     }
 }

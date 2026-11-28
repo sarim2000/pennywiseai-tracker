@@ -73,6 +73,8 @@ class BackupExportSessionTest {
             backupImporter = importer,
             importCsvUseCase = mockk(relaxed = true),
             folderBackupWriter = mockk(relaxed = true),
+            folderBackupRunner = mockk(relaxed = true),
+            folderBackupPassphrase = mockk(relaxed = true),
             scheduledFolderBackupScheduler = mockk(relaxed = true),
             contactsResolver = mockk(relaxed = true),
             modelDownloader = mockk(relaxed = true),
@@ -81,6 +83,7 @@ class BackupExportSessionTest {
             currencyConversionService = mockk(relaxed = true),
             mascotMoments = MascotMoments(AppForegroundState { true }),
             entitlementGate = mockk(relaxed = true),
+            applicationScope = mockk(relaxed = true),
         )
     }
 

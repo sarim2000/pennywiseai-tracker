@@ -149,6 +149,25 @@
     <string name="settings_export_include_receipts_subtitle">Receipt photos and PDFs go in the backup, which makes it larger</string>
     <string name="settings_folder_backup_include_receipts_title">Include receipts in automatic backups</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Makes each daily backup larger</string>
+    <!-- Settings > Data > Automatic Folder Backup: lock each daily backup with a passphrase -->
+    <string name="settings_folder_backup_encrypt_title">Encrypt Automatic Backups</string>
+    <string name="settings_folder_backup_encrypt_subtitle_off">Lock each daily backup with a passphrase</string>
+    <string name="settings_folder_backup_encrypt_subtitle_on">Each daily backup is locked with your passphrase</string>
+    <string name="settings_folder_backup_encrypt_subtitle_locked">Paused until the passphrase unlocks or you enter it again</string>
+    <string name="settings_folder_backup_passphrase_title">Encrypt automatic backups</string>
+    <string name="settings_folder_backup_passphrase_body">Daily backups will be locked with this passphrase, and you\'ll need it to restore one. It can\'t be recovered if you forget it.</string>
+    <string name="settings_folder_backup_passphrase_action">Save</string>
+    <string name="settings_folder_backup_passphrase_save_failed">Couldn\'t save the backup passphrase on this device</string>
+    <!-- Asked before turning off encryption for automatic folder backups -->
+    <string name="settings_folder_backup_encryption_off_title">Turn off encryption?</string>
+    <string name="settings_folder_backup_encryption_off_body">The next automatic backup will replace the encrypted file in your backup folder with an unencrypted one. If that folder syncs to a cloud service, the unencrypted copy goes there too.</string>
+    <string name="settings_folder_backup_encryption_off_action">Turn off</string>
+    <string name="settings_folder_backup_encryption_off_failed">Couldn\'t turn off encryption, so automatic backups stay locked</string>
+    <string name="settings_folder_backup_encryption_unreadable">Couldn\'t read the backup encryption setting, so nothing was written</string>
+    <string name="settings_folder_backup_encryption_saving">Saving your passphrase…</string>
+    <!-- Shown when the saved passphrase for automatic backups couldn't be unlocked; backups retry later -->
+    <string name="settings_folder_backup_passphrase_locked_title">Re-enter Backup Passphrase</string>
+    <string name="settings_folder_backup_passphrase_locked_subtitle">Couldn\'t unlock the backup passphrase — re-enter it</string>
     <string name="settings_backup_now_title">Back Up Now</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Last backup: %1$s</string>
@@ -264,6 +283,8 @@
     <string name="settings_folder_select_first">Select a backup folder first</string>
     <string name="settings_folder_not_writable">Cannot write to the selected backup folder</string>
     <string name="settings_folder_backup_saved">Backup saved to folder</string>
+    <!-- The backup reached the folder, but the provider didn't confirm its file name -->
+    <string name="settings_folder_backup_name_unconfirmed">Backup saved to folder, but its file name couldn\'t be confirmed. If the folder has more than one backup file, the newest one is this backup.</string>
     <plurals name="settings_folder_backup_saved_skipped_receipts">
         <item quantity="one">Backup saved to folder. %d PDF receipt was left out (a backup holds PDFs up to 5 MB each, 50 MB in all).</item>
         <item quantity="other">Backup saved to folder. %d PDF receipts were left out (a backup holds PDFs up to 5 MB each, 50 MB in all).</item>

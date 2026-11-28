@@ -2,12 +2,14 @@ package com.pennywiseai.tracker.presentation.settings
 
 import android.content.Context
 import android.net.Uri
+import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
 import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.backup.BackupExporter
 import com.pennywiseai.tracker.data.backup.BackupImporter
 import com.pennywiseai.tracker.data.backup.ExportResult
+import com.pennywiseai.tracker.data.backup.FolderBackupPassphrase
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.events.MascotMoment
 import com.pennywiseai.tracker.data.events.MascotMoments
@@ -15,30 +17,41 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import com.pennywiseai.tracker.worker.DailySummaryWorker
+import com.pennywiseai.tracker.worker.FolderBackupRunner
 import com.pennywiseai.tracker.worker.WeeklySummaryWorker
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 
 /** The shield shows only for a backup the user wrote or restored, and only once it's done. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -49,8 +62,15 @@ class BackupMomentsTest {
     private val exporter = mockk<BackupExporter>()
     private val importer = mockk<BackupImporter>()
     private val writer = mockk<FolderBackupWriter>()
+    private val passphrase = mockk<FolderBackupPassphrase> {
+        coEvery { load() } returns null
+        every { status } returns MutableStateFlow(FolderBackupPassphrase.Status.OFF)
+    }
+    // Outlives the ViewModel, as the app's scope does.
+    private val appScope = CoroutineScope(SupervisorJob())
     private val moments = MascotMoments(AppForegroundState { true })
-    private val heard = mutableListOf<MascotMoment>()
+    private val heardFlow = MutableStateFlow(emptyList<MascotMoment>())
+    private val heard get() = heardFlow.value
     private lateinit var listening: Job
     private lateinit var viewModel: SettingsViewModel
     private lateinit var backupFile: File
@@ -71,7 +91,7 @@ class BackupMomentsTest {
         every { writer.canWriteToFolder(any()) } returns true
         backupFile = File.createTempFile("backup", ".pennywisebackup").apply { writeText("{}") }
         coEvery { exporter.exportBackup(any(), any()) } answers { ExportResult.Success(backupFile) }
-        listening = CoroutineScope(Dispatchers.Unconfined).launch { moments.moments.collect { heard += it } }
+        listening = CoroutineScope(Dispatchers.Unconfined).launch { moments.moments.collect { moment -> heardFlow.update { it + moment } } }
         viewModel = SettingsViewModel(
             context = context,
             modelRepository = mockk(relaxed = true),
@@ -84,6 +104,8 @@ class BackupMomentsTest {
             backupImporter = importer,
             importCsvUseCase = mockk(relaxed = true),
             folderBackupWriter = writer,
+            folderBackupRunner = FolderBackupRunner(exporter, writer, passphrase, preferences),
+            folderBackupPassphrase = passphrase,
             scheduledFolderBackupScheduler = mockk(relaxed = true),
             contactsResolver = mockk(relaxed = true),
             modelDownloader = mockk(relaxed = true),
@@ -92,20 +114,31 @@ class BackupMomentsTest {
             currencyConversionService = mockk(relaxed = true),
             mascotMoments = moments,
             entitlementGate = mockk(relaxed = true),
+            applicationScope = appScope,
         )
     }
 
     /**
-     * saveBackupToFile copies on Dispatchers.IO, which the test Main dispatcher doesn't run:
-     * wait for its message, which it sets after announcing, and after failing.
+     * Saving to a file and folder backups run on Dispatchers.IO, which the test Main dispatcher
+     * doesn't run: wait for their message, which they set after announcing, and after failing.
      */
-    private fun awaitSaveResult() = runBlocking {
+    private fun awaitMessage() = runBlocking {
         withTimeout(5_000) { viewModel.importExportMessage.first { it != null } }
+    }
+
+    /**
+     * A folder backup resumes on the IO thread inside an unconfined event loop, which queues the
+     * listener's resume until the backup sets its message: wait for the moment as well.
+     */
+    private fun assertHeard(expected: List<MascotMoment>) = runBlocking {
+        withTimeoutOrNull(5_000) { heardFlow.first { it == expected } }
+        assertEquals(expected, heard)
     }
 
     @After
     fun tearDown() {
         listening.cancel()
+        appScope.cancel()
         backupFile.delete()
         unmockkObject(WidgetRefresher, DailySummaryWorker, WeeklySummaryWorker)
         Dispatchers.resetMain()
@@ -116,8 +149,9 @@ class BackupMomentsTest {
         every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Success
 
         viewModel.backupToFolderNow()
+        awaitMessage()
 
-        assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
+        assertHeard(listOf(MascotMoment.BackupSaved))
     }
 
     @Test
@@ -126,9 +160,128 @@ class BackupMomentsTest {
         every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Success
 
         viewModel.setScheduledFolderBackupEnabled(true)
+        awaitMessage()
 
         assertEquals(UiText.Plural(R.plurals.settings_folder_backup_enabled_skipped_receipts, 2), viewModel.importExportMessage.value)
-        assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
+        assertHeard(listOf(MascotMoment.BackupSaved))
+    }
+
+    @Test
+    fun `back up now unlocks the passphrase and writes off the main thread`() {
+        val mainThread = Thread.currentThread()
+        val threads = mutableListOf<Thread>()
+        coEvery { passphrase.load() } answers { threads += Thread.currentThread(); null }
+        every { writer.canWriteToFolder(any()) } answers { threads += Thread.currentThread(); true }
+        every { writer.writeBackup(any(), any()) } answers {
+            threads += Thread.currentThread()
+            FolderBackupWriter.Result.Success
+        }
+
+        viewModel.backupToFolderNow()
+        awaitMessage()
+
+        assertEquals(3, threads.size)
+        assertTrue("SAF and the Keystore stay off the main thread", threads.none { it == mainThread })
+    }
+
+    @Test
+    fun `encryption chosen before automatic backups are on makes their first backup encrypted`() {
+        var saved: CharArray? = null
+        coEvery { passphrase.save(any()) } answers { saved = firstArg<CharArray>().copyOf() }
+        coEvery { passphrase.load() } answers { saved?.copyOf() }
+        var exportedWithPassphrase: Boolean? = null
+        coEvery { exporter.exportBackup(any(), any(), any()) } answers {
+            exportedWithPassphrase = thirdArg<CharArray?>() != null
+            ExportResult.Success(backupFile)
+        }
+        every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Success
+        coEvery { preferences.isScheduledFolderBackupEnabled() } returns false
+
+        viewModel.setFolderBackupPassphrase("synthetic phrase".toCharArray())
+        // Backups are still off: the passphrase is kept, and nothing is written yet.
+        coVerify(timeout = 5_000) { preferences.isScheduledFolderBackupEnabled() }
+        verify(exactly = 0) { writer.writeBackup(any(), any()) }
+
+        viewModel.setScheduledFolderBackupEnabled(true)
+        awaitMessage()
+
+        assertEquals(UiText.Res(R.string.settings_folder_backup_enabled), viewModel.importExportMessage.value)
+        assertEquals(true, exportedWithPassphrase)
+    }
+
+    @Test
+    fun `turning automatic backups on while the passphrase is still saving waits for it`() {
+        val stored = CompletableDeferred<Unit>()
+        var saved: CharArray? = null
+        coEvery { passphrase.save(any()) } coAnswers {
+            stored.await()
+            saved = firstArg<CharArray>().copyOf()
+        }
+        coEvery { passphrase.load() } answers { saved?.copyOf() }
+        var exportedWithPassphrase: Boolean? = null
+        coEvery { exporter.exportBackup(any(), any(), any()) } answers {
+            exportedWithPassphrase = thirdArg<CharArray?>() != null
+            ExportResult.Success(backupFile)
+        }
+        every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Success
+        coEvery { preferences.isScheduledFolderBackupEnabled() } returns false
+
+        viewModel.setFolderBackupPassphrase("synthetic phrase".toCharArray())
+        assertTrue(viewModel.savingFolderBackupPassphrase.value)
+        viewModel.setScheduledFolderBackupEnabled(true)
+        coVerify(exactly = 0) { preferences.setScheduledFolderBackupEnabled(true) }
+
+        stored.complete(Unit)
+        awaitMessage()
+
+        assertEquals(UiText.Res(R.string.settings_folder_backup_enabled), viewModel.importExportMessage.value)
+        assertEquals(true, exportedWithPassphrase)
+        runBlocking { withTimeout(5_000) { viewModel.savingFolderBackupPassphrase.first { !it } } }
+    }
+
+    @Test
+    fun `leaving Settings doesn't cancel a passphrase save or the backup that replaces the plain one`() {
+        val stored = CompletableDeferred<Unit>()
+        var saved: CharArray? = null
+        coEvery { passphrase.save(any()) } coAnswers {
+            stored.await()
+            saved = firstArg<CharArray>().copyOf()
+        }
+        coEvery { passphrase.load() } answers { saved?.copyOf() }
+        var exportedWithPassphrase: Boolean? = null
+        coEvery { exporter.exportBackup(any(), any(), any()) } answers {
+            exportedWithPassphrase = thirdArg<CharArray?>() != null
+            ExportResult.Success(backupFile)
+        }
+        every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Success
+        coEvery { preferences.isScheduledFolderBackupEnabled() } returns true
+
+        viewModel.setFolderBackupPassphrase("synthetic phrase".toCharArray())
+        viewModel.viewModelScope.cancel() // the user left Settings
+        stored.complete(Unit)
+
+        verify(timeout = 5_000) { writer.writeBackup(any(), any()) }
+        assertEquals(true, exportedWithPassphrase)
+    }
+
+    @Test
+    fun `a passphrase that failed to save doesn't turn automatic backups on plain`() {
+        val failing = CompletableDeferred<Unit>()
+        coEvery { passphrase.save(any()) } coAnswers {
+            failing.await()
+            throw IOException("disk full")
+        }
+
+        // Turned on while the save is still in flight.
+        viewModel.setFolderBackupPassphrase("synthetic phrase".toCharArray())
+        viewModel.setScheduledFolderBackupEnabled(true)
+        failing.complete(Unit)
+        awaitMessage()
+        runBlocking { withTimeout(5_000) { viewModel.savingFolderBackupPassphrase.first { !it } } }
+
+        assertEquals(UiText.Res(R.string.settings_folder_backup_passphrase_save_failed), viewModel.importExportMessage.value)
+        coVerify(exactly = 0) { preferences.setScheduledFolderBackupEnabled(true) }
+        verify(exactly = 0) { writer.writeBackup(any(), any()) }
     }
 
     @Test
@@ -136,7 +289,20 @@ class BackupMomentsTest {
         every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Failure("no space")
 
         viewModel.backupToFolderNow()
+        awaitMessage()
 
+        assertEquals(emptyList<MascotMoment>(), heard)
+    }
+
+    @Test
+    fun `back up now with a passphrase that can't be unlocked asks for it again and writes nothing`() {
+        // writeBackup isn't stubbed: a write would fail the test.
+        coEvery { passphrase.load() } throws FolderBackupPassphrase.LockedException(IllegalStateException("key gone"))
+
+        viewModel.backupToFolderNow()
+        awaitMessage()
+
+        assertEquals(UiText.Res(R.string.settings_folder_backup_passphrase_locked_subtitle), viewModel.importExportMessage.value)
         assertEquals(emptyList<MascotMoment>(), heard)
     }
 
@@ -149,9 +315,9 @@ class BackupMomentsTest {
 
         viewModel.clearImportExportMessage()
         viewModel.saveBackupToFile(mockk(), backupFile.path)
-        awaitSaveResult()
+        awaitMessage()
 
-        assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
+        assertHeard(listOf(MascotMoment.BackupSaved))
     }
 
     @Test
@@ -161,7 +327,7 @@ class BackupMomentsTest {
 
         viewModel.clearImportExportMessage()
         viewModel.saveBackupToFile(mockk(), backupFile.path)
-        awaitSaveResult()
+        awaitMessage()
 
         assertEquals(emptyList<MascotMoment>(), heard)
     }

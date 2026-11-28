@@ -798,16 +798,18 @@ internal fun SettingsNavItem(
     // Pro and support are the one accent on an otherwise neutral list.
     accent: Boolean = false,
     enabled: Boolean = true,
+    // Something has stopped working and needs the user (paired with a warning icon and copy).
+    problem: Boolean = false,
 ) {
-    val container = if (accent) {
-        MaterialTheme.colorScheme.tertiaryContainer
-    } else {
-        MaterialTheme.colorScheme.surfaceContainerHighest
+    val container = when {
+        problem -> MaterialTheme.colorScheme.errorContainer
+        accent -> MaterialTheme.colorScheme.tertiaryContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerHighest
     }
-    val tint = if (accent) {
-        MaterialTheme.colorScheme.onTertiaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
+    val tint = when {
+        problem -> MaterialTheme.colorScheme.onErrorContainer
+        accent -> MaterialTheme.colorScheme.onTertiaryContainer
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     GroupedRow(position = position, modifier = modifier, onClick = onClick, enabled = enabled) {
         IconTile(icon = icon, containerColor = container, contentColor = tint)

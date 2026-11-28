@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.aiaccess
 
 import android.content.Context
 import androidx.core.content.edit
+import com.pennywiseai.tracker.core.DeviceSecretBox
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -87,7 +88,11 @@ class AiRelayClient @Inject constructor(@ApplicationContext context: Context) {
         synchronized(this) {
             // The relay was switched while this registered: the device belongs to the old one.
             if (relay != base) throw RelayException("Relay changed")
-            prefs.edit { putString(KEY_ID, d.deviceId); putString(KEY_SECRET_SEALED, DeviceSecretBox.seal(d.secret)); remove("device_secret") /* pre-Keystore plaintext */ }
+            prefs.edit {
+                putString(KEY_ID, d.deviceId)
+                putString(KEY_SECRET_SEALED, DeviceSecretBox.seal(d.secret))
+                remove("device_secret") // pre-Keystore plaintext
+            }
             _device.value = d
         }
         base to d

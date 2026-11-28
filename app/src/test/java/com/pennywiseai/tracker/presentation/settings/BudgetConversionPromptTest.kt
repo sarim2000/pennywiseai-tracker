@@ -60,6 +60,8 @@ class BudgetConversionPromptTest {
             backupImporter = mockk(relaxed = true),
             importCsvUseCase = mockk(relaxed = true),
             folderBackupWriter = mockk(relaxed = true),
+            folderBackupRunner = mockk(relaxed = true),
+            folderBackupPassphrase = mockk(relaxed = true),
             scheduledFolderBackupScheduler = mockk(relaxed = true),
             contactsResolver = mockk(relaxed = true),
             modelDownloader = mockk(relaxed = true),
@@ -68,6 +70,7 @@ class BudgetConversionPromptTest {
             currencyConversionService = conversion,
             mascotMoments = mockk(relaxed = true),
             entitlementGate = mockk(relaxed = true),
+            applicationScope = mockk(relaxed = true),
         )
     }
 

@@ -6,19 +6,16 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
-import com.pennywiseai.tracker.data.backup.BackupExporter
-import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.preferences.BackupPreferences
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import kotlinx.coroutines.flow.first
 
 @HiltWorker
 class ScheduledFolderBackupWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
-    private val backupExporter: BackupExporter,
     private val folderBackupWriter: FolderBackupWriter,
+    private val folderBackupRunner: FolderBackupRunner,
     private val userPreferencesRepository: BackupPreferences
 ) : CoroutineWorker(appContext, workerParams) {
 
@@ -38,32 +35,27 @@ class ScheduledFolderBackupWorker @AssistedInject constructor(
             return Result.retry()
         }
 
-        val includeReceipts = userPreferencesRepository.folderBackupIncludeReceipts.first()
-        return when (val exportResult = backupExporter.exportBackup(includeReceipts = includeReceipts)) {
-            is ExportResult.Success -> {
-                val writeResult = try {
-                    folderBackupWriter.writeBackup(treeUri, exportResult.file)
-                } finally {
-                    exportResult.file.delete()
+        return when (val result = folderBackupRunner.run(treeUri)) {
+            is FolderBackupRunner.Result.Success -> {
+                // Not retried: another run would only add another copy beside this one.
+                if (result.nameUnconfirmed) {
+                    Log.w(TAG, "Scheduled folder backup written, but its file name couldn't be confirmed")
+                } else {
+                    Log.i(TAG, "Scheduled folder backup completed")
                 }
-                when (writeResult) {
-                    is FolderBackupWriter.Result.Success -> {
-                        // Settings' "Last backup" line names left-out PDFs: nobody reads a log at 2 AM.
-                        userPreferencesRepository.recordScheduledFolderBackup(
-                            System.currentTimeMillis(),
-                            exportResult.skippedReceipts
-                        )
-                        Log.i(TAG, "Scheduled folder backup completed")
-                        Result.success()
-                    }
-                    is FolderBackupWriter.Result.Failure -> {
-                        Log.e(TAG, "Scheduled folder backup write failed: ${writeResult.message}")
-                        Result.retry()
-                    }
-                }
+                Result.success()
             }
-            is ExportResult.Error -> {
-                Log.e(TAG, "Scheduled folder backup export failed: ${exportResult.message}")
+            // Never a plain backup instead: try again later, and Settings asks for the passphrase meanwhile.
+            FolderBackupRunner.Result.PassphraseLocked -> {
+                Log.w(TAG, "Scheduled folder backup postponed: the backup passphrase couldn't be unlocked")
+                Result.retry()
+            }
+            FolderBackupRunner.Result.SettingUnreadable -> {
+                Log.w(TAG, "Scheduled folder backup postponed: the encryption setting couldn't be read")
+                Result.retry()
+            }
+            is FolderBackupRunner.Result.Failure -> {
+                Log.e(TAG, "Scheduled folder backup failed: ${result.message}")
                 Result.retry()
             }
         }

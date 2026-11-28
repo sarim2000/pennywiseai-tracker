@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.backup.BackupCrypto
+import com.pennywiseai.tracker.data.backup.FolderBackupPassphrase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.presentation.common.ExportTransactionsDialog
@@ -157,6 +158,10 @@ internal fun DataPage(
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showEncryptedExportDialog by remember { mutableStateOf(false) }
+    val folderBackupEncryption by settingsViewModel.folderBackupEncryption.collectAsStateWithLifecycle()
+    val savingFolderBackupPassphrase by settingsViewModel.savingFolderBackupPassphrase.collectAsStateWithLifecycle()
+    var showFolderPassphraseDialog by remember { mutableStateOf(false) }
+    var showFolderEncryptionOffDialog by remember { mutableStateOf(false) }
     val backupPassphrasePrompt by settingsViewModel.backupPassphrasePrompt.collectAsStateWithLifecycle()
 
     // File picker for import
@@ -263,7 +268,16 @@ internal fun DataPage(
     }
 
     SectionHeaderV2(title = stringResource(R.string.settings_group_auto_backup))
+    // Encryption can be chosen before backups are turned on, so the first one isn't written plain.
+    val showFolderEncryption = scheduledFolderBackupEnabled || isProEntitled
+    val folderPassphraseLocked = showFolderEncryption && folderBackupEncryption == FolderBackupPassphrase.Status.LOCKED
+    val autoBackupRows = 1 +
+        (if (scheduledFolderBackupEnabled) 3 else 0) +
+        (if (showFolderEncryption) 1 else 0) +
+        (if (folderPassphraseLocked) 1 else 0)
     SettingsGroup {
+        // Counted from zero each time the group composes: it can recompose without the page.
+        var autoBackupRow = 0
         SettingsSwitchRow(
             icon = Icons.Default.Backup,
             title = stringResource(R.string.settings_folder_backup_title),
@@ -285,7 +299,9 @@ internal fun DataPage(
                     settingsViewModel.setScheduledFolderBackupEnabled(enabled)
                 }
             },
-            position = if (scheduledFolderBackupEnabled) ListItemPosition.Top else ListItemPosition.Single
+            position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
+            // A passphrase being saved comes first, so the first backup isn't written plain.
+            enabled = !savingFolderBackupPassphrase
         )
         if (scheduledFolderBackupEnabled) {
             SettingsNavItem(
@@ -307,7 +323,8 @@ internal fun DataPage(
                     }
                 } ?: stringResource(R.string.settings_backup_now_subtitle),
                 onClick = { settingsViewModel.backupToFolderNow() },
-                position = ListItemPosition.Middle
+                position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
+                enabled = !savingFolderBackupPassphrase
             )
             SettingsSwitchRow(
                 icon = Icons.Default.Receipt,
@@ -315,14 +332,50 @@ internal fun DataPage(
                 subtitle = stringResource(R.string.settings_folder_backup_include_receipts_subtitle),
                 checked = folderBackupIncludeReceipts,
                 onCheckedChange = { settingsViewModel.setFolderBackupIncludeReceipts(it) },
-                position = ListItemPosition.Middle
+                position = ListItemPosition.from(autoBackupRow++, autoBackupRows)
             )
+        }
+        if (showFolderEncryption) {
+            SettingsSwitchRow(
+                icon = Icons.Default.Lock,
+                title = stringResource(R.string.settings_folder_backup_encrypt_title),
+                subtitle = stringResource(
+                    when {
+                        savingFolderBackupPassphrase -> R.string.settings_folder_backup_encryption_saving
+                        folderBackupEncryption == FolderBackupPassphrase.Status.ON -> R.string.settings_folder_backup_encrypt_subtitle_on
+                        folderBackupEncryption == FolderBackupPassphrase.Status.LOCKED -> R.string.settings_folder_backup_encrypt_subtitle_locked
+                        else -> R.string.settings_folder_backup_encrypt_subtitle_off
+                    }
+                ),
+                checked = folderBackupEncryption.let { it != null && it != FolderBackupPassphrase.Status.OFF },
+                onCheckedChange = { encrypt ->
+                    if (encrypt) showFolderPassphraseDialog = true else showFolderEncryptionOffDialog = true
+                },
+                position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
+                // Not before the stored setting is read (the switch would show a guess), nor mid-save.
+                enabled = folderBackupEncryption != null && !savingFolderBackupPassphrase
+            )
+            // Backups stop rather than go out plain: say so until the passphrase is entered again.
+            if (folderPassphraseLocked) {
+                SettingsNavItem(
+                    icon = Icons.Default.Warning,
+                    title = stringResource(R.string.settings_folder_backup_passphrase_locked_title),
+                    subtitle = stringResource(R.string.settings_folder_backup_passphrase_locked_subtitle),
+                    onClick = { showFolderPassphraseDialog = true },
+                    position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
+                    problem = true,
+                    enabled = !savingFolderBackupPassphrase
+                )
+            }
+        }
+        if (scheduledFolderBackupEnabled) {
             SettingsNavItem(
                 icon = Icons.Default.FolderOpen,
                 title = stringResource(R.string.settings_change_backup_folder_title),
                 subtitle = stringResource(R.string.settings_change_backup_folder_subtitle),
                 onClick = { settingsViewModel.requestChangeBackupFolder() },
-                position = ListItemPosition.Bottom
+                position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
+                enabled = !savingFolderBackupPassphrase
             )
         }
     }
@@ -550,12 +603,54 @@ internal fun DataPage(
     }
 
     if (showEncryptedExportDialog) {
-        EncryptedExportDialog(
-            onExport = { passphrase ->
+        NewPassphraseDialog(
+            heading = stringResource(R.string.settings_backup_passphrase_export_title),
+            body = stringResource(R.string.settings_backup_passphrase_export_body),
+            action = stringResource(R.string.settings_backup_passphrase_export_action),
+            onConfirm = { passphrase ->
                 showEncryptedExportDialog = false
                 settingsViewModel.exportBackup(passphrase)
             },
             onDismiss = { showEncryptedExportDialog = false }
+        )
+    }
+
+    if (showFolderPassphraseDialog) {
+        NewPassphraseDialog(
+            heading = stringResource(R.string.settings_folder_backup_passphrase_title),
+            body = stringResource(R.string.settings_folder_backup_passphrase_body),
+            action = stringResource(R.string.settings_folder_backup_passphrase_action),
+            onConfirm = { passphrase ->
+                showFolderPassphraseDialog = false
+                settingsViewModel.setFolderBackupPassphrase(passphrase)
+            },
+            onDismiss = { showFolderPassphraseDialog = false }
+        )
+    }
+
+    // The next backup replaces the encrypted file, maybe in a synced folder: ask first.
+    if (showFolderEncryptionOffDialog) {
+        AlertDialog(
+            onDismissRequest = { showFolderEncryptionOffDialog = false },
+            icon = { Icon(Icons.Default.LockOpen, contentDescription = null) },
+            title = { Text(stringResource(R.string.settings_folder_backup_encryption_off_title)) },
+            text = { Text(stringResource(R.string.settings_folder_backup_encryption_off_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showFolderEncryptionOffDialog = false
+                        settingsViewModel.turnOffFolderBackupEncryption()
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.settings_folder_backup_encryption_off_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFolderEncryptionOffDialog = false }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.settings_action_cancel))
+                }
+            }
         )
     }
 
@@ -571,9 +666,15 @@ internal fun DataPage(
     }
 }
 
-/** Picks the passphrase for an encrypted backup export. Never stored. */
+/** Picks a new backup passphrase, typed twice. */
 @Composable
-private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -> Unit) {
+private fun NewPassphraseDialog(
+    heading: String,
+    body: String,
+    action: String,
+    onConfirm: (CharArray) -> Unit,
+    onDismiss: () -> Unit
+) {
     // Plain remember, not saveable: the passphrase must not land in saved instance state.
     val passphraseState = remember { TextFieldState() }
     val confirmState = remember { TextFieldState() }
@@ -584,10 +685,10 @@ private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Lock, contentDescription = null) },
-        title = { Text(stringResource(R.string.settings_backup_passphrase_export_title)) },
+        title = { Text(heading) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(stringResource(R.string.settings_backup_passphrase_export_body))
+                Text(body)
                 PassphraseField(
                     passphraseState,
                     stringResource(R.string.settings_backup_passphrase_label),
@@ -610,12 +711,12 @@ private fun EncryptedExportDialog(onExport: (CharArray) -> Unit, onDismiss: () -
                     val passphrase = passphraseState.toCharArray()
                     passphraseState.wipe()
                     confirmState.wipe()
-                    onExport(passphrase)
+                    onConfirm(passphrase)
                 },
                 enabled = canCreateEncryptedBackup(passphraseState.text, confirmState.text),
                 shapes = ButtonDefaults.shapes()
             ) {
-                Text(stringResource(R.string.settings_backup_passphrase_export_action))
+                Text(action)
             }
         },
         dismissButton = {

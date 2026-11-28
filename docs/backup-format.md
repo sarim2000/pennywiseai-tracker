@@ -219,7 +219,7 @@ strict (a profile failure should surface, not be silently swallowed).
 *Export Data (Encrypted)* (Settings → Data) wraps the same JSON in a
 passphrase envelope (`data/backup/BackupCrypto.kt`). The file keeps the
 `.pennywisebackup` extension; the JSON inside is unchanged, so everything
-above still applies once it's decrypted. The passphrase is never stored. The passphrase is normalized to Unicode NFC before key derivation.
+above still applies once it's decrypted. That passphrase is never stored. The passphrase is normalized to Unicode NFC before key derivation.
 
 | Bytes | Field |
 |-------|-------|
@@ -255,6 +255,24 @@ Then frames until the one marked last:
   that won't parse gives a fixed error: parser messages quote the plaintext.
 - A new KDF or cipher needs a new envelope version; readers reject versions
   they don't know.
+- **Automatic folder backups** (*Encrypt Automatic Backups*) use the same
+  envelope. The switch and the passphrase are kept on the device in their
+  own Preferences DataStore (`data/backup/FolderBackupPassphrase.kt`), which
+  no backup file or Android backup carries; the passphrase is sealed with an
+  Android Keystore key under a fresh alias each time it's entered, stored
+  beside it. A backup is written plain only when that store reads "off": a
+  read error, or a passphrase the Keystore can't unlock (opening never
+  creates a key), writes nothing, the worker retries later, and Settings
+  asks for the passphrase again. Nothing is marked on disk when an unlock
+  fails; Settings tries the unlock itself each time it reads the setting, so
+  a key lost while the app was closed shows too. A store file that can't be
+  parsed is reset to "on, no passphrase", which asks for it again. Turning
+  encryption off asks first: the next backup replaces the encrypted file
+  with a plain one. The switch can be turned on before automatic backups, and turning
+  them on waits for a passphrase still being saved, so the first file is
+  already encrypted. One lock in `worker/FolderBackupRunner.kt` keeps backups
+  and encryption changes from overlapping. Restore them like any encrypted
+  backup.
 
 ## How to change the format safely
 

@@ -165,6 +165,39 @@ T&C. Ignore if paid""",
                     accountLast4 = "4321",
                     merchant = "ACMEPAYMENTS"
                 )
+            ),
+
+            ParserTestCase(
+                name = "Pixel Play Credit Card UPI - decimal amount",
+                message = "A transaction of Rs. 2,379.11 was made using your HDFC Bank Pixel Play Credit Card at credpay.redbus@axis via UPI 000000000000 on 16/11/26 at 21:37. Not you? Block your Card: https://example.invalid/b or SMS BLOCKPCC 0000 to 1800000000",
+                sender = "JM-HDFC-BK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2379.11"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "credpay.redbus",
+                    accountLast4 = "0000"
+                )
+            ),
+
+            ParserTestCase(
+                name = "Pixel Play Credit Card UPI - whole amount",
+                message = "A transaction of Rs. 2,222 was made using your HDFC Bank Pixel Play Credit Card at credpay.redbus@axis via UPI 000000000000 on 16/11/26 at 21:37. Not you? Block your Card: https://example.invalid/b or SMS BLOCKPCC 0000 to 1800000000",
+                sender = "JM-HDFC-BK",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2222"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "credpay.redbus",
+                    accountLast4 = "0000"
+                )
+            ),
+
+            ParserTestCase(
+                name = "Pixel Play non-transaction card-block message - Should Not Parse",
+                message = "Block your HDFC Bank Pixel Play Credit Card for transactions above Rs. 5,000.00? SMS BLOCKPCC 0000 to 1800000000",
+                sender = "JM-HDFC-BK",
+                shouldParse = false
             )
         )
 
@@ -172,6 +205,7 @@ T&C. Ignore if paid""",
             "CP-HDFCBK-S" to true,
             "AX-HDFCBK-S" to true,
             "JM-HDFCBK-S" to true,
+            "JM-HDFC-BK" to true,
             "HDFCBANK" to true,
             "SBI" to false,
             "" to false

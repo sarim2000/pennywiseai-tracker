@@ -143,6 +143,9 @@ data class BackupStatistics(
     @SerialName("total_transaction_groups")
     val totalTransactionGroups: Int = 0,
 
+    @SerialName("total_trip_exclusions")
+    val totalTripExclusions: Int = 0,
+
     @SerialName("total_profiles")
     val totalProfiles: Int = 0,
 
@@ -248,6 +251,9 @@ data class DatabaseSnapshot(
 
     @SerialName("transaction_groups")
     val transactionGroups: List<TransactionGroupEntity> = emptyList(),
+
+    @SerialName("trip_exclusions")
+    val tripExclusions: List<TripExclusionEntity> = emptyList(),
 
     @SerialName("profiles")
     val profiles: List<ProfileEntity> = emptyList(),

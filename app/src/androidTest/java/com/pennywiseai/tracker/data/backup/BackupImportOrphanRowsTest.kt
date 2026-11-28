@@ -11,9 +11,11 @@ import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
 import com.pennywiseai.tracker.data.database.entity.RuleEntity
 import com.pennywiseai.tracker.data.database.entity.TagEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TripExclusionEntity
 import io.mockk.mockk
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -163,5 +165,25 @@ class BackupImportOrphanRowsTest {
         assertEquals(1, db.tagDao().getAllTagsSync().size)
         assertEquals(listOf(TransactionTagCrossRef(1, 1)), db.tagDao().getAllCrossRefs())
         assertEquals(2, (result as ImportResult.Success).skippedRows)
+    }
+
+    // A trip exclusion whose group is not in the backup would fail its foreign key and take the
+    // whole restore with it (#1463 on top of #1513); it is skipped and counted instead.
+    @Test fun replaceAllSkipsATripExclusionWithoutItsGroup() = runBlocking {
+        val trip = TransactionGroupEntity(id = 1, name = "Trip", tripStart = at)
+        val backup = PennyWiseBackup(
+            database = DatabaseSnapshot(
+                transactions = listOf(tx(1)),
+                transactionGroups = listOf(trip),
+                tripExclusions = listOf(TripExclusionEntity(1, "hash1"), TripExclusionEntity(9, "hash1"))
+            )
+        )
+
+        val result = importer.importBackup(android.net.Uri.fromFile(file(backup)), ImportStrategy.REPLACE_ALL)
+
+        assertTrue("$result", result is ImportResult.Success)
+        assertEquals(1, db.transactionDao().getAllTransactions().first().size)
+        assertEquals(listOf(TripExclusionEntity(1, "hash1")), db.transactionGroupDao().getAllTripExclusions())
+        assertEquals(1, (result as ImportResult.Success).skippedRows)
     }
 }

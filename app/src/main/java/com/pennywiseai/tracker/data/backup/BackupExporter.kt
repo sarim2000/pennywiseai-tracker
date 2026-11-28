@@ -100,6 +100,7 @@ class BackupExporter @Inject constructor(
         val bankNotifications = database.bankNotificationDao().getAllNotifications().first()
         val loans = database.loanDao().getAllLoans().first()
         val transactionGroups = database.transactionGroupDao().getAllGroups().first()
+        val tripExclusions = database.transactionGroupDao().getAllTripExclusions()
         val profiles = database.profileDao().getAllProfiles()
         val budgetMonthSnapshots = database.budgetSnapshotDao().getAllGroupSnapshots()
         val budgetCategoryMonthSnapshots = database.budgetSnapshotDao().getAllCategorySnapshots()
@@ -176,6 +177,7 @@ class BackupExporter @Inject constructor(
         // not useful.
         val exportedLoans = if (privacy == ExportPrivacy.FULL) loans else emptyList()
         val exportedTransactionGroups = if (privacy == ExportPrivacy.FULL) transactionGroups else emptyList()
+        val exportedTripExclusions = if (privacy == ExportPrivacy.FULL) tripExclusions else emptyList()
         val exportedProfiles = if (privacy == ExportPrivacy.FULL) profiles else emptyList()
         val exportedBudgetMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetMonthSnapshots else emptyList()
         val exportedBudgetCategoryMonthSnapshots = if (privacy == ExportPrivacy.FULL) budgetCategoryMonthSnapshots else emptyList()
@@ -230,6 +232,7 @@ class BackupExporter @Inject constructor(
                     totalBankNotifications = exportedBankNotifications.size,
                     totalLoans = exportedLoans.size,
                     totalTransactionGroups = exportedTransactionGroups.size,
+                    totalTripExclusions = exportedTripExclusions.size,
                     totalProfiles = exportedProfiles.size,
                     totalBudgetMonthSnapshots = exportedBudgetMonthSnapshots.size,
                     totalBudgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots.size,
@@ -261,6 +264,7 @@ class BackupExporter @Inject constructor(
                 bankNotifications = exportedBankNotifications,
                 loans = exportedLoans,
                 transactionGroups = exportedTransactionGroups,
+                tripExclusions = exportedTripExclusions,
                 profiles = exportedProfiles,
                 budgetMonthSnapshots = exportedBudgetMonthSnapshots,
                 budgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots,

@@ -17,6 +17,7 @@ import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.trip.demoteIfOverlapping
 import com.pennywiseai.tracker.data.webhook.WebhookPreferences
 import com.pennywiseai.tracker.utils.setAppLanguageTags
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -268,8 +269,16 @@ class BackupImporter @Inject constructor(
                 backup.database.loans.insertEachCounting({ skippedRows++ }) { loan ->
                     database.loanDao().insertLoan(loan)
                 }
+                val restoredGroupIds = mutableSetOf<Long>()
                 backup.database.transactionGroups.insertEachCounting({ skippedRows++ }) { group ->
                     database.transactionGroupDao().insertGroup(group)
+                    restoredGroupIds += group.id
+                }
+                // Groups keep their ids on a full restore, so no remap. An exclusion whose group is
+                // not in the backup is skipped here: its foreign key would fail the whole restore (#1513).
+                backup.database.tripExclusions.insertEachCounting({ skippedRows++ }) { exclusion ->
+                    check(exclusion.groupId in restoredGroupIds) { "Group ${exclusion.groupId} not in backup" }
+                    database.transactionGroupDao().insertTripExclusion(exclusion)
                 }
                 val profileIdMap = importProfilesAndBuildMap(backup.database.profiles)
 
@@ -560,12 +569,33 @@ class BackupImporter @Inject constructor(
                     (it.name to it.createdAt) to it.id
                 }
                 val oldToNewGroupIdMap = mutableMapOf<Long, Long>()
+                // Trips kept so far (local ones, then each one imported): an imported trip overlapping
+                // one of them comes in as an ordinary group, so a merge can't create two running trips.
+                val keptTrips = existingGroups.filter { it.tripStart != null }.toMutableList()
+                // Local ids of groups that are trips once the import is done.
+                val tripGroupIds = existingGroups.filter { it.tripStart != null }.map { it.id }.toHashSet()
                 backup.database.transactionGroups.insertEachCounting({ skippedRows++ }) { group ->
                     val key = group.name to group.createdAt
                     val existingId = existingGroupKeyToId[key]
-                    val newId = existingId
-                        ?: database.transactionGroupDao().insertGroup(group.copy(id = 0))
+                    val newId = existingId ?: run {
+                        val toInsert = demoteIfOverlapping(group.copy(id = 0), keptTrips)
+                        database.transactionGroupDao().insertGroup(toInsert).also {
+                            if (toInsert.tripStart != null) {
+                                keptTrips += toInsert.copy(id = it)
+                                tripGroupIds += it
+                            }
+                        }
+                    }
                     if (group.id != 0L) oldToNewGroupIdMap[group.id] = newId
+                }
+                // A matched local trip takes the backup's exclusions too (a repeat is ignored).
+                backup.database.tripExclusions.insertEachCounting({ skippedRows++ }) { exclusion ->
+                    // A group that didn't map is counted as skipped by insertEachCounting.
+                    val newId = checkNotNull(oldToNewGroupIdMap[exclusion.groupId]) { "Group ${exclusion.groupId} not restored" }
+                    // Only a group that is a trip after the import keeps exclusions; a demoted trip's
+                    // (this run or an earlier merge) are dropped on purpose and counted as skipped.
+                    check(newId in tripGroupIds) { "Group $newId is not a trip" }
+                    database.transactionGroupDao().insertTripExclusion(exclusion.copy(groupId = newId))
                 }
 
                 // Build profile id map up-front so transactions and account

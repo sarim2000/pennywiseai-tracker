@@ -99,12 +99,7 @@ object UpcomingPayments {
         templates
             .filter { it.isActive && it.transactionType == TransactionType.EXPENSE }
             .flatMap { t ->
-                val first = if (t.nextDueDate.isBefore(today)) {
-                    generateSequence(t.nextDueAfter(t.nextDueDate)) { t.nextDueAfter(it) }.first { it.isAfter(today) }
-                } else {
-                    t.nextDueDate
-                }
-                generateSequence(first) { t.nextDueAfter(it) }
+                generateSequence(RecurringCharge.nextTemplateRun(t, today)) { t.nextDueAfter(it) }
                     .dropWhile { it.isBefore(start) }
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }

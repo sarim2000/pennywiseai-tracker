@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.domain.spending
 
+import com.pennywiseai.tracker.data.database.entity.RecurringFrequency
+import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -112,6 +114,19 @@ class RecurringChargeTest {
         assertEquals(LocalDate.of(2027, 2, 1), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 1), "Quarterly", today))
         // Due today stays today, whatever the cycle.
         assertEquals(today, RecurringCharge.nextPaymentShown(today, "Weekly", today))
+    }
+
+    @Test
+    fun `a template's next run keeps today and steps an overdue one past today on its own day`() {
+        val today = LocalDate.of(2026, 11, 16)
+        fun monthly(next: LocalDate) =
+            RecurringTransactionEntity(frequency = RecurringFrequency.MONTHLY, dayOfMonth = 31, nextDueDate = next)
+        assertEquals(today, RecurringCharge.nextTemplateRun(monthly(today), today))
+        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.nextTemplateRun(monthly(LocalDate.of(2026, 11, 20)), today))
+        // Overdue since Sep 30: Oct 31 is past too, so the next run is Nov 30, not Nov 16.
+        assertEquals(LocalDate.of(2026, 11, 30), RecurringCharge.nextTemplateRun(monthly(LocalDate.of(2026, 9, 30)), today))
+        val weekly = RecurringTransactionEntity(frequency = RecurringFrequency.WEEKLY, nextDueDate = LocalDate.of(2026, 11, 9))
+        assertEquals(LocalDate.of(2026, 11, 23), RecurringCharge.nextTemplateRun(weekly, today))
     }
 
     @Test

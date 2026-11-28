@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.domain.spending
 
+import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -125,6 +126,18 @@ object RecurringCharge {
         while (next.isBefore(today)) next = advance(scheduled, billingCycle, ++cycles)
         return next
     }
+
+    /**
+     * A template's next run as bills and incomes count it: its [RecurringTransactionEntity.nextDueDate],
+     * or, when that's already past, its first run after [today]. One already due is the
+     * daily worker's to post, and posting moves the schedule past today.
+     */
+    fun nextTemplateRun(template: RecurringTransactionEntity, today: LocalDate): LocalDate =
+        if (template.nextDueDate.isBefore(today)) {
+            generateSequence(template.nextDueAfter(template.nextDueDate)) { template.nextDueAfter(it) }.first { it.isAfter(today) }
+        } else {
+            template.nextDueDate
+        }
 
     /**
      * [sub] once a payment on [paidAt] has moved its schedule to [next]. A plan with

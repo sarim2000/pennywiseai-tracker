@@ -124,14 +124,7 @@ data class PaydayProjection(
                 }
             val fromTemplates = recurring
                 .filter { it.isActive && it.transactionType == TransactionType.INCOME }
-                .map { t ->
-                    val next = if (t.nextDueDate.isBefore(today)) {
-                        generateSequence(t.nextDueAfter(t.nextDueDate)) { t.nextDueAfter(it) }.first { it.isAfter(today) }
-                    } else {
-                        t.nextDueDate
-                    }
-                    ExpectedIncome(t.merchantName, t.currency, next)
-                }
+                .map { t -> ExpectedIncome(t.merchantName, t.currency, RecurringCharge.nextTemplateRun(t, today)) }
             return fromSubscriptions + fromTemplates
         }
     }

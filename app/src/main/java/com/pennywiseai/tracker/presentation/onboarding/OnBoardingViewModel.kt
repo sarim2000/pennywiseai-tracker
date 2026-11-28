@@ -122,7 +122,17 @@ class OnBoardingViewModel @Inject constructor(
             }
             if (step >= OnBoardingStep.SMS_SCAN) {
                 observeScanProgress()
-                if (smsGranted) applyStoredTransactions()
+                if (smsGranted) {
+                    // A scan killed with the app is rescheduled: it is still running, not done.
+                    val pending = WorkManager.getInstance(context)
+                        .getWorkInfosForUniqueWorkFlow(OptimizedSmsReaderWorker.WORK_NAME)
+                        .first().any { !it.state.isFinished }
+                    if (pending) {
+                        _uiState.update { it.copy(isScanning = true, scanCompleted = false) }
+                    } else {
+                        applyStoredTransactions()
+                    }
+                }
                 loadAccounts()
             }
         }
@@ -390,12 +400,12 @@ internal fun resumeStep(saved: String, smsGranted: Boolean): OnBoardingStep {
 }
 
 /**
- * A scan that added nothing new (an earlier run already saved everything) is not "No
- * transactions found": when [stored] transactions exist, report them as the found count.
- * On the scan step this also shows the finished state instead of "Start scanning" again.
+ * What a finished scan shows: the transactions stored, when that is more than this run
+ * inserted (a resumed or repeated scan only counts its own inserts, and one that added
+ * nothing new is not "No transactions found"). Left alone while a scan is running.
  */
 internal fun OnBoardingUiState.withStoredTransactions(stored: Int): OnBoardingUiState =
-    if (scanSaved > 0 || stored <= 0 || isScanning) {
+    if (isScanning || stored <= scanSaved) {
         this
     } else {
         copy(

@@ -63,4 +63,24 @@ class OnboardingBackTest {
         val running = OnBoardingUiState(isScanning = true)
         assertFalse(running.withStoredTransactions(stored = 5).scanCompleted)
     }
+
+    @Test
+    fun `a finished run that inserted fewer than are stored shows the stored count`() {
+        val resumed = OnBoardingUiState(scanCompleted = true, scanTotal = 4956, scanSaved = 2116)
+
+        val shown = resumed.withStoredTransactions(stored = 2994)
+
+        assertEquals(2994, shown.scanSaved)
+        assertEquals(4956, shown.scanTotal)
+    }
+
+    @Test
+    fun `a scan still pending is not shown as completed`() {
+        val pending = OnBoardingUiState(isScanning = true, scanCompleted = false)
+
+        val shown = pending.withStoredTransactions(stored = 878)
+
+        assertFalse(shown.scanCompleted)
+        assertEquals(0, shown.scanSaved)
+    }
 }

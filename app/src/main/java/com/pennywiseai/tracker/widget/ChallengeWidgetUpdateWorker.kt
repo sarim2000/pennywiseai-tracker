@@ -68,12 +68,12 @@ class ChallengeWidgetUpdateWorker @AssistedInject constructor(
             // Before the rows: a scan saves its rows, then moves the cursor. Read the other
             // way round, a scan ending in between pairs old rows with the new cursor and
             // counts its days clean.
-            val readBefore = inboxReadBefore(
-                preferences.getLastScanTimestamp().first(),
-                preferences.lastScanRecord.first()?.owesFullWindow == true,
-            )
+            val readFirst = readBefore()
             // The profile it was started under, whichever is selected now.
             val rows = loader.scopedRows(run.start, maxOf(run.end, today), flowOf(run.profileId)).first()
+            // And again after: a Rebuild that started in between owes the window from before
+            // it deletes rows, so the rows just read may be missing days the first read counted.
+            val readBefore = minOf(readFirst, readBefore())
             val tracking = trackingProblem(
                 ctx.canReadSms() && ctx.canReceiveSms(),
                 BackgroundAccessState(backgroundRestricted = ctx.isBackgroundRestricted()),
@@ -92,4 +92,10 @@ class ChallengeWidgetUpdateWorker @AssistedInject constructor(
     } catch (e: Exception) {
         Result.retry()
     }
+
+    /** The day before which the inbox has been read; nothing while a scan owes the whole window. */
+    private suspend fun readBefore() = inboxReadBefore(
+        preferences.getLastScanTimestamp().first(),
+        preferences.lastScanRecord.first()?.owesFullWindow == true,
+    )
 }

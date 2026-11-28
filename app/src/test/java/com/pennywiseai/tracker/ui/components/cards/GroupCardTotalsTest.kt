@@ -30,6 +30,13 @@ class GroupCardTotalsTest {
         mapValues { it.value.amount.stripTrailingZeros().toPlainString() }
 
     @Test
+    fun aZeroTotalIsNotAHiddenOne() {
+        val two = mapOf("INR" to Money(BigDecimal("5"), "INR"), "USD" to Money(BigDecimal("2"), "USD"), "JOD" to Money.zero("JOD"))
+        assertEquals(false, hidesGroupCardTotals(two))
+        assertEquals(true, hidesGroupCardTotals(two + ("JOD" to Money(BigDecimal("1"), "JOD"))))
+    }
+
+    @Test
     fun cardShowsTheTwoLargestTotals() {
         val totals = groupCardTotals(listOf(txn("5", "USD"), txn("900", "INR"), txn("40", "JOD")), emptyMap(), null)
         assertEquals(setOf("INR", "JOD"), shownGroupCardTotals(totals).keys)

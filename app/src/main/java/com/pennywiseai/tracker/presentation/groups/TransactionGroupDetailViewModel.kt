@@ -180,8 +180,12 @@ class TransactionGroupDetailViewModel @Inject constructor(
 
     /** One database transaction for the whole batch; skipping records nothing. */
     fun addBackfill(ids: List<Long>) {
-        _uiState.value = _uiState.value.copy(backfill = null)
-        viewModelScope.launch { repository.addTransactionsToGroup(ids, groupId) }
+        viewModelScope.launch {
+            // The sheet closes only once the rows are in; a failed write leaves it open to retry.
+            if (runCatching { repository.addTransactionsToGroup(ids, groupId) }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }.isSuccess) {
+                _uiState.update { it.copy(backfill = null) }
+            }
+        }
     }
 
     fun dismissUpgrade() { _uiState.value = _uiState.value.copy(upgradeRequested = false) }

@@ -72,6 +72,10 @@ private const val MAX_CARD_CURRENCIES = 2
 internal fun shownGroupCardTotals(totals: Map<String, Money>): Map<String, Money> =
     totals.entries.sortedByDescending { it.value.amount.abs() }.take(MAX_CARD_CURRENCIES).associate { it.toPair() }
 
+/** Whether [shownGroupCardTotals] leaves out a total the formatter would print (a zero one is never printed). */
+internal fun hidesGroupCardTotals(totals: Map<String, Money>): Boolean =
+    totals.values.count { it.amount.signum() != 0 } > MAX_CARD_CURRENCIES
+
 @Composable
 fun GroupCard(
     group: TransactionGroupEntity,
@@ -102,7 +106,7 @@ fun GroupCard(
 
     val formattedAmount = CurrencyFormatter.formatByCurrency(shownGroupCardTotals(totals), signPrefix = "+", keepSign = true) +
         // No hint of more currencies while amounts are hidden: the mask says nothing about how many there are.
-        if (totals.size > MAX_CARD_CURRENCIES && !AmountPrivacy.hidden) " · …" else ""
+        if (hidesGroupCardTotals(totals) && !AmountPrivacy.hidden) " · …" else ""
 
     ListItemCardV2(
         title = group.name,

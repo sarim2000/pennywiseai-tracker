@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.ledger.BalanceCalculator
 import com.pennywiseai.tracker.data.ledger.isPairedTransferLeg
 import com.pennywiseai.tracker.data.ledger.ledgerType
+import com.pennywiseai.tracker.data.ledger.signedAccountSum
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.data.trip.withTripGroup
 import com.pennywiseai.tracker.domain.model.AccountType
@@ -838,29 +839,12 @@ open class AccountBalanceRepository @Inject constructor(
         accountLast4: String,
         currency: String,
         after: LocalDateTime? = null
-    ): BigDecimal {
-        fun counts(tx: TransactionEntity) = tx.currency == currency && (after == null || tx.dateTime > after)
-        var sum = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
-            .filter { it.transactionType != TransactionType.TRANSFER && counts(it) }
-            .fold(BigDecimal.ZERO) { acc, tx ->
-                if (tx.transactionType == TransactionType.INCOME) acc + tx.amount else acc - tx.amount
-            }
-        for (tx in transactionDao.getTransfersForAccount(accountLast4).filter(::counts)) {
-            if (tx.isPairedTransferLeg) {
-                if (tx.bankName == bankName && tx.accountNumber == accountLast4) {
-                    when (tx.ledgerType()) {
-                        TransactionType.INCOME -> sum += tx.amount
-                        TransactionType.EXPENSE -> sum -= tx.amount
-                        else -> Unit
-                    }
-                }
-                continue
-            }
-            if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) sum += tx.amount
-            if (tx.fromAccount == accountLast4 && (tx.fromBankName == null || tx.fromBankName == bankName)) sum -= tx.amount
-        }
-        return sum
-    }
+    ): BigDecimal = signedAccountSum(
+        bankName,
+        accountLast4,
+        direct = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4),
+        transfers = transactionDao.getTransfersForAccount(accountLast4)
+    ) { it.currency == currency && (after == null || it.dateTime > after) }
 
     /**
      * The account's balance at [end], as well as the ledger knows it (#13). A

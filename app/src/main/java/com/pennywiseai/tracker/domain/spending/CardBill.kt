@@ -86,6 +86,19 @@ object CardBills {
     }
 
     /**
+     * When the bill carrying a charge made on [charge] is due: the bill of the statement
+     * closing on or after it. With no [statementDay], the first [dueDay] after the charge,
+     * the earliest it can be due.
+     */
+    fun dueDateFor(charge: LocalDate, statementDay: Int?, dueDay: Int): LocalDate {
+        val statement = statementDay?.let { day ->
+            val month = YearMonth.from(charge)
+            month.dayClamped(day).takeUnless { it.isBefore(charge) } ?: month.plusMonths(1).dayClamped(day)
+        } ?: charge
+        return dueDate(statement, dueDay)
+    }
+
+    /**
      * A payment toward the card: money in, in the card's currency. A transfer into
      * it, or an income row on the card that isn't a credit back for a purchase
      * ([isPurchaseCredit]); spending never is. Each transfer pair counts once,

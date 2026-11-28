@@ -306,6 +306,10 @@ private fun InsightsContent(
             }
         }
 
+        state.paydayProjection?.let { projection ->
+            item(key = "payday") { PaydayProjectionCard(projection, Modifier.animateItem()) }
+        }
+
         item(key = "coverage") { CoverageNote(Modifier.animateItem()) }
     }
 }

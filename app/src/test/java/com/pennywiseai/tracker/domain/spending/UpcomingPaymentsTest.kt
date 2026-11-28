@@ -142,6 +142,37 @@ class UpcomingPaymentsTest {
         )
 
         assertEquals(listOf("Spotify" to date("2026-10-28"), "Fuel" to date("2026-10-30")), bills.map { it.name to it.dueDate })
+        assertTrue(bills.all { it.onCreditCard })
+    }
+
+    @Test
+    fun `a card charge carries the day its card bill is due`() {
+        val withDueDay = card.copy(statementDay = 30, cardDueDay = 10)
+        val bills = UpcomingPayments.of(
+            listOf(sub("Spotify", "2026-10-28", bank = "Test Bank", last4 = "4444")), emptyList(), emptyList(), listOf(withDueDay), today, end,
+        )
+
+        // Charged 28 Oct, the statement closes 30 Oct, due 10 Nov.
+        assertEquals(listOf(date("2026-11-10")), bills.map { it.cardDueDate })
+    }
+
+    @Test
+    fun `a charge naming digits two banks' cards share gets no card due day`() {
+        val mine = card.copy(statementDay = 30, cardDueDay = 10)
+        val other = mine.copy(bankName = "Other Bank", cardDueDay = 20)
+        val bills = UpcomingPayments.of(
+            listOf(sub("Spotify", "2026-10-28", last4 = "4444")), emptyList(), emptyList(), listOf(mine, other), today, end,
+        )
+
+        assertTrue(bills.single().onCreditCard)
+        assertEquals(null, bills.single().cardDueDate)
+    }
+
+    @Test
+    fun `a payment from a bank account isn't marked as on a card`() {
+        val bills = upcoming(subscriptions = listOf(sub("Rent", "2026-11-01", bank = "Test Bank", last4 = "9999"), sub("Gym", "2026-11-01")))
+
+        assertTrue(bills.none { it.onCreditCard })
     }
 
     @Test

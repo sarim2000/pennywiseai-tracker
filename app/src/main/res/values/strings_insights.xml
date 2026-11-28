@@ -147,4 +147,27 @@
         <item quantity="one">%1$s, due today.</item>
         <item quantity="other">%1$s. The first is due today.</item>
     </plurals>
+
+    <!-- Insights: whether the balance covers the bills due before the next income -->
+    <string name="payday_projection_title">Until payday</string>
+    <!-- %1$s = the expected income's name, e.g. "Salary"; %2$s = its date, e.g. "25 Nov" -->
+    <string name="payday_projection_until_income">Until %1$s on %2$s</string>
+    <!-- No income is set up, so the projection runs to the budget cycle's last day. %1$s = that date, e.g. "30 Nov" -->
+    <string name="payday_projection_until_cycle_end">Until the cycle ends on %1$s</string>
+    <!-- Over the lowest the balance gets once the bills are paid. %1$s = the date it gets there, e.g. "20 Nov" -->
+    <string name="payday_projection_lowest">Lowest balance, %1$s</string>
+    <!-- The bills take the balance below zero. %1$s = the first date it is below zero, e.g. "18 Nov" -->
+    <string name="payday_projection_below_zero">Below zero from %1$s</string>
+    <string name="payday_projection_covered">Your balance covers these bills</string>
+    <!-- What the projection counts: the bills due before payday -->
+    <plurals name="payday_projection_bills">
+        <item quantity="one">Includes %d bill</item>
+        <item quantity="other">Includes %d bills</item>
+    </plurals>
+    <string name="payday_projection_no_bills">No bills due before then</string>
+    <string name="payday_projection_one_income">1 expected income</string>
+    <!-- No income subscription or recurring income is set up -->
+    <string name="payday_projection_no_income">No expected income set up</string>
+    <string name="payday_projection_spending_excluded">Day-to-day spending not included</string>
+    <string name="payday_projection_partial">Some balances aren\'t known yet</string>
 </resources>

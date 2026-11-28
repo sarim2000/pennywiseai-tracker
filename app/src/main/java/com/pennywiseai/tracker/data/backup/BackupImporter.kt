@@ -68,10 +68,17 @@ class BackupImporter @Inject constructor(
             }
 
             // Import based on strategy
-            var result = when (strategy) {
-                ImportStrategy.REPLACE_ALL -> replaceAllData(backup)
-                ImportStrategy.MERGE -> mergeData(backup)
-                ImportStrategy.SELECTIVE -> mergeData(backup) // For now, same as merge
+            var result = try {
+                when (strategy) {
+                    ImportStrategy.REPLACE_ALL -> replaceAllData(backup)
+                    ImportStrategy.MERGE -> mergeData(backup)
+                    ImportStrategy.SELECTIVE -> mergeData(backup) // For now, same as merge
+                }
+            } catch (e: android.database.SQLException) {
+                // Only here is "nothing was changed" true: the import transaction rolled back.
+                // Raw SQLite text ("... code 1811") means nothing to the user; the log keeps it.
+                Log.e("BackupImporter", "Import failed", e)
+                return@withContext ImportResult.Error("${e.message}", R.string.settings_import_failed_database)
             }
             // A backup from before transfer_pair_id can hold pairs marked back then.
             if (result is ImportResult.Success) {
@@ -104,10 +111,6 @@ class BackupImporter @Inject constructor(
         } catch (e: BackupReadException) {
             Log.e("BackupImporter", "Import failed: ${e.message}")
             ImportResult.Error(context.getString(e.messageRes))
-        } catch (e: android.database.SQLException) {
-            // Raw SQLite text ("... code 1811") means nothing to the user; the log keeps it.
-            Log.e("BackupImporter", "Import failed", e)
-            ImportResult.Error("${e.message}", R.string.settings_import_failed_database)
         } catch (e: Exception) {
             Log.e("BackupImporter", "Import failed", e)
             ImportResult.Error("${e.message}")

@@ -117,15 +117,31 @@ private fun amountMatchesSearch(query: String, amount: BigDecimal): Boolean {
         amount.toPlainString().contains(cleanedQuery)
 }
 
-/** Rows carrying exactly [tag], ignoring case; null means no tag filter. */
+/**
+ * The (first, second) tag filter after dropping any tag for which [exists] is false; a second tag
+ * with no first is promoted to first, so the picker and chips always match what the list filters by.
+ */
+internal fun normalizeTags(first: String?, also: String?, exists: (String) -> Boolean = { true }): Pair<String?, String?> {
+    val f = first?.takeIf(exists)
+    val a = also?.takeIf(exists)
+    return if (f == null) a to null else f to a
+}
+
+/**
+ * Rows carrying exactly [tag], ignoring case; null means no tag filter. A non-null [alsoTag]
+ * (an Analytics drill-down into a tag row under a tag filter) is required as well.
+ */
 internal fun filterByTag(
     transactions: List<TransactionEntity>,
     tag: String?,
     tagsById: Map<Long, List<String>>,
+    alsoTag: String? = null,
 ): List<TransactionEntity> {
-    if (tag == null) return transactions
+    val required = listOfNotNull(tag, alsoTag)
+    if (required.isEmpty()) return transactions
     return transactions.filter { tx ->
-        tagsById[tx.id]?.any { it.equals(tag, ignoreCase = true) } == true
+        val tags = tagsById[tx.id].orEmpty()
+        required.all { want -> tags.any { it.equals(want, ignoreCase = true) } }
     }
 }
 

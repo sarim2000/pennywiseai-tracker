@@ -26,6 +26,9 @@ object WidgetPinning {
     /** Budget Overview: nothing to set up, the launcher just places it. */
     fun pinBudgetWidget(context: Context): Boolean = request(context, BudgetWidgetReceiver::class.java, callback = null)
 
+    /** The Challenge widget: it follows whichever challenge is running, so nothing to set up. */
+    fun pinChallengeWidget(context: Context): Boolean = request(context, ChallengeWidgetReceiver::class.java, callback = null)
+
     /**
      * The 2×2 goal widget on [goalId]. A pinned widget skips the launcher's
      * configure step, so [GoalWidgetPinnedReceiver] stores the goal once it's placed.

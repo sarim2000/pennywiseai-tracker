@@ -27,7 +27,7 @@
         <item quantity="one">%1$d of %2$d day done</item>
         <item quantity="other">%1$d of %2$d days done</item>
     </plurals>
-    <!-- TalkBack for one day: %1$s the date ("Thursday, 20 Nov"), %2$s its state -->
+    <!-- TalkBack for one day: %1$s names the day (the date in Plan, "Thursday, 20 Nov"; "Day 2" on the widget), %2$s its state -->
     <string name="challenge_day_description">%1$s: %2$s</string>
     <string name="challenge_day_clean">clean</string>
     <!-- %1$s: the merchants that counted against the day -->

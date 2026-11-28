@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.plan
+package com.pennywiseai.tracker.domain.challenges
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity

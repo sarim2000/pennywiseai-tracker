@@ -6,7 +6,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -15,11 +19,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -60,7 +67,11 @@ fun PennyWiseApp(
     widgetDestination: NavKey? = null,
     onWidgetDestinationHandled: (() -> Unit)? = null,
     openChat: Long? = null,
-    onOpenChatHandled: (() -> Unit)? = null
+    onOpenChatHandled: (() -> Unit)? = null,
+    updateReady: Boolean = false,
+    onUpdateCheck: (stillSafe: () -> Boolean) -> Unit = {},
+    onUpdateRestart: () -> Unit = {},
+    onUpdateLater: () -> Unit = {}
 ) {
     val owner = androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner.current ?: error("No ViewModelStoreOwner")
     val actualThemeViewModel: ThemeViewModel = themeViewModel ?: hiltViewModel(viewModelStoreOwner = owner, key = null)
@@ -253,6 +264,17 @@ fun PennyWiseApp(
         coverForLock(checks, isLockEnabled, isLocked, unlockedOnScreen, onLockScreen)
     }
 
+    // Play's update sheet and the restart dialog wait for Home's first screen: not over
+    // onboarding, the lock screen, another tab, or a form or sheet (Restart would lose it).
+    // Re-checked on each return to Home and each resume: keyed by the resume too, since a
+    // fast lock check can bring `unlocked` back before Compose ever sees it drop. The
+    // manager keeps a version from being offered twice. Play answers asynchronously, so
+    // the manager asks again before it opens the sheet, in case the user has left Home.
+    var homeOnTop by remember { mutableStateOf(false) }
+    val updateSafe = themeUiState.hasCompletedOnboarding && currentRoute == Home && homeOnTop && unlocked && !covered
+    val updateSafeNow by rememberUpdatedState(updateSafe)
+    LaunchedEffect(updateSafe, lockChecksAtResume) { if (updateSafe) onUpdateCheck { updateSafeNow } }
+
     val look = Look(
         darkTheme = darkTheme,
         dynamicColor = themeUiState.isDynamicColorEnabled,
@@ -285,7 +307,28 @@ fun PennyWiseApp(
                         modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
                         onEditComplete = onEditComplete ?: {},
                         widgetPlan = widgetPlan,
-                        onWidgetPlanHandled = { widgetPlan = null }
+                        onWidgetPlanHandled = { widgetPlan = null },
+                        onHomeOnTopChange = { homeOnTop = it }
+                    )
+                }
+                // A Play update finished downloading. A dialog, so it can't queue Home's Undo snackbar.
+                if (updateReady && updateSafe) {
+                    AlertDialog(
+                        onDismissRequest = onUpdateLater,
+                        // Back is "Later"; a stray tap outside isn't.
+                        properties = DialogProperties(dismissOnClickOutside = false),
+                        title = { Text(stringResource(R.string.update_ready_title)) },
+                        text = { Text(stringResource(R.string.update_ready_body)) },
+                        confirmButton = {
+                            TextButton(onClick = onUpdateRestart, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.update_restart))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = onUpdateLater, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.update_later))
+                            }
+                        }
                     )
                 }
                 if (covered) {

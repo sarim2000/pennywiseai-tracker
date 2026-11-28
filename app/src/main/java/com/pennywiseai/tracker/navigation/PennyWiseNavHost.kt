@@ -155,6 +155,7 @@ fun PennyWiseNavHost(
     onEditComplete: () -> Unit = {},
     widgetPlan: Plan? = null,
     onWidgetPlanHandled: () -> Unit = {},
+    onHomeOnTopChange: (Boolean) -> Unit = {},
 ) {
     val motion = MaterialTheme.motionScheme
     val fadeOnly = remember(motion) { fadeOnly(motion) }
@@ -196,6 +197,7 @@ fun PennyWiseNavHost(
                                 rootBackStack = backStack,
                                 widgetPlan = widgetPlan,
                                 onWidgetPlanHandled = onWidgetPlanHandled,
+                                onHomeOnTopChange = onHomeOnTopChange,
                             )
                         }
                     }

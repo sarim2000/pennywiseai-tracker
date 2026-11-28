@@ -1,186 +1,149 @@
 package com.pennywiseai.tracker.data.manager
 
+import android.app.Activity
 import android.content.Context
 import android.util.Log
-import androidx.activity.ComponentActivity
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import com.google.android.play.core.appupdate.AppUpdateInfo
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
+import androidx.core.content.edit
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
-import com.google.android.play.core.install.InstallState
 import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.InstallStatus
 import com.google.android.play.core.install.model.UpdateAvailability
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Manages Google Play In-App Updates.
- * Checks for available updates and triggers the update flow.
+ * Google Play In-App Updates (flexible): offered when Home opens, downloaded
+ * in the background, then [restartPrompt] asks the UI for a restart.
  */
 @Singleton
 class InAppUpdateManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext context: Context
 ) {
     private val appUpdateManager: AppUpdateManager = AppUpdateManagerFactory.create(context)
-    private var updateListener: InstallStateUpdatedListener? = null
-    private var snackbarHostState: SnackbarHostState? = null
-    private var coroutineScope: CoroutineScope? = null
-    
+    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    private val _restartPrompt = MutableStateFlow(false)
+    val restartPrompt: StateFlow<Boolean> = _restartPrompt
+
+    // ponytail: "Later" is once per process, so it doesn't re-ask on every resume
+    // (a file picker or the camera resumes too); the next cold start asks again.
+    private var restartDeclined = false
+
+    // The version whose sheet is up (or was accepted) in this process: not offered again
+    // until the next cold start, and recorded as declined only on "No thanks".
+    private var startedVersion = NONE
+
+    private fun downloaded() {
+        if (!restartDeclined) _restartPrompt.value = true
+    }
+
+    // A singleton, registered for the process: it holds no Activity.
+    private val listener = InstallStateUpdatedListener { state ->
+        when (state.installStatus()) {
+            InstallStatus.DOWNLOADED -> downloaded()
+            InstallStatus.FAILED -> Log.w(TAG, "Update failed with error code: ${state.installErrorCode()}")
+            else -> {}
+        }
+    }
+
+    init {
+        appUpdateManager.registerListener(listener)
+    }
+
     /**
-     * Checks for available updates and starts the update flow if available.
-     * Google Play handles all the UI - showing update dialog, progress, etc.
-     * @param activity The activity to start the update flow from
-     * @param snackbarHostState The SnackbarHostState to show restart prompt
-     * @param scope The CoroutineScope to launch the snackbar in
+     * Call each time Home shows, unlocked and onboarded: offers a new version until
+     * the user declines it (remembered across launches), and re-raises a download
+     * that's waiting. [launcher] reports the sheet's result to [onUpdateFlowResult].
+     * [stillSafe] is asked again once Play answers: the user may have left Home since.
      */
     fun checkForUpdate(
-        activity: ComponentActivity,
-        snackbarHostState: SnackbarHostState? = null,
-        scope: CoroutineScope? = null
+        activity: Activity,
+        launcher: ActivityResultLauncher<IntentSenderRequest>,
+        stillSafe: () -> Boolean
     ) {
-        this.snackbarHostState = snackbarHostState
-        this.coroutineScope = scope
-        val appUpdateInfoTask = appUpdateManager.appUpdateInfo
-        
-        appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
-            when {
-                // Check if update is available and allowed
-                appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
-                    && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) -> {
-                    // Start flexible update flow
-                    startFlexibleUpdate(activity, appUpdateInfo)
-                }
-                
-                // Check if update was downloaded but not installed
-                appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED -> {
-                    // Notify user to complete update
-                    popupSnackbarForCompleteUpdate()
-                }
+        // Activity-scoped: removed once the activity stops, so it never fires on a dead one.
+        appUpdateManager.appUpdateInfo.addOnSuccessListener(activity) { info ->
+            if (info.installStatus() == InstallStatus.DOWNLOADED) {
+                downloaded()
+                return@addOnSuccessListener
             }
-        }.addOnFailureListener { exception ->
-            // Log error but don't show to user - fail silently
-            Log.e(TAG, "Update check failed", exception)
-        }
-    }
-    
-    /**
-     * Starts the flexible update flow.
-     * User can continue using the app while the update downloads in background.
-     */
-    private fun startFlexibleUpdate(activity: ComponentActivity, appUpdateInfo: AppUpdateInfo) {
-        // Register listener to monitor update progress
-        updateListener = InstallStateUpdatedListener { state ->
-            handleUpdateState(state)
-        }
-        
-        updateListener?.let {
-            appUpdateManager.registerListener(it)
-        }
-        
-        try {
-            appUpdateManager.startUpdateFlowForResult(
-                appUpdateInfo,
-                activity,
-                AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build(),
-                UPDATE_REQUEST_CODE
+            val offer = shouldOffer(
+                updateAvailable = info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                    info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE),
+                installStatus = info.installStatus(),
+                availableVersion = info.availableVersionCode(),
+                declinedVersion = prefs.getInt(KEY_DECLINED_VERSION, NONE),
+                startedVersion = startedVersion
             )
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start update flow", e)
-            unregisterListener()
-        }
-    }
-    
-    /**
-     * Handles update state changes.
-     */
-    private fun handleUpdateState(state: InstallState) {
-        when (state.installStatus()) {
-            InstallStatus.DOWNLOADED -> {
-                // Update has been downloaded
-                popupSnackbarForCompleteUpdate()
-                unregisterListener()
-            }
-            InstallStatus.INSTALLED -> {
-                // Update installed successfully
-                unregisterListener()
-            }
-            InstallStatus.FAILED -> {
-                // Update failed
-                Log.e(TAG, "Update failed with error code: ${state.installErrorCode()}")
-                unregisterListener()
-            }
-            else -> {
-                // Other states like DOWNLOADING, INSTALLING, etc.
-                // Google Play handles the UI for these states
-            }
-        }
-    }
-    
-    /**
-     * Shows a Snackbar notification to complete the update.
-     * Prompts the user to restart the app to apply the update.
-     */
-    private fun popupSnackbarForCompleteUpdate() {
-        // If we have both SnackbarHostState and CoroutineScope, show the Snackbar
-        val hostState = snackbarHostState
-        val scope = coroutineScope
-        
-        if (hostState != null && scope != null) {
-            scope.launch {
-                val result = hostState.showSnackbar(
-                    message = "Update ready! Restart the app to apply changes.",
-                    actionLabel = "Restart",
-                    duration = SnackbarDuration.Indefinite
+            if (!offer || !stillSafe() || activity.isFinishing || activity.isDestroyed) return@addOnSuccessListener
+            // Only a flow that started counts, so a failed launch is retried next time.
+            val started = try {
+                appUpdateManager.startUpdateFlowForResult(
+                    info,
+                    launcher,
+                    AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build()
                 )
-                
-                if (result == SnackbarResult.ActionPerformed) {
-                    // User clicked restart, complete the update
-                    completeUpdate()
-                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to start update flow", e)
+                false
             }
-        } else {
-            // Fallback to logging if Snackbar components aren't available
-            Log.i(TAG, "Update downloaded. App will be updated on next restart.")
+            if (started) startedVersion = info.availableVersionCode()
+        }.addOnFailureListener {
+            // Every non-Play install (sideloaded, debug) lands here: not an error.
+            Log.d(TAG, "Update check unavailable: ${it.message}")
         }
     }
-    
+
     /**
-     * Completes the update and restarts the app.
+     * Play's sheet closed. Only "No thanks" ([Activity.RESULT_CANCELED]) is remembered
+     * across launches; a failed flow, or an app killed with the sheet up, offers again
+     * on the next cold start.
      */
+    fun onUpdateFlowResult(resultCode: Int) {
+        if (resultCode == Activity.RESULT_CANCELED && startedVersion != NONE) {
+            prefs.edit { putInt(KEY_DECLINED_VERSION, startedVersion) }
+        }
+    }
+
+    /** Installs the downloaded update; Play restarts the app. On failure the next check asks again. */
     fun completeUpdate() {
-        appUpdateManager.completeUpdate()
+        _restartPrompt.value = false
+        appUpdateManager.completeUpdate().addOnFailureListener { Log.w(TAG, "Update install failed", it) }
     }
-    
-    /**
-     * Unregisters the update listener.
-     */
-    private fun unregisterListener() {
-        updateListener?.let {
-            appUpdateManager.unregisterListener(it)
-            updateListener = null
-        }
+
+    /** "Later": no more restart prompts until the next cold start. */
+    fun dismissRestart() {
+        restartDeclined = true
+        _restartPrompt.value = false
     }
-    
-    /**
-     * Call this in onDestroy to clean up.
-     */
-    fun cleanup() {
-        unregisterListener()
-        // A singleton: holding the screen's scope and snackbar past it leaks the Activity.
-        snackbarHostState = null
-        coroutineScope = null
-    }
-    
-    companion object {
+
+    internal companion object {
         private const val TAG = "InAppUpdateManager"
-        const val UPDATE_REQUEST_CODE = 123
+        private const val PREFS = "in_app_update"
+        private const val KEY_DECLINED_VERSION = "declined_version_code"
+        private const val NONE = -1
+
+        /**
+         * Offer a version once per process: "No thanks" holds until a newer one
+         * appears. Never while Play is already fetching or installing one.
+         */
+        fun shouldOffer(
+            updateAvailable: Boolean,
+            installStatus: Int,
+            availableVersion: Int,
+            declinedVersion: Int,
+            startedVersion: Int
+        ): Boolean = updateAvailable &&
+            installStatus !in setOf(InstallStatus.PENDING, InstallStatus.DOWNLOADING, InstallStatus.INSTALLING) &&
+            availableVersion != declinedVersion &&
+            availableVersion != startedVersion
     }
 }

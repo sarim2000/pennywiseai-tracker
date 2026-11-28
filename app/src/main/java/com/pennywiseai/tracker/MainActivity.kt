@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -16,6 +17,7 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.navigation.PlanSection
@@ -101,6 +103,12 @@ class MainActivity : FragmentActivity() {
 
     @Inject lateinit var appLockRepository: AppLockRepository
     @Inject lateinit var chatDrafts: com.pennywiseai.tracker.data.manager.ChatDraftInbox
+    @Inject lateinit var inAppUpdateManager: com.pennywiseai.tracker.data.manager.InAppUpdateManager
+
+    // Play's update sheet reports "No thanks" here, so only a real decline is remembered.
+    private val updateFlow = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) {
+        inAppUpdateManager.onUpdateFlowResult(it.resultCode)
+    }
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
@@ -139,6 +147,7 @@ class MainActivity : FragmentActivity() {
         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) { registerQuickAddShortcut() }
 
         setContent {
+            val updateReady by inAppUpdateManager.restartPrompt.collectAsStateWithLifecycle()
             PennyWiseApp(
                 editTransactionId = editTransactionId,
                 openAddTransaction = openAddTransaction,
@@ -152,7 +161,11 @@ class MainActivity : FragmentActivity() {
                 onOpenChatHandled = {
                     openChat = null
                     chatDrafts.requestOpen()
-                }
+                },
+                updateReady = updateReady,
+                onUpdateCheck = { stillSafe -> inAppUpdateManager.checkForUpdate(this, updateFlow, stillSafe) },
+                onUpdateRestart = inAppUpdateManager::completeUpdate,
+                onUpdateLater = inAppUpdateManager::dismissRestart
             )
         }
     }

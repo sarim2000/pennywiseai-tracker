@@ -59,6 +59,10 @@
     <string name="mascot_playground_moments_body">Each button announces a moment the way the real action does: a goal reached, a debt paid off, a backup saved. Nothing changes. A bigger moment takes over from a smaller one.</string>
     <string name="mascot_playground_grid_title">Every shape and mood</string>
     <string name="mascot_playground_grid_body">Tap one to show it above.</string>
+    <string name="update_ready_title">Update ready</string>
+    <string name="update_ready_body">A new version of PennyWise has downloaded. Restart to install it.</string>
+    <string name="update_restart">Restart</string>
+    <string name="update_later">Later</string>
     <!-- rd:home -->
     <!-- Home hero under the budget meter: "₹4,264 spent of ₹40,000"; both are formatted amounts -->
     <string name="home_hero_view_budget">View budget</string>

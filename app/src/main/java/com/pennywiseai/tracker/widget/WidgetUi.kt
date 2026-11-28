@@ -2,8 +2,11 @@ package com.pennywiseai.tracker.widget
 
 import android.app.LocaleManager
 import android.content.Context
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.os.Build
 import android.text.TextUtils
+import android.util.TypedValue
 import android.view.View
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
@@ -12,6 +15,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -44,6 +49,7 @@ import com.pennywiseai.tracker.core.SmsScanRunning
 import com.pennywiseai.tracker.data.preferences.PrivacyPreferences
 import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -320,9 +326,37 @@ fun widgetMoney(context: Context, amount: BigDecimal, currency: String): String 
 object WidgetDefaults {
     /** Inside the widget's frame, all sides. */
     val padding = Spacing.md
-    /** The + circle; it sits in a [Dimensions.Component.minTouchTarget] target. */
+    /** The + squircle; it sits in a [Dimensions.Component.minTouchTarget] target. */
     val addButton = Dimensions.Icon.list
-    val barHeight = Spacing.xs + Spacing.xxs
+    /** A data meter: thick, with round ends, as the app's Expressive meters read. */
+    val barHeight = Spacing.sm
+    /** The hero meter, under a widget's one big figure. */
+    val barHeightLarge = Spacing.smd
+}
+
+/** The system font scale, at least 1: sp text grows with it, dp reservations don't. */
+@Composable
+fun textGrowth(): Float = maxOf(1f, LocalContext.current.resources.configuration.fontScale)
+
+/**
+ * The in-app `TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, max)` for a
+ * widget figure: the largest size up to [max], in 1sp steps, at which [text]
+ * fits [width] on one line. Glance can't auto-size, and a one-line figure that
+ * overflows is cut off, so a long amount ("Rp 12.345.678") shrinks instead. The
+ * text is measured as the launcher draws it: bold, at the user's font scale
+ * (non-linear from Android 14, as TypedValue applies it).
+ */
+@Composable
+fun fitFontSize(text: String, width: Dp, max: TextUnit): TextUnit {
+    val metrics = LocalContext.current.resources.displayMetrics
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD }
+    var size = max.value
+    while (size > PennyWiseText.autoSizeFloor.value) {
+        paint.textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, size, metrics)
+        if (paint.measureText(text) / metrics.density <= width.value) break
+        size -= 1f
+    }
+    return size.coerceAtLeast(PennyWiseText.autoSizeFloor.value).sp
 }
 
 /** Section title: the widget's name, as in its header. */
@@ -334,8 +368,8 @@ fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier, maxLine
         modifier = modifier,
         style = TextStyle(
             color = GlanceTheme.colors.onSurface,
-            fontSize = Typography.titleSmall.fontSize,
-            fontWeight = FontWeight.Medium,
+            fontSize = Typography.titleMedium.fontSize,
+            fontWeight = FontWeight.Bold,
             textAlign = startTextAlign()
         )
     )
@@ -373,7 +407,10 @@ fun WidgetHeader(title: String, add: Action? = null, addDescription: String = ""
     }
 }
 
-/** The family's +: a filled circle in a 48dp touch target. */
+/**
+ * The family's +: a filled squircle in a 48dp touch target, the shape of the
+ * app's own docked + (a third of its side, as `dockedActionCornerRadius` is).
+ */
 @Composable
 fun AddButton(action: Action, contentDescription: String, size: Dp = WidgetDefaults.addButton) {
     Box(
@@ -385,7 +422,7 @@ fun AddButton(action: Action, contentDescription: String, size: Dp = WidgetDefau
         Box(
             modifier = GlanceModifier
                 .size(size)
-                .cornerRadius(size / 2)
+                .cornerRadius(size / 3)
                 .background(GlanceTheme.colors.primary),
             contentAlignment = Alignment.Center
         ) {
@@ -402,12 +439,17 @@ fun AddButton(action: Action, contentDescription: String, size: Dp = WidgetDefau
 /** How much of a bar or ring a widget fills: none while [hidden], since its length gives the figure away. */
 internal fun shownFraction(fraction: Float, hidden: Boolean): Float = if (hidden) 0f else fraction
 
-/** The family's thin progress bar, on the surface-variant track; an empty track while totals are hidden. */
+/** The family's progress bar, round-ended on the surface-variant track; an empty track while totals are hidden. */
 @Composable
-fun WidgetProgressBar(fraction: Float, color: ColorProvider, modifier: GlanceModifier = GlanceModifier) {
+fun WidgetProgressBar(
+    fraction: Float,
+    color: ColorProvider,
+    modifier: GlanceModifier = GlanceModifier,
+    height: Dp = WidgetDefaults.barHeight
+) {
     LinearProgressIndicator(
         progress = shownFraction(fraction, amountsHidden()).coerceIn(0f, 1f),
-        modifier = modifier.fillMaxWidth().height(WidgetDefaults.barHeight).cornerRadius(WidgetDefaults.barHeight / 2),
+        modifier = modifier.fillMaxWidth().height(height).cornerRadius(height / 2),
         color = color,
         backgroundColor = GlanceTheme.colors.surfaceVariant
     )

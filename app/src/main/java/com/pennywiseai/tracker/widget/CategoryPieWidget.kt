@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
 import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
@@ -101,7 +102,7 @@ class CategoryPieWidget : GlanceAppWidget() {
                 ?.format(AppDates.pattern("MMM", context.appLocale))
             WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 item { WidgetTitle(context.getString(R.string.widget_pie_title), GlanceModifier.defaultWeight()) }
-                if (month != null) item { WidgetLabel(month) }
+                if (month != null) item { MonthPill(month) }
             }
             Spacer(modifier = GlanceModifier.height(HEADER_GAP))
 
@@ -120,9 +121,13 @@ class CategoryPieWidget : GlanceAppWidget() {
     private fun Chart(data: CategoryPieWidgetData) {
         val context = LocalContext.current
         val size = LocalSize.current
-        val height = size.height - WidgetDefaults.padding * 2 - HEADER - HEADER_GAP
+        // The title and legend lines are sp: under a larger font they take more of the height.
+        val growth = textGrowth()
+        val height = size.height - WidgetDefaults.padding * 2 - HEADER * growth - HEADER_GAP
         val donut = minOf(height, size.width * DONUT_WIDTH_SHARE).coerceAtLeast(Spacing.xl)
-        val legendRows = (height.value / LEGEND_ROW.value).toInt().coerceAtLeast(1)
+        val legendRows = (height.value / (LEGEND_ROW.value * growth)).toInt().coerceAtLeast(1)
+        // Every slice fits with room to spare: the legend steps up a size and spreads out.
+        val roomyLegend = height >= LEGEND_ROW_ROOMY * growth * data.slices.size
         val total = data.total.toBigDecimalOrNull()
         // The legend is ranked by spend, so it goes too while amounts are hidden; the ring sits centred.
         val hidden = amountsHidden()
@@ -162,12 +167,18 @@ class CategoryPieWidget : GlanceAppWidget() {
                             }
                         }
                         if (total != null && donut >= DONUT_WITH_TOTAL) {
+                            val totalLabel = totalText(total, data.currency)
                             Text(
-                                text = totalText(total, data.currency),
+                                text = totalLabel,
                                 maxLines = 1,
                                 style = TextStyle(
                                     color = GlanceTheme.colors.onSurface,
-                                    fontSize = Typography.labelLarge.fontSize,
+                                    // Kept inside the hole: the donut less both strokes, with a little air.
+                                    fontSize = fitFontSize(
+                                        totalLabel,
+                                        donut * (1 - 2 * DONUT_STROKE_SHARE) - Spacing.sm,
+                                        if (donut >= DONUT_BIG_TOTAL) Typography.titleLarge.fontSize else Typography.labelLarge.fontSize
+                                    ),
                                     fontWeight = FontWeight.Bold
                                 )
                             )
@@ -177,19 +188,37 @@ class CategoryPieWidget : GlanceAppWidget() {
                 if (!hidden) item { Spacer(modifier = GlanceModifier.width(Spacing.md)) }
                 if (!hidden) item {
                     Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
-                        data.slices.take(legendRows).forEach { LegendRow(it) }
+                        data.slices.take(legendRows).forEach { LegendRow(it, roomyLegend) }
                     }
                 }
             }
         }
     }
 
+    /** The cycle's month, as a tonal tag beside the title. */
     @Composable
-    private fun LegendRow(slice: CategoryPieSlice) {
+    private fun MonthPill(month: String) {
+        Text(
+            text = month,
+            maxLines = 1,
+            modifier = GlanceModifier
+                .cornerRadius(Spacing.smd)
+                .background(GlanceTheme.colors.secondaryContainer)
+                .padding(horizontal = Spacing.smd, vertical = Spacing.xxs),
+            style = TextStyle(
+                color = GlanceTheme.colors.onSecondaryContainer,
+                fontSize = Typography.labelLarge.fontSize,
+                fontWeight = FontWeight.Medium
+            )
+        )
+    }
+
+    @Composable
+    private fun LegendRow(slice: CategoryPieSlice, roomy: Boolean) {
         val context = LocalContext.current
         val argb = slice.colorArgb.toInt()
         WidgetRow(
-            modifier = GlanceModifier.fillMaxWidth().padding(vertical = Spacing.xxs),
+            modifier = GlanceModifier.fillMaxWidth().padding(vertical = if (roomy) Spacing.xs else Spacing.xxs),
             verticalAlignment = Alignment.CenterVertically
         ) {
             item {
@@ -208,7 +237,7 @@ class CategoryPieWidget : GlanceAppWidget() {
                     modifier = GlanceModifier.defaultWeight(),
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurface,
-                        fontSize = Typography.bodySmall.fontSize,
+                        fontSize = if (roomy) Typography.bodyMedium.fontSize else Typography.bodySmall.fontSize,
                         textAlign = startTextAlign()
                     )
                 )
@@ -219,7 +248,7 @@ class CategoryPieWidget : GlanceAppWidget() {
                     text = context.latinString(R.string.widget_pie_percent, slice.percent.roundToInt()),
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurfaceVariant,
-                        fontSize = Typography.bodySmall.fontSize,
+                        fontSize = if (roomy) Typography.bodyMedium.fontSize else Typography.bodySmall.fontSize,
                         fontWeight = FontWeight.Medium
                     )
                 )
@@ -270,8 +299,11 @@ class CategoryPieWidget : GlanceAppWidget() {
         val HEADER = Spacing.lg
         val HEADER_GAP = Spacing.sm
         val LEGEND_ROW = Spacing.md + Spacing.xs
+        val LEGEND_ROW_ROOMY = Spacing.lg + Spacing.sm
         /** Below this the hole is too small for "JD 1,241"; the legend still has the split. */
         val DONUT_WITH_TOTAL = Dimensions.Icon.extraLarge
+        /** From here the total reads as the chart's headline. */
+        val DONUT_BIG_TOTAL = 180.dp
         const val DONUT_WIDTH_SHARE = 0.4f
         const val DONUT_STROKE_SHARE = 0.14f
     }

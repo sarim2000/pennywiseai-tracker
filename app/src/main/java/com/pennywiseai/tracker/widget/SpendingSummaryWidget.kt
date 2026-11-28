@@ -35,6 +35,7 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
 import kotlinx.coroutines.flow.first
@@ -49,7 +50,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 class SpendingSummaryWidget : GlanceAppWidget() {
 
     override val sizeMode: SizeMode = SizeMode.Responsive(
-        setOf(NARROW, NARROW.withBar(), NARROW.withMeta(), WIDE, WIDE.withBar(), WIDE.withMeta())
+        setOf(NARROW, NARROW.withBar(), NARROW.withMeta(), WIDE, WIDE.withBar(), WIDE.withMeta(), HERO)
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -75,6 +76,9 @@ class SpendingSummaryWidget : GlanceAppWidget() {
         val context = LocalContext.current
         val size = LocalSize.current
         val wide = size.width >= WIDE.width
+        // A tall, long single row (One UI lays a 4x1 out ~501x118dp): the figures and the + grow into it.
+        val growth = textGrowth()
+        val hero = size.width >= HERO.width && size.height >= HERO.height * growth
         WidgetRow(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -85,12 +89,12 @@ class SpendingSummaryWidget : GlanceAppWidget() {
         ) {
             item {
                 if (budget != null) {
-                    BudgetFigure(budget, size.height, GlanceModifier.defaultWeight())
+                    BudgetFigure(budget, size.height / growth, hero, GlanceModifier.defaultWeight())
                 } else {
                     Figure(
                         context.getString(R.string.widget_summary_today),
                         totalText(data.todaySpent, data.currency),
-                        Typography.headlineSmall.fontSize,
+                        if (hero) Typography.headlineLarge.fontSize else Typography.headlineSmall.fontSize,
                         GlanceModifier.defaultWeight()
                     )
                 }
@@ -101,17 +105,23 @@ class SpendingSummaryWidget : GlanceAppWidget() {
                     Figure(
                         context.getString(if (budget != null) R.string.widget_summary_today else R.string.widget_summary_month),
                         totalText(if (budget != null) data.todaySpent else data.totalSpent, data.currency),
-                        Typography.titleMedium.fontSize
+                        if (hero) Typography.titleLarge.fontSize else Typography.titleMedium.fontSize
                     )
                 }
             }
             item { Spacer(GlanceModifier.width(Spacing.sm)) }
-            item { AddButton(actionRunCallback<OpenAddTransactionAction>(), context.getString(R.string.widget_add_content_description)) }
+            item {
+                AddButton(
+                    actionRunCallback<OpenAddTransactionAction>(),
+                    context.getString(R.string.widget_add_content_description),
+                    if (hero) Dimensions.Icon.hero else WidgetDefaults.addButton
+                )
+            }
         }
     }
 
     @Composable
-    private fun BudgetFigure(budget: BudgetWidgetData, height: Dp, modifier: GlanceModifier) {
+    private fun BudgetFigure(budget: BudgetWidgetData, height: Dp, hero: Boolean, modifier: GlanceModifier) {
         val context = LocalContext.current
         val over = budgetOver(budget.remaining, amountsHidden())
         val label = when (over) {
@@ -123,12 +133,16 @@ class SpendingSummaryWidget : GlanceAppWidget() {
             Figure(
                 label = context.getString(label),
                 value = totalText(budget.remaining.abs(), budget.currency),
-                fontSize = Typography.headlineSmall.fontSize,
+                fontSize = if (hero) Typography.headlineLarge.fontSize else Typography.headlineSmall.fontSize,
                 color = if (over == true) PennyWiseWidgetTheme.savingsColor(false) else null
             )
             if (height >= NARROW.withBar().height) {
                 Spacer(GlanceModifier.height(Spacing.xs))
-                WidgetProgressBar(budget.percentageUsed / 100f, PennyWiseWidgetTheme.budgetStatusColor(budget.percentageUsed))
+                WidgetProgressBar(
+                    budget.percentageUsed / 100f,
+                    PennyWiseWidgetTheme.budgetStatusColor(budget.percentageUsed),
+                    height = if (hero) WidgetDefaults.barHeightLarge else WidgetDefaults.barHeight
+                )
             }
             if (height >= NARROW.withMeta().height && !amountsHidden()) {
                 Spacer(GlanceModifier.height(Spacing.xxs))
@@ -168,6 +182,9 @@ class SpendingSummaryWidget : GlanceAppWidget() {
         // needs ~10dp under label + figure, the "of … · …/day" line ~18dp more.
         fun DpSize.withBar() = copy(height = 72.dp)
         fun DpSize.withMeta() = copy(height = 88.dp)
+        // Room for a headline figure and the thick bar over the meta line, and
+        // for "CHF 12,345" beside "CHF 1,234" and the 56dp + at those sizes.
+        val HERO = DpSize(420.dp, 108.dp)
     }
 }
 

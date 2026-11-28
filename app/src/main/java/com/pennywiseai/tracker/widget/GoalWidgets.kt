@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.Preferences
@@ -118,9 +119,10 @@ private fun openGoals(context: Context, createGoal: Boolean = false) =
     }
 
 /**
- * The goal's ring, like the in-app [com.pennywiseai.tracker.ui.components.GoalRing].
- * Glance can't draw arcs, so both layers are bitmaps; the track is drawn white and
- * tinted by the launcher, so it follows day/night even when this process hasn't.
+ * The goal's ring, like the in-app [com.pennywiseai.tracker.ui.components.GoalRing]:
+ * round ends, with a gap between the saved arc and the track. Glance can't draw
+ * arcs, so both layers are bitmaps; the track is drawn white and tinted by the
+ * launcher, so it follows day/night even when this process hasn't.
  */
 @Composable
 private fun GoalRingImage(item: GoalWidgetItem, size: Dp, stroke: Dp) {
@@ -128,15 +130,18 @@ private fun GoalRingImage(item: GoalWidgetItem, size: Dp, stroke: Dp) {
     // While amounts are hidden the ring is only its track: how full it is gives the figure away.
     val hidden = everyAmountHidden()
     val color = item.color.toColorOr(GlanceTheme.colors.primary.getColor(context)).toArgb()
+    val fraction = shownFraction(item.fraction, hidden).coerceIn(0f, 1f)
+    // The gap, as an angle: a stroke's width (the two round caps) plus half of it as air.
+    val gap = if (fraction in 0.001f..0.999f) Math.toDegrees(1.5 * stroke.value / ((size.value - stroke.value) / 2)).toFloat() / 360f else 0f
     Box(modifier = GlanceModifier.size(size)) {
         Image(
-            provider = ImageProvider(renderArc(context, 1f, android.graphics.Color.WHITE, size, stroke)),
+            provider = ImageProvider(renderArc(context, fraction + gap, 1f - gap, android.graphics.Color.WHITE, size, stroke)),
             contentDescription = null,
             colorFilter = ColorFilter.tint(GlanceTheme.colors.surfaceVariant),
             modifier = GlanceModifier.size(size),
         )
         Image(
-            provider = ImageProvider(renderArc(context, shownFraction(item.fraction, hidden), color, size, stroke)),
+            provider = ImageProvider(renderArc(context, 0f, fraction, color, size, stroke)),
             contentDescription = if (hidden) {
                 context.getString(R.string.widget_goal_progress_hidden)
             } else {
@@ -152,13 +157,13 @@ private fun GoalRingImage(item: GoalWidgetItem, size: Dp, stroke: Dp) {
 private fun goalPercent(item: GoalWidgetItem): String =
     if (everyAmountHidden()) HIDDEN_AMOUNT else LocalContext.current.latinString(R.string.budgets_percent, item.percent)
 
-/** An arc from 12 o'clock covering [fraction] of a ring, on a transparent bitmap. */
-private fun renderArc(context: Context, fraction: Float, color: Int, size: Dp, stroke: Dp): Bitmap {
+/** An arc of a ring from [from] to [to] (fractions of a turn from 12 o'clock), on a transparent bitmap. */
+private fun renderArc(context: Context, from: Float, to: Float, color: Int, size: Dp, stroke: Dp): Bitmap {
     val density = context.resources.displayMetrics.density
     val px = (size.value * density).roundToInt().coerceAtLeast(1)
     val strokePx = stroke.value * density
     val bitmap = createBitmap(px, px)
-    if (fraction <= 0f) return bitmap
+    if (to <= from) return bitmap
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = strokePx
@@ -166,12 +171,15 @@ private fun renderArc(context: Context, fraction: Float, color: Int, size: Dp, s
         this.color = color
     }
     val inset = strokePx / 2f
-    Canvas(bitmap).drawArc(RectF(inset, inset, px - inset, px - inset), -90f, 360f * fraction.coerceAtMost(1f), false, paint)
+    Canvas(bitmap).drawArc(RectF(inset, inset, px - inset, px - inset), -90f + 360f * from, 360f * (to - from), false, paint)
     return bitmap
 }
 
 /** 2×2: one chosen goal — ring with %, name, and "JD 9,600 left · 5 mo". */
 class GoalWidget : GlanceAppWidget() {
+
+    // The ring takes whatever the two lines under it leave.
+    override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val initial = loadGoals(context)
@@ -218,24 +226,32 @@ class GoalWidget : GlanceAppWidget() {
 
     @Composable
     private fun Goal(item: GoalWidgetItem) {
+        val size = LocalSize.current
+        val ring = minOf(size.width, size.height - GOAL_TEXT * textGrowth()) - WidgetDefaults.padding * 2
+        val big = ring >= BIG_RING
         // Centred, so it reads the same both ways; only the text inside needs the app's language.
         Column(
             modifier = GlanceModifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            val ringSize = ring.coerceIn(Dimensions.Component.goalRing, Dimensions.Component.goalRingLarge)
             Box(contentAlignment = Alignment.Center) {
-                GoalRingImage(item, Dimensions.Component.goalRing, Dimensions.Component.goalRingStroke)
+                GoalRingImage(item, ringSize, if (big) Dimensions.Component.goalRingLargeStroke else Dimensions.Component.goalRingStroke)
                 Text(
                     text = goalPercent(item),
-                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.labelMedium.fontSize, fontWeight = FontWeight.Bold),
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSurface,
+                        fontSize = if (big) Typography.headlineSmall.fontSize else Typography.labelMedium.fontSize,
+                        fontWeight = FontWeight.Bold,
+                    ),
                 )
             }
             Spacer(GlanceModifier.height(Spacing.sm))
             Text(
                 text = item.name,
                 maxLines = 1,
-                style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.titleSmall.fontSize, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center),
+                style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.titleMedium.fontSize, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center),
             )
             Text(
                 text = inAppDirection(item.shownLine(short = true, hidden = everyAmountHidden())),
@@ -243,6 +259,13 @@ class GoalWidget : GlanceAppWidget() {
                 style = TextStyle(color = PennyWiseWidgetTheme.goalToneColor(item.shownTone(everyAmountHidden())), fontSize = Typography.bodySmall.fontSize, textAlign = TextAlign.Center),
             )
         }
+    }
+
+    private companion object {
+        /** The name and the status line under the ring, with the gap above them. */
+        val GOAL_TEXT = 52.dp
+        /** From here the ring is a hero: the large stroke and a headline percent. */
+        val BIG_RING = 88.dp
     }
 }
 
@@ -293,25 +316,58 @@ class GoalsListWidget : GlanceAppWidget() {
             } else {
                 // Only as many 48dp rows as fit under the 48dp header, so a short
                 // widget never cuts one in half (a standard 4×2 fits all three).
+                // What's left over goes to the rows, so one or two goals fill the
+                // widget with bigger rings rather than sitting on top of a gap.
                 val room = LocalSize.current.height - Dimensions.Component.minTouchTarget - Spacing.xs * 2
                 val rows = (room.value / Dimensions.Component.minTouchTarget.value).toInt().coerceIn(1, GOALS_WIDGET_MAX)
-                items.take(rows).forEach { GoalRow(it) }
+                val shown = items.take(rows)
+                val rowHeight = maxOf(room / shown.size, Dimensions.Component.minTouchTarget)
+                shown.forEach { GoalRow(it, rowHeight, LocalSize.current.width) }
             }
         }
     }
 
     @Composable
-    private fun GoalRow(item: GoalWidgetItem) {
+    private fun GoalRow(item: GoalWidgetItem, height: Dp, width: Dp) {
         val context = LocalContext.current
+        // The ring grows into the row's height, but never at the cost of the name and status.
+        val roomyRing = minOf(height - Spacing.md, ROOMY_RING_MAX, width - WidgetDefaults.padding * 2 - Spacing.md - ROW_TEXT_MIN)
+        val roomy = height >= ROOMY_ROW && roomyRing >= ROOMY_RING_MIN
+        val ring = if (roomy) roomyRing else ROW_RING
+        // One goal alone on a 4×2 reads as the 2×2 does: a hero ring and a title-size name.
+        val hero = ring >= HERO_RING
         WidgetRow(
             modifier = GlanceModifier
                 .fillMaxWidth()
-                .height(Dimensions.Component.minTouchTarget)
+                .height(height)
                 .clickable(openGoal(context, item.id)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            item { GoalRingImage(item, ROW_RING, ROW_RING_STROKE) }
-            item { Spacer(GlanceModifier.width(Spacing.smd)) }
+            item {
+                // A roomy ring carries its own percent, as the 2×2 does.
+                Box(contentAlignment = Alignment.Center) {
+                    GoalRingImage(
+                        item,
+                        ring,
+                        when {
+                            hero -> Dimensions.Component.goalRingLargeStroke
+                            roomy -> Dimensions.Component.goalRingStroke
+                            else -> ROW_RING_STROKE
+                        }
+                    )
+                    if (roomy) {
+                        Text(
+                            text = goalPercent(item),
+                            style = TextStyle(
+                                color = GlanceTheme.colors.onSurface,
+                                fontSize = if (hero) Typography.headlineSmall.fontSize else Typography.labelLarge.fontSize,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        )
+                    }
+                }
+            }
+            item { Spacer(GlanceModifier.width(if (roomy) Spacing.md else Spacing.smd)) }
             item {
                 Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
                     Text(
@@ -319,8 +375,12 @@ class GoalsListWidget : GlanceAppWidget() {
                         maxLines = 1,
                         style = TextStyle(
                             color = GlanceTheme.colors.onSurface,
-                            fontSize = Typography.bodyMedium.fontSize,
-                            fontWeight = FontWeight.Medium,
+                            fontSize = when {
+                                hero -> Typography.titleLarge.fontSize
+                                roomy -> Typography.titleMedium.fontSize
+                                else -> Typography.bodyMedium.fontSize
+                            },
+                            fontWeight = if (roomy) FontWeight.Bold else FontWeight.Medium,
                             textAlign = startTextAlign(),
                         ),
                     )
@@ -330,12 +390,14 @@ class GoalsListWidget : GlanceAppWidget() {
                     )
                 }
             }
-            item { Spacer(GlanceModifier.width(Spacing.sm)) }
-            item {
-                Text(
-                    text = goalPercent(item),
-                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.labelLarge.fontSize, fontWeight = FontWeight.Bold),
-                )
+            if (!roomy) {
+                item { Spacer(GlanceModifier.width(Spacing.sm)) }
+                item {
+                    Text(
+                        text = goalPercent(item),
+                        style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.labelLarge.fontSize, fontWeight = FontWeight.Bold),
+                    )
+                }
             }
         }
     }
@@ -343,6 +405,14 @@ class GoalsListWidget : GlanceAppWidget() {
     private companion object {
         val ROW_RING = Dimensions.Icon.large
         val ROW_RING_STROKE = Dimensions.Component.goalRingSmallStroke
+        /** A row this tall (one or two goals on a 4×2) gets the big ring and title. */
+        val ROOMY_ROW = 64.dp
+        val ROOMY_RING_MAX = Dimensions.Component.goalRingLarge * 3 / 4
+        /** Smallest ring that still holds its percent; narrower rows keep the compact layout. */
+        val ROOMY_RING_MIN = 56.dp
+        /** Width kept for the goal's name and status line beside a roomy ring. */
+        val ROW_TEXT_MIN = 120.dp
+        val HERO_RING = 96.dp
     }
 }
 

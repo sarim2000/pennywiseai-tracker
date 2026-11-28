@@ -59,7 +59,7 @@ import com.pennywiseai.tracker.domain.challenges.ChallengeOutcome
 import com.pennywiseai.tracker.domain.challenges.ChallengeProgress
 import com.pennywiseai.tracker.domain.challenges.ChallengeRun
 import com.pennywiseai.tracker.domain.challenges.DayStatus
-import com.pennywiseai.tracker.presentation.budgetgroups.PinWidgetMenu
+import com.pennywiseai.tracker.ui.components.PinWidgetMenu
 import com.pennywiseai.tracker.ui.components.TrackingProblemCard
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
@@ -103,7 +103,7 @@ fun PlanChallengesScreen(
     }
 
     Box(Modifier.fillMaxSize()) {
-        PlanListScreen(host, actions = { PinWidgetMenu(WidgetPinning::pinChallengeWidget) }) {
+        PlanListScreen(host, actions = { PinWidgetMenu(WidgetPinning::isSupported, WidgetPinning::pinChallengeWidget) }) {
             val shown = state ?: return@PlanListScreen
             val problem = shown.trackingProblem
             // Nothing can be checked while messages aren't read, so a run waits and none starts.

@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
-import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -28,7 +27,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -60,6 +58,7 @@ import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.PinWidgetMenu
 import com.pennywiseai.tracker.ui.components.WavyMeter
 import com.pennywiseai.tracker.ui.components.cards.BudgetStatusContent
 import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
@@ -167,7 +166,7 @@ fun BudgetGroupsScreen(
                     title = stringResource(if (planTab != null) R.string.nav_plan else R.string.budgets_title),
                     overline = if (planTab != null) planOverline() else null,
                     hasBackButton = planTab == null,
-                    actionContent = { if (uiState.hasGroups) PinWidgetMenu(WidgetPinning::pinBudgetWidget) },
+                    actionContent = { if (uiState.hasGroups) PinWidgetMenu(WidgetPinning::isSupported, WidgetPinning::pinBudgetWidget) },
                     navigationContent = {
                         IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
@@ -268,26 +267,6 @@ fun BudgetGroupsScreen(
         }
         // Scaffold content stacks like a Box: this draws over the list.
         Celebration(play = celebrate, onFinished = viewModel::onCelebrated)
-    }
-}
-
-/** A top bar overflow with "Add to home screen" for one widget, where the launcher can pin one. */
-@Composable
-internal fun PinWidgetMenu(pin: (Context) -> Boolean) {
-    val context = LocalContext.current
-    if (!remember { WidgetPinning.isSupported(context) }) return
-    var open by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { open = true }, shapes = IconButtonDefaults.shapes()) {
-            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.budgets_more_options))
-        }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }, shape = MaterialTheme.shapes.large) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.widget_add_to_home_screen)) },
-                leadingIcon = { Icon(Icons.Default.Widgets, contentDescription = null) },
-                onClick = { open = false; pin(context) },
-            )
-        }
     }
 }
 

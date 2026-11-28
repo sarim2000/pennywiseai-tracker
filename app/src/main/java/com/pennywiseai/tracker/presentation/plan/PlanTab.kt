@@ -181,7 +181,7 @@ fun PlanGoalsScreen(
 /** A Plan section drawn as one list under the Plan title and switch. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun PlanListScreen(host: PlanTabHost, content: LazyListScope.() -> Unit) {
+internal fun PlanListScreen(host: PlanTabHost, actions: @Composable () -> Unit = {}, content: LazyListScope.() -> Unit) {
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
@@ -196,6 +196,7 @@ internal fun PlanListScreen(host: PlanTabHost, content: LazyListScope.() -> Unit
                     scrollBehaviorLarge = scrollBehaviorLarge,
                     title = stringResource(R.string.nav_plan),
                     overline = planOverline(),
+                    actionContent = actions,
                     hazeState = hazeState,
                 )
             }

@@ -58,6 +58,9 @@ class MainActivity : FragmentActivity() {
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
         const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
 
+        /** The Challenge widget: Plan's Challenges, with the running one or a way to start one. */
+        const val EXTRA_OPEN_CHALLENGES = "com.pennywiseai.tracker.OPEN_CHALLENGES"
+
         /** The tracking check-up widget: open the SMS check-up. */
         const val EXTRA_OPEN_SMS_CHECKUP = "com.pennywiseai.tracker.OPEN_SMS_CHECKUP"
 
@@ -236,6 +239,8 @@ class MainActivity : FragmentActivity() {
                 )
             intent.getBooleanExtra(EXTRA_OPEN_GOALS, false) ->
                 com.pennywiseai.tracker.navigation.Plan(PlanSection.GOALS)
+            intent.getBooleanExtra(EXTRA_OPEN_CHALLENGES, false) ->
+                com.pennywiseai.tracker.navigation.Plan(PlanSection.CHALLENGES)
             intent.getBooleanExtra(EXTRA_OPEN_BUDGETS, false) ->
                 com.pennywiseai.tracker.navigation.Plan()
             else -> return

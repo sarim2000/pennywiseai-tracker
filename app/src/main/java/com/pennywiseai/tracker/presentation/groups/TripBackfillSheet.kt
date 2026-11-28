@@ -1,16 +1,17 @@
 package com.pennywiseai.tracker.presentation.groups
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
@@ -109,7 +111,12 @@ fun TripBackfillSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { unchecked = if (isChecked) unchecked + txn.id else unchecked - txn.id },
+                            .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
+                            .toggleable(
+                                value = isChecked,
+                                role = Role.Checkbox,
+                                onValueChange = { unchecked = if (it) unchecked - txn.id else unchecked + txn.id }
+                            ),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {

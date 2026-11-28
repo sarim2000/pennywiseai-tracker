@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -160,13 +161,13 @@ class TransactionGroupDetailViewModel @Inject constructor(
                 )
                 val saved = repository.getGroupById(groupId)
                 // A trip that now reaches further back offers the rows it would have taken.
+                // Published first: the candidate query below is a wait in which a Stop can land, and
+                // the final update must not put this older read of the group back over it.
+                _uiState.update { it.copy(group = saved, showEditDialog = false, tripOverlap = null) }
                 val found = if (saved != null && tripStartMovedEarlier(group, saved)) repository.tripBackfillCandidates(groupId) else null
-                _uiState.value = _uiState.value.copy(
-                    group = saved,
-                    showEditDialog = false,
-                    tripOverlap = null,
-                    backfill = found?.takeIf { it.rows.isNotEmpty() }?.let { TripBackfillOffer(groupId, it.rows, it.capped) }
-                )
+                _uiState.update {
+                    it.copy(backfill = found?.takeIf { f -> f.rows.isNotEmpty() }?.let { f -> TripBackfillOffer(groupId, f.rows, f.capped) })
+                }
             } catch (e: TripOverlapException) {
                 _uiState.value = _uiState.value.copy(tripOverlap = e.other)
             } finally {

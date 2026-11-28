@@ -35,6 +35,7 @@ import com.pennywiseai.tracker.domain.loan.LoanOverflow
 import com.pennywiseai.tracker.ui.components.AmountBarDialogHost
 import com.pennywiseai.tracker.ui.components.AmountBarHost
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.HideableMeter
 import com.pennywiseai.tracker.ui.components.LoanOverflowDialog
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.RoundedField
@@ -245,7 +246,7 @@ fun LoanDetailScreen(
                             )
                         }
 
-                        if (loan.status == LoanStatus.ACTIVE && !AmountPrivacy.hidden) {
+                        if (loan.status == LoanStatus.ACTIVE) HideableMeter(hidden = AmountPrivacy.hidden) {
                             WavyMeter(
                                 fraction = progress,
                                 modifier = Modifier.heightIn(min = Dimensions.Component.progressBarHeight),

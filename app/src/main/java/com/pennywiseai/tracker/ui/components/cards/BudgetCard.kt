@@ -27,6 +27,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.CarryGap
 import com.pennywiseai.tracker.domain.spending.BudgetRollover
+import com.pennywiseai.tracker.ui.components.HideableMeter
 import com.pennywiseai.tracker.ui.components.WavyMeter
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -153,16 +154,22 @@ internal fun BudgetStatusContent(
             )
         }
 
-        if (spending.hasLimit && !AmountPrivacy.hidden) {
+        if (spending.hasLimit) HideableMeter(hidden = AmountPrivacy.hidden) {
             WavyMeter(
                 fraction = spending.percentageUsed / 100f,
-                color = when {
-                    hero -> scheme.onPrimaryContainer
-                    tracksSpending && (isOver || spending.percentageUsed >= 70f) -> statusColor
-                    else -> color
+                // Reads the drawn fraction, so the bar turns as it passes 70% / 90% (over is 100%+).
+                color = { shown ->
+                    when {
+                        hero -> scheme.onPrimaryContainer
+                        tracksSpending && shown >= 0.9f -> scheme.error
+                        tracksSpending && shown >= 0.7f -> scheme.warning
+                        else -> color
+                    }
                 },
                 trackColor = scheme.surfaceContainerHighest,
-                dense = dense || compact
+                dense = dense || compact,
+                // Plan's budget cards fill in even with the calm (dense) wave; Home's one-line rows start settled.
+                fillIn = !compact
             )
         }
         if (compact) {

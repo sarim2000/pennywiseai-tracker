@@ -24,6 +24,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -557,6 +558,8 @@ fun MainScreen(
             // fire once another section is picked (even one with no docked action).
             val dock = LocalNavDock.current
             val offstageDock = remember { NavDockState() }
+            // Each section keeps its saveable state (scroll, filled meters) while another shows.
+            val sectionState = rememberSaveableStateHolder()
             TabRoot(tab) {
                 AnimatedContent(
                     targetState = section,
@@ -570,32 +573,34 @@ fun MainScreen(
                     val focus = focusId.takeIf { shown == key.section }
                     val shownDock = if (dock != null && shown != section) offstageDock else dock
                     CompositionLocalProvider(LocalNavDock provides shownDock) {
-                        when (shown) {
-                            PlanSection.BUDGETS -> com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
-                                planTab = host,
-                                focusBudgetId = focus,
-                                onNavigateToGroupEdit = { openRoot(BudgetGroupEdit(it)) },
-                                onNavigateToHistory = { groupId, year, month -> openRoot(BudgetHistory(groupId, year, month)) },
-                                onNavigateToExchangeRates = { openRoot(ExchangeRates) },
-                                onNavigateToCategory = { rows -> openRoot(transactionsFor(rows)) },
-                                onNavigateToGoal = { openRoot(GoalDetail(it)) },
-                                onNavigateToGoalEdit = { openRoot(GoalEdit(it)) },
-                            )
-                            PlanSection.BILLS -> SubscriptionsScreen(
-                                planTab = host,
-                                focusBillId = focus,
-                                onAddSubscriptionClick = { openRoot(AddTransaction(form = AddForm.SUBSCRIPTION)) },
-                            )
-                            PlanSection.GOALS -> PlanGoalsScreen(
-                                host = host,
-                                onOpenGoal = { openRoot(GoalDetail(it)) },
-                                onCreateGoal = { openRoot(GoalEdit(-1L)) },
-                            )
-                            PlanSection.CHALLENGES -> PlanChallengesScreen(
-                                host = host,
-                                onOpenTransaction = { openRoot(TransactionDetail(it)) },
-                                onOpenBackgroundAccess = { openRoot(BackgroundAccess) },
-                            )
+                        sectionState.SaveableStateProvider(shown.name) {
+                            when (shown) {
+                                PlanSection.BUDGETS -> com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
+                                    planTab = host,
+                                    focusBudgetId = focus,
+                                    onNavigateToGroupEdit = { openRoot(BudgetGroupEdit(it)) },
+                                    onNavigateToHistory = { groupId, year, month -> openRoot(BudgetHistory(groupId, year, month)) },
+                                    onNavigateToExchangeRates = { openRoot(ExchangeRates) },
+                                    onNavigateToCategory = { rows -> openRoot(transactionsFor(rows)) },
+                                    onNavigateToGoal = { openRoot(GoalDetail(it)) },
+                                    onNavigateToGoalEdit = { openRoot(GoalEdit(it)) },
+                                )
+                                PlanSection.BILLS -> SubscriptionsScreen(
+                                    planTab = host,
+                                    focusBillId = focus,
+                                    onAddSubscriptionClick = { openRoot(AddTransaction(form = AddForm.SUBSCRIPTION)) },
+                                )
+                                PlanSection.GOALS -> PlanGoalsScreen(
+                                    host = host,
+                                    onOpenGoal = { openRoot(GoalDetail(it)) },
+                                    onCreateGoal = { openRoot(GoalEdit(-1L)) },
+                                )
+                                PlanSection.CHALLENGES -> PlanChallengesScreen(
+                                    host = host,
+                                    onOpenTransaction = { openRoot(TransactionDetail(it)) },
+                                    onOpenBackgroundAccess = { openRoot(BackgroundAccess) },
+                                )
+                            }
                         }
                     }
                 }

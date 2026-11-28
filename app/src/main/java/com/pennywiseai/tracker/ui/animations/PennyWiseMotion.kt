@@ -6,6 +6,8 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -20,6 +22,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -179,4 +183,39 @@ fun StaggeredEntrance(
         }
     }
     AnimatedVisibility(visible = visible, modifier = modifier, enter = pwEnter(), content = content)
+}
+
+/**
+ * A data meter's drawn fraction (bar, ring): fills from empty the first time this meter
+ * shows its data, then eases to each new [target]. The "filled" flag is saveable, so
+ * scrolling back, returning to the tab or recomposing doesn't replay it. Starts settled
+ * when [fillIn] is false (dense list rows) or with "Remove animations". Effects spec:
+ * bounded data never overshoots its value.
+ */
+@Composable
+fun animateMeterFraction(
+    target: Float,
+    spec: AnimationSpec<Float> = MaterialTheme.motionScheme.defaultEffectsSpec(),
+    fillIn: Boolean = true,
+): MeterFraction {
+    var filled by rememberSaveable { mutableStateOf(!fillIn) }
+    val animationsEnabled = rememberAnimationsEnabled()
+    val meter = remember { MeterFraction(if (filled || !animationsEnabled) target else 0f, target) }
+    LaunchedEffect(target) {
+        filled = true
+        meter.animatable.animateTo(target, spec)
+        meter.filling = false
+    }
+    return meter
+}
+
+/** [animateMeterFraction]'s drawn fraction, plus whether its first fill-in is still sweeping. */
+@Stable
+class MeterFraction internal constructor(start: Float, target: Float) : State<Float> {
+    internal val animatable = Animatable(start)
+    override val value: Float get() = animatable.value
+
+    /** True while the first fill-in sweeps from empty; later eases leave it false. */
+    var filling by mutableStateOf(start != target)
+        internal set
 }

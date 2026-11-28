@@ -30,6 +30,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.preferences.HomeShortcut
+import com.pennywiseai.tracker.data.trip.runningTripOf
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.spending.defaultTypeFilter
@@ -53,6 +54,7 @@ import com.pennywiseai.tracker.ui.components.SmsAccessCard
 import com.pennywiseai.tracker.ui.components.TrackingProblemCard
 import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
 import com.pennywiseai.tracker.ui.components.rememberSmsAccess
+import com.pennywiseai.tracker.ui.components.rememberTripNow
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -117,6 +119,10 @@ fun HomeScreen(
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsStateWithLifecycle()
     val lastScanAt by viewModel.lastScanAt.collectAsStateWithLifecycle()
     val groupSummaries by viewModel.groupSummaries.collectAsStateWithLifecycle()
+    // Moves on its own when a trip starts or ends by time, not only when the data changes.
+    val tripNow = rememberTripNow(groupSummaries.map { it.group })
+    val runningTrip = runningTripOf(groupSummaries, tripNow)
+    var stopTripId by rememberSaveable { mutableStateOf<Long?>(null) }
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
     val homeShortcuts by viewModel.homeShortcuts.collectAsStateWithLifecycle()
@@ -501,6 +507,19 @@ fun HomeScreen(
                             },
                             onCheckup = onNavigateToSmsCheckup,
                             onDismiss = { viewModel.snoozeTrackingCard() },
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                        )
+                    }
+                }
+
+                // A running trip: one compact row under the balance card. Not a hideable section:
+                // it only exists while a trip runs and ends with it, so there's nothing to tidy.
+                runningTrip?.let { trip ->
+                    item(key = "running_trip") {
+                        HomeTripChip(
+                            summary = trip,
+                            onOpen = { onGroupClick(trip.group.id) },
+                            onStop = { stopTripId = trip.group.id },
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                         )
                     }
@@ -919,6 +938,27 @@ fun HomeScreen(
             },
             onCelebrated = viewModel::onWeeklyGuessCelebrated,
             onDismiss = viewModel::closeWeeklyGuess,
+        )
+    }
+
+    // Stopping ends the trip now and can't be undone, so it asks first. A trip that ended by time
+    // behind the dialog has no chip any more and the dialog goes with it.
+    groupSummaries.firstOrNull { it.group.id == stopTripId && it.group.id == runningTrip?.group?.id }?.let { trip ->
+        AlertDialog(
+            onDismissRequest = { stopTripId = null },
+            title = { Text(stringResource(R.string.trip_stop_confirm_title, trip.group.name)) },
+            text = { Text(stringResource(R.string.trip_stop_confirm_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = { viewModel.stopTrip(trip.group.id); stopTripId = null },
+                    shapes = ButtonDefaults.shapes()
+                ) { Text(stringResource(R.string.trip_stop)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { stopTripId = null }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.group_cancel))
+                }
+            }
         )
     }
 

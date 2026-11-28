@@ -1428,20 +1428,16 @@ class TransactionsViewModel @Inject constructor(
         return categoriesFilteredFlow.map { (rows, splitShares) ->
             fun searched(list: List<TransactionEntity>) =
                 filterBySearch(list, searchQuery, transactionTagsMap.value, merchantAliases.value, splitShares.amountOf())
+            val refundRows = if (typeFilter.netsRefunds) searched(rows.filter { it.isRefund() }) else emptyList()
+            // Under a category filter a spend view lists the refunds that came off the category
+            // too, so the rows add up to the figure the list was opened from; the totals then
+            // count them as listed rows instead of netting them again. Unfiltered, a spend view
+            // drops refunds from its rows but nets them off its total, as Home and Insights do (#629).
+            val listRefunds = effectiveCategories != null
             FilteredRows(
-                rows = searched(filterByType(rows, typeFilter)),
+                rows = searched(filterByType(rows, typeFilter)) + if (listRefunds) refundRows else emptyList(),
                 splitShares = splitShares,
-                // A spend view drops refunds from its rows but nets them off its total, as
-                // Home and Insights do (#629), so a Spent figure opens a list that matches it.
-                refunds = if (typeFilter.netsRefunds) {
-                    searched(
-                        rows.filter {
-                            it.transactionType == TransactionType.INCOME && it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
-                        }
-                    )
-                } else {
-                    emptyList()
-                },
+                refunds = if (listRefunds) emptyList() else refundRows,
             )
         }
     }

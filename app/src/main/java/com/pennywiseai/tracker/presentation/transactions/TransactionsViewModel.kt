@@ -135,6 +135,10 @@ class TransactionsViewModel @Inject constructor(
     private val _tagFilter = MutableStateFlow<String?>(null)
     val tagFilter: StateFlow<String?> = _tagFilter.asStateFlow()
 
+    // A second required tag, only ever set by an Analytics drill-down; there is no picker for it.
+    private val _alsoTagFilter = MutableStateFlow<String?>(null)
+    val alsoTagFilter: StateFlow<String?> = _alsoTagFilter.asStateFlow()
+
     val availableTags: StateFlow<List<String>> = tagRepository.observeAllTagNames()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -688,6 +692,10 @@ class TransactionsViewModel @Inject constructor(
                 if (current != null && tags.none { it.equals(current, ignoreCase = true) }) {
                     _tagFilter.value = null
                 }
+                val also = _alsoTagFilter.value
+                if (also != null && tags.none { it.equals(also, ignoreCase = true) }) {
+                    _alsoTagFilter.value = null
+                }
             }
         }
 
@@ -780,6 +788,7 @@ class TransactionsViewModel @Inject constructor(
             _ignoredAccountKeys.map { "ignoredAccounts" },
             _accountFilter.map { "accountFilter" },
             tagFilter.map { "tagFilter" },
+            alsoTagFilter.map { "alsoTagFilter" },
             selectedCurrency.map { "currency" },
             _isUnifiedMode.map { "unifiedMode" },
             sortOption.map { "sort" },
@@ -801,6 +810,7 @@ class TransactionsViewModel @Inject constructor(
                 val profileId = _selectedProfileId.value
                 val accountKey = _accountFilter.value
                 val tag = _tagFilter.value
+                val alsoTag = _alsoTagFilter.value
 
                 // Resolve the cycle window up-front so the inner (non-suspend)
                 // filter helper can reuse it for the cycle-following periods.
@@ -824,7 +834,8 @@ class TransactionsViewModel @Inject constructor(
                                 accountKey
                             ),
                             tag,
-                            transactionTagsMap.value
+                            transactionTagsMap.value,
+                            alsoTag
                         )
                         val transactions = scoped(allTransactions)
                         val refunds = scoped(allRefunds)
@@ -957,9 +968,22 @@ class TransactionsViewModel @Inject constructor(
     /** Sets the tag filter; null clears it ("All tags"). */
     fun setTagFilter(tag: String?) {
         _tagFilter.value = tag?.takeIf { it.isNotBlank() }
+        _alsoTagFilter.value = null
+    }
+
+    /** Removes the first tag chip; the second tag, if any, becomes the filter. */
+    fun removeTagFilter() {
+        _tagFilter.value = _alsoTagFilter.value
+        _alsoTagFilter.value = null
+    }
+
+    /** Removes the second tag chip, leaving the first. */
+    fun removeAlsoTagFilter() {
+        _alsoTagFilter.value = null
     }
 
     fun clearTagFilter() {
+        _alsoTagFilter.value = null
         _tagFilter.value = null
     }
 
@@ -1149,7 +1173,8 @@ class TransactionsViewModel @Inject constructor(
         endDateEpochDay: Long? = null,
         account: String? = null,
         tag: String? = null,
-        type: String? = null
+        type: String? = null,
+        alsoTag: String? = null
     ) {
         if (!hasAppliedInitialFilters) {
             // Only apply filters once, when first navigating to the screen
@@ -1160,6 +1185,7 @@ class TransactionsViewModel @Inject constructor(
             setSortOption(SortOption.DATE_NEWEST)
             setAccountFilter(account)
             setTagFilter(tag)
+            if (tag != null) _alsoTagFilter.value = alsoTag?.takeIf { it.isNotBlank() }
 
             // Typed nav keys carry names as they are: "Savings 10%" isn't URL-encoded.
             category?.let { setCategoryFilter(it) }
@@ -1209,11 +1235,12 @@ class TransactionsViewModel @Inject constructor(
         endDateEpochDay: Long? = null,
         account: String? = null,
         tag: String? = null,
-        type: String? = null
+        type: String? = null,
+        alsoTag: String? = null
     ) {
         // Create current params to compare
         val currentParams = NavigationParams(
-            category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type
+            category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type, alsoTag
         )
 
         // Only apply navigation filters if:
@@ -1235,6 +1262,7 @@ class TransactionsViewModel @Inject constructor(
         setSortOption(SortOption.DATE_NEWEST)
         setAccountFilter(account)
         setTagFilter(tag)
+        if (tag != null) _alsoTagFilter.value = alsoTag?.takeIf { it.isNotBlank() }
 
         category?.let { setCategoryFilter(it) }
         merchant?.let { updateSearchQuery(it) }
@@ -1511,7 +1539,8 @@ private data class NavigationParams(
     val endDateEpochDay: Long? = null,
     val account: String? = null,
     val tag: String? = null,
-    val type: String? = null
+    val type: String? = null,
+    val alsoTag: String? = null
 )
 
 /**

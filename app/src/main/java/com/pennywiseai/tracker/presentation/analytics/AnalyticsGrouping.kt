@@ -60,6 +60,16 @@ internal fun <K> groupTotals(
 internal fun tagKeys(tags: Collection<String>?): List<String?> =
     tags?.takeIf { it.isNotEmpty() }?.toList() ?: listOf(null)
 
+/**
+ * The tags a drill-down into a row must require: the filter tag, plus the row's own tag when it
+ * is a different one, so the list holds the rows behind the figure tapped (primary, also).
+ */
+internal fun drillDownTags(rowTag: String?, filterTag: String?): Pair<String?, String?> = when {
+    rowTag == null -> filterTag to null
+    filterTag == null || filterTag.equals(rowTag, ignoreCase = true) -> rowTag to null
+    else -> filterTag to rowTag
+}
+
 /** The seven days in the order [locale] starts its week (Monday, or Sunday in the US). */
 internal fun weekdayOrder(locale: Locale): List<DayOfWeek> {
     val first = WeekFields.of(locale).firstDayOfWeek

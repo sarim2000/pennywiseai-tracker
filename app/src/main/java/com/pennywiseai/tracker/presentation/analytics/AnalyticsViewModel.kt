@@ -173,6 +173,17 @@ class AnalyticsViewModel @Inject constructor(
     val tagFilter: StateFlow<String?> = combine(_tagFilter, tagOptions, ::effectiveTagFilter)
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
+    init {
+        // A deleted tag clears the stored selection for good, so re-creating the name later
+        // doesn't switch the filter back on. Reads the repository's list, not [tagOptions]'
+        // initial empty one, which must not count as "deleted" at startup.
+        viewModelScope.launch {
+            tagRepository.observeAllTagNames().collect { names ->
+                _tagFilter.value = effectiveTagFilter(_tagFilter.value, names)
+            }
+        }
+    }
+
     // Pickable account options for the account filter dropdown (alias-preferred labels).
     val accountOptions: StateFlow<List<AccountOption>> =
         accountBalanceRepository.getAllLatestBalances()

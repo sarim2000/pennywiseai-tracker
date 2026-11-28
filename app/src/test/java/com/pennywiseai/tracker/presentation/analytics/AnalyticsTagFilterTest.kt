@@ -59,6 +59,23 @@ class AnalyticsTagFilterTest {
     }
 
     @Test
+    fun `a tag that disappears and reappears does not switch the filter back on`() {
+        var stored: String? = "Trip"
+        stored = effectiveTagFilter(stored, listOf("Work")) // last "Trip" removed
+        assertNull(stored)
+        stored = effectiveTagFilter(stored, listOf("Work", "Trip")) // "Trip" created again
+        assertNull(stored)
+    }
+
+    @Test
+    fun `drill-down requires the filter tag plus the row's different tag`() {
+        assertEquals("Work" to "Trip", drillDownTags("Trip", "Work"))
+        assertEquals("work" to null, drillDownTags("work", "Work"))
+        assertEquals("Trip" to null, drillDownTags("Trip", null))
+        assertEquals("Work" to null, drillDownTags(null, "Work"))
+    }
+
+    @Test
     fun `a deleted selected tag falls back to all tags`() {
         assertEquals("Needs", effectiveTagFilter("Needs", listOf("Needs", "Trip")))
         assertNull(effectiveTagFilter("Needs", listOf("Trip")))

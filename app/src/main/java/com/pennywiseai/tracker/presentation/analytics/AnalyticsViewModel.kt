@@ -162,6 +162,28 @@ class AnalyticsViewModel @Inject constructor(
     private val _accountFilter = MutableStateFlow<String?>(null)
     val accountFilter: StateFlow<String?> = _accountFilter.asStateFlow()
 
+    // Tag filter — null means "All tags". Held by name, like the tag breakdown.
+    private val _tagFilter = MutableStateFlow<String?>(null)
+
+    /** Every tag, in the order the app lists them elsewhere; the filter is hidden when empty. */
+    val tagOptions: StateFlow<List<String>> = tagRepository.observeAllTagNames()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    /** The selected tag, or null for "All tags" (also when the selected tag was deleted). */
+    val tagFilter: StateFlow<String?> = combine(_tagFilter, tagOptions, ::effectiveTagFilter)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    init {
+        // A deleted tag clears the stored selection for good, so re-creating the name later
+        // doesn't switch the filter back on. Reads the repository's list, not [tagOptions]'
+        // initial empty one, which must not count as "deleted" at startup.
+        viewModelScope.launch {
+            tagRepository.observeAllTagNames().collect { names ->
+                _tagFilter.value = effectiveTagFilter(_tagFilter.value, names)
+            }
+        }
+    }
+
     // Pickable account options for the account filter dropdown (alias-preferred labels).
     val accountOptions: StateFlow<List<AccountOption>> =
         accountBalanceRepository.getAllLatestBalances()
@@ -232,7 +254,7 @@ class AnalyticsViewModel @Inject constructor(
         customDateRange,
         transactionTypeFilter,
         currencyScope,
-        combine(_categoryFilter, selectedProfileId, _accountFilter, ::GroupFilters)
+        combine(_categoryFilter, selectedProfileId, _accountFilter, tagFilter, ::GroupFilters)
     ) { period, customRange, typeFilter, currencyScope, filters ->
         FilterState(
             period,
@@ -242,7 +264,8 @@ class AnalyticsViewModel @Inject constructor(
             currencyScope.unified,
             filters.categoryFilter,
             filters.profileId,
-            filters.accountFilter
+            filters.accountFilter,
+            filters.tagFilter
         )
     }.combine(accountBalanceRepository.getAllLatestBalances()) { fs, balances ->
         fs to balances
@@ -299,7 +322,8 @@ class AnalyticsViewModel @Inject constructor(
                     profileKeys
                 ).mapTo(HashSet()) { it.id }
                 val accountKey = filterState.accountFilter
-                return txs.filter { tw ->
+                val tagged = filterByTag(txs, filterState.tagFilter, tagMap) { it.transaction.id }
+                return tagged.filter { tw ->
                     val txAccountKey =
                         "${tw.transaction.bankName}_${tw.transaction.accountNumber}"
                     tw.transaction.id in keptIds &&
@@ -608,6 +632,7 @@ class AnalyticsViewModel @Inject constructor(
                     typeFilter = filterState.typeFilter,
                     categoryFilter = filterState.categoryFilter,
                     accountFilter = filterState.accountFilter,
+                    tagFilter = filterState.tagFilter,
                     isLoading = false,
                     spendingTrend = trend.line,
                     dailyTrend = trend.daily,
@@ -675,6 +700,11 @@ class AnalyticsViewModel @Inject constructor(
     /** Sets the account filter; null clears it ("All accounts"). */
     fun setAccountFilter(accountKey: String?) {
         _accountFilter.value = accountKey
+    }
+
+    /** Sets the tag filter; null clears it ("All tags"). */
+    fun setTagFilter(tag: String?) {
+        _tagFilter.value = tag
     }
 
     fun setChartType(type: ChartType) {
@@ -777,7 +807,8 @@ private data class FilterState(
     val isUnifiedMode: Boolean = false,
     val categoryFilter: String? = null,
     val profileId: Long? = null,
-    val accountFilter: String? = null
+    val accountFilter: String? = null,
+    val tagFilter: String? = null
 )
 
 /**
@@ -787,7 +818,8 @@ private data class FilterState(
 private data class GroupFilters(
     val categoryFilter: String?,
     val profileId: Long?,
-    val accountFilter: String?
+    val accountFilter: String?,
+    val tagFilter: String?
 )
 
 internal data class AnalyticsCurrencyScope(val currency: String, val unified: Boolean)
@@ -803,6 +835,7 @@ data class AnalyticsUiState(
     val typeFilter: TransactionTypeFilter = TransactionTypeFilter.EXPENSE,
     val categoryFilter: String? = null,
     val accountFilter: String? = null,
+    val tagFilter: String? = null,
     val isLoading: Boolean = true,
     val spendingTrend: List<BalancePoint> = emptyList(),
     val dailyTrend: List<BalancePoint> = emptyList(),

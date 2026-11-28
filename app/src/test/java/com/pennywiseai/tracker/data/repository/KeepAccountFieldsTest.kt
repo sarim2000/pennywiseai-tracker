@@ -14,7 +14,7 @@ import java.time.LocalDateTime
 class KeepAccountFieldsTest {
 
     private val dao = mockk<AccountBalanceDao>()
-    private val repository = AccountBalanceRepository(dao, mockk(), mockk(), mockk())
+    private val repository = AccountBalanceRepository(dao, mockk(), mockk(), mockk(), kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined))
 
     private val source = AccountBalanceEntity(
         bankName = "Test Bank", accountLast4 = "0000", balance = BigDecimal("900"),

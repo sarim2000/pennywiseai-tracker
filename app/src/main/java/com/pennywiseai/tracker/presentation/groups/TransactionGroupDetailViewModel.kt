@@ -3,12 +3,16 @@ package com.pennywiseai.tracker.presentation.groups
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.repository.AccountShare
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.accountSharesOf
 import com.pennywiseai.tracker.data.repository.groupTotalsOf
+import com.pennywiseai.tracker.data.trip.TripOverlapException
+import com.pennywiseai.tracker.data.trip.isTrip
+import com.pennywiseai.tracker.data.trip.tripEditNeedsPro
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -35,14 +39,20 @@ data class TransactionGroupDetailUiState(
     val showEditDialog: Boolean = false,
     val isDeleted: Boolean = false,
     val ungroupedTransactions: List<TransactionEntity> = emptyList(),
-    val addSearchQuery: String = ""
+    val addSearchQuery: String = "",
+    val tripOverlap: String? = null,
+    val isSaving: Boolean = false,
+    val upgradeRequested: Boolean = false
 )
 
 @HiltViewModel
 class TransactionGroupDetailViewModel @Inject constructor(
     private val repository: TransactionGroupRepository,
+    entitlementGate: EntitlementGate,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
 
     private val groupId: Long = savedStateHandle.get<Long>("groupId") ?: -1L
 
@@ -122,13 +132,47 @@ class TransactionGroupDetailViewModel @Inject constructor(
     fun showDeleteDialog() { _uiState.value = _uiState.value.copy(showDeleteDialog = true) }
     fun hideDeleteDialog() { _uiState.value = _uiState.value.copy(showDeleteDialog = false) }
     fun showEditDialog() { _uiState.value = _uiState.value.copy(showEditDialog = true) }
-    fun hideEditDialog() { _uiState.value = _uiState.value.copy(showEditDialog = false) }
+    fun hideEditDialog() { _uiState.value = _uiState.value.copy(showEditDialog = false, tripOverlap = null) }
 
-    fun updateGroupName(name: String, note: String?) {
+    fun updateGroupName(name: String, note: String?, trip: TripDraft) {
         val group = _uiState.value.group ?: return
+        // Turning a plain group into a trip is Pro; an existing trip keeps working after a lapse.
+        val (newStart, newEnd) = trip.window
+        // Free: no starting a trip, no moving its dates, no "until I stop it" again.
+        if (tripEditNeedsPro(group, trip.enabled, newStart, newEnd) && !isProEntitled.value) {
+            _uiState.value = _uiState.value.copy(upgradeRequested = true)
+            return
+        }
+        if (_uiState.value.isSaving) return
+        _uiState.value = _uiState.value.copy(isSaving = true)
         viewModelScope.launch {
-            repository.updateGroup(group.copy(name = name.trim(), note = note?.trim()?.takeIf { it.isNotEmpty() }))
-            _uiState.value = _uiState.value.copy(group = repository.getGroupById(groupId), showEditDialog = false)
+            val (start, end) = trip.window
+            try {
+                repository.updateGroup(
+                    group.copy(
+                        name = name.trim(),
+                        note = note?.trim()?.takeIf { it.isNotEmpty() },
+                        tripStart = start,
+                        tripEnd = end
+                    )
+                )
+                _uiState.value = _uiState.value.copy(group = repository.getGroupById(groupId), showEditDialog = false, tripOverlap = null)
+            } catch (e: TripOverlapException) {
+                _uiState.value = _uiState.value.copy(tripOverlap = e.other)
+            } finally {
+                _uiState.value = _uiState.value.copy(isSaving = false)
+            }
+        }
+    }
+
+    fun dismissUpgrade() { _uiState.value = _uiState.value.copy(upgradeRequested = false) }
+
+    fun clearTripOverlap() { _uiState.value = _uiState.value.copy(tripOverlap = null) }
+
+    fun stopTrip() {
+        viewModelScope.launch {
+            repository.stopTrip(groupId)
+            _uiState.value = _uiState.value.copy(group = repository.getGroupById(groupId))
         }
     }
 

@@ -426,25 +426,52 @@ class TransactionDetailViewModel @Inject constructor(
             if (_transaction.value?.id != transactionId) _hasSplits.value = null
             _transaction.value = transaction
             transaction?.let {
-                determinePrimaryCurrency(it)
-                calculateConvertedAmount(it)
                 // Splits are a live Flow that never completes: collected on its own
                 // job, or nothing below would ever run for a split transaction —
                 // its loan chip came back as "Mark as loan" (#1032).
                 splitsJob?.cancel()
                 splitsJob = viewModelScope.launch { loadSplits(transactionId) }
-                loadReceiptUri(it)
-                // Clear stale loan state when the (re)loaded transaction has no
-                // loan — e.g. the loan was deleted elsewhere and we reload on
-                // resume (#444). Otherwise the loan chip would persist.
-                val loanId = it.loanId
-                if (loanId != null) loadLoan(loanId) else _loan.value = null
-                _budgetImpactType.value = it.budgetImpactType
-                _budgetCategory.value = it.budgetCategory
-                loadAccountProfileId(it)
-                _balanceDiscrepancy.value = runCatching { detectBalanceDiscrepancy.execute(it) }.getOrNull()
+                // Follow the row so changes made elsewhere show up (#1484). A deleted
+                // row emits null and is ignored, as before. An open edit has its own copy.
+                rowJob?.cancel()
+                rowJob = viewModelScope.launch {
+                    transactionRepository.observeTransaction(transactionId).collect { row ->
+                        if (row != null && row != _transaction.value) {
+                            // Another account's discrepancy must not pair with this row while it recomputes.
+                            val current = _transaction.value
+                            if (current?.bankName != row.bankName || current?.accountNumber != row.accountNumber) {
+                                _balanceDiscrepancy.value = null
+                            }
+                            _transaction.value = row
+                            refreshDerivedState(row, keepBudgetPicks = _isEditMode.value)
+                        }
+                    }
+                }
+                refreshDerivedState(it, keepBudgetPicks = false)
             }
         }
+    }
+
+    /**
+     * What the screen derives from [it] beyond the row itself: currency conversion, receipt,
+     * loan, budget impact, account and balance check. Run on load and when the observed row
+     * changes; [keepBudgetPicks] leaves the budget picks alone while an edit is open.
+     */
+    private suspend fun refreshDerivedState(it: TransactionEntity, keepBudgetPicks: Boolean) {
+        determinePrimaryCurrency(it)
+        calculateConvertedAmount(it)
+        loadReceiptUri(it)
+        // Clear stale loan state when the (re)loaded transaction has no
+        // loan — e.g. the loan was deleted elsewhere and we reload on
+        // resume (#444). Otherwise the loan chip would persist.
+        val loanId = it.loanId
+        if (loanId != null) loadLoan(loanId) else _loan.value = null
+        if (!keepBudgetPicks) {
+            _budgetImpactType.value = it.budgetImpactType
+            _budgetCategory.value = it.budgetCategory
+        }
+        loadAccountProfileId(it)
+        _balanceDiscrepancy.value = runCatching { detectBalanceDiscrepancy.execute(it) }.getOrNull()
     }
 
     // Every visible category of both types: the adjustment sheet's picker
@@ -478,7 +505,7 @@ class TransactionDetailViewModel @Inject constructor(
                         ?.let { merchantMappingRepository.getCategoryForMerchant(it) }
                         ?.takeIf { mappingFits(categoryRepository.getCategoryByName(it)?.isIncome, type) }
                     ?: categoryRepository.getVisibleCategories().first().balanceAdjustmentDefaultCategory(type)
-                transactionRepository.insertTransaction(balanceAdjustment(tx, d, name, category))
+                transactionRepository.insertTransaction(balanceAdjustment(tx, d, name, category), joinTrip = false)
                 _balanceDiscrepancy.value = detectBalanceDiscrepancy.execute(tx)
                 if (_balanceDiscrepancy.value == null) {
                     com.pennywiseai.tracker.receiver.SmsBroadcastReceiver.cancelBalanceDiscrepancyNotification(context, tx)
@@ -503,6 +530,7 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     private var splitsJob: kotlinx.coroutines.Job? = null
+    private var rowJob: kotlinx.coroutines.Job? = null
 
     private suspend fun loadSplits(transactionId: Long) {
         val hasSplits = transactionRepository.hasSplits(transactionId)
@@ -561,8 +589,16 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    /** The row and tags as they were when the edit opened: only what differs from them is the user's change. */
+    private var editStart: TransactionEntity? = null
+    private var editStartTags: List<String>? = null
+
     fun enterEditMode() {
         _editableTransaction.value = _transaction.value?.copy()
+        editStart = _transaction.value
+        amountTextInvalid = false
+        _amountRefusals.value = 0
+        editStartTags = null
         // A cancelled edit can leave these on an unsaved pick (e.g. the Refund answer).
         _budgetImpactType.value = _transaction.value?.budgetImpactType
         _budgetCategory.value = _transaction.value?.budgetCategory
@@ -576,7 +612,9 @@ class TransactionDetailViewModel @Inject constructor(
         // Seed the editable tag list from the persisted tags.
         _transaction.value?.let { txn ->
             viewModelScope.launch {
-                _editableTags.value = tagRepository.getTagNamesForTransaction(txn.id)
+                val tags = tagRepository.getTagNamesForTransaction(txn.id)
+                _editableTags.value = tags
+                editStartTags = tags
             }
         }
 
@@ -599,6 +637,8 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun exitEditMode() {
         _editableTransaction.value = null
+        editStart = null
+        editStartTags = null
         _isEditMode.value = false
         _editableTags.value = emptyList()
         _errorMessage.value = null
@@ -677,8 +717,18 @@ class TransactionDetailViewModel @Inject constructor(
         validateMerchantName(name)
     }
 
+    // True while the amount field's text is empty or not a positive amount: the editor then
+    // still holds the last valid amount, which Save must not write behind the field's back.
+    private var amountTextInvalid = false
+
+    // Counts the saves refused over the amount text; 0 while there is nothing to show under the field.
+    private val _amountRefusals = MutableStateFlow(0)
+    val amountRefusals: StateFlow<Int> = _amountRefusals.asStateFlow()
+
     fun updateAmount(amountStr: String) {
         val amount = amountStr.toBigDecimalOrNull()
+        amountTextInvalid = amount == null || amount <= BigDecimal.ZERO
+        if (!amountTextInvalid) _amountRefusals.value = 0
         if (amount != null && amount > BigDecimal.ZERO) {
             _editableTransaction.update { current ->
                 current?.copy(amount = amount)
@@ -988,6 +1038,13 @@ class TransactionDetailViewModel @Inject constructor(
             return
         }
 
+        if (amountTextInvalid) {
+            // Shown under the amount field (a snackbar hides behind the keyboard, and
+            // the same message is not shown twice).
+            _amountRefusals.value += 1
+            return
+        }
+
         if (toSave.amount <= BigDecimal.ZERO) {
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_amount_positive)
             return
@@ -1000,73 +1057,21 @@ class TransactionDetailViewModel @Inject constructor(
             }
         }
 
-        // A loan's amounts are all in its own currency. Changing the currency of
-        // a transaction linked to a loan would silently mix currencies in the
-        // loan's totals, so require unlinking it first.
+        // Only what this edit changed is checked against the stored row: an untouched field
+        // keeps the stored value on save, even if it was changed elsewhere meanwhile (#1484).
         val original = _transaction.value
-        if (LoanCurrencyRules.blocksCurrencyChange(
-                linkedLoanId = original?.loanId,
-                originalCurrency = original?.currency.orEmpty(),
-                editedCurrency = toSave.currency
-            )
-        ) {
-            _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_currency_locked)
-            return
-        }
-
-        // Likewise its money direction: retyping a linked row between income and
-        // money out would turn the loan's principal into a repayment, or back (#876).
-        if (original != null && com.pennywiseai.tracker.domain.loan.LoanMath.blocksTypeChange(
-                original.loanId, original.transactionType, toSave.transactionType
-            )
-        ) {
-            _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_type_locked)
-            return
-        }
-
-        // A row turned into a transfer with neither leg would undo its old effect
-        // on the account and apply nothing in its place.
-        if (original != null && transferWithoutLegs(original, toSave)) {
-            _errorMessage.value = UiText.Res(R.string.txn_detail_error_transfer_accounts)
-            return
-        }
-
-        // Validate self-transfer for TRANSFER transactions
-        if (toSave.transactionType == TransactionType.TRANSFER &&
-            toSave.fromAccount != null &&
-            toSave.toAccount != null &&
-            toSave.fromAccount == toSave.toAccount &&
-            (toSave.fromBankName == null || toSave.toBankName == null || toSave.fromBankName == toSave.toBankName)) {
-            _errorMessage.value = UiText.Res(R.string.txn_detail_error_same_accounts)
-            return
-        }
+        val opened = editStart ?: original
+        val splitsTotal = if (_showSplitEditor.value && _splits.value.isNotEmpty()) {
+            _splits.value.fold(BigDecimal.ZERO) { acc, split -> acc + split.amount }
+        } else null
 
         viewModelScope.launch {
-            // Goal contributions keep their share in the transaction's currency (#914).
-            if (original != null && original.currency != toSave.currency &&
-                goalRepository.observeContributionsForTransaction(original.id).first().isNotEmpty()
-            ) {
-                _errorMessage.value = UiText.Res(R.string.goal_currency_locked_by_goal)
-                return@launch
-            }
-            // A split bill's shares (#346) are in its currency and sized to its
-            // amount. Read fresh: the split may have changed since this loaded.
+            // An early answer, before the receipt is saved; the save transaction decides again.
             val persisted = original?.let { transactionRepository.getTransactionById(it.id) }
-            val sharesTotal = persisted?.lentSharesTotal
-            if (persisted != null && sharesTotal != null) {
-                if (!persisted.currency.equals(toSave.currency, ignoreCase = true)) {
-                    _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_currency_locked)
-                    return@launch
-                }
-                // Only an expense can be split: as income the shares would be debt with no outlay behind it.
-                if (toSave.transactionType != TransactionType.EXPENSE) {
-                    _errorMessage.value = UiText.Res(R.string.split_error_type_locked)
-                    return@launch
-                }
-                if (toSave.amount < sharesTotal) {
-                    _errorMessage.value = UiText.Res(R.string.split_error_amount_below_shares)
-                    return@launch
-                }
+            val preview = persisted?.let { mergeEditOntoFresh(opened ?: it, toSave, it) } ?: toSave
+            saveRefusal(persisted ?: original, preview, splitsTotal)?.let {
+                _errorMessage.value = it
+                return@launch
             }
             _isSaving.value = true
             try {
@@ -1095,43 +1100,91 @@ class TransactionDetailViewModel @Inject constructor(
                 // novel/unknown number. Clearing (accountNumber == null) keeps
                 // the existing bank untouched. Belt-and-braces with the picker's
                 // selectAccount so no edit path can desync (#566, #570).
-                val resolvedBankName = resolvedBankName(toSave)
-
+                // Only an edit to the account pair applies the resolved bank; otherwise the pair
+                // reads as untouched, so a bank inferred here can't override one changed elsewhere.
+                val accountEdited = opened == null || toSave.accountNumber != opened.accountNumber ||
+                    toSave.bankName != opened.bankName
+                val edited = if (accountEdited) toSave.copy(bankName = resolvedBankName(toSave)) else toSave
+                // Fields this session didn't change keep what the database holds now (#1484):
+                // the row may have been edited elsewhere while the screen was open.
                 // Loan linkage (loanId / loanContribution) is owned by mark-as-loan
                 // and unmark, never the edit form. The editable copy was snapshotted
                 // when edit mode opened, so if the transaction was linked to a loan
                 // in between, saving `toSave` would clobber that link — the loan would
                 // still count the txn but the txn would show "Mark as loan" again
                 // (#688). Carry the current persisted values through the save.
-                val currentPersisted = _transaction.value
-                val normalizedTransaction = toSave.copy(
-                    // Keep the user's casing: "IRCTC" stays "IRCTC" (#876).
-                    merchantName = toSave.merchantName.trim(),
-                    reference = normalizeReference(toSave.reference),
-                    bankName = resolvedBankName,
-                    receiptPath = newReceiptPath,
-                    loanId = if (currentPersisted != null) currentPersisted.loanId else toSave.loanId,
-                    loanContribution = if (currentPersisted != null) currentPersisted.loanContribution else toSave.loanContribution,
-                    // Owned by the split sheet (#346), same reasoning.
-                    lentSharesTotal = if (persisted != null) persisted.lentSharesTotal else toSave.lentSharesTotal
-                )
+                // Also owned by the split sheet (#346): lentSharesTotal.
+                // Untouched, the receipt stays as stored now: it may have been replaced elsewhere.
+                val receiptChanged = pendingUri != null || _receiptRemoved.value
+                fun build(fresh: TransactionEntity?): TransactionEntity {
+                    val merged = if (fresh != null) {
+                        mergeEditOntoFresh(editStart ?: original ?: fresh, edited, fresh)
+                    } else {
+                        edited
+                    }
+                    val currentPersisted = fresh ?: _transaction.value
+                    return merged.copy(
+                        // Keep the user's casing: "IRCTC" stays "IRCTC" (#876).
+                        merchantName = merged.merchantName.trim(),
+                        reference = normalizeReference(merged.reference),
+                        receiptPath = if (receiptChanged || fresh == null) newReceiptPath else fresh.receiptPath,
+                        loanId = if (currentPersisted != null) currentPersisted.loanId else toSave.loanId,
+                        loanContribution = if (currentPersisted != null) currentPersisted.loanContribution else toSave.loanContribution,
+                        lentSharesTotal = if (fresh != null) fresh.lentSharesTotal else toSave.lentSharesTotal
+                    )
+                }
 
+                var freshRow = persisted
+                var rowGone = false
+                var normalizedTransaction = build(persisted)
                 persistReceiptChange(
                     oldPath = toSave.receiptPath,
                     newPath = newReceiptPath,
                     deleteReceipt = receiptManager::deleteReceipt
                 ) {
-                    accountBalanceRepository.pinManualOpenings(_transaction.value, normalizedTransaction)
-
-                    transactionRepository.updateTransaction(normalizedTransaction)
+                    // One database transaction: the read, the merge, the write and the
+                    // balance reflection, so a change landing meanwhile can't be written
+                    // over, and the row and the balance can't part ways (#1484). Any throw
+                    // rolls it all back.
+                    accountBalanceRepository.inTransaction {
+                        freshRow = original?.let { transactionRepository.getTransactionById(it.id) }
+                        normalizedTransaction = build(freshRow)
+                        // A row removed meanwhile has nothing to write or move.
+                        if (original != null && freshRow == null) {
+                            rowGone = true
+                            return@inTransaction
+                        }
+                        saveRefusal(freshRow, normalizedTransaction, splitsTotal)?.let { throw SaveRefusedException(it) }
+                        val before = freshRow ?: _transaction.value
+                        // A row deleted meanwhile already gave its effect back to the account:
+                        // the edit is kept on it for a restore, and moves no balance.
+                        val live = freshRow?.isDeleted != true
+                        if (live) accountBalanceRepository.pinManualOpenings(before, normalizedTransaction)
+                        transactionRepository.updateTransaction(normalizedTransaction)
+                        // Reflect the edit on account balances (#636): SMS-account shifts and
+                        // manual-account recomputes, owned by the repository.
+                        if (live) accountBalanceRepository.reflectTransactionEdit(before, normalizedTransaction)
+                    }
                 }
 
-                // Persist the edited tag set (create-or-select handled in repo).
-                tagRepository.setTagsForTransaction(normalizedTransaction.id, _editableTags.value)
+                if (rowGone) {
+                    // Nothing was written: drop the receipt just saved and close the edit.
+                    savedReceiptPath?.let(receiptManager::deleteReceipt)
+                    exitEditMode()
+                    _saveSuccess.value = true
+                    return@launch
+                }
 
-                // Reflect the edit on account balances (#636): SMS-account shifts and
-                // manual-account recomputes, owned by the repository.
-                accountBalanceRepository.reflectTransactionEdit(_transaction.value, normalizedTransaction)
+                // Persist what this session did to the tags (create-or-select handled in repo):
+                // the tags it added and removed, so a tag set elsewhere meanwhile stays.
+                editStartTags?.let { startTags ->
+                    val editedTags = _editableTags.value
+                    val added = editedTags.filter { tag -> startTags.none { it.equals(tag, ignoreCase = true) } }
+                    val removed = startTags.filter { tag -> editedTags.none { it.equals(tag, ignoreCase = true) } }
+                    if (added.isNotEmpty() || removed.isNotEmpty()) {
+                        tagRepository.applyTagChanges(normalizedTransaction.id, added, removed)
+                    }
+                }
 
                 // Save or remove splits
                 val currentSplits = _splits.value
@@ -1207,9 +1260,13 @@ class TransactionDetailViewModel @Inject constructor(
 
                 // Only now: a step above that failed leaves the edit open on the old
                 // receipt, and a cancel would show a deleted file.
-                discardReplacedReceipt(toSave.receiptPath, newReceiptPath, receiptManager::deleteReceipt)
+                discardReplacedReceipt(
+                    if (receiptChanged) freshRow?.receiptPath ?: toSave.receiptPath else newReceiptPath,
+                    newReceiptPath,
+                    receiptManager::deleteReceipt
+                )
                 // The repository kept or dropped the reimbursement columns (#1389); show what it wrote.
-                _transaction.value = keepReimbursement(persisted, normalizedTransaction)
+                _transaction.value = keepReimbursement(freshRow, normalizedTransaction)
                 loadReceiptUri(normalizedTransaction)
                 _pendingReceiptUri.value = null
                 _receiptRemoved.value = false
@@ -1217,6 +1274,8 @@ class TransactionDetailViewModel @Inject constructor(
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 _isEditMode.value = false
                 _editableTransaction.value = null
+                editStart = null
+                editStartTags = null
                 // Surfaces the partial failure (#752) instead of a clean "updated".
                 _errorMessage.value = ruleError
                 _applyToAllFromMerchant.value = false
@@ -1227,6 +1286,8 @@ class TransactionDetailViewModel @Inject constructor(
                 _originalMerchantAlias = trimmedAlias
                 _budgetImpactType.value = normalizedTransaction.budgetImpactType
                 _budgetCategory.value = normalizedTransaction.budgetCategory
+            } catch (e: SaveRefusedException) {
+                _errorMessage.value = e.error
             } catch (e: Exception) {
                 _errorMessage.value = UiText.Res(R.string.txn_detail_error_save, listOf(e.message.toString()))
             } finally {
@@ -1237,6 +1298,38 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun cancelEdit() {
         exitEditMode()
+    }
+
+    /**
+     * The error for the first rule that stops [merged] being written over [fresh] (the row as
+     * stored, null if unknown), or null. One place for every save rule, run early on a preview
+     * and again inside the save transaction on the row about to be written. [splitsTotal] is
+     * the split editor's sum, if it is in use.
+     */
+    private suspend fun saveRefusal(fresh: TransactionEntity?, merged: TransactionEntity, splitsTotal: BigDecimal?): UiText? {
+        fun res(id: Int) = UiText.Res(id)
+        if (splitsTotal != null && (merged.amount - splitsTotal).abs() > BigDecimal("0.01")) return res(R.string.txn_detail_error_splits_total)
+        // A loan's amounts are all in its own currency: unlink it before changing the currency.
+        if (blocksLoanCurrencyChange(fresh, merged.currency)) return res(R.string.txn_detail_error_loan_currency_locked)
+        if (fresh == null) return if (merged.isSelfTransfer()) res(R.string.txn_detail_error_same_accounts) else null
+        // Its money direction too: retyping a linked row would turn principal into repayment (#876).
+        if (com.pennywiseai.tracker.domain.loan.LoanMath.blocksTypeChange(fresh.loanId, fresh.transactionType, merged.transactionType)) {
+            return res(R.string.txn_detail_error_loan_type_locked)
+        }
+        // A transfer with neither leg would undo the old effect and apply nothing.
+        if (transferWithoutLegs(fresh, merged)) return res(R.string.txn_detail_error_transfer_accounts)
+        if (merged.isSelfTransfer()) return res(R.string.txn_detail_error_same_accounts)
+        // A split bill's shares (#346) are in its currency, on an expense, and within its amount.
+        fresh.lentSharesTotal?.let { shares ->
+            if (!fresh.currency.equals(merged.currency, ignoreCase = true)) return res(R.string.txn_detail_error_loan_currency_locked)
+            if (merged.transactionType != TransactionType.EXPENSE) return res(R.string.split_error_type_locked)
+            if (merged.amount < shares) return res(R.string.split_error_amount_below_shares)
+        }
+        // Goal contributions keep their share in the transaction's currency (#914).
+        if (merged.currency != fresh.currency && goalRepository.observeContributionsForTransaction(fresh.id).first().isNotEmpty()) {
+            return res(R.string.goal_currency_locked_by_goal)
+        }
+        return null
     }
 
     /** [txn]'s bank, or the one known account with its typed number when exactly one matches. */
@@ -1768,6 +1861,60 @@ internal fun TransactionEntity.withKnownTransferLeg(before: TransactionEntity?):
     } else {
         copy(fromAccount = account, fromBankName = before.bankName)
     }
+}
+
+/** The merged row written inside the save's transaction fails a check the edited row passed; rolls the save back. */
+private class SaveRefusedException(val error: UiText) : Exception()
+
+/** [row] is linked to a loan whose currency [editedCurrency] would change. */
+private fun blocksLoanCurrencyChange(row: TransactionEntity?, editedCurrency: String): Boolean =
+    LoanCurrencyRules.blocksCurrencyChange(
+        linkedLoanId = row?.loanId,
+        originalCurrency = row?.currency.orEmpty(),
+        editedCurrency = editedCurrency
+    )
+
+/** A transfer from an account to itself, which moves no money. */
+private fun TransactionEntity.isSelfTransfer(): Boolean =
+    transactionType == TransactionType.TRANSFER &&
+        fromAccount != null &&
+        toAccount != null &&
+        fromAccount == toAccount &&
+        (fromBankName == null || toBankName == null || fromBankName == toBankName)
+
+/**
+ * [edited] laid over [fresh], the row as stored now (#1484): a field takes the edited
+ * value only when it differs from [start], the row as the edit opened; every other field
+ * keeps [fresh]'s, so a change made elsewhere meanwhile isn't written back over.
+ */
+internal fun mergeEditOntoFresh(start: TransactionEntity, edited: TransactionEntity, fresh: TransactionEntity): TransactionEntity {
+    fun <T> pick(s: T, e: T, f: T) = if (e != s) e else f
+    // An account and its bank, and a budget type and its category, only make sense together:
+    // if the edit changed either half it supplies both, otherwise both stay as stored.
+    val accountEdited = edited.accountNumber != start.accountNumber || edited.bankName != start.bankName
+    val fromEdited = edited.fromAccount != start.fromAccount || edited.fromBankName != start.fromBankName
+    val toEdited = edited.toAccount != start.toAccount || edited.toBankName != start.toBankName
+    val budgetEdited = edited.budgetImpactType != start.budgetImpactType || edited.budgetCategory != start.budgetCategory
+    return fresh.copy(
+        merchantName = pick(start.merchantName, edited.merchantName, fresh.merchantName),
+        amount = if (edited.amount.compareTo(start.amount) != 0) edited.amount else fresh.amount,
+        transactionType = pick(start.transactionType, edited.transactionType, fresh.transactionType),
+        category = pick(start.category, edited.category, fresh.category),
+        dateTime = pick(start.dateTime, edited.dateTime, fresh.dateTime),
+        description = pick(start.description, edited.description, fresh.description),
+        accountNumber = if (accountEdited) edited.accountNumber else fresh.accountNumber,
+        bankName = if (accountEdited) edited.bankName else fresh.bankName,
+        fromAccount = if (fromEdited) edited.fromAccount else fresh.fromAccount,
+        fromBankName = if (fromEdited) edited.fromBankName else fresh.fromBankName,
+        toAccount = if (toEdited) edited.toAccount else fresh.toAccount,
+        toBankName = if (toEdited) edited.toBankName else fresh.toBankName,
+        reference = pick(start.reference, edited.reference, fresh.reference),
+        isRecurring = pick(start.isRecurring, edited.isRecurring, fresh.isRecurring),
+        profileId = pick(start.profileId, edited.profileId, fresh.profileId),
+        budgetImpactType = if (budgetEdited) edited.budgetImpactType else fresh.budgetImpactType,
+        budgetCategory = if (budgetEdited) edited.budgetCategory else fresh.budgetCategory,
+        currency = pick(start.currency, edited.currency, fresh.currency),
+    )
 }
 
 /** [updated] turned [original] into a standalone transfer that moves no account. */

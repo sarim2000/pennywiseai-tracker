@@ -202,6 +202,7 @@
     <string name="txn_list_group_yesterday">हिजो</string>
     <string name="txn_list_group_this_week">यस हप्ता</string>
     <string name="txn_list_group_earlier">अघिल्लो</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">नयाँतम् पहिलो</string>
     <string name="txn_list_sort_oldest">पुरानो पहिलो</string>
     <string name="txn_list_sort_amount_highest">सबैभन्दा बढी रकम</string>

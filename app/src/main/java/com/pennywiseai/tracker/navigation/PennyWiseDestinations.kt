@@ -32,6 +32,8 @@ data class Transactions(
     val endDate: Long? = null,
     val account: String? = null,
     val tag: String? = null,
+    /** A second tag the rows must carry too (an Analytics tag row drilled into under a tag filter). */
+    val alsoTag: String? = null,
     /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
     val currencyOnly: Boolean = false,
     /**
@@ -60,10 +62,10 @@ data object Categories : NavKey
 
 /** What the Plan tab shows. */
 @Serializable
-enum class PlanSection { BUDGETS, BILLS, GOALS }
+enum class PlanSection { BUDGETS, BILLS, GOALS, CHALLENGES }
 
 /**
- * The Plan tab: budgets, bills and goals behind one switch. [request] makes each explicit
+ * The Plan tab: budgets, bills, goals and challenges behind one switch. [request] makes each explicit
  * "open Plan on X" a new key, so it shows X even when the tab last showed another section.
  * [focusId] is the budget or bill (by [section]) a Home row was tapped on, shown first.
  */
@@ -104,6 +106,8 @@ data class AddTransaction(
     val type: String? = null,
     val dateTime: String? = null,
     val unrecognizedSmsId: Long? = null,
+    // An automation app's note (see AddAutomation).
+    val note: String? = null,
     // Bills' "+" opens the Subscription form directly.
     val form: AddForm = AddForm.TRANSACTION,
     // Unique per open, so two Add screens on the stack never share one ViewModel/draft

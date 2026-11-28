@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
@@ -264,6 +265,23 @@ class TransactionListFiltersTest {
         assertEquals(rows, filterByTag(rows, null, tagged))
     }
 
+    @Test
+    fun `a second required tag keeps only rows carrying both`() {
+        val tags = mapOf(1L to listOf("Work", "Trip"), 2L to listOf("Work"), 3L to listOf("Trip"))
+        val rows = listOf(tx(1), tx(2), tx(3))
+        assertEquals(listOf(1L), ids(filterByTag(rows, "Work", tags, "trip")))
+        assertEquals(listOf(1L, 2L), ids(filterByTag(rows, "Work", tags)))
+    }
+
+    @Test
+    fun `a removed or deleted first tag promotes the second`() {
+        assertEquals("Trip" to null, normalizeTags(null, "Trip")) // first chip removed
+        assertEquals("Trip" to null, normalizeTags("Work", "Trip") { it == "Trip" }) // first deleted
+        assertEquals("Work" to null, normalizeTags("Work", "Trip") { it == "Work" }) // second deleted
+        assertEquals(null to null, normalizeTags("Work", "Trip") { false })
+        assertEquals("Work" to "Trip", normalizeTags("Work", "Trip"))
+    }
+
     // ─── Filterable categories ───────────────────────────────────────────────
 
     @Test
@@ -285,5 +303,77 @@ class TransactionListFiltersTest {
     fun `filterable categories are distinct and sorted`() {
         val rows = listOf(tx(1, "Travel"), tx(2, "Food"), tx(3, "Travel"))
         assertEquals(listOf("Food", "Travel"), filterableCategories(rows, listOf(split(2, "Food")), emptyMap()))
+    }
+
+    // ─── Refunds under a category filter (#1376) ─────────────────────────────
+
+    private fun refund(
+        id: Long,
+        budgetCategory: String?,
+        category: String = "Refunds",
+        impact: BudgetImpactType = BudgetImpactType.DEDUCT_SPENT,
+    ) = tx(id, category = category, type = TransactionType.INCOME)
+        .copy(budgetImpactType = impact, budgetCategory = budgetCategory)
+
+    private fun listed(vararg rows: TransactionEntity, filter: Set<String>, splits: List<TransactionSplitEntity> = emptyList()) =
+        ids(filterByCategories(rows.toList(), filter, splits))
+
+    @Test
+    fun `a split refund comes off its budget category whole`() {
+        val row = refund(1, "Food").copy(amount = BigDecimal("100"))
+        val shares = CategorySplitShares(setOf("Food"), listOf(split(1, "Travel")))
+        assertEquals(BigDecimal("100"), shares.shownAmount(row))
+        assertEquals(BigDecimal("100"), shares.forTotals(row)?.amount)
+    }
+
+    @Test
+    fun `a refund's budget category and its parent are filterable`() {
+        assertEquals(listOf("Food", "Living", "Refunds"), filterableCategories(listOf(refund(1, "Food")), emptyList(), mapOf("Food" to "Living")))
+    }
+
+    @Test
+    fun `a refund is listed under the budget category it came off`() {
+        assertEquals(listOf(1L), listed(refund(1, "Food"), filter = setOf("Food")))
+    }
+
+    @Test
+    fun `a refund off another category is not listed`() {
+        assertEquals(emptyList<Long>(), listed(refund(1, "Shopping"), filter = setOf("Food")))
+    }
+
+    @Test
+    fun `a refund with no budget category counts under Others`() {
+        assertEquals(listOf(1L, 2L), listed(refund(1, null), refund(2, " ".trim()), filter = setOf("Others")))
+        assertEquals(emptyList<Long>(), listed(refund(1, null), filter = setOf("Food")))
+    }
+
+    @Test
+    fun `the refund match ignores case`() {
+        assertEquals(listOf(1L), listed(refund(1, "food"), filter = setOf("Food")))
+    }
+
+    @Test
+    fun `income that is not a refund is not pulled in by its budget category`() {
+        assertEquals(emptyList<Long>(), listed(refund(1, "Food", impact = BudgetImpactType.ADD_TO_LIMIT), filter = setOf("Food")))
+    }
+
+    @Test
+    fun `a refund still shows under its own category`() {
+        assertEquals(listOf(1L), listed(refund(1, "Food"), filter = setOf("Refunds")))
+    }
+
+    @Test
+    fun `split rows still match by their splits`() {
+        val splitRow = tx(1, category = "Shopping")
+        assertEquals(listOf(1L), listed(splitRow, filter = setOf("Food"), splits = listOf(split(1, "Food"))))
+        assertEquals(emptyList<Long>(), listed(splitRow, filter = setOf("Shopping"), splits = listOf(split(1, "Food"))))
+    }
+
+    @Test
+    fun `a listed refund nets the expenses once and is not income`() {
+        val rows = listOf(tx(1).copy(amount = BigDecimal("100")), refund(2, "Food").copy(amount = BigDecimal("30")))
+        val totals = calculateCurrencyGroupedTotals(rows).getTotalsForCurrency(rows[0].currency)
+        assertEquals(0, BigDecimal("70").compareTo(totals.expenses))
+        assertEquals(0, BigDecimal.ZERO.compareTo(totals.income))
     }
 }

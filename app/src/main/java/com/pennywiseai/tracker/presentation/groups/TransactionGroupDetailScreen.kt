@@ -32,7 +32,11 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.GroupTotals
+import com.pennywiseai.tracker.data.trip.TripStatus
+import com.pennywiseai.tracker.data.trip.isTrip
+import com.pennywiseai.tracker.data.trip.tripStatus
 import com.pennywiseai.tracker.presentation.common.ExportTransactionsDialog
+import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -67,6 +71,7 @@ fun TransactionGroupDetailScreen(
     }
 
     val group = uiState.group
+    val tripNow = rememberTripNow(listOfNotNull(group))
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -177,6 +182,38 @@ fun TransactionGroupDetailScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                        if (group.isTrip) {
+                            val status = group.tripStatus(tripNow)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        tripWindowText(group),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        stringResource(
+                                            when (status) {
+                                                TripStatus.SCHEDULED -> R.string.trip_status_scheduled
+                                                TripStatus.RUNNING -> R.string.trip_status_running
+                                                else -> R.string.trip_status_ended
+                                            }
+                                        ),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (status == TripStatus.RUNNING) {
+                                    TextButton(onClick = { viewModel.stopTrip() }, shapes = ButtonDefaults.shapes()) {
+                                        Text(stringResource(R.string.trip_stop))
+                                    }
+                                }
+                            }
                         }
                         HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
                         // Up to four figures (count, spent, invested, received),
@@ -381,13 +418,25 @@ fun TransactionGroupDetailScreen(
     }
 
     // Edit dialog
+    var showUpgradeSheet by remember { mutableStateOf(false) }
+    val isPro by viewModel.isProEntitled.collectAsStateWithLifecycle()
     if (uiState.showEditDialog && group != null) {
         EditGroupDialog(
             currentName = group.name,
             currentNote = group.note,
+            currentTrip = TripDraft.of(group),
+            alreadyTrip = group.isTrip,
+            isPro = isPro,
+            tripOverlap = uiState.tripOverlap,
+            isSaving = uiState.isSaving,
+            onTripDatesChanged = { viewModel.clearTripOverlap() },
+            onNeedUpgrade = { showUpgradeSheet = true },
             onDismiss = { viewModel.hideEditDialog() },
-            onSave = { name, note -> viewModel.updateGroupName(name, note) }
+            onSave = { name, note, trip -> viewModel.updateGroupName(name, note, trip) }
         )
+    }
+    if (showUpgradeSheet || uiState.upgradeRequested) {
+        UpgradeSheet(onDismiss = { showUpgradeSheet = false; viewModel.dismissUpgrade() })
     }
 
     // Export dialog — reuses the transactions CSV exporter (same Pro/free
@@ -625,11 +674,20 @@ private fun AddTransactionToGroupSheet(
 private fun EditGroupDialog(
     currentName: String,
     currentNote: String?,
+    currentTrip: TripDraft,
+    alreadyTrip: Boolean,
+    isPro: Boolean,
+    tripOverlap: String?,
+    isSaving: Boolean,
+    onTripDatesChanged: () -> Unit,
+    onNeedUpgrade: () -> Unit,
     onDismiss: () -> Unit,
-    onSave: (String, String?) -> Unit
+    onSave: (String, String?, TripDraft) -> Unit
 ) {
     val nameState = rememberTextFieldState(currentName)
     val noteState = rememberTextFieldState(currentNote ?: "")
+    // Keyed on the stored window: a Stop (or any change) behind the dialog resets the draft to it.
+    var trip by remember(currentTrip) { mutableStateOf(currentTrip) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -659,12 +717,21 @@ private fun EditGroupDialog(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
+                TripFields(
+                    draft = trip,
+                    onChange = { trip = it },
+                    isPro = isPro,
+                    alreadyTrip = alreadyTrip,
+                    onNeedUpgrade = onNeedUpgrade,
+                    error = tripOverlap?.let { stringResource(R.string.trip_overlap_error, it) },
+                    onDatesChanged = onTripDatesChanged
+                )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(nameState.text.toString(), noteState.text.toString().ifBlank { null }) },
-                enabled = nameState.text.isNotBlank(),
+                onClick = { onSave(nameState.text.toString(), noteState.text.toString().ifBlank { null }, trip) },
+                enabled = nameState.text.isNotBlank() && !isSaving,
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.group_save))

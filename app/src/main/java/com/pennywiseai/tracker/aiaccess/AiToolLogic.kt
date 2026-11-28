@@ -111,6 +111,7 @@ object AiToolLogic {
             putJsonArray("transactions") {
                 shown.forEach { t ->
                     add(buildJsonObject {
+                        put("id", t.id.toString())
                         put("date", t.dateTime.toString())
                         put("merchant", t.merchantName)
                         aliases[t.merchantName]?.let { put("alias", it) }

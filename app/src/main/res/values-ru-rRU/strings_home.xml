@@ -32,7 +32,6 @@
     <string name="home_resync_scan_again">Сканировать все сообщения заново</string>
     <string name="home_resync_scan_again_desc">Добавит всё, что было пропущено. Ваши правки и все существующие транзакции не изменятся.</string>
     <string name="home_resync_rebuild">Пересобрать с нуля</string>
-    <string name="home_resync_rebuild_desc">Заново читает транзакции из SMS, чтобы применить исправления распознавания. Правки SMS-транзакций будут сброшены. Ручные, импортированные, долговые и сгруппированные транзакции сохранятся.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Больше опций</string>
     <string name="home_menu_edit_home">Редактировать главный экран</string>

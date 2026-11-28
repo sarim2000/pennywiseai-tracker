@@ -56,6 +56,7 @@ import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.home.HomeFigureRows
 import com.pennywiseai.tracker.presentation.home.HomeScreen
+import com.pennywiseai.tracker.presentation.plan.PlanChallengesScreen
 import com.pennywiseai.tracker.presentation.plan.PlanGoalsScreen
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
@@ -509,6 +510,7 @@ fun MainScreen(
                     initialCustomEndEpochDay = key.endDate,
                     initialAccount = key.account,
                     initialTag = key.tag,
+                    initialAlsoTag = key.alsoTag,
                     currencyOnly = key.currencyOnly,
                     profilePinned = key.profilePinned,
                     initialProfileId = key.profileId,
@@ -589,6 +591,11 @@ fun MainScreen(
                                 onOpenGoal = { openRoot(GoalDetail(it)) },
                                 onCreateGoal = { openRoot(GoalEdit(-1L)) },
                             )
+                            PlanSection.CHALLENGES -> PlanChallengesScreen(
+                                host = host,
+                                onOpenTransaction = { openRoot(TransactionDetail(it)) },
+                                onOpenBackgroundAccess = { openRoot(BackgroundAccess) },
+                            )
                         }
                     }
                 }
@@ -611,6 +618,7 @@ fun MainScreen(
                                 endDate = drill.endDateEpochDay,
                                 account = drill.account,
                                 tag = drill.tag,
+                                alsoTag = drill.alsoTag,
                                 type = drill.type
                             )
                         )

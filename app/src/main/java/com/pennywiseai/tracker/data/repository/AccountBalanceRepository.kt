@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.core.ApplicationScope
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
@@ -12,11 +13,17 @@ import com.pennywiseai.tracker.data.ledger.BalanceCalculator
 import com.pennywiseai.tracker.data.ledger.isPairedTransferLeg
 import com.pennywiseai.tracker.data.ledger.ledgerType
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
+import com.pennywiseai.tracker.data.trip.withTripGroup
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.toDatabaseString
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -27,12 +34,19 @@ open class AccountBalanceRepository @Inject constructor(
     private val accountBalanceDao: AccountBalanceDao,
     private val transactionDao: TransactionDao,
     private val database: PennyWiseDatabase,
-    private val userPreferencesRepository: NotificationPreferences
+    private val userPreferencesRepository: NotificationPreferences,
+    @ApplicationScope private val scope: CoroutineScope
 ) {
     companion object {
         const val SOURCE_OPENING = "OPENING"
         const val SOURCE_MANUAL = "MANUAL"
     }
+
+    private val rearmJobs = java.util.concurrent.ConcurrentHashMap.newKeySet<Job>()
+    private val pendingRearm = java.util.concurrent.ConcurrentHashMap<Pair<String, String>, Job>()
+
+    /** Runs [block] as one database transaction; the repositories it calls join it, and a throw rolls it all back. */
+    suspend fun <T> inTransaction(block: suspend () -> T): T = database.withTransaction { block() }
 
     suspend fun insertBalance(balance: AccountBalanceEntity): Long {
         return accountBalanceDao.insertBalance(balance)
@@ -383,15 +397,42 @@ open class AccountBalanceRepository @Inject constructor(
      * Above the threshold, or with none: the next dip is news again. Done at the
      * write, not in MoneyAlertWorker, which only sees the newest figure and doesn't
      * run after an edit. Never fails the write around it; worst case is one missed alert.
+     * Fire-and-forget so a caller inside a database transaction is never held up by it.
+     * The job waits for the caller's write to end, then clears the flag; a recovery clears it
+     * even if the balance has dipped again by then, so the new dip alerts. A recovery that
+     * rolled back can cost one repeated alert. At most one job per account is queued.
      */
-    private suspend fun rearmLowBalanceAlert(
+    private fun rearmLowBalanceAlert(
         bankName: String,
         accountLast4: String,
         balance: BigDecimal,
         threshold: BigDecimal?
     ) {
         if (threshold != null && balance <= threshold) return
-        runCatching { userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false) }
+        val key = bankName to accountLast4
+        val job = scope.launch(start = CoroutineStart.LAZY) {
+            try {
+                runCatching {
+                    // Barrier only: queues behind the caller's open write, so the claim runs after it ends.
+                    database.withTransaction { pendingRearm.remove(key, coroutineContext[Job]) }
+                    userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false)
+                }
+            } finally {
+                pendingRearm.remove(key, coroutineContext[Job])
+                rearmJobs.remove(coroutineContext[Job])
+            }
+        }
+        if (pendingRearm.putIfAbsent(key, job) != null) {
+            job.cancel()
+            return
+        }
+        rearmJobs.add(job)
+        job.start()
+    }
+
+    /** Lets a check that reads the alert flag run after the resets queued before it. */
+    suspend fun awaitLowBalanceRearms() {
+        rearmJobs.toList().joinAll()
     }
 
     suspend fun updateAccountCurrency(bankName: String, accountLast4: String, currency: String): Int {
@@ -533,12 +574,16 @@ open class AccountBalanceRepository @Inject constructor(
     suspend fun insertTransactionWithBalance(
         transaction: TransactionEntity,
         bankName: String?,
-        accountLast4: String?
+        accountLast4: String?,
+        joinTrip: Boolean = true
     ): Long = database.withTransaction {
         if (bankName != null && accountLast4 != null) {
             ensureManualOpening(bankName, accountLast4)
         }
-        val rowId = transactionDao.insertTransaction(transaction)
+        // A running trip (#1463) claims manual adds here; scheduled templates opt out.
+        val row = if (joinTrip) transactionDao.withTripGroup(listOf(transaction)).single() else transaction
+        val rowId = transactionDao.insertTransaction(row)
+        if (joinTrip && rowId != -1L && row.groupId != null) transactionDao.clearDanglingGroup(rowId)
         if (rowId != -1L && bankName != null && accountLast4 != null) {
             applyTransactionToBalance(
                 bankName = bankName,
@@ -925,30 +970,13 @@ open class AccountBalanceRepository @Inject constructor(
      * manual account(s), whose balance [applyTransactionBalanceShift] skips.
      */
     suspend fun reflectTransactionEdit(original: TransactionEntity?, updated: TransactionEntity) {
+        if (!editMovesBalances(original, updated)) return
         val oldBank = original?.bankName
         val oldAccount = original?.accountNumber
         val newBank = updated.bankName
         val newAccount = updated.accountNumber
         val accountChanged = oldBank != newBank || oldAccount != newAccount
-        val balanceRelevantChange = original != null && (
-            accountChanged ||
-                original.transactionType != updated.transactionType ||
-                original.amount.compareTo(updated.amount) != 0 ||
-                original.fromBankName != updated.fromBankName ||
-                original.toBankName != updated.toBankName ||
-                original.fromAccount != updated.fromAccount ||
-                original.toAccount != updated.toAccount
-            )
-        // A merchant/category-only edit moves no balance; skipping the recompute keeps a
-        // batch rule run from re-summing an account once per row.
-        if (original != null && !balanceRelevantChange &&
-            original.currency == updated.currency &&
-            original.isDeleted == updated.isDeleted &&
-            original.dateTime == updated.dateTime &&
-            original.transferPairId == updated.transferPairId
-        ) {
-            return
-        }
+        val balanceRelevantChange = original != null && balanceRelevantChange(original, updated)
         if (balanceRelevantChange) applyTransactionBalanceShift(original, updated)
         // Also covers amount/date edits on an unchanged manual account.
         if (newBank != null && newAccount != null) recomputeManualBalance(newBank, newAccount)
@@ -1084,3 +1112,28 @@ open class AccountBalanceRepository @Inject constructor(
         }
     }
 }
+
+private fun balanceRelevantChange(original: TransactionEntity, updated: TransactionEntity) =
+    original.bankName != updated.bankName ||
+        original.accountNumber != updated.accountNumber ||
+        original.transactionType != updated.transactionType ||
+        original.amount.compareTo(updated.amount) != 0 ||
+        original.fromBankName != updated.fromBankName ||
+        original.toBankName != updated.toBankName ||
+        original.fromAccount != updated.fromAccount ||
+        original.toAccount != updated.toAccount
+
+/**
+ * True when [AccountBalanceRepository.reflectTransactionEdit] would shift or re-derive a
+ * balance for this edit (it also reaches DataStore through the low-balance alert, so a
+ * caller batching writes in one transaction must keep such an edit out of it). A
+ * merchant/category-only edit moves no balance. Conservative: a new row ([original] null)
+ * counts.
+ */
+fun editMovesBalances(original: TransactionEntity?, updated: TransactionEntity): Boolean =
+    original == null ||
+        balanceRelevantChange(original, updated) ||
+        original.currency != updated.currency ||
+        original.isDeleted != updated.isDeleted ||
+        original.dateTime != updated.dateTime ||
+        original.transferPairId != updated.transferPairId

@@ -121,11 +121,9 @@ class OnBoardingViewModel @Inject constructor(
                     val pending = WorkManager.getInstance(context)
                         .getWorkInfosForUniqueWorkFlow(OptimizedSmsReaderWorker.WORK_NAME)
                         .first().any { !it.state.isFinished }
-                    if (pending) {
-                        _uiState.update { it.copy(isScanning = true, scanCompleted = false) }
-                    } else {
-                        applyStoredTransactions()
-                    }
+                    // A pending job is shown as scanning by the observer (ENQUEUED below), so
+                    // this snapshot never writes over a state the observer already finished.
+                    if (!pending) applyStoredTransactions()
                 }
                 loadAccounts()
             }
@@ -295,7 +293,10 @@ class OnBoardingViewModel @Inject constructor(
                             applyStoredTransactions()
                             loadAccounts()
                         }
-                        else -> { /* ENQUEUED, BLOCKED */ }
+                        else -> {
+                            // ENQUEUED, BLOCKED: queued (or rescheduled after a kill) counts as running.
+                            _uiState.update { it.copy(isScanning = true, scanCompleted = false) }
+                        }
                     }
                 }
         }

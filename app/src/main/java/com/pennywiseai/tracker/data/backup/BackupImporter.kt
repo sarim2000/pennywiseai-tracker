@@ -104,6 +104,10 @@ class BackupImporter @Inject constructor(
         } catch (e: BackupReadException) {
             Log.e("BackupImporter", "Import failed: ${e.message}")
             ImportResult.Error(context.getString(e.messageRes))
+        } catch (e: android.database.SQLException) {
+            // Raw SQLite text ("... code 1811") means nothing to the user; the log keeps it.
+            Log.e("BackupImporter", "Import failed", e)
+            ImportResult.Error("${e.message}", R.string.settings_import_failed_database)
         } catch (e: Exception) {
             Log.e("BackupImporter", "Import failed", e)
             ImportResult.Error("${e.message}")
@@ -1022,8 +1026,8 @@ class BackupImporter @Inject constructor(
         val existingBudgetNames = database.budgetDao().getAllBudgets().first().map { it.name }.toSet()
 
         budgets.insertEachCounting(onSkip) { budget ->
-            // One savepoint per budget: a failing category rolls back the whole
-            // budget instead of committing it with only some of its categories.
+            // Nested transaction, not an isolated savepoint: a failing category marks the
+            // outer one rollback-only, so it must propagate (rethrowIfSql), never be caught.
             if (!existingBudgetNames.contains(budget.name)) database.withTransaction {
                 // Use the return value from insertBudget to get the new ID directly
                 // instead of querying (which would miss inactive budgets)
@@ -1036,6 +1040,9 @@ class BackupImporter @Inject constructor(
                 }
             }
         }
+        // A category whose budget isn't in the backup is never reached above: count it.
+        val backupBudgetIds = budgets.mapTo(HashSet()) { it.id }
+        budgetCategories.forEach { if (it.budgetId !in backupBudgetIds) onSkip() }
     }
 
     /**

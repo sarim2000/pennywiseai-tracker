@@ -175,6 +175,25 @@ class FolderBackupPassphraseTest {
     }
 
     @Test
+    fun `a corrupted setting resets to encrypted with no passphrase, and can be saved or turned off`() = runBlocking {
+        val file = File(tmp.root, "corrupt.preferences_pb").apply { writeBytes(byteArrayOf(0x0A, 0x7F)) }
+        val corrupt = PreferenceDataStoreFactory.create(
+            corruptionHandler = FolderBackupPassphrase.corruptionHandler,
+            scope = scope,
+            produceFile = { file }
+        )
+        val store = FolderBackupPassphrase(corrupt)
+
+        assertEquals(FolderBackupPassphrase.Status.LOCKED, store.status.first())
+        assertThrows<FolderBackupPassphrase.LockedException> { store.load() }
+
+        store.save("synthetic phrase".toCharArray())
+        assertEquals(FolderBackupPassphrase.Status.ON, store.status.first())
+        store.clear()
+        assertEquals(FolderBackupPassphrase.Status.OFF, store.status.first())
+    }
+
+    @Test
     fun `an unlock that works again clears the warning`() = runBlocking {
         val store = FolderBackupPassphrase(disk)
         store.save("synthetic phrase".toCharArray())

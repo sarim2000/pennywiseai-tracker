@@ -2,9 +2,11 @@ package com.pennywiseai.tracker.data.backup
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.core.DeviceSecretBox
@@ -25,7 +27,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 private val Context.folderBackupEncryptionStore: DataStore<Preferences> by preferencesDataStore(
-    name = "folder_backup_encryption"
+    name = "folder_backup_encryption",
+    corruptionHandler = FolderBackupPassphrase.corruptionHandler
 )
 
 /**
@@ -162,6 +165,12 @@ class FolderBackupPassphrase internal constructor(
         val KEY_ENCRYPT = booleanPreferencesKey("encrypt")
         val KEY_SEALED = stringPreferencesKey("passphrase_sealed")
         val KEY_ALIAS = stringPreferencesKey("passphrase_key_alias")
+
+        /**
+         * A file that can't be parsed is replaced by "encrypt, no passphrase": nothing goes out
+         * plain, Settings asks for the passphrase again, and saving or turning it off works.
+         */
+        val corruptionHandler = ReplaceFileCorruptionHandler<Preferences> { preferencesOf(KEY_ENCRYPT to true) }
 
         // Either one means "encrypt": a half-present setting fails closed.
         fun isRequired(prefs: Preferences) = prefs[KEY_ENCRYPT] == true || prefs[KEY_SEALED] != null

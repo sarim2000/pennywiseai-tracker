@@ -319,6 +319,11 @@ class TransactionListFiltersTest {
         ids(filterByCategories(rows.toList(), filter, splits))
 
     @Test
+    fun `a refund's budget category and its parent are filterable`() {
+        assertEquals(listOf("Food", "Living", "Refunds"), filterableCategories(listOf(refund(1, "Food")), emptyList(), mapOf("Food" to "Living")))
+    }
+
+    @Test
     fun `a refund is listed under the budget category it came off`() {
         assertEquals(listOf(1L), listed(refund(1, "Food"), filter = setOf("Food")))
     }

@@ -167,7 +167,9 @@ internal fun filterableCategories(
     val splits = allSplits.filter { it.transactionId in ids }
     // Parents of present sub-categories are filterable too (#374),
     // and the auto-clear in the ViewModel must not drop them.
-    val present = (transactions.map { countedCategory(it.category) } + splits.map { countedCategory(it.category) }).distinct()
+    // A refund's budget category too: [filterByCategories] lists it there, even with no spend left in it (#1376).
+    val refunded = transactions.filter { it.isRefund() }.map { countedCategory(it.budgetCategory.orEmpty()) }
+    val present = (transactions.map { countedCategory(it.category) } + splits.map { countedCategory(it.category) } + refunded).distinct()
     return (present + present.mapNotNull { parentOf[it] }).distinct().sorted()
 }
 

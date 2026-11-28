@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.repository.groupTotalsOf
 import com.pennywiseai.tracker.data.trip.TripOverlapException
 import com.pennywiseai.tracker.data.trip.isTrip
 import com.pennywiseai.tracker.data.trip.tripEditNeedsPro
+import com.pennywiseai.tracker.data.trip.tripStartMovedEarlier
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -42,7 +43,8 @@ data class TransactionGroupDetailUiState(
     val addSearchQuery: String = "",
     val tripOverlap: String? = null,
     val isSaving: Boolean = false,
-    val upgradeRequested: Boolean = false
+    val upgradeRequested: Boolean = false,
+    val backfill: TripBackfillOffer? = null
 )
 
 @HiltViewModel
@@ -156,13 +158,29 @@ class TransactionGroupDetailViewModel @Inject constructor(
                         tripEnd = end
                     )
                 )
-                _uiState.value = _uiState.value.copy(group = repository.getGroupById(groupId), showEditDialog = false, tripOverlap = null)
+                val saved = repository.getGroupById(groupId)
+                // A trip that now reaches further back offers the rows it would have taken.
+                val rows = if (saved != null && tripStartMovedEarlier(group, saved)) repository.tripBackfillCandidates(groupId) else emptyList()
+                _uiState.value = _uiState.value.copy(
+                    group = saved,
+                    showEditDialog = false,
+                    tripOverlap = null,
+                    backfill = rows.takeIf { it.isNotEmpty() }?.let { TripBackfillOffer(groupId, it) }
+                )
             } catch (e: TripOverlapException) {
                 _uiState.value = _uiState.value.copy(tripOverlap = e.other)
             } finally {
                 _uiState.value = _uiState.value.copy(isSaving = false)
             }
         }
+    }
+
+    fun skipBackfill() { _uiState.value = _uiState.value.copy(backfill = null) }
+
+    /** One database transaction for the whole batch; skipping records nothing. */
+    fun addBackfill(ids: List<Long>) {
+        _uiState.value = _uiState.value.copy(backfill = null)
+        viewModelScope.launch { repository.addTransactionsToGroup(ids, groupId) }
     }
 
     fun dismissUpgrade() { _uiState.value = _uiState.value.copy(upgradeRequested = false) }

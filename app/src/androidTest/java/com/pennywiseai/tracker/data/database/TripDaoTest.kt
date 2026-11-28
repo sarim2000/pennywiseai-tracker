@@ -83,6 +83,38 @@ class TripDaoTest {
         assertEquals(listOf("h1"), transactions.getTripExclusions(tripId))
     }
 
+    @Test fun backfillQueryFindsOnlyWindowedUngroupedSpendingAndTheBatchIsOneAtomicLink() = runBlocking {
+        val trip = TransactionGroupEntity(name = "Synthetic trip", tripStart = at.minusDays(1), tripEnd = at.plusDays(1))
+        val tripId = groups.insertGroup(trip)
+        val otherId = groups.insertGroup(TransactionGroupEntity(name = "Synthetic other"))
+        val inside = transactions.insertTransaction(txn("in"))
+        val removed = transactions.insertTransaction(txn("removed"))
+        val grouped = transactions.insertTransaction(txn("grouped").copy(groupId = otherId))
+        transactions.insertTransaction(txn("income").copy(transactionType = TransactionType.INCOME))
+        transactions.insertTransaction(txn("recurring").copy(isRecurring = true))
+        transactions.insertTransaction(txn("loan").copy(loanId = 1))
+        transactions.insertTransaction(txn("deleted").copy(isDeleted = true))
+        transactions.insertTransaction(txn("early").copy(dateTime = at.minusDays(2)))
+        transactions.insertTransaction(txn("late").copy(dateTime = at.plusDays(2)))
+        groups.insertTripExclusion(com.pennywiseai.tracker.data.database.entity.TripExclusionEntity(tripId, "removed"))
+
+        val found = groups.getTripBackfillCandidates(tripId, trip.tripStart!!, trip.tripEnd, 500)
+        assertEquals(listOf("in"), found.map { it.transactionHash })
+
+        // Open end: nothing after the start is cut off.
+        val openEnded = groups.getTripBackfillCandidates(tripId, trip.tripStart!!, null, 500).map { it.transactionHash }
+        assertEquals(setOf("in", "late"), openEnded.toSet())
+        assertEquals(1, groups.getTripBackfillCandidates(tripId, trip.tripStart!!, null, 1).size)
+
+        // A row grouped meanwhile stays where it is; the rest link together.
+        groups.addAllToGroup(listOf(inside, grouped, removed), tripId, at)
+        assertEquals(tripId, transactions.getTransactionById(inside)!!.groupId)
+        assertEquals(otherId, transactions.getTransactionById(grouped)!!.groupId)
+        assertEquals(tripId, transactions.getTransactionById(removed)!!.groupId)
+        // Putting a row back by hand clears its exclusion, as for any manual add.
+        assertEquals(emptyList<String>(), transactions.getTripExclusions(tripId))
+    }
+
     @Test fun aRowCarryingADeletedTripIsRepairedAndOneWithALiveTripKeepsIt() = runBlocking {
         val tripId = groups.insertGroup(TransactionGroupEntity(name = "Synthetic trip", tripStart = at.minusDays(1)))
         val live = transactions.insertTransaction(txn("live").copy(groupId = tripId))

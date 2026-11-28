@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.trip.backfillRowsFor
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.coroutines.flow.Flow
@@ -82,6 +83,10 @@ private fun GroupTotals.all(): List<Money> = expense.values + invested.values + 
 class TransactionGroupRepository @Inject constructor(
     private val groupDao: TransactionGroupDao
 ) {
+    private companion object {
+        const val BACKFILL_LIMIT = 500
+    }
+
     fun getAllGroups(): Flow<List<TransactionGroupEntity>> = groupDao.getAllGroups()
 
     /**
@@ -159,6 +164,19 @@ class TransactionGroupRepository @Inject constructor(
     suspend fun addTransactionToGroup(transactionId: Long, groupId: Long) {
         groupDao.addToGroup(transactionId, groupId)
         groupDao.touchGroup(groupId, LocalDateTime.now())
+    }
+
+    /** Existing ungrouped rows that would have auto-joined this trip; empty for a plain group. */
+    suspend fun tripBackfillCandidates(groupId: Long): List<TransactionEntity> {
+        val trip = groupDao.getGroupById(groupId) ?: return emptyList()
+        val start = trip.tripStart ?: return emptyList()
+        // The query already leaves out the trip's exclusions; the shared rule re-checks the rest.
+        return backfillRowsFor(groupDao.getTripBackfillCandidates(groupId, start, trip.tripEnd, BACKFILL_LIMIT), trip)
+    }
+
+    /** Links all of [transactionIds] in one database transaction. */
+    suspend fun addTransactionsToGroup(transactionIds: List<Long>, groupId: Long) {
+        if (transactionIds.isNotEmpty()) groupDao.addAllToGroup(transactionIds, groupId, LocalDateTime.now())
     }
 
     suspend fun createGroupWithTransaction(name: String, note: String?, transactionId: Long): Long {

@@ -17,7 +17,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,17 +24,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
-import com.pennywiseai.tracker.data.trip.nextTripBoundary
 import com.pennywiseai.tracker.data.trip.tripWindowOf
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.toUtcDate
 import com.pennywiseai.tracker.utils.toUtcMillis
-import kotlinx.coroutines.delay
-import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -52,10 +47,20 @@ data class TripDraft(
         get() = if (enabled) tripWindowOf(start, end, storedStart, storedEnd) else null to null
 
     companion object {
-        /** Keeps a new trip's switch and dates through a rotation or theme change. */
+        /** Keeps the switch, the dates and the stored timestamps through a rotation or theme change. */
         val Saver = androidx.compose.runtime.saveable.listSaver<TripDraft, String>(
-            save = { listOf(it.enabled.toString(), it.start.toString(), it.end?.toString() ?: "") },
-            restore = { TripDraft(it[0].toBoolean(), LocalDate.parse(it[1]), it[2].takeIf(String::isNotEmpty)?.let(LocalDate::parse)) }
+            save = {
+                listOf(
+                    it.enabled.toString(), it.start.toString(), it.end?.toString() ?: "",
+                    it.storedStart?.toString() ?: "", it.storedEnd?.toString() ?: ""
+                )
+            },
+            restore = {
+                TripDraft(
+                    it[0].toBoolean(), LocalDate.parse(it[1]), it[2].takeIf(String::isNotEmpty)?.let(LocalDate::parse),
+                    it[3].takeIf(String::isNotEmpty)?.let(LocalDateTime::parse), it[4].takeIf(String::isNotEmpty)?.let(LocalDateTime::parse)
+                )
+            }
         )
 
         fun of(group: TransactionGroupEntity) = TripDraft(
@@ -169,27 +174,6 @@ fun TripFields(
             }
         ) { DatePicker(state = pickerState) }
     }
-}
-
-/**
- * The current time for trip status, refreshed when the app resumes and when the next start or
- * end of any of [groups] passes, so a Scheduled/Running/Ended label never goes stale on screen.
- */
-@Composable
-fun rememberTripNow(groups: List<TransactionGroupEntity>): LocalDateTime {
-    var now by remember { mutableStateOf(LocalDateTime.now()) }
-    LifecycleResumeEffect(Unit) {
-        now = LocalDateTime.now()
-        onPauseOrDispose {}
-    }
-    val next = nextTripBoundary(groups, now)
-    LaunchedEffect(next, now) {
-        if (next != null) {
-            delay(Duration.between(LocalDateTime.now(), next).toMillis().coerceAtLeast(0) + 50)
-            now = LocalDateTime.now()
-        }
-    }
-    return now
 }
 
 /** "3 Dec – 9 Dec", or "From 3 Dec" for a trip with no end yet. */

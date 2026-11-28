@@ -35,6 +35,7 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.rememberTripNow
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
@@ -153,6 +154,9 @@ fun TransactionGroupsScreen(
     }
     if (showUpgradeSheet) {
         UpgradeSheet(onDismiss = { showUpgradeSheet = false })
+    }
+    uiState.backfill?.let { offer ->
+        TripBackfillSheet(offer = offer, onAdd = viewModel::addBackfill, onSkip = viewModel::skipBackfill)
     }
 }
 

@@ -19,7 +19,9 @@ data class TransactionGroupsUiState(
     val showCreateDialog: Boolean = false,
     // Name of the trip a new trip's dates overlap, shown in the dialog (#1463).
     val tripOverlap: String? = null,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    // Existing rows the just-created trip could take; shown once, then dropped.
+    val backfill: TripBackfillOffer? = null
 )
 
 @HiltViewModel
@@ -59,14 +61,28 @@ class TransactionGroupsViewModel @Inject constructor(
         viewModelScope.launch {
             val (start, end) = trip.window
             try {
-                repository.createGroup(name, note, start, end)
-                _uiState.value = _uiState.value.copy(showCreateDialog = false, tripOverlap = null)
+                val id = repository.createGroup(name, note, start, end)
+                val rows = if (start != null) repository.tripBackfillCandidates(id) else emptyList()
+                _uiState.value = _uiState.value.copy(
+                    showCreateDialog = false,
+                    tripOverlap = null,
+                    backfill = rows.takeIf { it.isNotEmpty() }?.let { TripBackfillOffer(id, it) }
+                )
             } catch (e: TripOverlapException) {
                 _uiState.value = _uiState.value.copy(tripOverlap = e.other)
             } finally {
                 _uiState.value = _uiState.value.copy(isSaving = false)
             }
         }
+    }
+
+    fun skipBackfill() { _uiState.value = _uiState.value.copy(backfill = null) }
+
+    /** One database transaction for the whole batch; skipping records nothing. */
+    fun addBackfill(ids: List<Long>) {
+        val offer = _uiState.value.backfill ?: return
+        _uiState.value = _uiState.value.copy(backfill = null)
+        viewModelScope.launch { repository.addTransactionsToGroup(ids, offer.groupId) }
     }
 
     fun deleteGroup(groupId: Long) {

@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.spending
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
@@ -100,7 +101,8 @@ fun GroupCard(
     val subtitle = if (dateText.isNotEmpty()) stringResource(R.string.group_card_subtitle, countText, dateText) else countText
 
     val formattedAmount = CurrencyFormatter.formatByCurrency(shownGroupCardTotals(totals), signPrefix = "+", keepSign = true) +
-        if (totals.size > MAX_CARD_CURRENCIES) " · …" else ""
+        // No hint of more currencies while amounts are hidden: the mask says nothing about how many there are.
+        if (totals.size > MAX_CARD_CURRENCIES && !AmountPrivacy.hidden) " · …" else ""
 
     ListItemCardV2(
         title = group.name,

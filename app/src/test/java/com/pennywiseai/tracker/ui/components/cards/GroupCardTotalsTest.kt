@@ -30,6 +30,12 @@ class GroupCardTotalsTest {
         mapValues { it.value.amount.stripTrailingZeros().toPlainString() }
 
     @Test
+    fun cardShowsTheTwoLargestTotals() {
+        val totals = groupCardTotals(listOf(txn("5", "USD"), txn("900", "INR"), txn("40", "JOD")), emptyMap(), null)
+        assertEquals(setOf("INR", "JOD"), shownGroupCardTotals(totals).keys)
+    }
+
+    @Test
     fun singleCurrency_netsExpenseAgainstIncome() {
         val rows = listOf(txn("100", "INR"), txn("30", "INR", TransactionType.INCOME))
         assertEquals(mapOf("INR" to "-70"), groupCardTotals(rows, emptyMap(), null).plain())

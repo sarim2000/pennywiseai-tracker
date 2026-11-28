@@ -65,6 +65,12 @@ internal fun groupCardTotals(
     return mapOf(currency to Money.zero(currency))
 }
 
+private const val MAX_CARD_CURRENCIES = 2
+
+/** The card's amount slot is one line: the two largest totals, the rest stand behind an ellipsis. */
+internal fun shownGroupCardTotals(totals: Map<String, Money>): Map<String, Money> =
+    totals.entries.sortedByDescending { it.value.amount.abs() }.take(MAX_CARD_CURRENCIES).associate { it.toPair() }
+
 @Composable
 fun GroupCard(
     group: TransactionGroupEntity,
@@ -93,7 +99,8 @@ fun GroupCard(
     val countText = pluralStringResource(R.plurals.group_card_transaction_count, transactions.size, transactions.size)
     val subtitle = if (dateText.isNotEmpty()) stringResource(R.string.group_card_subtitle, countText, dateText) else countText
 
-    val formattedAmount = CurrencyFormatter.formatByCurrency(totals, signPrefix = "+", keepSign = true)
+    val formattedAmount = CurrencyFormatter.formatByCurrency(shownGroupCardTotals(totals), signPrefix = "+", keepSign = true) +
+        if (totals.size > MAX_CARD_CURRENCIES) " · …" else ""
 
     ListItemCardV2(
         title = group.name,

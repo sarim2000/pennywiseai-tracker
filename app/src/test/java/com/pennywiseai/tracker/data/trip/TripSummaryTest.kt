@@ -93,6 +93,7 @@ class TripSummaryTest {
     fun topCategoriesAreCapped() {
         val rows = listOf("A", "B", "C", "D").mapIndexed { i, c -> tx("${10 * (i + 1)}", c) }
         assertEquals(listOf("D", "C", "B"), topCategoriesByCurrency(rows).getValue("INR").map { it.category })
+        assertEquals(setOf("INR"), topCategoriesByCurrency(rows).getValue("INR").map { it.amount.currency }.toSet())
     }
 
     @Test

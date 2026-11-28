@@ -6,7 +6,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.GroupSummary
 import com.pennywiseai.tracker.data.repository.groupTotalsOf
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.utils.sumByCurrency
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
@@ -65,9 +64,9 @@ fun topCategoriesByCurrency(transactions: List<TransactionEntity>, limit: Int = 
     transactions
         .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
         .groupBy { it.currency }
-        .mapValues { (_, rows) ->
-            rows.sumByCurrency({ it.category }, { it.amount })
-                .map { (category, money) -> CategorySpend(category, money) }
+        .mapValues { (currency, rows) ->
+            rows.groupBy { it.category }
+                .map { (category, inCategory) -> CategorySpend(category, Money(inCategory.sumOf { it.amount }, currency)) }
                 .sortedByDescending { it.amount.amount }
                 .take(limit)
         }

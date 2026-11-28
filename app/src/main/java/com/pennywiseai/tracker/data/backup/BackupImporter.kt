@@ -68,10 +68,17 @@ class BackupImporter @Inject constructor(
             }
 
             // Import based on strategy
-            var result = when (strategy) {
-                ImportStrategy.REPLACE_ALL -> replaceAllData(backup)
-                ImportStrategy.MERGE -> mergeData(backup)
-                ImportStrategy.SELECTIVE -> mergeData(backup) // For now, same as merge
+            var result = try {
+                when (strategy) {
+                    ImportStrategy.REPLACE_ALL -> replaceAllData(backup)
+                    ImportStrategy.MERGE -> mergeData(backup)
+                    ImportStrategy.SELECTIVE -> mergeData(backup) // For now, same as merge
+                }
+            } catch (e: android.database.SQLException) {
+                // Only here is "nothing was changed" true: the import transaction rolled back.
+                // Raw SQLite text ("... code 1811") means nothing to the user; the log keeps it.
+                Log.e("BackupImporter", "Import failed", e)
+                return@withContext ImportResult.Error("${e.message}", R.string.settings_import_failed_database)
             }
             // A backup from before transfer_pair_id can hold pairs marked back then.
             if (result is ImportResult.Success) {
@@ -1022,8 +1029,8 @@ class BackupImporter @Inject constructor(
         val existingBudgetNames = database.budgetDao().getAllBudgets().first().map { it.name }.toSet()
 
         budgets.insertEachCounting(onSkip) { budget ->
-            // One savepoint per budget: a failing category rolls back the whole
-            // budget instead of committing it with only some of its categories.
+            // Nested transaction, not an isolated savepoint: a failing category marks the
+            // outer one rollback-only, so it must propagate (rethrowIfSql), never be caught.
             if (!existingBudgetNames.contains(budget.name)) database.withTransaction {
                 // Use the return value from insertBudget to get the new ID directly
                 // instead of querying (which would miss inactive budgets)
@@ -1036,6 +1043,9 @@ class BackupImporter @Inject constructor(
                 }
             }
         }
+        // A category whose budget isn't in the backup is never reached above: count it.
+        val backupBudgetIds = budgets.mapTo(HashSet()) { it.id }
+        budgetCategories.forEach { if (it.budgetId !in backupBudgetIds) onSkip() }
     }
 
     /**

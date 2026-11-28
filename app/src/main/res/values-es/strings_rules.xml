@@ -454,7 +454,6 @@
     <!-- Transaction type labels (stored value stays the enum name) -->
     <string name="rules_type_income">Ingreso</string>
     <string name="rules_type_expense">Gasto</string>
-    <string name="rules_type_credit">Crédito</string>
     <string name="rules_type_transfer">Transferencia</string>
     <string name="rules_type_investment">Inversión</string>
     <string name="rules_select_transaction_type">Selecciona el tipo de transacción:</string>

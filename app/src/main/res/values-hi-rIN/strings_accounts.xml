@@ -24,7 +24,6 @@
     <string name="account_detail_estimated_amount">अनुमानित %1$s</string>
     <!-- %1$s = formatted balance after the transaction -->
     <string name="account_detail_balance_after">• शेष: %1$s</string>
-    <string name="account_detail_type_credit">क्रेडिट</string>
     <string name="account_detail_type_transfer">स्थानांतरण</string>
     <string name="account_detail_type_investment">निवेश</string>
     <string name="account_detail_range_last_7_days">पिछले 7 दिन</string>

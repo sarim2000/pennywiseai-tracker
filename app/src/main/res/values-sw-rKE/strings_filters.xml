@@ -11,7 +11,6 @@
     <string name="filter_type_all">Zote</string>
     <string name="filter_type_income">Mapato</string>
     <string name="filter_type_expense">Matumizi</string>
-    <string name="filter_type_credit">Mkopo</string>
     <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_spending">Matumizi (Matumizi + Kadi)</string>
     <string name="filter_type_transfer">Uhamisho</string>

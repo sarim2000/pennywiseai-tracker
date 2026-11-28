@@ -96,6 +96,11 @@
     <string name="settings_transaction_groups_subtitle">Spravovat transakce v rámci tématu</string>
     <string name="settings_export_data_title">Exportovat data</string>
     <string name="settings_export_data_subtitle">Zálohovat všechna data do souboru</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <!-- Subtitle of both export rows while a backup export runs; they can't be tapped then -->
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Automatická záloha složky</string>
     <string name="settings_folder_backup_subtitle_enabled">Denní záloha ve 2:00 do vybrané složky</string>
@@ -111,6 +116,7 @@
     <string name="settings_change_backup_folder_subtitle">Vyberte jinou složku pro automatické zálohování</string>
     <string name="settings_import_data_title">Importovat data</string>
     <string name="settings_import_data_subtitle">Obnovit data ze zálohy</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
     <string name="settings_import_csv_title">Importovat transakce (CSV)</string>
     <string name="settings_import_csv_subtitle">Import z PennyWise CSV exportu</string>
     <string name="settings_import_statement_title">Prohlášení o importu</string>
@@ -211,6 +217,7 @@
     <string name="settings_folder_backup_enabled">Automatické zálohování složky povoleno. Zálohy běží denně na 2:00 hodin.</string>
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Uložit zálohu</string>
+    <!-- Title of the Save/Share dialog when the backup was exported with a passphrase -->
     <string name="settings_save_backup_created">Záloha byla úspěšně vytvořena!</string>
     <string name="settings_save_backup_choose">Vyberte si, jak ho chcete uložit:</string>
     <string name="settings_save_backup_to_files">Uložit do souborů</string>
@@ -423,10 +430,7 @@
     <string name="faq_expand">Rozbalit</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Typy transakcí</string>
-    <string name="faq_wallet_credit_question">Proč jsou transakce peněženky označeny jako kredit?</string>
-    <string name="faq_wallet_credit_answer">Peněženky (Amazon Pay, Paytm, atd.) jsou označeny jako Kredit, protože jsou účtovány na Váš bankovní účet nebo kreditní kartu jako první, nikoli přímé bankovní inkaso. To pomáhá sledovat skutečně použitý způsob platby.</string>
     <string name="faq_transaction_types_question">Jaký je rozdíl mezi 5 typy transakcí?</string>
-    <string name="faq_transaction_types_answer">• Výdaje: Peníze z vašeho účtu (debety, nákupy, platby účtu)\n• Příjem z účtu: Peníze přicházející na Váš účet (plat, náhrady, cashback)\n• Investice: Vzájemné finanční prostředky, zásoby, SIP obchodní účty\n• Kredit: transakce kreditních karet a platby v peněžence (peníze, které zaplatíte později)\n• Převést: Peníze přesunuty mezi vašimi vlastními účty (sebepřevody)</string>
     <string name="faq_transfer_vs_expense_question">Kdy mám použít Transfer vs Expense?</string>
     <string name="faq_transfer_vs_expense_answer">Použít převod při přesouvání peněz mezi vlastními účty (např. úspory pro kontrolu). Ty neovlivňují váš čistý majetek. Pro skutečné výdaje použijte výdaje.</string>
     <!-- SMS Parsing -->

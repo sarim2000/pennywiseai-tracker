@@ -51,7 +51,6 @@
     <!-- Transaction types -->
     <string name="txn_type_income">Ingreso</string>
     <string name="txn_type_expense">Gasto</string>
-    <string name="txn_type_credit">Crédito</string>
     <string name="txn_type_transfer">Transferencia</string>
     <string name="txn_type_investment">Inversión</string>
     <!-- Transaction detail -->
@@ -178,7 +177,6 @@
     <string name="txn_totals_income">Ingresos</string>
     <string name="txn_totals_expense">Gasto</string>
     <string name="txn_totals_expenses">Gastos</string>
-    <string name="txn_totals_credit">Crédito</string>
     <string name="txn_totals_transfer">Transferencia</string>
     <string name="txn_totals_invest">Inversión</string>
     <string name="txn_totals_net">Neto</string>

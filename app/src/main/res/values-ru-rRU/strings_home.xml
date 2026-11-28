@@ -87,7 +87,6 @@
     <string name="type_filter_all">Все</string>
     <string name="type_filter_income">Доход</string>
     <string name="type_filter_expense">Расход</string>
-    <string name="type_filter_credit">Кредит</string>
     <string name="type_filter_spending">Траты</string>
     <string name="type_filter_transfer">Перевод</string>
     <string name="type_filter_investment">Инвестировать</string>
@@ -225,11 +224,9 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">Деньги в движении</string>
     <string name="cash_flow_subtitle">В этом месяце каналы за вычетом наличных средств</string>
-    <string name="cash_flow_credit">Кредит</string>
     <string name="cash_flow_invested">Инвестировано</string>
     <string name="cash_flow_transferred">Передано</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">Кредит</string>
     <string name="txn_item_tag_transfer">Перевод</string>
     <string name="txn_item_tag_investment">Инвестиция</string>
     <string name="txn_item_tag_recurring">Повторяющийся</string>

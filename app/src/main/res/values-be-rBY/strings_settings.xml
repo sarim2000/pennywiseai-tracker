@@ -94,6 +94,11 @@
     <string name="settings_transaction_groups_subtitle">Аб\'ядноўвайце транзакцыі па тэмах</string>
     <string name="settings_export_data_title">Экспарт даных</string>
     <string name="settings_export_data_subtitle">Захаваць рэзервовую копію ўсіх даных у файл</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <!-- Subtitle of both export rows while a backup export runs; they can't be tapped then -->
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Аўтаматычная копія ў папку</string>
     <string name="settings_folder_backup_subtitle_enabled">Штодня ў 2:00 у абраную папку</string>
@@ -109,6 +114,7 @@
     <string name="settings_change_backup_folder_subtitle">Абраць іншую папку для аўтаматычных копій</string>
     <string name="settings_import_data_title">Імпарт даных</string>
     <string name="settings_import_data_subtitle">Аднавіць даныя з рэзервовай копіі</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
     <string name="settings_import_csv_title">Імпарт транзакцый (CSV)</string>
     <string name="settings_import_csv_subtitle">Імпарт з экспарту PennyWise у CSV</string>
     <string name="settings_import_statement_title">Імпарт выпіскі</string>
@@ -209,6 +215,7 @@
     <string name="settings_folder_backup_enabled">Аўтаматычная копія ў папку ўключана. Копіі ствараюцца штодня ў 2:00.</string>
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Захаваць копію</string>
+    <!-- Title of the Save/Share dialog when the backup was exported with a passphrase -->
     <string name="settings_save_backup_created">Рэзервовая копія створана!</string>
     <string name="settings_save_backup_choose">Абярыце, як яе захаваць:</string>
     <string name="settings_save_backup_to_files">Захаваць у файлы</string>
@@ -419,10 +426,7 @@
     <string name="faq_expand">Разгарнуць</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Тыпы транзакцый</string>
-    <string name="faq_wallet_credit_question">Чаму транзакцыі з кашалькоў пазначаны як «Крэдыт»?</string>
-    <string name="faq_wallet_credit_answer">Транзакцыі з кашалькоў (Amazon Pay, Paytm і інш.) пазначаюцца як «Крэдыт», бо спачатку яны спісваюцца з вашага банкаўскага рахунку або крэдытнай карткі, а не наўпрост з банка. Так прасцей адсочваць, якім спосабам вы фактычна плацілі.</string>
     <string name="faq_transaction_types_question">Чым адрозніваюцца 5 тыпаў транзакцый?</string>
-    <string name="faq_transaction_types_answer">• Выдатак: грошы, якія сыходзяць з рахунку (спісанні, пакупкі, аплата рахункаў)\n• Даход: грошы, якія паступаюць на рахунак (зарплата, вяртанні, кэшбэк)\n• Інвестыцыя: паявыя фонды, акцыі, SIP, брокерскія рахункі\n• Крэдыт: транзакцыі па крэдытнай картцы і аплаты праз кашалькі (грошы, якія вы заплаціце пазней)\n• Перавод: грошы, перакладзеныя паміж вашымі ўласнымі рахункамі</string>
     <string name="faq_transfer_vs_expense_question">Калі выкарыстоўваць «Перавод», а калі «Выдатак»?</string>
     <string name="faq_transfer_vs_expense_answer">Выкарыстоўвайце «Перавод», калі перамяшчаеце грошы паміж уласнымі рахункамі (напр. з ашчаднага на бягучы). Гэта не ўплывае на ваш чысты капітал. «Выдатак» — для сапраўдных трат.</string>
     <!-- SMS Parsing -->

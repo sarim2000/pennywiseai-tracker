@@ -24,7 +24,6 @@
     <string name="account_detail_estimated_amount">تقريبًا %1$s</string>
     <!-- %1$s = formatted balance after the transaction -->
     <string name="account_detail_balance_after">• الرصيد: %1$s</string>
-    <string name="account_detail_type_credit">ائتمان</string>
     <string name="account_detail_type_transfer">تحويل</string>
     <string name="account_detail_type_investment">استثمار</string>
     <string name="account_detail_range_last_7_days">آخر 7 أيام</string>

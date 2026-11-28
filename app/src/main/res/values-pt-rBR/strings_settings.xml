@@ -92,6 +92,11 @@
     <string name="settings_transaction_groups_subtitle">Organize transações sob um tópico</string>
     <string name="settings_export_data_title">Exportar dados</string>
     <string name="settings_export_data_subtitle">Fazer backup de todos os dados em um arquivo</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <!-- Subtitle of both export rows while a backup export runs; they can't be tapped then -->
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Backup automático da pasta</string>
     <string name="settings_folder_backup_subtitle_enabled">Backup diário às 2:00 AM para a pasta escolhida</string>
@@ -107,6 +112,7 @@
     <string name="settings_change_backup_folder_subtitle">Escolha uma pasta diferente para backups automáticos</string>
     <string name="settings_import_data_title">Importar dados</string>
     <string name="settings_import_data_subtitle">Restaurar dados do backup</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
     <string name="settings_import_csv_title">Importar transações (CSV)</string>
     <string name="settings_import_csv_subtitle">Importar de uma exportação CSV PennyWise</string>
     <string name="settings_import_statement_title">Importar Declaração</string>
@@ -193,6 +199,7 @@
     <string name="settings_folder_backup_enabled">Backup automático de pastas ativado. Backups executam diariamente às 2:00 AM.</string>
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Salvar Backup</string>
+    <!-- Title of the Save/Share dialog when the backup was exported with a passphrase -->
     <string name="settings_save_backup_created">Backup criado com sucesso!</string>
     <string name="settings_save_backup_choose">Escolha como você deseja salvá-lo:</string>
     <string name="settings_save_backup_to_files">Salvar em Arquivos</string>
@@ -398,10 +405,7 @@
     <string name="faq_expand">Expandir</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Tipos de transação</string>
-    <string name="faq_wallet_credit_question">Por que as transações de carteira são marcadas como Crédito?</string>
-    <string name="faq_wallet_credit_answer">As transações Wallet (Amazon Pay, Paytm, etc.) estão marcadas como Crédito porque são cobradas em sua conta bancária ou cartão de crédito primeiro, não como débitos bancários. Isso ajuda a rastrear o método de pagamento realmente usado.</string>
     <string name="faq_transaction_types_question">Qual é a diferença entre os 5 tipos de transação?</string>
-    <string name="faq_transaction_types_answer">• Despesa: Dinheiro saindo da sua conta (débitos, compras,\nReceita: Dinheiro vindo em sua conta (salário, reembolso, reembolso)\n• Investimento: Fundos mútuos, ações, SIPs, contas de negociação\n• Crédito: transações com cartão de crédito e pagamentos em carteira (dinheiro que você pagará mais tarde)\n• Transferência: Dinheiro movido entre suas contas (transferências próprias)</string>
     <string name="faq_transfer_vs_expense_question">Quando devo usar a Transferência vs Despesa?</string>
     <string name="faq_transfer_vs_expense_answer">Use a Transferência ao movimentar dinheiro entre suas próprias contas (por exemplo, poupanças para verificação). Isso não afeta o seu valor líquido. Use despesas para gastos reais.</string>
     <!-- SMS Parsing -->

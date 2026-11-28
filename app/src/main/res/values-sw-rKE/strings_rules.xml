@@ -459,7 +459,6 @@
     <!-- Transaction type labels (stored value stays the enum name) -->
     <string name="rules_type_income">Mapato</string>
     <string name="rules_type_expense">Matumizi</string>
-    <string name="rules_type_credit">Mkopo</string>
     <string name="rules_type_transfer">Uhamisho</string>
     <string name="rules_type_investment">Uwekezaji</string>
     <string name="rules_select_transaction_type">Chagua aina ya muamala:</string>

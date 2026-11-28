@@ -96,6 +96,11 @@
     <string name="settings_transaction_groups_subtitle">Организовать транзакции по теме</string>
     <string name="settings_export_data_title">Экспорт данных</string>
     <string name="settings_export_data_subtitle">Резервировать все данные в файл</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <!-- Subtitle of both export rows while a backup export runs; they can't be tapped then -->
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">Автоматическое резервное копирование папок</string>
     <string name="settings_folder_backup_subtitle_enabled">Ежедневное резервное копирование в 2:00 в выбранную папку</string>
@@ -111,6 +116,7 @@
     <string name="settings_change_backup_folder_subtitle">Выберите другую папку для автоматического резервного копирования</string>
     <string name="settings_import_data_title">Импорт данных</string>
     <string name="settings_import_data_subtitle">Восстановить данные из резервной копии</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
     <string name="settings_import_csv_title">Импорт транзакций (CSV)</string>
     <string name="settings_import_csv_subtitle">Импортировать из CSV PennyWise</string>
     <string name="settings_import_statement_title">Импортировать отчёт</string>
@@ -211,6 +217,7 @@
     <string name="settings_folder_backup_enabled">Автоматическое резервное копирование папок включено. Резервные копии выполняются ежедневно в 2:00 утра.</string>
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Сохранить резервную копию</string>
+    <!-- Title of the Save/Share dialog when the backup was exported with a passphrase -->
     <string name="settings_save_backup_created">Резервная копия успешно создана!</string>
     <string name="settings_save_backup_choose">Выберите, как вы хотите сохранить его:</string>
     <string name="settings_save_backup_to_files">Сохранить в файлы</string>
@@ -423,10 +430,7 @@
     <string name="faq_expand">Развернуть</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Типы транзакций</string>
-    <string name="faq_wallet_credit_question">Почему транзакции кошелька помечены как Кредиты?</string>
-    <string name="faq_wallet_credit_answer">Транзакции кошелька (Amazon Pay, Paytm и т. д.) помечены как кредиты, потому что они списаны на ваш банковский счет или кредитную карту, а не прямые банковские дебиты. Это помогает отслеживать фактический метод оплаты.</string>
     <string name="faq_transaction_types_question">В чем разница между 5 типами транзакций?</string>
-    <string name="faq_transaction_types_answer">• Расход: Деньги, выходящие с вашего счета (задолженности, покупки, Счета)\n• Вход: денежные средства, поступающие на ваш счет (заработная плата, возврат средств, кэшбэк)\n• Инвестиции: взаимные средства, акции, SIP, Торговые счета\n• Кредит: операции по кредитным картам и платежи по кошелькам (деньги вы платите позже)\n• Перевод: Деньги, перемещенные между вашими счетами (самопереводы)</string>
     <string name="faq_transfer_vs_expense_question">Когда следует использовать услугу «Перевод и Расходы»?</string>
     <string name="faq_transfer_vs_expense_answer">Используйте перевод для перемещения денег между собственными счетами (например, для проверки сбережений). Это не влияет на вашу чистую стоимость. Используйте расход для фактических расходов.</string>
     <!-- SMS Parsing -->

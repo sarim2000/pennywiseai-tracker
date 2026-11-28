@@ -82,7 +82,6 @@
     <string name="type_filter_all">Tout</string>
     <string name="type_filter_income">Revenu</string>
     <string name="type_filter_expense">Dépenses</string>
-    <string name="type_filter_credit">Crédit</string>
     <string name="type_filter_spending">Dépenses</string>
     <string name="type_filter_transfer">Transférer</string>
     <string name="type_filter_investment">Investir</string>
@@ -201,11 +200,9 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">Argent en mouvement</string>
     <string name="cash_flow_subtitle">Chaînes en dehors de votre flux de trésorerie net ce mois-ci</string>
-    <string name="cash_flow_credit">Crédit</string>
     <string name="cash_flow_invested">Investissement</string>
     <string name="cash_flow_transferred">Transféré</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">Crédit</string>
     <string name="txn_item_tag_transfer">Transférer</string>
     <string name="txn_item_tag_investment">Investissement</string>
     <string name="txn_item_tag_recurring">Récurrents</string>

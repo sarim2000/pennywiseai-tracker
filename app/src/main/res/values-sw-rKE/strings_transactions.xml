@@ -51,7 +51,6 @@
     <!-- Transaction types -->
     <string name="txn_type_income">Mapato</string>
     <string name="txn_type_expense">Matumizi</string>
-    <string name="txn_type_credit">Mkopo</string>
     <string name="txn_type_transfer">Uhamisho</string>
     <string name="txn_type_investment">Uwekezaji</string>
     <!-- Transaction detail -->
@@ -179,7 +178,6 @@
     <string name="txn_totals_income">Mapato</string>
     <string name="txn_totals_expense">Matumizi</string>
     <string name="txn_totals_expenses">Matumizi</string>
-    <string name="txn_totals_credit">Mkopo</string>
     <string name="txn_totals_transfer">Uhamisho</string>
     <string name="txn_totals_invest">Uwekezaji</string>
     <string name="txn_totals_net">Halisi</string>

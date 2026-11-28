@@ -9,6 +9,15 @@
     <string name="widget_name_add_transaction">Dépense en espèces</string>
     <string name="widget_name_summary">Résumé des dépenses</string>
     <!-- Menu item on the Budgets screen and a goal's screen: asks the launcher to place that widget -->
+    <!-- Challenge widget: the running Plan challenge (its title reuses the challenge_* strings) -->
+    <!-- %d: days left in the challenge, today included -->
+    <!-- The challenge's days are over; the last one counts once late bank messages are in -->
+    <!-- Bank messages can't be read, so no day counts -->
+    <!-- Some days count only once the app has read their bank messages; tapping the widget opens it -->
+    <!-- TalkBack for one of the widget's day dots, before its state (challenge_day_description); %1$d: the day's number in the challenge -->
+    <!-- TalkBack state of a day with spending (the widget doesn't list what counted) -->
+    <!-- TalkBack state of a day that hasn't settled yet (late messages, or messages still to read) -->
+    <!-- %1$s: the clean days, e.g. "1 of 3 days" -->
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Ajouter une transaction</string>
     <string name="shortcut_add_transaction_short">Ajouter</string>

@@ -49,7 +49,6 @@
     <!-- Transaction types -->
     <string name="txn_type_income">รายได้</string>
     <string name="txn_type_expense">ค่าใช้จ่าย</string>
-    <string name="txn_type_credit">เครดิต</string>
     <string name="txn_type_transfer">โอน</string>
     <string name="txn_type_investment">การลงทุน</string>
     <!-- Transaction detail -->
@@ -174,7 +173,6 @@
     <string name="txn_totals_income">รายได้</string>
     <string name="txn_totals_expense">ค่าใช้จ่าย</string>
     <string name="txn_totals_expenses">ค่าใช้จ่าย</string>
-    <string name="txn_totals_credit">เครดิต</string>
     <string name="txn_totals_transfer">โอน</string>
     <string name="txn_totals_invest">ลงทุน</string>
     <string name="txn_totals_net">สุทธิ</string>

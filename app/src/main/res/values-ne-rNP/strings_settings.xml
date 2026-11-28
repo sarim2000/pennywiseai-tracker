@@ -91,6 +91,11 @@
     <string name="settings_transaction_groups_subtitle">लेनदेनलाई एउटा विषयअन्तर्गत मिलाउनुहोस्</string>
     <string name="settings_export_data_title">डेटा निर्यात गर्नुहोस्</string>
     <string name="settings_export_data_subtitle">सबै डेटा फाइलमा ब्याकअप गर्नुहोस्</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <!-- Subtitle of both export rows while a backup export runs; they can't be tapped then -->
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
     <!-- Settings > Data: exports every transaction as a CSV file -->
     <string name="settings_folder_backup_title">स्वचालित फोल्डर ब्याकअप</string>
     <string name="settings_folder_backup_subtitle_enabled">तपाईंले छानेको फोल्डरमा हरेक दिन बिहान 2:00 बजे ब्याकअप</string>
@@ -106,6 +111,7 @@
     <string name="settings_change_backup_folder_subtitle">स्वचालित ब्याकअपको लागि अर्को फोल्डर छान्नुहोस्</string>
     <string name="settings_import_data_title">डेटा आयात गर्नुहोस्</string>
     <string name="settings_import_data_subtitle">ब्याकअपबाट डेटा पुनर्स्थापना गर्नुहोस्</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
     <string name="settings_import_csv_title">लेनदेन आयात गर्नुहोस् (CSV)</string>
     <string name="settings_import_csv_subtitle">PennyWise CSV निर्यातबाट आयात गर्नुहोस्</string>
     <string name="settings_import_statement_title">स्टेटमेन्ट आयात गर्नुहोस्</string>
@@ -192,6 +198,7 @@
     <string name="settings_folder_backup_enabled">स्वचालित फोल्डर ब्याकअप सुरु गरियो। ब्याकअप हरेक दिन बिहान 2:00 बजे चल्छ।</string>
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">ब्याकअप सुरक्षित गर्नुहोस्</string>
+    <!-- Title of the Save/Share dialog when the backup was exported with a passphrase -->
     <string name="settings_save_backup_created">ब्याकअप सफलतापूर्वक बन्यो!</string>
     <string name="settings_save_backup_choose">कसरी सुरक्षित गर्ने छान्नुहोस्:</string>
     <string name="settings_save_backup_to_files">फाइलमा सुरक्षित गर्नुहोस्</string>
@@ -398,10 +405,7 @@
     <string name="faq_expand">विस्तार गर्नुहोस्</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">लेनदेनका प्रकार</string>
-    <string name="faq_wallet_credit_question">वालेट लेनदेन किन क्रेडिट भनी मार्क हुन्छन्?</string>
-    <string name="faq_wallet_credit_answer">वालेट लेनदेन (Amazon Pay, Paytm आदि) क्रेडिट भनी मार्क हुन्छन्, किनकि ती सिधै बैंक डेबिट नभई पहिले तपाईंको बैंक खाता वा क्रेडिट कार्डबाट चार्ज हुन्छन्। यसले वास्तवमा प्रयोग भएको भुक्तानी माध्यम ट्र्याक गर्न मद्दत गर्छ।</string>
     <string name="faq_transaction_types_question">5 वटा लेनदेन प्रकारमा के फरक छ?</string>
-    <string name="faq_transaction_types_answer">• खर्च: तपाईंको खाताबाट बाहिर जाने पैसा (डेबिट, खरिद, बिल भुक्तानी)\n• आम्दानी: तपाईंको खातामा आउने पैसा (तलब, रिफन्ड, क्यासब्याक)\n• लगानी: म्युचुअल फन्ड, सेयर, SIP, ट्रेडिङ खाता\n• क्रेडिट: क्रेडिट कार्ड लेनदेन र वालेट भुक्तानी (पछि तिर्ने पैसा)\n• स्थानान्तरण: आफ्नै खाताहरूबीच सारिएको पैसा (सेल्फ ट्रान्सफर)</string>
     <string name="faq_transfer_vs_expense_question">स्थानान्तरण र खर्च कहिले प्रयोग गर्ने?</string>
     <string name="faq_transfer_vs_expense_answer">आफ्नै खाताहरूबीच पैसा सार्दा (जस्तै बचतबाट चल्ती खातामा) स्थानान्तरण प्रयोग गर्नुहोस्। यसले तपाईंको शुद्ध सम्पत्तिमा असर गर्दैन। वास्तविक खर्चको लागि खर्च प्रयोग गर्नुहोस्।</string>
     <!-- SMS Parsing -->

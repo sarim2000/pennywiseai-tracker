@@ -52,7 +52,6 @@
     <!-- Transaction types -->
     <string name="txn_type_income">Rendimento</string>
     <string name="txn_type_expense">Despesa</string>
-    <string name="txn_type_credit">Crédito</string>
     <string name="txn_type_transfer">Transferência</string>
     <string name="txn_type_investment">Investimento</string>
     <!-- Transaction detail -->
@@ -180,7 +179,6 @@
     <string name="txn_totals_income">Rendimento</string>
     <string name="txn_totals_expense">Despesa</string>
     <string name="txn_totals_expenses">Despesas</string>
-    <string name="txn_totals_credit">Crédito</string>
     <string name="txn_totals_transfer">Transferência</string>
     <string name="txn_totals_invest">Investimento</string>
     <string name="txn_totals_net">Líquido</string>

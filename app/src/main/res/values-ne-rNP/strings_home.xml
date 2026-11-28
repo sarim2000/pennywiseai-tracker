@@ -83,7 +83,6 @@
     <string name="type_filter_all">सबै</string>
     <string name="type_filter_income">आम्दानी</string>
     <string name="type_filter_expense">खर्च</string>
-    <string name="type_filter_credit">क्रेडिट</string>
     <string name="type_filter_spending">खर्च</string>
     <string name="type_filter_transfer">स्थानान्तरण</string>
     <string name="type_filter_investment">लगानी</string>
@@ -201,11 +200,9 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">चलायमान पैसा</string>
     <string name="cash_flow_subtitle">यो महिनाको शुद्ध नगद प्रवाहबाहिरका माध्यमहरू</string>
-    <string name="cash_flow_credit">क्रेडिट</string>
     <string name="cash_flow_invested">लगानी गरिएको</string>
     <string name="cash_flow_transferred">स्थानान्तरण गरिएको</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">क्रेडिट</string>
     <string name="txn_item_tag_transfer">स्थानान्तरण</string>
     <string name="txn_item_tag_investment">लगानी</string>
     <string name="txn_item_tag_recurring">पुनरावृत्ती हुने</string>

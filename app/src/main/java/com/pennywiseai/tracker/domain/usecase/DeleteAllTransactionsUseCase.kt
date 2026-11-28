@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.domain.usecase
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import javax.inject.Inject
@@ -15,20 +15,13 @@ import javax.inject.Singleton
  *
  * Balances get different treatment per account kind, on purpose:
  *
- *  - **SMS-tracked accounts keep their last reported figure.** That number is
- *    the bank's own word, not something derived from the local history, so
- *    clearing the history shouldn't rewrite it. (Deleting a *single* transaction
- *    does shift it, via [AccountBalanceRepository.applyDeleteBalanceShift].
- *    Replaying that for every row would unwind every expense at once and leave
- *    the user staring at an inflated balance right after asking to clear their
- *    history.)
- *  - **Rows the app derived from a transaction are dropped.** Every delta
- *    snapshot written when a transaction landed is an orphan once that
- *    transaction is gone, and would otherwise keep the account displaying a
- *    total for history that no longer exists. This is what settles a manual
- *    *credit card*, which [AccountBalanceRepository.recomputeManualBalance]
- *    cannot own — its sum is income-positive and would invert a card's
- *    outstanding figure.
+ *  - **Rows from SMS and transactions are dropped**, the bank's reported
+ *    balances included. Every one describes history the user just cleared, so
+ *    keeping any would leave an account showing a total nothing explains. An
+ *    SMS-tracked account with no hand-made rows goes with them and comes back
+ *    with its next SMS. This also settles a manual *credit card*, which
+ *    [AccountBalanceRepository.recomputeManualBalance] cannot own — its sum is
+ *    income-positive and would invert a card's outstanding figure.
  *  - **Manual / cash accounts are recomputed.** Their balance *is defined* as
  *    opening + Σ(transactions); with the transactions gone that lands them back
  *    on their opening balance.
@@ -81,8 +74,8 @@ open class DeleteAllTransactionsUseCase @Inject constructor(
 
         val deleted = transactionRepository.deleteAllTransactions()
 
-        // Clears the now-orphaned delta rows. Bank-reported balances survive.
-        accountBalanceRepository.deleteTransactionDerivedBalances()
+        // Clears every SMS and transaction balance row, bank-reported ones too.
+        accountBalanceRepository.deleteSmsAndTransactionBalances()
 
         // No-op for SMS-tracked accounts and for credit cards (handled above by
         // dropping their deltas); lands a manual account back on its opening.

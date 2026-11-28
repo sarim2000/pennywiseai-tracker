@@ -1018,25 +1018,19 @@ open class AccountBalanceRepository @Inject constructor(
         accountBalanceDao.getAllLatestBalancesOnce()
 
     /**
-     * Drops the balance rows the app *derived* from transactions, after those
-     * transactions have been deleted wholesale.
+     * Drops every balance row that came from an SMS or a transaction, after the
+     * transactions have been deleted wholesale: the signed delta rows written as
+     * each transaction landed, and the balances the bank reported in its SMS.
+     * Clearing the history leaves no figure behind that it no longer explains.
      *
-     * [insertBalanceDelta] snapshots a signed delta row (`sourceType`
-     * "TRANSACTION", `smsSource` null) every time a transaction lands on an
-     * SMS-tracked account — and on a manual credit card, which
-     * [recomputeManualBalance] can't own because its sum is income-positive and
-     * would invert a card's outstanding figure. Once the transactions are gone
-     * those rows are orphans that still hold the account's displayed balance at
-     * a total for history that no longer exists.
+     * The rows the user made by hand (`MANUAL`, `OPENING`, `CARD_LINK`) stay, so
+     * a manual account or a hand-set balance survives. An account that only had
+     * SMS rows is gone until its next SMS.
      *
-     * Rows carrying an `sms_source` are left alone: those are balances the bank
-     * itself reported, not something computed from the local history, so
-     * clearing the history shouldn't rewrite them.
-     *
-     * @return the number of orphaned rows removed.
+     * @return the number of rows removed.
      */
-    suspend fun deleteTransactionDerivedBalances(): Int =
-        accountBalanceDao.deleteTransactionDerivedBalances()
+    suspend fun deleteSmsAndTransactionBalances(): Int =
+        accountBalanceDao.deleteSmsAndTransactionBalances()
 
     /**
      * Before an edit is written: pin the OPENING anchor of every manual account

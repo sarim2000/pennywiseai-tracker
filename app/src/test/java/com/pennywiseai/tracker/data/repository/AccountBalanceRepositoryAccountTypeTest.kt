@@ -87,9 +87,9 @@ class AccountBalanceRepositoryAccountTypeTest {
                     balanceRows.removeAll { it.bankName == args[0] && it.accountLast4 == args[1] }
                     before - balanceRows.size
                 }
-                "deleteTransactionDerivedBalances" -> {
+                "deleteSmsAndTransactionBalances" -> {
                     val before = balanceRows.size
-                    balanceRows.removeAll { it.transactionId != null && it.smsSource == null }
+                    balanceRows.removeAll { it.transactionId != null || it.sourceType == null || it.sourceType == "TRANSACTION" }
                     before - balanceRows.size
                 }
                 else -> null
@@ -511,18 +511,15 @@ class AccountBalanceRepositoryAccountTypeTest {
     }
 
     @Test
-    fun `fix 2 - clearing local history keeps the replayed account`() = runBlocking {
+    fun `fix 2 - clearing local history leaves the account at zero, not gone`() = runBlocking {
         cardTransactions += cardTxn(1, daysAgo = 2, TransactionType.EXPENSE, "1000.00")
         cardTransactions += cardTxn(2, daysAgo = 1, TransactionType.EXPENSE, "500.00")
         markCredit()
 
-        repository.deleteTransactionDerivedBalances()
+        repository.deleteSmsAndTransactionBalances()
 
-        assertOwed("1500.00")
-        assertEquals(
-            listOf("Test SMS 1", "Test SMS 2"),
-            balanceRows.filter { it.transactionId != null }.sortedBy { it.timestamp }.map { it.smsSource }
-        )
+        assertOwed("0")
+        assertEquals(AccountBalanceRepository.SOURCE_MANUAL, balanceRows.single().sourceType)
     }
 
     @Test
@@ -582,7 +579,7 @@ class AccountBalanceRepositoryAccountTypeTest {
         cardTransactions += cardTxn(1, daysAgo = 1, TransactionType.EXPENSE, "1000.00").copy(smsBody = null)
         markCredit()
 
-        repository.deleteTransactionDerivedBalances()
+        repository.deleteSmsAndTransactionBalances()
 
         assertOwed("0")
         assertEquals(AccountBalanceRepository.SOURCE_MANUAL, balanceRows.single().sourceType)

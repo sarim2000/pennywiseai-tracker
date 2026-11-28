@@ -117,18 +117,22 @@ interface AccountBalanceDao {
     suspend fun getAllLatestBalancesOnce(): List<AccountBalanceEntity>
 
     /**
-     * Removes balance rows the app derived from a transaction — the signed delta
-     * snapshots written by `insertBalanceDelta`, which carry a `transaction_id`
-     * and no `sms_source`.
+     * Removes every balance row that came from an SMS or a transaction: rows
+     * linked to a transaction (with or without an `sms_source`), `TRANSACTION`
+     * rows, and balance-only SMS rows (`source_type` null).
      *
-     * Deliberately spares anything with an `sms_source`: a bank-reported balance
-     * is the bank's own word even though it arrived alongside a transaction, so a
-     * wipe of local history must not rewrite it.
+     * Keeps the rows the user made on the Manage Accounts screen (`MANUAL`,
+     * `OPENING`, `CARD_LINK`), which no SMS can bring back.
      *
      * @return the number of rows removed.
      */
-    @Query("DELETE FROM account_balances WHERE transaction_id IS NOT NULL AND sms_source IS NULL")
-    suspend fun deleteTransactionDerivedBalances(): Int
+    @Query("""
+        DELETE FROM account_balances
+        WHERE transaction_id IS NOT NULL
+           OR source_type IS NULL
+           OR source_type = 'TRANSACTION'
+    """)
+    suspend fun deleteSmsAndTransactionBalances(): Int
 
     @Query("SELECT * FROM account_balances ORDER BY timestamp DESC")
     fun getAllBalances(): Flow<List<AccountBalanceEntity>>

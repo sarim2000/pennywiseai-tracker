@@ -221,6 +221,9 @@ class ReceiptExtractorTest {
         // A count note on the total line itself leaves its money figure.
         assertEquals(BigDecimal("9.45"), amount("Bread 3.20", "TOTAL (2 ITEMS) 9.45"))
         assertEquals(BigDecimal("9.45"), amount("Bread 3.20", "Total 2 items 9.45"))
+        // A count printed after the total doesn't eat its cents.
+        assertEquals(BigDecimal("9.45"), amount("Bread 3.20", "TOTAL 9.45 ITEMS 2"))
+        assertEquals(BigDecimal("9.45"), amount("Bread 3.20", "TOTAL 9.45 2 ITEMS"))
     }
 
     @Test

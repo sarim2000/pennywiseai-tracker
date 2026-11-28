@@ -70,9 +70,9 @@ object ReceiptExtractor {
 
     // A count or weight printed by a total ("TOTAL ITEMS 12", "TOTAL (2 ITEMS) 9.45", "Total
     // weight 1.25 kg"): not money. It's taken out of the line, and a line left with no figure
-    // isn't a total.
+    // isn't a total. A count never starts inside a figure ("TOTAL 9.45 ITEMS 2" keeps 9.45).
     private val COUNT_NOTE = Regex(
-        """\(?\b\d+\s*(?:items?|qty|pcs|pieces|units?)\b\)?|\b(?:items?|qty|quantity|count|pcs|pieces|units?)\s*[:=]?\s*\d+\b(?![.,]\d)|\bweight\s*[:=]?\s*\d+(?:[.,]\d+)?\s*(?:kgs?)?|\b\d+(?:[.,]\d+)?\s*kgs?\b""",
+        """\(?(?<![\d.,])\b\d+\s*(?:items?|qty|pcs|pieces|units?)\b\)?|\b(?:items?|qty|quantity|count|pcs|pieces|units?)\s*[:=]?\s*\d+\b(?![.,]\d)|\bweight\s*[:=]?\s*\d+(?:[.,]\d+)?\s*(?:kgs?)?|(?<![\d.,])\b\d+(?:[.,]\d+)?\s*kgs?\b""",
         RegexOption.IGNORE_CASE,
     )
 

@@ -46,6 +46,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
+import com.pennywiseai.tracker.presentation.common.ExportTransactionsDialog
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.chipLabel
 import com.pennywiseai.tracker.presentation.common.filterIcon
@@ -90,9 +91,14 @@ fun TransactionsScreen(
     // Only initialProfileId's rows (null for all), leaving the selected profile as it is
     profilePinned: Boolean = false,
     initialProfileId: Long? = null,
+    // The profile of the row a "More from"/"More in" link came from (see keepRowProfile)
+    rowProfileId: Long? = null,
+    // A budget's other lines, left out of initialCategory's list where they're its sub-categories (#1425)
+    excludedCategories: List<String> = emptyList(),
     // Account key / tag carried by an analytics group drill-down (#422)
     initialAccount: String? = null,
     initialTag: String? = null,
+    initialAlsoTag: String? = null,
     focusSearch: Boolean = false,
     // New parameters for budget navigation
     initialStartDateEpochDay: Long? = null,
@@ -135,6 +141,7 @@ fun TransactionsScreen(
     val accountFilter by viewModel.accountFilter.collectAsStateWithLifecycle()
     val accountOptions by viewModel.accountOptions.collectAsStateWithLifecycle()
     val tagFilter by viewModel.tagFilter.collectAsStateWithLifecycle()
+    val alsoTagFilter by viewModel.alsoTagFilter.collectAsStateWithLifecycle()
     val availableTags by viewModel.availableTags.collectAsStateWithLifecycle()
 
     // Bulk-edit selection (#369)
@@ -236,7 +243,10 @@ fun TransactionsScreen(
             add(ActiveFilter("account", label, Icons.Default.AccountBalanceWallet) { viewModel.setAccountFilter(null) })
         }
         tagFilter?.let { tag ->
-            add(ActiveFilter("tag", tag, Icons.Default.Sell) { viewModel.setTagFilter(null) })
+            add(ActiveFilter("tag", tag, Icons.Default.Sell) { viewModel.removeTagFilter() })
+        }
+        alsoTagFilter?.let { tag ->
+            add(ActiveFilter("alsoTag", tag, Icons.Default.Sell) { viewModel.removeAlsoTagFilter() })
         }
         if (hasCurrencyFilter) {
             add(
@@ -280,17 +290,20 @@ fun TransactionsScreen(
             initialCustomEndEpochDay,
             initialAccount,
             initialTag,
-            initialTransactionType
+            initialTransactionType,
+            initialAlsoTag
         )
         if (currencyOnly) initialCurrency?.let(viewModel::pinCurrency)
         if (profilePinned) viewModel.pinProfile(initialProfileId)
+        rowProfileId?.let(viewModel::keepRowProfile)
+        initialCategory?.let { viewModel.leaveOutOf(it, excludedCategories) }
     }
 
     // Track if we've already processed these specific nav params
     var processedNavParams by rememberSaveable { mutableStateOf(false) }
 
     // Apply navigation filters only ONCE when actually navigating (not when returning from detail)
-    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialCustomStartEpochDay, initialCustomEndEpochDay, initialAccount, initialTag, initialTransactionType) {
+    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialCustomStartEpochDay, initialCustomEndEpochDay, initialAccount, initialTag, initialAlsoTag, initialTransactionType) {
         if (!processedNavParams && (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null || initialAccount != null || initialTag != null)) {
             viewModel.applyNavigationFilters(
                 initialCategory,
@@ -301,8 +314,11 @@ fun TransactionsScreen(
                 initialCustomEndEpochDay,
                 initialAccount,
                 initialTag,
-                initialTransactionType
+                initialTransactionType,
+                initialAlsoTag
             )
+            // Setting the category above dropped it.
+            initialCategory?.let { viewModel.leaveOutOf(it, excludedCategories) }
             processedNavParams = true
         }
     }
@@ -520,6 +536,15 @@ fun TransactionsScreen(
     ) { paddingValues ->
         val sections = remember(uiState.transactions, sortOption) { daySections(uiState.transactions, sortOption) }
         val displayCurrency = if (isUnifiedMode) selectedCurrency else null
+        val splitShares = uiState.splitShares
+        val subtotalsByDay = remember(sections, splitShares, convertedAmounts, displayCurrency) {
+            sections.mapNotNull { section ->
+                // A lone row already says its amount; the subtotals only help on busier days.
+                val day = section.date ?: return@mapNotNull null
+                if (section.rows.size < 2) return@mapNotNull null
+                day to daySubtotals(section.rows, splitShares, convertedAmounts, displayCurrency)
+            }.toMap()
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -681,17 +706,26 @@ fun TransactionsScreen(
                     else -> sections.forEach { section ->
                         val day = section.date
                         if (day != null) {
+                            val subtotals = subtotalsByDay[day]
                             stickyHeader(key = "day_$day", contentType = "dayHeader") {
                                 ActivityDayHeader(
                                     title = dayTitle(day, today),
-                                    // A lone row already says its amount; the subtotal only helps on busier days.
-                                    net = if (section.rows.size > 1) {
-                                        dayNet(section.rows, uiState.splitShares, convertedAmounts, displayCurrency)
-                                    } else {
-                                        null
-                                    },
+                                    net = subtotals?.net,
                                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                 )
+                            }
+                            // A plain item, not part of the sticky header, so a tall breakdown
+                            // scrolls away instead of covering the day's rows.
+                            val inOut = subtotals?.inOut.orEmpty()
+                            if (inOut.isNotEmpty()) {
+                                item(key = "dayInOut_$day", contentType = "dayInOut") {
+                                    ActivityDayInOut(
+                                        inOut = inOut,
+                                        modifier = Modifier
+                                            .animateItem()
+                                            .padding(horizontal = Dimensions.Padding.content)
+                                    )
+                                }
                             }
                         } else {
                             item(key = "sortedGap") { Spacer(Modifier.height(Spacing.md)) }

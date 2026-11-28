@@ -19,6 +19,7 @@ class WorkManagerTransactionWidgetsTest {
     fun setUp() {
         mockkObject(WidgetRefresher)
         justRun { WidgetRefresher.refreshTransactionWidgets(any()) }
+        justRun { WidgetRefresher.redrawAll(any()) }
     }
 
     @After
@@ -29,5 +30,13 @@ class WorkManagerTransactionWidgetsTest {
         WorkManagerTransactionWidgets(context).refresh()
 
         verify(exactly = 1) { WidgetRefresher.refreshTransactionWidgets(context) }
+    }
+
+    @Test
+    fun `redraw redraws every widget without rebuilding their data`() {
+        WorkManagerTransactionWidgets(context).redraw()
+
+        verify(exactly = 1) { WidgetRefresher.redrawAll(context) }
+        verify(exactly = 0) { WidgetRefresher.refreshTransactionWidgets(any()) }
     }
 }

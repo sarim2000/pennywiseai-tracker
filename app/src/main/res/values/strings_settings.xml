@@ -2,6 +2,16 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">Settings</string>
+    <string name="settings_search">Search settings</string>
+    <string name="settings_search_empty">No settings match “%1$s”</string>
+    <plurals name="settings_search_results">
+        <item quantity="one">%1$d setting</item>
+        <item quantity="other">%1$d settings</item>
+    </plurals>
+    <!-- Other words people type for these settings; search only, never shown. -->
+    <string name="settings_search_keywords_dark">dark mode, dark theme, night mode, theme</string>
+    <string name="settings_search_keywords_light">light mode, light theme, day mode, theme</string>
+    <string name="settings_search_keywords_app_lock">password, PIN, fingerprint, face unlock, biometric</string>
     <string name="settings_back">Back</string>
 
     <!-- Shared dialog actions -->
@@ -103,6 +113,34 @@
     <string name="settings_transaction_groups_subtitle">Organise transactions under a topic</string>
     <string name="settings_export_data_title">Export Data</string>
     <string name="settings_export_data_subtitle">Backup all data to a file</string>
+    <!-- Settings > Data: a backup file locked with a passphrase the user picks -->
+    <string name="settings_export_encrypted_title">Export Data (Encrypted)</string>
+    <string name="settings_export_encrypted_subtitle">Lock the backup file with a passphrase</string>
+    <!-- Subtitle of both export rows while a backup export runs; they can't be tapped then -->
+    <string name="settings_export_running_subtitle">Exporting backup…</string>
+    <string name="settings_export_already_running">A backup is already being exported. Wait for it to finish, then try again.</string>
+    <string name="settings_backup_passphrase_export_title">Encrypt backup</string>
+    <string name="settings_backup_passphrase_export_body">You\'ll need this passphrase to restore the backup. It can\'t be recovered if you forget it.</string>
+    <string name="settings_backup_passphrase_label">Passphrase</string>
+    <string name="settings_backup_passphrase_confirm_label">Confirm passphrase</string>
+    <string name="settings_backup_passphrase_mismatch">Passphrases don\'t match</string>
+    <string name="settings_backup_passphrase_export_action">Export</string>
+    <!-- Below the passphrase field when creating an encrypted backup; Export stays off until it's met -->
+    <plurals name="settings_backup_passphrase_min_length">
+        <item quantity="one">Use at least %1$d character.</item>
+        <item quantity="other">Use at least %1$d characters.</item>
+    </plurals>
+    <!-- Shown when the backup picked for Import Data is encrypted -->
+    <string name="settings_backup_passphrase_restore_title">Encrypted backup</string>
+    <string name="settings_backup_passphrase_restore_body">Enter the passphrase this backup was exported with.</string>
+    <string name="settings_backup_passphrase_wrong">Wrong passphrase, or the file is damaged. Nothing was changed.</string>
+    <string name="settings_backup_passphrase_restore_action">Restore</string>
+    <!-- Restore failed after the passphrase was entered; follows "Import failed: " -->
+    <string name="settings_backup_restore_not_encrypted">The file changed after you picked it and is no longer encrypted. Pick it again.</string>
+    <string name="settings_backup_restore_unreadable">The backup opened, but its contents couldn\'t be read. Nothing was changed.</string>
+    <!-- Settings > Data: exports every transaction as a CSV file -->
+    <string name="settings_export_csv_title">Export Transactions (CSV)</string>
+    <string name="settings_export_csv_subtitle">A spreadsheet file of every transaction</string>
     <string name="settings_folder_backup_title">Automatic Folder Backup</string>
     <string name="settings_folder_backup_subtitle_enabled">Daily backup at 2:00 AM to your chosen folder</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Save a backup to a folder every day at 2:00 AM</string>
@@ -124,6 +162,9 @@
     <string name="settings_change_backup_folder_subtitle">Pick a different folder for automatic backups</string>
     <string name="settings_import_data_title">Import Data</string>
     <string name="settings_import_data_subtitle">Restore data from backup</string>
+    <!-- Subtitle of Import Data while a restore runs; it can't be tapped then -->
+    <string name="settings_import_running_subtitle">Restoring backup…</string>
+    <string name="settings_import_already_running">A backup is already being restored. Wait for it to finish, then try again.</string>
     <string name="settings_import_csv_title">Import Transactions (CSV)</string>
     <string name="settings_import_csv_subtitle">Import from a PennyWise CSV export</string>
     <string name="settings_import_statement_title">Import Statement</string>
@@ -213,6 +254,7 @@
         <item quantity="other">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d rows could not be imported. %5$d PDF receipts were too large to restore.</item>
     </plurals>
     <string name="settings_import_failed">Import failed: %1$s</string>
+    <string name="settings_import_failed_database">Import failed. Nothing was changed. The backup file may be damaged.</string>
     <string name="settings_import_error">Import error: %1$s</string>
     <string name="settings_importing_transactions">Importing transactions...</string>
     <string name="settings_import_csv_success">Imported %1$d transactions, skipped %2$d duplicates</string>
@@ -234,6 +276,8 @@
 
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Save Backup</string>
+    <!-- Title of the Save/Share dialog when the backup was exported with a passphrase -->
+    <string name="settings_save_backup_title_encrypted">Encrypted backup ready</string>
     <string name="settings_save_backup_created">Backup created successfully!</string>
     <string name="settings_save_backup_choose">Choose how you want to save it:</string>
     <string name="settings_save_backup_to_files">Save to Files</string>
@@ -314,6 +358,14 @@
     <!-- Settings hub: the profile block and shortcut tiles -->
     <string name="settings_profile_privacy_pill">Your data never leaves this phone</string>
     <string name="settings_profile_privacy_pill_sharing">Shared only where you turned it on</string>
+    <string name="settings_profile_edit">Edit profile</string>
+    <string name="settings_profile_picture">Picture</string>
+    <!-- %1$d = position of the color in the picker, e.g. 3 -->
+    <string name="settings_profile_color_cd">Color %1$d</string>
+    <string name="settings_profile_photo">Choose a photo</string>
+    <string name="settings_profile_save">Save</string>
+    <string name="settings_profile_photo_failed">Couldn\'t use that photo</string>
+    <string name="settings_profile_save_failed">Couldn\'t save your profile</string>
     <plurals name="settings_tile_accounts_count">
         <item quantity="one">%1$d linked</item>
         <item quantity="other">%1$d linked</item>
@@ -549,10 +601,10 @@
 
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Transaction Types</string>
-    <string name="faq_wallet_credit_question">Why are wallet transactions marked as Credit?</string>
-    <string name="faq_wallet_credit_answer">Wallet transactions (Amazon Pay, Paytm, etc.) are marked as Credit because they\'re charged to your bank account or credit card first, not direct bank debits. This helps track the actual payment method used.</string>
+    <string name="faq_wallet_credit_question">Why are wallet transactions marked as Card spend?</string>
+    <string name="faq_wallet_credit_answer">Wallet transactions (Amazon Pay, Paytm, etc.) are marked as Card spend because they\'re charged to your bank account or credit card first, not direct bank debits. This helps track the actual payment method used.</string>
     <string name="faq_transaction_types_question">What\'s the difference between the 5 transaction types?</string>
-    <string name="faq_transaction_types_answer">• Expense: Money going out of your account (debits, purchases, bill payments)\n• Income: Money coming into your account (salary, refunds, cashback)\n• Investment: Mutual funds, stocks, SIPs, trading accounts\n• Credit: Credit card transactions and wallet payments (money you\'ll pay later)\n• Transfer: Money moved between your own accounts (self-transfers)</string>
+    <string name="faq_transaction_types_answer">• Expense: Money going out of your account (debits, purchases, bill payments)\n• Income: Money coming into your account (salary, refunds, cashback)\n• Investment: Mutual funds, stocks, SIPs, trading accounts\n• Card spend: Credit card transactions and wallet payments (money you\'ll pay later)\n• Transfer: Money moved between your own accounts (self-transfers)</string>
     <string name="faq_transfer_vs_expense_question">When should I use Transfer vs Expense?</string>
     <string name="faq_transfer_vs_expense_answer">Use Transfer when moving money between your own accounts (e.g., savings to checking). These don\'t affect your net worth. Use Expense for actual spending.</string>
 

@@ -36,6 +36,8 @@
     <string name="analytics_filter_all_categories">All categories</string>
     <string name="analytics_filter_account">Account</string>
     <string name="analytics_filter_all_accounts">All accounts</string>
+    <string name="analytics_filter_tag">Tag</string>
+    <string name="analytics_filter_all_tags">All tags</string>
 
     <!-- List rows -->
     <plurals name="analytics_transaction_count">
@@ -83,6 +85,10 @@
     <string name="budgets_title">Budgets</string>
     <string name="budgets_back">Back</string>
     <string name="budgets_add">Add Budget</string>
+    <!-- Budgets card the week after a budget cycle ends: %1$s is the month's name ("October ended under budget"), or the cycle's dates when it starts on another day than the 1st ("Sep 25 - Oct 24 ended under budget") -->
+    <string name="budget_month_kept_title">%1$s ended under budget</string>
+    <string name="budget_month_kept_body">Every monthly spending limit held. Nice work.</string>
+    <string name="budget_month_kept_dismiss">Dismiss</string>
     <string name="budgets_action_cancel">Cancel</string>
     <string name="budgets_action_delete">Delete</string>
     <string name="budgets_action_ok">OK</string>

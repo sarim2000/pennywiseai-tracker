@@ -11,4 +11,6 @@ class WorkManagerTransactionWidgets @Inject constructor(
 ) : TransactionWidgets {
 
     override fun refresh() = WidgetRefresher.refreshTransactionWidgets(context)
+
+    override fun redraw() = WidgetRefresher.redrawAll(context)
 }

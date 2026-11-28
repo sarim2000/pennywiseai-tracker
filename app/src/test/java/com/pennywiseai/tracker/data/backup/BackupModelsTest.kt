@@ -39,6 +39,40 @@ class BackupModelsTest {
         assertEquals("000", restored.fromAccount)
     }
 
+    /** A backup from before schema 72 has no reimbursables: every row restores as plain spending (#1389). */
+    @Test
+    fun oldBackupMissingReimbursement_restoresNotReimbursable() {
+        val oldShape = """
+            {"id":7,"amount":"1200.00","merchantName":"Example hotel","category":"Travel",
+             "transactionType":"EXPENSE","dateTime":"2026-01-01T00:00:00",
+             "transactionHash":"synthetic-old-expense"}
+        """.trimIndent()
+        val restored = backupJson.decodeFromString<TransactionEntity>(oldShape)
+        assertNull(restored.reimbursementStatus)
+        assertNull(restored.reimbursedById)
+    }
+
+    @Test
+    fun reimbursementSurvivesBackupRoundtrip() {
+        val expense = TransactionEntity(id = 7, amount = BigDecimal("1200.00"), merchantName = "Example hotel",
+            category = "Travel", transactionType = TransactionType.EXPENSE,
+            dateTime = LocalDateTime.of(2026, 1, 1, 0, 0), transactionHash = "synthetic-reimbursed",
+            reimbursementStatus = ReimbursementStatus.REIMBURSED, reimbursedById = 9)
+        val restored = backupJson.decodeFromString<TransactionEntity>(backupJson.encodeToString(expense))
+        assertEquals(ReimbursementStatus.REIMBURSED, restored.reimbursementStatus)
+        assertEquals(9L, restored.reimbursedById)
+    }
+
+    /** An older app's unknown status name decodes to "not reimbursable" instead of failing the file. */
+    @Test
+    fun unknownReimbursementStatus_decodesToNull() {
+        val shape = """
+            {"amount":"1","merchantName":"Example","category":"Travel","transactionType":"EXPENSE",
+             "dateTime":"2026-01-01T00:00:00","transactionHash":"synthetic-future","reimbursementStatus":"PARTIAL"}
+        """.trimIndent()
+        assertNull(backupJson.decodeFromString<TransactionEntity>(shape).reimbursementStatus)
+    }
+
     @Test
     fun transferPairIdSurvivesBackupRoundtrip() {
         val leg = TransactionEntity(amount = BigDecimal.ONE, merchantName = "Example transfer",
@@ -1250,5 +1284,39 @@ class BackupModelsTest {
             assertEquals(0L, transactionId)
             assertEquals(0, BigDecimal.ZERO.compareTo(amount))
         }
+    }
+
+    @Test
+    fun oldBackupWithoutTrips_restoresOrdinaryGroupsAndNoExclusions() {
+        val json = """
+        { "database": { "transaction_groups": [ { "id": 1, "name": "Synthetic group" } ] } }
+        """.trimIndent()
+
+        val backup = backupJson.decodeFromString<PennyWiseBackup>(json)
+
+        val group = backup.database.transactionGroups.single()
+        assertNull(group.tripStart)
+        assertNull(group.tripEnd)
+        assertTrue(backup.database.tripExclusions.isEmpty())
+    }
+
+    @Test
+    fun tripWindowAndExclusionsRoundTrip() {
+        val group = TransactionGroupEntity(
+            id = 2, name = "Synthetic trip",
+            tripStart = LocalDateTime.of(2026, 12, 1, 0, 0), tripEnd = null
+        )
+        val exclusion = TripExclusionEntity(groupId = 2, transactionHash = "synthetic-hash")
+        val backup = PennyWiseBackup(
+            metadata = BackupMetadata(statistics = BackupStatistics(totalTripExclusions = 1)),
+            database = DatabaseSnapshot(transactionGroups = listOf(group), tripExclusions = listOf(exclusion))
+        )
+
+        val restored = backupJson.decodeFromString<PennyWiseBackup>(backupJson.encodeToString(backup))
+
+        assertEquals(group.tripStart, restored.database.transactionGroups.single().tripStart)
+        assertNull(restored.database.transactionGroups.single().tripEnd)
+        assertEquals(listOf(exclusion), restored.database.tripExclusions)
+        assertEquals(1, restored.metadata.statistics.totalTripExclusions)
     }
 }

@@ -9,6 +9,7 @@
     <string name="widget_budget_empty_title">Noch kein Budget</string>
     <string name="widget_budget_empty_hint">Legen Sie ein Monatslimit fest, um zu sehen, was übrig ist.</string>
     <string name="widget_budget_create">Budget erstellen</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
     <string name="widget_budget_preview_meta">von 3.600 · 120/Tag</string>
     <string name="widget_cash_label">Bargeld</string>
     <string name="widget_cash_spend">Barausgabe</string>

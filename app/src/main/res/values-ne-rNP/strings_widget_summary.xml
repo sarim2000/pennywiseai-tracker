@@ -9,6 +9,7 @@
     <string name="widget_budget_empty_title">अझै बजेट छैन</string>
     <string name="widget_budget_empty_hint">कति बाँकी छ हेर्न मासिक सीमा सेट गर्नुहोस्।</string>
     <string name="widget_budget_create">बजेट बनाउनुहोस्</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
     <string name="widget_budget_preview_meta">3,600 मध्ये · 120/दिन</string>
     <string name="widget_cash_label">नगद</string>
     <string name="widget_cash_spend">नगद खर्च</string>

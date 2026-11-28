@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -18,21 +19,37 @@ import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.preferences.HomeShortcut
 import com.pennywiseai.tracker.data.preferences.HomeShortcutLayout
+import com.pennywiseai.tracker.domain.challenges.ChallengeState
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
+import com.pennywiseai.tracker.domain.conscience.ConscienceFeedback
+import com.pennywiseai.tracker.domain.conscience.ConscienceFrequency
+import com.pennywiseai.tracker.domain.conscience.ConscienceKind
+import com.pennywiseai.tracker.domain.conscience.ConscienceLines
+import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
+import com.pennywiseai.tracker.domain.conscience.ConscienceRemark
+import com.pennywiseai.tracker.domain.conscience.ConscienceRemarks
 import com.pennywiseai.tracker.domain.insights.insightCycleOf
 import com.pennywiseai.tracker.domain.smsimport.SmsScanRecord
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonArray
+import java.io.IOException
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
+
+private val conscienceJson = Json { ignoreUnknownKeys = true }
 
 /** The one DataStore file behind [UserPreferencesRepository]. Renaming it loses every setting. */
 internal const val USER_PREFERENCES_STORE_NAME = "user_preferences"
@@ -59,6 +76,27 @@ internal object SmsScanAllTimeMigration : androidx.datastore.core.DataMigration<
     }
 }
 
+/**
+ * Celebration claims meaning "what was already earned is recorded, without confetti"
+ * ([UserPreferencesRepository.seedCelebrations]). A restore forgets them, so restored
+ * history is recorded the same way.
+ */
+object CelebrationSeeds {
+    const val ACHIEVEMENTS = "achievements_seeded"
+    const val GOALS = "goals_seeded"
+    val ALL = setOf(ACHIEVEMENTS, GOALS)
+}
+
+/**
+ * Dismissal keys still worth keeping: those for [keepMonth], the month the cycle whose card
+ * can still show ends in, or none when no card can. Keys look like `budget_month:2026-10:JOD:2026-10-01`.
+ */
+internal fun eligibleBudgetMonthDismissals(keys: Set<String>, keepMonth: YearMonth?): Set<String> {
+    if (keepMonth == null) return emptySet()
+    val prefix = "budget_month:$keepMonth:"
+    return keys.filterTo(linkedSetOf()) { it.startsWith(prefix) }
+}
+
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = USER_PREFERENCES_STORE_NAME,
     produceMigrations = { _ -> listOf(SmsScanAllTimeMigration) }
@@ -70,6 +108,9 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
  * default: the pref, the Settings switch and the scheduler all read it.
  */
 const val DAILY_SUMMARY_DEFAULT = false
+
+/** The name stored for someone who never gave one. */
+const val DEFAULT_USER_NAME = "User"
 
 @Singleton
 open class UserPreferencesRepository internal constructor(
@@ -112,6 +153,11 @@ open class UserPreferencesRepository internal constructor(
         val CONSCIENCE_ENABLED = booleanPreferencesKey("conscience_enabled")
         val CONSCIENCE_LOG = stringSetPreferencesKey("conscience_log")
         val CONSCIENCE_RETIRED_LINES = stringSetPreferencesKey("conscience_retired_lines")
+        val CONSCIENCE_LIKED_LINES = stringSetPreferencesKey("conscience_liked_lines")
+        val CONSCIENCE_MUTED_KINDS = stringSetPreferencesKey("conscience_muted_kinds")
+        val CONSCIENCE_FREQUENCY = stringPreferencesKey("conscience_frequency")
+        // Recent remarks (ConscienceRemark JSON) for the Conscience screen. Device-local.
+        val CONSCIENCE_REMARKS = stringPreferencesKey("conscience_remarks")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val HAS_SHOWN_SCAN_TUTORIAL = booleanPreferencesKey("has_shown_scan_tutorial")
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
@@ -149,6 +195,17 @@ open class UserPreferencesRepository internal constructor(
         val RECURRING_OFFER_LOG = stringSetPreferencesKey("recurring_offer_log")
         // Insight ids dismissed this cycle (Insight.id names the cycle). Device-local.
         val DISMISSED_INSIGHTS = stringSetPreferencesKey("dismissed_insights")
+        // Moments already celebrated with confetti ("goal_reached:12"), so each fires once. Device-local.
+        val CELEBRATED_MOMENTS = stringSetPreferencesKey("celebrated_moments")
+        // "Month ended under budget" cards the user closed ("budget_month:2026-10:INR"), one per currency. Device-local.
+        val BUDGET_MONTH_CARD_DISMISSED = stringSetPreferencesKey("budget_month_cards_dismissed")
+        // The first day ("2026-11-09") of the last week whose Home guess was answered or
+        // dismissed. The guess itself is never stored. Device-local.
+        val WEEKLY_GUESS_HANDLED_WEEK = stringPreferencesKey("weekly_guess_handled_week")
+        // "Don't ask again" on the weekly guess card. Device-local, like the other Home cards' choices.
+        val WEEKLY_GUESS_OFF = booleanPreferencesKey("weekly_guess_off")
+        // Plan → Challenges: the running challenge and the last few results, as JSON. Device-local.
+        val CHALLENGES = stringPreferencesKey("challenges")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -156,6 +213,8 @@ open class UserPreferencesRepository internal constructor(
         val LAST_AUTH_TIMESTAMP = longPreferencesKey("last_auth_timestamp")
         // Device-local: whether the "App Lock needs a screen lock" notice was shown.
         val APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN = booleanPreferencesKey("app_lock_no_screen_lock_notice_shown")
+        // Device-local, like App Lock: mask every widget amount while App Lock is on. Unset = on.
+        val HIDE_WIDGET_AMOUNTS_WHILE_LOCKED = booleanPreferencesKey("hide_widget_amounts_while_locked")
 
         // In-App Review preferences
         val FIRST_LAUNCH_TIME = longPreferencesKey("first_launch_time")
@@ -244,6 +303,11 @@ open class UserPreferencesRepository internal constructor(
         val PROFILE_BACKGROUND_COLOR = intPreferencesKey("profile_background_color")
         val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         val MAIN_ACCOUNT_KEY = stringPreferencesKey("main_account_key")
+        // The onboarding step reached (an OnBoardingStep name), so a killed app resumes there.
+        val ONBOARDING_STEP = stringPreferencesKey("onboarding_step")
+        // The currency the user picked on Welcome; present only for an explicit pick, never a guess.
+        // Not the base currency: that is only written when onboarding finishes.
+        val ONBOARDING_CURRENCY = stringPreferencesKey("onboarding_currency")
         // True once the user explicitly picks a currency in the Settings selector.
         // While true, the main-account-derived currency must not override their choice.
         val BASE_CURRENCY_USER_SET = booleanPreferencesKey("base_currency_user_set")
@@ -288,9 +352,13 @@ open class UserPreferencesRepository internal constructor(
             K.THEME_STYLE, K.ACCENT_COLOR, K.APP_FONT, K.SYSTEM_PROMPT, K.BASE_CURRENCY,
             K.STATEMENT_COLUMN_MAPPINGS, K.DISPLAY_CURRENCY, K.NAV_BAR_STYLE,
             K.NUMBER_FORMAT_STYLE, K.DATE_FORMAT_STYLE, K.ANALYTICS_CHART_TYPE, K.ANALYTICS_GROUP_BY,
-            K.COVER_STYLE, K.HOME_SECTIONS, K.HOME_SHORTCUTS, K.USER_NAME, K.PROFILE_IMAGE_URI, K.MAIN_ACCOUNT_KEY
+            K.COVER_STYLE, K.HOME_SECTIONS, K.HOME_SHORTCUTS, K.USER_NAME, K.PROFILE_IMAGE_URI, K.MAIN_ACCOUNT_KEY,
+            K.CONSCIENCE_FREQUENCY
         )
-        val STRING_SETS = listOf(K.CONSCIENCE_RETIRED_LINES, K.HIDDEN_NAV_TABS, K.SAFE_TO_SPEND_EXCLUDED)
+        val STRING_SETS = listOf(
+            K.CONSCIENCE_RETIRED_LINES, K.CONSCIENCE_LIKED_LINES, K.CONSCIENCE_MUTED_KINDS, K.HIDDEN_NAV_TABS,
+            K.SAFE_TO_SPEND_EXCLUDED
+        )
 
         /** User text or account identifiers: only in FULL exports, like the rest of the PII. */
         val FULL_ONLY = setOf(
@@ -314,13 +382,17 @@ open class UserPreferencesRepository internal constructor(
          */
         val DEVICE_ONLY = setOf(
             K.BACKGROUND_OEM_STEP_CONFIRMED_ON, K.WEEKLY_SUMMARY_LAST_WEEK, K.REVIEW_PROMPT_HANDLED_YEAR,
-            K.CONSCIENCE_LOG, K.ACTIVE_DOWNLOAD_ID, K.SHARE_PROMPT_HANDLED_MONTH, K.PRO_HOME_CARD_HANDLED,
+            K.CONSCIENCE_LOG, K.CONSCIENCE_REMARKS, K.ACTIVE_DOWNLOAD_ID, K.SHARE_PROMPT_HANDLED_MONTH, K.PRO_HOME_CARD_HANDLED,
             K.PAYDAY_SUGGESTION_HANDLED, K.RECURRING_HOME_CARD_SEEN, K.RECURRING_HOME_CARD_DISMISSED_AT,
-            K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES,
-            K.LAST_AUTH_TIMESTAMP, K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
+            K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.CELEBRATED_MOMENTS,
+            K.BUDGET_MONTH_CARD_DISMISSED,
+            K.WEEKLY_GUESS_HANDLED_WEEK, K.WEEKLY_GUESS_OFF,
+            K.CHALLENGES, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES, K.LAST_AUTH_TIMESTAMP,
+            K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HIDE_WIDGET_AMOUNTS_WHILE_LOCKED, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
-            K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING,
+            K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING, K.ONBOARDING_STEP,
+            K.ONBOARDING_CURRENCY,
             K.SCHEDULED_FOLDER_BACKUP_ENABLED, K.SCHEDULED_FOLDER_BACKUP_TREE_URI,
             K.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP, K.SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS,
             K.LAST_SCAN_RECORD, K.LAST_LIVE_SMS_AT
@@ -358,7 +430,9 @@ open class UserPreferencesRepository internal constructor(
      * read. [profileId] maps the backup's profile id to this device's (null = gone).
      */
     suspend fun restoreSettings(snapshot: SettingsSnapshot, profileId: (Long) -> Long?) {
+        var hiddenChanged = false
         dataStore.edit { prefs ->
+            val hiddenBefore = prefs[PreferencesKeys.BALANCE_HIDDEN]
             fun <T : Any> List<Preferences.Key<T>>.restore(values: Map<String, T?>, accept: (Preferences.Key<T>, T) -> T? = { _, v -> v }) {
                 for (key in this) {
                     if (key.name !in values) continue
@@ -378,7 +452,10 @@ open class UserPreferencesRepository internal constructor(
                 }
             )
             SettingsBackup.STRING_SETS.restore(snapshot.stringSets.mapValues { (_, v) -> v?.toSet() })
+            hiddenChanged = prefs[PreferencesKeys.BALANCE_HIDDEN] != hiddenBefore
         }
+        // A restored eye changes what the widgets mask, which their data rebuild alone may not redraw.
+        if (hiddenChanged) transactionWidgets.redraw()
     }
 
     private companion object {
@@ -420,7 +497,7 @@ open class UserPreferencesRepository internal constructor(
                 coverStyle = preferences[PreferencesKeys.COVER_STYLE]?.let {
                     try { CoverStyle.valueOf(it) } catch (_: Exception) { CoverStyle.AURORA }
                 } ?: CoverStyle.AURORA,
-                userName = preferences[PreferencesKeys.USER_NAME] ?: "User",
+                userName = preferences[PreferencesKeys.USER_NAME] ?: DEFAULT_USER_NAME,
                 profileImageUri = preferences[PreferencesKeys.PROFILE_IMAGE_URI]
                     ?: if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) "avatar://0" else null,
                 profileBackgroundColor = preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] ?: 0,
@@ -635,21 +712,113 @@ open class UserPreferencesRepository internal constructor(
         .map { it[PreferencesKeys.CONSCIENCE_ENABLED] ?: false }
 
     override suspend fun setConscienceEnabled(enabled: Boolean) {
-        dataStore.edit { it[PreferencesKeys.CONSCIENCE_ENABLED] = enabled }
+        dataStore.edit { prefs ->
+            // Settle the kinds before the switch moves, since an unset list reads by the switch:
+            // an earlier opt-in keeps its kinds through off and on, and a new one gets them all.
+            if (PreferencesKeys.CONSCIENCE_MUTED_KINDS !in prefs) {
+                prefs[PreferencesKeys.CONSCIENCE_MUTED_KINDS] = prefs.conscienceMutedKinds().mapTo(mutableSetOf()) { it.name }
+            }
+            prefs[PreferencesKeys.CONSCIENCE_ENABLED] = enabled
+        }
     }
 
-    /** "Not this one": the line never comes back. */
-    override suspend fun retireConscienceLine(lineKey: String) {
-        dataStore.edit {
-            it[PreferencesKeys.CONSCIENCE_RETIRED_LINES] = it[PreferencesKeys.CONSCIENCE_RETIRED_LINES].orEmpty() + lineKey
+    override val conscienceFrequency: Flow<ConscienceFrequency> = dataStore.data.map { it.conscienceFrequency() }
+
+    override suspend fun setConscienceFrequency(frequency: ConscienceFrequency) {
+        dataStore.edit { it[PreferencesKeys.CONSCIENCE_FREQUENCY] = frequency.name }
+    }
+
+    private fun Preferences.conscienceFrequency(): ConscienceFrequency =
+        ConscienceFrequency.entries.firstOrNull { it.name == this[PreferencesKeys.CONSCIENCE_FREQUENCY] }
+            ?: ConscienceFrequency.NORMAL
+
+    override val conscienceMutedKinds: Flow<Set<ConscienceKind>> = dataStore.data.map { it.conscienceMutedKinds() }
+
+    /**
+     * Never written while the switch is on: it was turned on before the other kinds existed
+     * (or restored from a backup made then), so only the kinds agreed to then speak. The
+     * rest start off, as switches on the screen. Nobody is upgraded silently.
+     */
+    private fun Preferences.conscienceMutedKinds(): Set<ConscienceKind> {
+        val names = this[PreferencesKeys.CONSCIENCE_MUTED_KINDS]
+            ?: return if (this[PreferencesKeys.CONSCIENCE_ENABLED] == true) ConscienceKind.ADDED_LATER else emptySet()
+        return ConscienceKind.entries.filter { it.name in names }.toSet()
+    }
+
+    override suspend fun setConscienceKindEnabled(kind: ConscienceKind, enabled: Boolean) {
+        dataStore.edit { prefs ->
+            val muted = prefs[PreferencesKeys.CONSCIENCE_MUTED_KINDS]
+                ?: prefs.conscienceMutedKinds().mapTo(mutableSetOf()) { it.name }
+            prefs[PreferencesKeys.CONSCIENCE_MUTED_KINDS] = if (enabled) muted - kind.name else muted + kind.name
+        }
+    }
+
+    override val conscienceFeedback: Flow<ConscienceFeedback> = dataStore.data.map { it.conscienceFeedback() }
+
+    private fun Preferences.conscienceFeedback() = ConscienceFeedback(
+        liked = this[PreferencesKeys.CONSCIENCE_LIKED_LINES].orEmpty(),
+        retired = this[PreferencesKeys.CONSCIENCE_RETIRED_LINES].orEmpty(),
+    )
+
+    private fun MutablePreferences.setConscienceFeedback(feedback: ConscienceFeedback) {
+        this[PreferencesKeys.CONSCIENCE_LIKED_LINES] = feedback.liked
+        this[PreferencesKeys.CONSCIENCE_RETIRED_LINES] = feedback.retired
+    }
+
+    /** Newest first. Each read applies the 30-day cutoff, so reopening the screen drops expired remarks. */
+    override val conscienceRemarks: Flow<List<ConscienceRemark>> = dataStore.data.map { it.conscienceRemarks() }
+
+    // Every reader goes through here, and every write stores what it read, so expired remarks also leave storage.
+    private fun Preferences.conscienceRemarks(nowMillis: Long = System.currentTimeMillis()): List<ConscienceRemark> {
+        val raw = this[PreferencesKeys.CONSCIENCE_REMARKS] ?: return emptyList()
+        val items = runCatching { conscienceJson.parseToJsonElement(raw).jsonArray }.getOrNull() ?: return emptyList()
+        // One by one: a remark this build can't read (a kind renamed since) is skipped, not the list lost.
+        val remarks = items.mapNotNull { runCatching { conscienceJson.decodeFromJsonElement<ConscienceRemark>(it) }.getOrNull() }
+        return ConscienceRemarks.fresh(remarks, nowMillis)
+    }
+
+    /**
+     * True when the reaction landed: the remark took it, or the line's standing changed.
+     * False when the remark already had a reaction, or, for a remark that's gone, the line
+     * already stood that way. That's what a confirmation promises.
+     */
+    override suspend fun reactToConscience(remarkId: Long, lineKey: String, reaction: ConscienceReaction): Boolean {
+        var changed = false
+        dataStore.edit { prefs ->
+            changed = false
+            val before = prefs.conscienceFeedback()
+            val stored = prefs.conscienceRemarks()
+            val (remarks, feedback) = ConscienceRemarks.react(stored, before, remarkId, lineKey, reaction) ?: return@edit
+            // A tap on a remark that isn't stored only rates its line: no list to write.
+            if (remarks != stored) prefs[PreferencesKeys.CONSCIENCE_REMARKS] = conscienceJson.encodeToString(remarks)
+            prefs.setConscienceFeedback(feedback)
+            changed = feedback != before || remarks != stored
+        }
+        return changed
+    }
+
+    /**
+     * Every like and retirement in [contentLocale] undone, and its remarks open to a reaction
+     * again. Another language's lines keep theirs: the screen there counts and resets them.
+     */
+    override suspend fun resetConscienceFeedback(contentLocale: String) {
+        dataStore.edit { prefs ->
+            val feedback = prefs.conscienceFeedback()
+            val reset = feedback.inLanguage(contentLocale)
+            prefs.setConscienceFeedback(ConscienceFeedback(feedback.liked - reset.liked, feedback.retired - reset.retired))
+            val stored = prefs.conscienceRemarks()
+            val remarks = stored.map { if (ConscienceLines.isIn(contentLocale, it.lineKey)) it.copy(reaction = null) else it }
+            if (remarks != stored) prefs[PreferencesKeys.CONSCIENCE_REMARKS] = conscienceJson.encodeToString(remarks)
         }
     }
 
     /**
-     * Spends a slot and picks the comment in one edit: the SMS receiver and the
-     * notification listener can race, and only one may get the slot. The switch is
-     * re-read here, since it can change while the history is read. Null when the
-     * cadence says no or no candidate has a line left.
+     * Spends a slot (unless the remark is only saved overnight, see [ConscienceCadence.record]),
+     * picks the comment and stores it as a remark in one edit: the SMS
+     * receiver and the notification listener can race, and only one may get the slot.
+     * The switch and the muted kinds are re-read here, since they can change while the
+     * history is read. Null when the cadence says no, no candidate has a line left, or
+     * [remarkFor] can't render the choice.
      */
     override suspend fun tryClaimConscience(
         candidates: List<ConscienceCandidate>,
@@ -657,19 +826,24 @@ open class UserPreferencesRepository internal constructor(
         nowMillis: Long,
         todayEpochDay: Long,
         random: Random,
-    ): ConscienceChoice? {
-        var claimed: ConscienceChoice? = null
+        remarkFor: (ConscienceChoice) -> ConscienceRemark?,
+    ): ConscienceRemark? {
+        var claimed: ConscienceRemark? = null
         dataStore.edit { prefs ->
             claimed = null
             if (prefs[PreferencesKeys.CONSCIENCE_ENABLED] != true) return@edit
+            val muted = prefs.conscienceMutedKinds()
             val log = ConscienceCadence.decode(prefs[PreferencesKeys.CONSCIENCE_LOG] ?: emptySet())
             val choice = ConscienceCadence.choose(
-                candidates, log, prefs[PreferencesKeys.CONSCIENCE_RETIRED_LINES].orEmpty(),
-                contentLocale, nowMillis, todayEpochDay, random
+                candidates.filter { it.fact.kind !in muted }, log, prefs.conscienceFeedback(),
+                prefs.conscienceFrequency(), contentLocale, nowMillis, todayEpochDay, random
             ) ?: return@edit
+            val remark = remarkFor(choice) ?: return@edit
             prefs[PreferencesKeys.CONSCIENCE_LOG] =
-                ConscienceCadence.encode(ConscienceCadence.record(log, choice, nowMillis, todayEpochDay))
-            claimed = choice
+                ConscienceCadence.encode(ConscienceCadence.record(log, choice, nowMillis, todayEpochDay, spendsSlot = remark.notified))
+            prefs[PreferencesKeys.CONSCIENCE_REMARKS] =
+                conscienceJson.encodeToString(ConscienceRemarks.add(prefs.conscienceRemarks(nowMillis), remark, nowMillis))
+            claimed = remark
         }
         return claimed
     }
@@ -1058,6 +1232,8 @@ open class UserPreferencesRepository internal constructor(
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_LOCK_ENABLED] = enabled
         }
+        // The widgets mask their amounts while the lock is on.
+        transactionWidgets.redraw()
     }
 
     /**
@@ -1071,6 +1247,17 @@ open class UserPreferencesRepository internal constructor(
                 preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] = System.currentTimeMillis()
             }
         }
+        transactionWidgets.redraw()
+    }
+
+    override val hideWidgetAmountsWhileLocked: Flow<Boolean> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.HIDE_WIDGET_AMOUNTS_WHILE_LOCKED] ?: true }
+
+    override suspend fun setHideWidgetAmountsWhileLocked(hide: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HIDE_WIDGET_AMOUNTS_WHILE_LOCKED] = hide
+        }
+        transactionWidgets.redraw()
     }
 
     override val appLockTimeoutMinutes: Flow<Int> = dataStore.data
@@ -1362,12 +1549,15 @@ open class UserPreferencesRepository internal constructor(
     override val isAmountHiddenEverywhere: Flow<Boolean> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.BALANCE_HIDDEN] ?: false }
 
-    override suspend fun setBalanceHidden(hidden: Boolean) {
+    override suspend fun setBalanceHidden(hidden: Boolean): Boolean {
+        var changed = false
         dataStore.edit { preferences ->
+            changed = preferences[PreferencesKeys.BALANCE_HIDDEN] != hidden
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
         // The widgets' totals follow the same eye.
-        transactionWidgets.refresh()
+        transactionWidgets.redraw()
+        return changed
     }
 
     /**
@@ -1382,7 +1572,7 @@ open class UserPreferencesRepository internal constructor(
             hidden = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: hiddenWhenUnset)
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
-        transactionWidgets.refresh()
+        transactionWidgets.redraw()
         return hidden
     }
 
@@ -1404,6 +1594,131 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.SHAKE_TO_HIDE_HINT_SHOWN] = true
         }
         return first
+    }
+
+    /**
+     * Records [keys] as celebrated in one edit and returns the ones that weren't yet:
+     * the moments to celebrate now. Asking again returns nothing. A full disk returns
+     * nothing either, so nothing plays and a later visit can retry.
+     */
+    suspend fun claimCelebrations(keys: Collection<String>): Set<String> {
+        return try {
+            var fresh = emptySet<String>()
+            dataStore.edit { preferences ->
+                val celebrated = preferences[PreferencesKeys.CELEBRATED_MOMENTS] ?: emptySet()
+                fresh = keys.toSet() - celebrated
+                if (fresh.isNotEmpty()) preferences[PreferencesKeys.CELEBRATED_MOMENTS] = celebrated + fresh
+            }
+            fresh
+        } catch (_: IOException) {
+            emptySet()
+        }
+    }
+
+    /** The week (its first day) whose weekly guess was answered or dismissed. */
+    val weeklyGuessHandledWeek: Flow<String?> = dataStore.data
+        .map { it[PreferencesKeys.WEEKLY_GUESS_HANDLED_WEEK] }
+
+    /** A full disk leaves the week unmarked: the card comes back on the next visit instead of crashing Home. */
+    suspend fun markWeeklyGuessHandled(weekStart: String) {
+        try {
+            dataStore.edit { it[PreferencesKeys.WEEKLY_GUESS_HANDLED_WEEK] = weekStart }
+        } catch (_: IOException) {
+            // Full disk: nothing stored, so the next visit asks again.
+        }
+    }
+
+    /** True once the user chose "Don't ask again" on the weekly guess. */
+    val weeklyGuessOff: Flow<Boolean> = dataStore.data
+        .map { it[PreferencesKeys.WEEKLY_GUESS_OFF] ?: false }
+
+    suspend fun stopWeeklyGuess() {
+        try {
+            dataStore.edit { it[PreferencesKeys.WEEKLY_GUESS_OFF] = true }
+        } catch (_: IOException) {
+            // Full disk: nothing stored, so the card can come back and the choice be made again.
+        }
+    }
+
+    /** True only the first time [key] is asked for. */
+    suspend fun celebrateOnce(key: String): Boolean = claimCelebrations(listOf(key)).isNotEmpty()
+
+    /**
+     * The first time [seed] is asked for, claims [history] with it, silently: what was already
+     * earned on an install, an upgrade or a restore is history, not news. Later calls do nothing
+     * and skip [history]'s query. A full disk claims nothing, so a later visit retries.
+     */
+    suspend fun seedCelebrations(seed: String, history: suspend () -> Collection<String>) {
+        try {
+            if (seed in dataStore.data.first()[PreferencesKeys.CELEBRATED_MOMENTS].orEmpty()) return
+            val keys = history()
+            dataStore.edit { prefs ->
+                prefs[PreferencesKeys.CELEBRATED_MOMENTS] = prefs[PreferencesKeys.CELEBRATED_MOMENTS].orEmpty() + keys + seed
+            }
+        } catch (_: IOException) {
+            // Nothing recorded; the next visit seeds again.
+        }
+    }
+
+    /**
+     * After a restore, which brings goals and history this device never saw: the next visit
+     * seeds again (see [seedCelebrations]), so a restored, long-reached goal doesn't cheer.
+     */
+    suspend fun forgetCelebrationSeeds() {
+        try {
+            dataStore.edit { prefs ->
+                val celebrated = prefs[PreferencesKeys.CELEBRATED_MOMENTS] ?: return@edit
+                prefs[PreferencesKeys.CELEBRATED_MOMENTS] = celebrated - CelebrationSeeds.ALL
+            }
+        } catch (_: IOException) {
+            // A full disk leaves the old seeds: restored history may cheer once.
+        }
+    }
+
+    /** "Month ended under budget" cards the user closed, one key per currency. */
+    val budgetMonthCardsDismissed: Flow<Set<String>> = dataStore.data
+        .map { it[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] ?: emptySet() }
+
+    /** Remembers [key] and drops every other month's: only [keepMonth]'s card can still show. */
+    suspend fun dismissBudgetMonthCard(key: String, keepMonth: YearMonth) {
+        editBudgetMonthDismissals(keepMonth) { it + key }
+    }
+
+    /** Drops dismissal keys for any month but [keepMonth]; all of them when it's null. */
+    suspend fun pruneBudgetMonthDismissals(keepMonth: YearMonth?) {
+        editBudgetMonthDismissals(keepMonth) { it }
+    }
+
+    private suspend fun editBudgetMonthDismissals(keepMonth: YearMonth?, update: (Set<String>) -> Set<String>) {
+        try {
+            dataStore.edit { prefs ->
+                val current = prefs[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] ?: emptySet()
+                val kept = eligibleBudgetMonthDismissals(update(current), keepMonth)
+                if (kept == current) return@edit
+                if (kept.isEmpty()) prefs.remove(PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED)
+                else prefs[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] = kept
+            }
+        } catch (_: IOException) {
+            // Full disk: leave the stored set alone so a later visit can try again.
+        }
+    }
+
+    // By the raw JSON: every other preference write re-emits dataStore.data.
+    val challenges: Flow<ChallengeState> = dataStore.data
+        .map { it[PreferencesKeys.CHALLENGES] }
+        .distinctUntilChanged()
+        .map { ChallengeState.fromJson(it) }
+
+    /** Applies [change] to the stored challenges in one edit. False if it couldn't be saved (full disk). */
+    suspend fun updateChallenges(change: (ChallengeState) -> ChallengeState): Boolean = try {
+        dataStore.edit { preferences ->
+            val current = ChallengeState.fromJson(preferences[PreferencesKeys.CHALLENGES])
+            val next = change(current)
+            if (next != current) preferences[PreferencesKeys.CHALLENGES] = next.toJson()
+        }
+        true
+    } catch (_: IOException) {
+        false
     }
 
     // Replace UPI VPAs with matching contact names at display time.
@@ -1558,6 +1873,35 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
+    /** Remembers [progress] across a kill; the profile values go to the keys onboarding finally writes. */
+    suspend fun saveOnboardingProgress(progress: OnboardingProgress) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ONBOARDING_STEP] = progress.step
+            preferences[PreferencesKeys.USER_NAME] = progress.name
+            progress.profileImageUri?.let { preferences[PreferencesKeys.PROFILE_IMAGE_URI] = it }
+            progress.backgroundColor?.let { preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] = it }
+            if (progress.pickedCurrency != null) {
+                preferences[PreferencesKeys.ONBOARDING_CURRENCY] = progress.pickedCurrency
+            } else {
+                preferences.remove(PreferencesKeys.ONBOARDING_CURRENCY)
+            }
+        }
+    }
+
+    /** The saved onboarding progress, or null when onboarding is finished or never left Welcome. */
+    suspend fun getOnboardingProgress(): OnboardingProgress? {
+        val preferences = dataStore.data.first()
+        if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) return null
+        val step = preferences[PreferencesKeys.ONBOARDING_STEP] ?: return null
+        return OnboardingProgress(
+            step = step,
+            name = preferences[PreferencesKeys.USER_NAME] ?: "",
+            profileImageUri = preferences[PreferencesKeys.PROFILE_IMAGE_URI],
+            backgroundColor = preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR],
+            pickedCurrency = preferences[PreferencesKeys.ONBOARDING_CURRENCY]
+        )
+    }
+
     suspend fun updateProfileImageUri(uri: String?) {
         dataStore.edit { preferences ->
             if (uri == null) {
@@ -1574,6 +1918,19 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
+    /** Name, picture and colour in one edit, so a failed write can't leave half a profile. */
+    suspend fun updateProfile(name: String, imageUri: String?, backgroundColor: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USER_NAME] = name
+            if (imageUri == null) {
+                preferences.remove(PreferencesKeys.PROFILE_IMAGE_URI)
+            } else {
+                preferences[PreferencesKeys.PROFILE_IMAGE_URI] = imageUri
+            }
+            preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] = backgroundColor
+        }
+    }
+
     /**
      * [freshInstall]: onboarding just finished on a new install (not the legacy
      * auto-complete for upgraders), so Home starts from [HomeSectionLayout.FRESH_INSTALL]
@@ -1582,6 +1939,10 @@ open class UserPreferencesRepository internal constructor(
     suspend fun updateHasCompletedOnboarding(completed: Boolean, freshInstall: Boolean = false) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] = completed
+            if (completed) {
+                preferences.remove(PreferencesKeys.ONBOARDING_STEP)
+                preferences.remove(PreferencesKeys.ONBOARDING_CURRENCY)
+            }
             if (completed && freshInstall) {
                 HomeSectionLayout.seedForFreshInstall(preferences[PreferencesKeys.HOME_SECTIONS])
                     ?.let { preferences[PreferencesKeys.HOME_SECTIONS] = it }
@@ -1680,7 +2041,7 @@ data class UserPreferences(
     val navBarStyle: NavBarStyle = NavBarStyle.FLOATING,
     val hiddenNavTabs: Set<String> = emptySet(),
     val coverStyle: CoverStyle = CoverStyle.AURORA,
-    val userName: String = "User",
+    val userName: String = DEFAULT_USER_NAME,
     val profileImageUri: String? = null,
     val profileBackgroundColor: Int = 0,
     val hasCompletedOnboarding: Boolean = false,
@@ -1696,4 +2057,16 @@ data class StoredLicense(
     val instanceId: String?,
     val validatedAt: Long,
     val productName: String?,
+)
+
+/**
+ * What onboarding keeps across a kill: the [step] and the choices made before it. [profileImageUri]
+ * is the stored form ("avatar://N" or a photo URI), [pickedCurrency] only an explicit pick.
+ */
+data class OnboardingProgress(
+    val step: String,
+    val name: String,
+    val profileImageUri: String? = null,
+    val backgroundColor: Int? = null,
+    val pickedCurrency: String? = null
 )

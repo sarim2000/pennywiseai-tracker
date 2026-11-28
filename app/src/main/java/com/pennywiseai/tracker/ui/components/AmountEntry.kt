@@ -169,6 +169,10 @@ class AmountEntry internal constructor(text: String) {
     private val pending = ArrayDeque<String>()
     private var handled = text
     private var focused = false
+
+    // Set when the field is restored (rotation, theme switch): its saved text is the user's, so the
+    // caller is told it rather than the caller's own amount being put back over it.
+    private var restored = false
     internal var host: AmountBarHostState? = null
     internal var amount by mutableStateOf(text)
     internal var onAmountChange: (String) -> Unit = {}
@@ -225,6 +229,15 @@ class AmountEntry internal constructor(text: String) {
      * here or what the field already comes to, it replaces the field's text.
      */
     internal fun amountChanged(new: String) {
+        if (restored) {
+            restored = false
+            val text = comesTo(state.text.toString())
+            if (!sameAmount(text, new)) {
+                pending.addLast(text)
+                onAmountChange(text)
+                return
+            }
+        }
         // Caught up with the field: nothing handed on is pending any more.
         if (sameAmount(comesTo(state.text.toString()), new)) {
             pending.clear()
@@ -263,7 +276,7 @@ class AmountEntry internal constructor(text: String) {
     companion object {
         internal val Saver = Saver<AmountEntry, String>(
             save = { it.state.text.toString() },
-            restore = { AmountEntry(it) }
+            restore = { AmountEntry(it).apply { restored = true } }
         )
 
         // "15" and "15.00" are the same amount: a caller may hand its amount back reformatted.

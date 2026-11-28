@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -110,6 +111,9 @@ class TransactionsViewModel @Inject constructor(
     private val _categoriesFromBudget = MutableStateFlow(false)
     val categoriesFromBudget: StateFlow<Boolean> = _categoriesFromBudget.asStateFlow()
 
+    // Set by a budget line's drill-down: (its category, the sub-categories it leaves out). See leaveOutOf.
+    private val leftOut = MutableStateFlow<Pair<String, Set<String>>?>(null)
+
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.ALL)
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
 
@@ -130,6 +134,10 @@ class TransactionsViewModel @Inject constructor(
     // Tag filter — null means "All tags". Matches any transaction that carries the tag.
     private val _tagFilter = MutableStateFlow<String?>(null)
     val tagFilter: StateFlow<String?> = _tagFilter.asStateFlow()
+
+    // A second required tag, only ever set by an Analytics drill-down; there is no picker for it.
+    private val _alsoTagFilter = MutableStateFlow<String?>(null)
+    val alsoTagFilter: StateFlow<String?> = _alsoTagFilter.asStateFlow()
 
     val availableTags: StateFlow<List<String>> = tagRepository.observeAllTagNames()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -406,19 +414,24 @@ class TransactionsViewModel @Inject constructor(
 
             // Source of the money = the EXPENSE row's account.
             // Destination = the INCOME row's account.
-            // A split bill (#346) is money others owe you, not a transfer. Read fresh.
-            if (listOf(aId, bId).any { transactionRepository.getTransactionById(it)?.lentSharesTotal != null }) {
+            // A split bill (#346) is money others owe you, not a transfer. Read fresh: the list
+            // may not show a change written just now, and the Undo snapshot comes from these too.
+            val fresh = listOf(a, b).associate { it.id to (transactionRepository.getTransactionById(it.id) ?: it) }
+            if (fresh.values.any { it.lentSharesTotal != null }) {
                 _bulkSnack.value = BulkSnack(UiText.Res(R.string.split_error_transfer))
                 return@launch
             }
 
             val (expense, income) = if (a.transactionType == TransactionType.EXPENSE) a to b else b to a
 
-            // Snapshot for Undo: type + the two account fields per row.
+            // Snapshot for Undo: type + the two account fields per row, and the reimbursement
+            // (#1389) that becoming a transfer clears.
             data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?,
-                val fromBankName: String?, val toBankName: String?, val transferPairId: String?)
-            val originals = listOf(a, b).associate {
-                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName, it.transferPairId)
+                val fromBankName: String?, val toBankName: String?, val transferPairId: String?,
+                val reimbursementStatus: ReimbursementStatus?, val reimbursedById: Long?)
+            val originals = fresh.values.associate {
+                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName, it.transferPairId,
+                    it.reimbursementStatus, it.reimbursedById)
             }
 
             transactionRepository.markAsTransferPair(expense, income)
@@ -427,11 +440,11 @@ class TransactionsViewModel @Inject constructor(
                 message = UiText.Res(R.string.txn_list_bulk_marked_transfer),
                 undo = {
                     viewModelScope.launch {
-                        val current = _uiState.value.transactions
                         val nowUndo = java.time.LocalDateTime.now()
                         originals.forEach { (id, snapshot) ->
-                            current.firstOrNull { it.id == id }?.let { row ->
-                                transactionRepository.updateTransaction(
+                            // By id, not from the list: a type filter (Expense) hides the row once it's a transfer.
+                            transactionRepository.getTransactionById(id)?.let { row ->
+                                transactionRepository.restoreTransaction(
                                     row.copy(
                                         transactionType = snapshot.type,
                                         fromAccount = snapshot.fromAccount,
@@ -440,7 +453,9 @@ class TransactionsViewModel @Inject constructor(
                                         toBankName = snapshot.toBankName,
                                         transferPairId = snapshot.transferPairId,
                                         updatedAt = nowUndo
-                                    )
+                                    ),
+                                    snapshot.reimbursementStatus,
+                                    snapshot.reimbursedById,
                                 )
                             }
                         }
@@ -673,10 +688,7 @@ class TransactionsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             availableTags.collect { tags ->
-                val current = _tagFilter.value
-                if (current != null && tags.none { it.equals(current, ignoreCase = true) }) {
-                    _tagFilter.value = null
-                }
+                setTags(_tagFilter.value, _alsoTagFilter.value) { name -> tags.any { it.equals(name, ignoreCase = true) } }
             }
         }
 
@@ -748,7 +760,7 @@ class TransactionsViewModel @Inject constructor(
                 // Not on a pinned list: a review's category that fell to zero is empty, not every other category.
                 val currentFilter = _categoryFilter.value
                 if (currentFilter != null && currentFilter !in categories && pinnedCurrency.value == null) {
-                    _categoryFilter.value = null
+                    clearCategoryFilter()
                 }
             }
             .launchIn(viewModelScope)
@@ -760,6 +772,7 @@ class TransactionsViewModel @Inject constructor(
             budgetCycleStartDay.map { "cycle" },
             categoryFilter.map { "category" },
             categoriesFilter.map { "categories" },
+            leftOut.map { "leftOut" },
             transactionTypeFilter.map { "typeFilter" },
             _selectedProfileId.map { "profileFilter" },
             _profileAccountKeys.map { "profileAccountKeys" },
@@ -768,6 +781,7 @@ class TransactionsViewModel @Inject constructor(
             _ignoredAccountKeys.map { "ignoredAccounts" },
             _accountFilter.map { "accountFilter" },
             tagFilter.map { "tagFilter" },
+            alsoTagFilter.map { "alsoTagFilter" },
             selectedCurrency.map { "currency" },
             _isUnifiedMode.map { "unifiedMode" },
             sortOption.map { "sort" },
@@ -789,6 +803,7 @@ class TransactionsViewModel @Inject constructor(
                 val profileId = _selectedProfileId.value
                 val accountKey = _accountFilter.value
                 val tag = _tagFilter.value
+                val alsoTag = _alsoTagFilter.value
 
                 // Resolve the cycle window up-front so the inner (non-suspend)
                 // filter helper can reuse it for the cycle-following periods.
@@ -812,7 +827,8 @@ class TransactionsViewModel @Inject constructor(
                                 accountKey
                             ),
                             tag,
-                            transactionTagsMap.value
+                            transactionTagsMap.value,
+                            alsoTag
                         )
                         val transactions = scoped(allTransactions)
                         val refunds = scoped(allRefunds)
@@ -922,11 +938,14 @@ class TransactionsViewModel @Inject constructor(
         _selectedPeriod.value = period
     }
 
+    // Either drops a budget line's leftOut: it belongs to the filter it came with (see leaveOutOf).
     fun setCategoryFilter(category: String) {
+        leftOut.value = null
         _categoryFilter.value = category
     }
 
     fun clearCategoryFilter() {
+        leftOut.value = null
         _categoryFilter.value = null
     }
 
@@ -942,9 +961,26 @@ class TransactionsViewModel @Inject constructor(
     /** Sets the tag filter; null clears it ("All tags"). */
     fun setTagFilter(tag: String?) {
         _tagFilter.value = tag?.takeIf { it.isNotBlank() }
+        _alsoTagFilter.value = null
+    }
+
+    /** Removes the first tag chip; the second tag, if any, becomes the filter. */
+    fun removeTagFilter() = setTags(null, _alsoTagFilter.value)
+
+    /** The one place the two tag fields are written together: [normalizeTags] keeps them in agreement. */
+    private fun setTags(first: String?, also: String?, exists: (String) -> Boolean = { true }) {
+        val (f, a) = normalizeTags(first, also, exists)
+        _tagFilter.value = f
+        _alsoTagFilter.value = a
+    }
+
+    /** Removes the second tag chip, leaving the first. */
+    fun removeAlsoTagFilter() {
+        _alsoTagFilter.value = null
     }
 
     fun clearTagFilter() {
+        _alsoTagFilter.value = null
         _tagFilter.value = null
     }
 
@@ -990,6 +1026,30 @@ class TransactionsViewModel @Inject constructor(
         if (profilePinned) return
         profilePinned = true
         _selectedProfileId.value = profileId
+    }
+
+    /**
+     * A transaction's "More from"/"More in" list, opened from a row in [profileId]: with one
+     * profile selected it lists that row's profile instead, so the row and its history aren't
+     * filtered out; with every profile selected it stays on all. Pinned like [pinProfile].
+     */
+    fun keepRowProfile(profileId: Long) {
+        if (profilePinned) return
+        profilePinned = true
+        viewModelScope.launch {
+            if (userPreferencesRepository.selectedProfileId.first() != null) _selectedProfileId.value = profileId
+        }
+    }
+
+    /**
+     * While the list filters on [category] alone, leaves out [names]: a budget line's list,
+     * [names] being the budget's other category lines. Only those that are sub-categories of
+     * [category] change anything, as a sub-category with its own line doesn't count toward its
+     * parent's (#1425). Call it after the category filter is set: setting, changing or
+     * removing the category filter drops it, so it can't come back on a later filter.
+     */
+    fun leaveOutOf(category: String, names: Collection<String>) {
+        leftOut.value = names.toSet().takeIf { it.isNotEmpty() }?.let { category to it }
     }
 
     /**
@@ -1110,7 +1170,8 @@ class TransactionsViewModel @Inject constructor(
         endDateEpochDay: Long? = null,
         account: String? = null,
         tag: String? = null,
-        type: String? = null
+        type: String? = null,
+        alsoTag: String? = null
     ) {
         if (!hasAppliedInitialFilters) {
             // Only apply filters once, when first navigating to the screen
@@ -1121,6 +1182,7 @@ class TransactionsViewModel @Inject constructor(
             setSortOption(SortOption.DATE_NEWEST)
             setAccountFilter(account)
             setTagFilter(tag)
+            if (tag != null) _alsoTagFilter.value = alsoTag?.takeIf { it.isNotBlank() }
 
             // Typed nav keys carry names as they are: "Savings 10%" isn't URL-encoded.
             category?.let { setCategoryFilter(it) }
@@ -1170,11 +1232,12 @@ class TransactionsViewModel @Inject constructor(
         endDateEpochDay: Long? = null,
         account: String? = null,
         tag: String? = null,
-        type: String? = null
+        type: String? = null,
+        alsoTag: String? = null
     ) {
         // Create current params to compare
         val currentParams = NavigationParams(
-            category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type
+            category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type, alsoTag
         )
 
         // Only apply navigation filters if:
@@ -1196,6 +1259,7 @@ class TransactionsViewModel @Inject constructor(
         setSortOption(SortOption.DATE_NEWEST)
         setAccountFilter(account)
         setTagFilter(tag)
+        if (tag != null) _alsoTagFilter.value = alsoTag?.takeIf { it.isNotBlank() }
 
         category?.let { setCategoryFilter(it) }
         merchant?.let { updateSearchQuery(it) }
@@ -1287,7 +1351,7 @@ class TransactionsViewModel @Inject constructor(
             ?: _categoryFilter.value?.let { listOf(it) }
             ?: emptyList()
         val next = if (category in current) current - category else current + category
-        _categoryFilter.value = null
+        clearCategoryFilter()
         _categoriesFromBudget.value = false
         _categoriesFilter.value = next.ifEmpty { null }
     }
@@ -1330,9 +1394,7 @@ class TransactionsViewModel @Inject constructor(
         // matching on `category` alone found nothing for either — and the
         // available-categories auto-clear then dropped the filter and showed
         // everything (#749).
-        // A parent category includes its sub-categories (#374).
-        val effectiveCategories = (categories?.takeIf { it.isNotEmpty() } ?: category?.let { listOf(it) })
-            ?.let { this.categories.value.values.toList().expandWithChildren(it) }
+        val effectiveCategories = listedCategories(category, categories, this.categories.value.values.toList(), leftOut.value)
         val range = periodRange(period, cycleRange)
         val baseFlow = if (range == null) {
             transactionRepository.getAllTransactions()
@@ -1366,20 +1428,16 @@ class TransactionsViewModel @Inject constructor(
         return categoriesFilteredFlow.map { (rows, splitShares) ->
             fun searched(list: List<TransactionEntity>) =
                 filterBySearch(list, searchQuery, transactionTagsMap.value, merchantAliases.value, splitShares.amountOf())
+            val refundRows = if (typeFilter.netsRefunds) searched(rows.filter { it.isRefund() }) else emptyList()
+            // Under a category filter a spend view lists the refunds that came off the category
+            // too, so the rows add up to the figure the list was opened from; the totals then
+            // count them as listed rows instead of netting them again. Unfiltered, a spend view
+            // drops refunds from its rows but nets them off its total, as Home and Insights do (#629).
+            val listRefunds = effectiveCategories != null
             FilteredRows(
-                rows = searched(filterByType(rows, typeFilter)),
+                rows = searched(filterByType(rows, typeFilter)) + if (listRefunds) refundRows else emptyList(),
                 splitShares = splitShares,
-                // A spend view drops refunds from its rows but nets them off its total, as
-                // Home and Insights do (#629), so a Spent figure opens a list that matches it.
-                refunds = if (typeFilter.netsRefunds) {
-                    searched(
-                        rows.filter {
-                            it.transactionType == TransactionType.INCOME && it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
-                        }
-                    )
-                } else {
-                    emptyList()
-                },
+                refunds = if (listRefunds) emptyList() else refundRows,
             )
         }
     }
@@ -1474,7 +1532,8 @@ private data class NavigationParams(
     val endDateEpochDay: Long? = null,
     val account: String? = null,
     val tag: String? = null,
-    val type: String? = null
+    val type: String? = null,
+    val alsoTag: String? = null
 )
 
 /**
@@ -1489,6 +1548,23 @@ private data class BudgetParams(
     val categories: String?,
     val transactionType: String?
 )
+
+/**
+ * The categories the list shows, null for every category. A parent category includes its
+ * sub-categories (#374). [leftOut] (a budget line's category, the budget's other lines) takes
+ * those lines off while the list filters on that one category alone, so a sub-category with
+ * its own line isn't listed under its parent's line too (#1425).
+ */
+internal fun listedCategories(
+    category: String?,
+    categories: List<String>?,
+    all: List<CategoryEntity>,
+    leftOut: Pair<String, Set<String>>?
+): Set<String>? {
+    val names = (categories?.takeIf { it.isNotEmpty() } ?: category?.let { listOf(it) })
+        ?.let { all.expandWithChildren(it) } ?: return null
+    return leftOut?.takeIf { categories.isNullOrEmpty() && it.first == category }?.let { names - it.second } ?: names
+}
 
 /**
  * Self-transfer suggestion heuristic (#385): pair each EXPENSE with an INCOME row

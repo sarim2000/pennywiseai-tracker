@@ -9,6 +9,7 @@
     <string name="widget_budget_empty_title">لا توجد ميزانية بعد</string>
     <string name="widget_budget_empty_hint">حدّد سقفاً شهرياً لترى ما تبقى منه.</string>
     <string name="widget_budget_create">إنشاء ميزانية</string>
+    <!-- Read by TalkBack for the owl on the budget widget. -->
     <string name="widget_budget_preview_meta">من 3,600 · 120 لليوم</string>
     <string name="widget_cash_label">نقداً</string>
     <string name="widget_cash_spend">مصروف نقدي</string>

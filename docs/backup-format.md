@@ -165,19 +165,96 @@ decode to no shares; older apps ignore them.
   `(transaction_id, loan_id)` index backs this up.
 - `upi_id` fills in a missing one and never replaces one set on this device.
 
+## Reimbursable expenses (#1389)
+
+Two nullable columns on each transaction, no new table. Older backups lack
+the keys and restore as not reimbursable; older apps ignore them.
+
+```json
+"transactions": [ { "id": 3, "reimbursementStatus": "REIMBURSED", "reimbursedById": 9, … } ]
+```
+
+- `reimbursementStatus` is `PENDING`, `REIMBURSED` or absent (not
+  reimbursable). An unknown name decodes to absent rather than failing the file.
+- `reimbursedById` is the id of the incoming payment that paid it back, or
+  absent when the user marked it reimbursed without one. Several expenses can
+  point at one payment.
+- **Import (both strategies):** every transaction is inserted without the
+  link, then each row this import inserted is pointed at its payment through
+  the old→local id map once all rows are in (`reimbursementLinks`). A payment
+  that didn't restore leaves the row reimbursed, unlinked. In a MERGE the
+  payment may be a local hash duplicate; a matched local expense keeps its own
+  state.
+
 ## Resilience
 
-Beyond schema tolerance, the importer skips and **counts** any single row that
-fails to insert (`insertEachCounting`) instead of letting it abort the whole
-restore. This is applied to **every** entity insert loop in both `MERGE` and
-`REPLACE_ALL` (and the merge helpers); batch snapshot inserts are wrapped in a
-table-level `try/catch`. The skipped count surfaces to the user ("N rows could
-not be imported"). This guards against genuinely corrupt rows or constraint
-violations — schema drift is already handled upstream by the defaults.
+Beyond schema tolerance, the importer skips and **counts** a row it can tell
+is unusable **before** inserting it (`insertEachCounting`), instead of letting
+it abort the whole restore. This is applied to every entity insert loop in both
+`MERGE` and `REPLACE_ALL` (and the merge helpers). The skipped count surfaces to
+the user ("N rows could not be imported").
+
+- **Skipped and counted:** a row whose parent didn't map or restore (a rule
+  application, split, tag link, budget category or goal contribution of a
+  deleted transaction/budget/goal) is rejected by a check before the DAO call
+  (`checkNotNull` / a membership test), and rows that fail a Kotlin check. The
+  foreign key is never left to throw.
+- **Aborts the import:** any SQL failure from a DAO call (a constraint
+  violation, a unique-index clash). On Room's `AndroidSQLiteDriver` a failed
+  write marks the whole import transaction rollback-only, so the COMMIT silently
+  becomes a ROLLBACK while the counters still claim success (#1513). So
+  `insertEachCounting` and the snapshot `try/catch` blocks rethrow
+  `android.database.SQLException`: the import returns an error and nothing is
+  saved. A new child table must therefore add its parent check, not rely on the
+  foreign key.
+
+Schema drift is handled upstream by the field defaults, not here.
 
 The one deliberate exception is `importProfilesAndBuildMap`: its inserts build
 the profile id-remap map that transactions/balances depend on, so it stays
 strict (a profile failure should surface, not be silently swallowed).
+
+## Encrypted backups
+
+*Export Data (Encrypted)* (Settings → Data) wraps the same JSON in a
+passphrase envelope (`data/backup/BackupCrypto.kt`). The file keeps the
+`.pennywisebackup` extension; the JSON inside is unchanged, so everything
+above still applies once it's decrypted. The passphrase is never stored. The passphrase is normalized to Unicode NFC before key derivation.
+
+| Bytes | Field |
+|-------|-------|
+| 5 | magic `PWENC` (ASCII) |
+| 1 | envelope version, `1` |
+| 1 | KDF id, `1` = PBKDF2WithHmacSHA256, 256-bit key |
+| 4 | iterations, big-endian int (310 000 when written; readers accept 100 000–2 000 000 and reject the rest before deriving) |
+| 16 | random salt |
+| 8 | random nonce prefix |
+
+Then frames until the one marked last:
+
+| Bytes | Field |
+|-------|-------|
+| 1 | `isLast`: `1` on the final frame, else `0` |
+| 4 | ciphertext length, big-endian int (16 to 64 KiB + 16) |
+| n | AES/GCM/NoPadding ciphertext + 128-bit tag of up to 64 KiB plaintext |
+
+- Nonce = nonce prefix ‖ frame index (4 bytes, big-endian, from 0).
+- AAD = the 35 header bytes ‖ frame index ‖ `isLast`. A changed header,
+  reordered or dropped frames, a moved `isLast` flag, a missing last frame or
+  bytes after it all fail.
+- The writer always ends with a frame marked last (empty for an empty input).
+- **Export** streams the JSON straight into the encryptor, frame by frame, so
+  no plain copy is written. A write that fails leaves no last frame.
+- **Import** sniffs the first 5 bytes. A plain backup takes the usual path,
+  unless a passphrase was given: then the file must be encrypted. An encrypted
+  one asks for the passphrase, is decrypted in full to a temp file in
+  `cacheDir/backup_restore/` and parsed **before the database is touched**, so a
+  wrong passphrase (the first frame fails) or a damaged file changes nothing.
+  The temp file is deleted whatever happens, and that folder is swept at the
+  start of every import and export (`DecryptedBackupFiles`). A decrypted backup
+  that won't parse gives a fixed error: parser messages quote the plaintext.
+- A new KDF or cipher needs a new envelope version; readers reject versions
+  they don't know.
 
 ## How to change the format safely
 

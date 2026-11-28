@@ -20,7 +20,6 @@ import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.presentation.budgetgroups.historyBudgetTotal
-import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.widget.widgetLimitUsage
 import io.mockk.coEvery

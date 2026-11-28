@@ -55,7 +55,7 @@
     <!-- Transaction types -->
     <string name="txn_type_income">Income</string>
     <string name="txn_type_expense">Expense</string>
-    <string name="txn_type_credit">Credit</string>
+    <string name="txn_type_credit">Card spend</string>
     <string name="txn_type_transfer">Transfer</string>
     <string name="txn_type_investment">Investment</string>
 
@@ -73,6 +73,10 @@
     <string name="txn_detail_more_actions">More actions</string>
     <string name="txn_detail_menu_add_to_group">Add to group</string>
     <string name="txn_detail_menu_duplicate">Duplicate</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <string name="txn_detail_menu_more_from">More from %1$s</string>
+    <!-- Opens the transactions list for this category; %1$s is its name -->
+    <string name="txn_detail_menu_more_in">More in %1$s</string>
     <string name="txn_detail_menu_report_issue">Report issue</string>
     <string name="txn_detail_delete_title">Delete Transaction</string>
     <string name="txn_detail_delete_message">Are you sure you want to delete this transaction? This action cannot be undone.</string>
@@ -206,7 +210,7 @@
     <string name="txn_totals_income">Income</string>
     <string name="txn_totals_expense">Expense</string>
     <string name="txn_totals_expenses">Expenses</string>
-    <string name="txn_totals_credit">Credit</string>
+    <string name="txn_totals_credit">Card spend</string>
     <string name="txn_totals_transfer">Transfer</string>
     <string name="txn_totals_invest">Invest</string>
     <string name="txn_totals_net">Net</string>
@@ -231,6 +235,8 @@
     <string name="txn_list_group_yesterday">Yesterday</string>
     <string name="txn_list_group_this_week">This Week</string>
     <string name="txn_list_group_earlier">Earlier</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
+    <string name="txn_list_day_in_out">In %1$s · Out %2$s</string>
     <string name="txn_list_sort_newest">Newest First</string>
     <string name="txn_list_sort_oldest">Oldest First</string>
     <string name="txn_list_sort_amount_highest">Highest Amount</string>
@@ -379,6 +385,19 @@
     </plurals>
     <string name="groups_new_title">New Group</string>
     <string name="groups_create_confirm">Create</string>
+    <string name="trip_switch_title">Trip</string>
+    <string name="trip_switch_hint">New spending dated in this window joins the group on its own. Subscriptions, income and transfers stay out.</string>
+    <string name="trip_starts">Starts</string>
+    <string name="trip_ends">Ends</string>
+    <string name="trip_until_stopped">Until I stop it</string>
+    <string name="trip_status_scheduled">Scheduled</string>
+    <string name="trip_status_running">Running</string>
+    <string name="trip_status_ended">Ended</string>
+    <string name="trip_stop">Stop trip</string>
+    <string name="trip_window">%1$s – %2$s</string>
+    <string name="trip_window_open">From %1$s</string>
+    <string name="trip_overlap_error">These dates overlap “%1$s”. Only one trip can run at a time.</string>
+    <string name="trip_picker_ok">OK</string>
     <string name="group_back">Back</string>
     <string name="group_name">Group name</string>
     <string name="group_note">Note (optional)</string>
@@ -456,6 +475,8 @@
     <string name="category_picker_all">All</string>
     <string name="category_picker_create">Create \"%1$s\"</string>
     <string name="category_picker_no_match">No categories found</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
+    <string name="category_picker_not_a_category">Not a category? Loan, transfer, split…</string>
     <string name="quick_category_not_expense">Not an expense</string>
     <string name="quick_category_not_income">Not income</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

@@ -68,6 +68,8 @@
     <string name="txn_detail_more_actions">थप कार्यहरू</string>
     <string name="txn_detail_menu_add_to_group">समूहमा थप्नुहोस्</string>
     <string name="txn_detail_menu_duplicate">नक्कल बनाउनुहोस्</string>
+    <!-- Opens the transactions list for this merchant; %1$s is its name -->
+    <!-- Opens the transactions list for this category; %1$s is its name -->
     <string name="txn_detail_menu_report_issue">समस्या रिपोर्ट गर्नुहोस्</string>
     <string name="txn_detail_delete_title">व्यापार मेटाउने</string>
     <string name="txn_detail_delete_message">के तपाईं साँच्चै यो व्यापार मेटाउन चाहानुहुन्छ? यो कार्य पूर्ववत गर्न सकिँदैन।</string>
@@ -200,6 +202,7 @@
     <string name="txn_list_group_yesterday">हिजो</string>
     <string name="txn_list_group_this_week">यस हप्ता</string>
     <string name="txn_list_group_earlier">अघिल्लो</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">नयाँतम् पहिलो</string>
     <string name="txn_list_sort_oldest">पुरानो पहिलो</string>
     <string name="txn_list_sort_amount_highest">सबैभन्दा बढी रकम</string>
@@ -383,6 +386,7 @@
     <string name="share_banner_dismiss">रद्ध गर्नुहोस्</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">वर्ग बदल्नुहोस्</string>
+    <!-- Category picker row for money no category fits; opens "What was this?" -->
     <string name="quick_category_not_expense">खर्च होइन</string>
     <string name="quick_category_not_income">आम्दानी होइन</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

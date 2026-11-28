@@ -56,7 +56,7 @@
     <string name="home_resync_scan_again">Scan all messages again</string>
     <string name="home_resync_scan_again_desc">Adds anything that was missed. Your edits and all existing transactions stay as they are.</string>
     <string name="home_resync_rebuild">Rebuild from scratch</string>
-    <string name="home_resync_rebuild_desc">Re-reads SMS transactions to pick up parser fixes. Edits to SMS transactions are reset. Manual, imported, loan and grouped transactions are kept.</string>
+    <string name="home_resync_rebuild_desc">Re-reads SMS transactions to pick up parser fixes. Edits to SMS transactions are reset. Manual, imported, loan and grouped transactions are kept, and so are transactions whose message is no longer on the phone.</string>
 
     <!-- More options sheet -->
     <string name="home_menu_title">More Options</string>
@@ -118,7 +118,7 @@
     <string name="type_filter_all">All</string>
     <string name="type_filter_income">Income</string>
     <string name="type_filter_expense">Expense</string>
-    <string name="type_filter_credit">Credit</string>
+    <string name="type_filter_credit">Card spend</string>
     <string name="type_filter_spending">Spending</string>
     <string name="type_filter_transfer">Transfer</string>
     <string name="type_filter_investment">Invest</string>
@@ -259,17 +259,19 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">Money in motion</string>
     <string name="cash_flow_subtitle">Channels outside your net cash flow this month</string>
-    <string name="cash_flow_credit">Credit</string>
+    <string name="cash_flow_credit">Card spend</string>
     <string name="cash_flow_invested">Invested</string>
     <string name="cash_flow_transferred">Transferred</string>
 
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">Credit</string>
+    <string name="txn_item_tag_credit">Card</string>
     <string name="txn_item_tag_transfer">Transfer</string>
     <string name="txn_item_tag_investment">Investment</string>
     <string name="txn_item_tag_recurring">Recurring</string>
     <string name="txn_item_tag_business">Business</string>
     <string name="txn_item_tag_excluded">Excluded</string>
+    <string name="txn_item_tag_reimbursable">Reimbursable</string>
+    <string name="txn_item_tag_reimbursed">Reimbursed</string>
     <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
     <string name="txn_item_tag_split_of">Split of %1$s</string>
     <string name="txn_item_balance_after">Bal %1$s</string>
@@ -469,5 +471,29 @@
         <item quantity="one">Incomplete: %1$d card bill isn\'t set aside</item>
         <item quantity="other">Incomplete: %1$d card bills aren\'t set aside</item>
     </plurals>
+
+    <!-- Weekly guess: a Home card and its sheet. %1$s is a category name, %2$s a currency code. -->
+    <string name="weekly_guess_label">Weekly guess</string>
+    <string name="weekly_guess_question">How much did you spend on %1$s last week, in %2$s?</string>
+    <string name="weekly_guess_open">Make your guess</string>
+    <string name="weekly_guess_not_now">Not now</string>
+    <string name="weekly_guess_stop">Don\'t ask again</string>
+    <!-- %1$s is the setting's name, "Count card spend as expense". -->
+    <string name="weekly_guess_card_left_out">Card purchases aren\'t counted: \"%1$s\" is off in Settings.</string>
+    <string name="weekly_guess_your_guess">Your guess</string>
+    <!-- %1$s is the guessed amount. -->
+    <string name="weekly_guess_your_guess_amount">Your guess · %1$s</string>
+    <string name="weekly_guess_lock_in">Lock in my guess</string>
+    <string name="weekly_guess_hit">Sharp guess!</string>
+    <string name="weekly_guess_miss">Now you know</string>
+    <!-- %1$d is a whole percent. -->
+    <string name="weekly_guess_hit_body">Within %1$d%% of what was recorded.</string>
+    <string name="weekly_guess_miss_body">Most of us guess off. Now you have the recorded figure.</string>
+    <string name="weekly_guess_recorded">Recorded</string>
+    <!-- %1$s is an amount, %2$d a whole percent. -->
+    <string name="weekly_guess_gap">Off by %1$s (%2$d%%)</string>
+    <string name="weekly_guess_note">Recorded from your transactions. Cash counts only when you add it.</string>
+    <string name="weekly_guess_see_week">See the week</string>
+    <string name="weekly_guess_done">Done</string>
 
 </resources>

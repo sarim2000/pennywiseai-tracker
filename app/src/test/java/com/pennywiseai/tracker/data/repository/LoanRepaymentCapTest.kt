@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.LoanDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
@@ -7,23 +8,41 @@ import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.slot
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
+
+private const val ROOM_COMPAT = "com.pennywiseai.tracker.data.database.RoomCompatKt"
 
 /** #831: a repayment never repays more than is still owed. */
 class LoanRepaymentCapTest {
     private val loanDao = mockk<LoanDao>(relaxed = true)
     private val transactionDao = mockk<TransactionDao>(relaxed = true)
-    private val repo = LoanRepository(loanDao, transactionDao, mockk(relaxed = true))
+    private val database = mockk<PennyWiseDatabase>()
+    private val repo = LoanRepository(loanDao, transactionDao, database)
+
+    // A repayment runs in one database transaction; here it just runs.
+    @Before
+    fun setUp() {
+        mockkStatic(ROOM_COMPAT)
+        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers { secondArg<suspend () -> Any?>().invoke() }
+    }
+
+    @After
+    fun tearDown() = unmockkStatic(ROOM_COMPAT)
 
     private fun loan(remaining: String) = LoanEntity(
         id = 2, personName = "Pal", direction = LoanDirection.LENT,

@@ -26,10 +26,51 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.spending
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.sumByCurrency
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
+
+/**
+ * A group's signed total per currency (expense/credit negative, income positive).
+ * In unified mode ([displayCurrency] set) everything is in that one currency; a
+ * foreign txn missing from [convertedAmounts] has no known rate, so it is left
+ * out rather than added at face value (#670). In native mode each row keeps its
+ * own currency, so mixed rows are never summed into one figure (#1514).
+ */
+internal fun groupCardTotals(
+    transactions: List<TransactionEntity>,
+    convertedAmounts: Map<Long, BigDecimal>,
+    displayCurrency: String?,
+): Map<String, Money> {
+    val signed = transactions.mapNotNull { tx ->
+        val amount = convertedAmounts[tx.id]
+            ?: if (displayCurrency != null && !tx.currency.equals(displayCurrency, ignoreCase = true)) {
+                return@mapNotNull null
+            } else {
+                tx.amount
+            }
+        val value = when (tx.transactionType) {
+            TransactionType.EXPENSE, TransactionType.CREDIT -> amount.negate()
+            TransactionType.INCOME -> amount
+            else -> return@mapNotNull null
+        }
+        (displayCurrency ?: tx.currency) to value
+    }
+    val totals = signed.sumByCurrency({ it.first }, { it.second })
+    if (totals.isNotEmpty()) return totals
+    val currency = displayCurrency ?: transactions.firstOrNull()?.currency ?: "INR"
+    return mapOf(currency to Money.zero(currency))
+}
+
+private const val MAX_CARD_CURRENCIES = 2
+
+/** The card's amount slot is one line: the two largest totals, the rest stand behind an ellipsis. */
+internal fun shownGroupCardTotals(totals: Map<String, Money>): Map<String, Money> =
+    totals.entries.sortedByDescending { it.value.amount.abs() }.take(MAX_CARD_CURRENCIES).associate { it.toPair() }
 
 @Composable
 fun GroupCard(
@@ -44,26 +85,10 @@ fun GroupCard(
 ) {
     val view = LocalView.current
 
-    val total = remember(transactions, convertedAmounts, displayCurrency) {
-        transactions.fold(BigDecimal.ZERO) { acc, tx ->
-            // In unified mode a foreign txn missing from convertedAmounts has no
-            // known rate — leave it out rather than adding its face value (#670).
-            // Native mode (displayCurrency == null) and same-currency txns use tx.amount.
-            val amount = convertedAmounts[tx.id]
-                ?: if (displayCurrency != null && !tx.currency.equals(displayCurrency, ignoreCase = true)) {
-                    return@fold acc
-                } else {
-                    tx.amount
-                }
-            when (tx.transactionType) {
-                TransactionType.EXPENSE, TransactionType.CREDIT -> acc - amount
-                TransactionType.INCOME -> acc + amount
-                else -> acc
-            }
-        }
+    val totals = remember(transactions, convertedAmounts, displayCurrency) {
+        groupCardTotals(transactions, convertedAmounts, displayCurrency)
     }
-    val isPositive = total >= BigDecimal.ZERO
-    val amountColor = if (isPositive) {
+    val amountColor = if (totals.values.all { it.amount.signum() >= 0 }) {
         MaterialTheme.colorScheme.income
     } else {
         MaterialTheme.colorScheme.spending
@@ -71,14 +96,13 @@ fun GroupCard(
 
     val latestDate = remember(transactions) { transactions.map { it.dateTime }.maxOrNull() }
     val dateText = latestDate?.format(AppDates.dayMonthFormatter()) ?: ""
-    val currency = displayCurrency ?: transactions.firstOrNull()?.currency ?: "INR"
 
     val countText = pluralStringResource(R.plurals.group_card_transaction_count, transactions.size, transactions.size)
     val subtitle = if (dateText.isNotEmpty()) stringResource(R.string.group_card_subtitle, countText, dateText) else countText
 
-    val sign = if (isPositive) "+" else "-"
-
-    val formattedAmount = CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(total.abs(), currency))
+    val formattedAmount = CurrencyFormatter.formatByCurrency(shownGroupCardTotals(totals), signPrefix = "+", keepSign = true) +
+        // No hint of more currencies while amounts are hidden: the mask says nothing about how many there are.
+        if (totals.size > MAX_CARD_CURRENCIES && !AmountPrivacy.hidden) " · …" else ""
 
     ListItemCardV2(
         title = group.name,

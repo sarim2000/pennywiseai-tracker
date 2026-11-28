@@ -1,8 +1,11 @@
 package com.pennywiseai.tracker.presentation.onboarding
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.telephony.TelephonyManager
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
@@ -11,9 +14,11 @@ import androidx.work.Data
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.preferences.OnboardingProgress
 import com.pennywiseai.tracker.data.preferences.UserPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
@@ -85,6 +90,7 @@ class OnBoardingViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val smsScanManager: SmsScanManager,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val transactionRepository: TransactionRepository,
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -92,6 +98,51 @@ class OnBoardingViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(OnBoardingUiState(selectedCurrency = detectCurrency()))
     val uiState: StateFlow<OnBoardingUiState> = _uiState.asStateFlow()
+
+    init {
+        resumeOnboarding()
+    }
+
+    /**
+     * A kill mid-onboarding (e.g. Back during the scan) reopens at the step it was on with the
+     * name kept. The scan is a WorkManager job, so from the scan step on we re-attach to it.
+     */
+    private fun resumeOnboarding() {
+        viewModelScope.launch {
+            val progress = userPreferencesRepository.getOnboardingProgress() ?: return@launch
+            val smsGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_SMS) ==
+                PackageManager.PERMISSION_GRANTED
+            val step = resumeStep(progress.step, smsGranted)
+            _uiState.update { it.restoredFrom(progress, step, smsGranted, AvatarHelper.backgroundColors) }
+            if (step >= OnBoardingStep.SMS_SCAN) {
+                observeScanProgress()
+                if (smsGranted) {
+                    // A scan killed with the app is rescheduled: it is still running, not done.
+                    val pending = WorkManager.getInstance(context)
+                        .getWorkInfosForUniqueWorkFlow(OptimizedSmsReaderWorker.WORK_NAME)
+                        .first().any { !it.state.isFinished }
+                    // A pending job is shown as scanning by the observer (ENQUEUED below), so
+                    // this snapshot never writes over a state the observer already finished.
+                    if (!pending) applyStoredTransactions()
+                }
+                loadAccounts()
+            }
+        }
+    }
+
+    /** Persists the step and name; the name is only written on step changes, not per keystroke. */
+    private fun saveProgress() {
+        val state = _uiState.value
+        viewModelScope.launch {
+            userPreferencesRepository.saveOnboardingProgress(state.toProgress(AvatarHelper.backgroundColors))
+        }
+    }
+
+    /** What is already stored counts as found, even when this run's scan added nothing new. */
+    private suspend fun applyStoredTransactions() {
+        val stored = transactionRepository.observeActiveTransactionCount().first()
+        _uiState.update { it.withStoredTransactions(stored) }
+    }
 
     val avatarDrawables = AvatarHelper.avatarDrawables
 
@@ -147,6 +198,7 @@ class OnBoardingViewModel @Inject constructor(
 
     fun navigateToStep(step: OnBoardingStep) {
         _uiState.update { it.copy(currentStep = step) }
+        saveProgress()
     }
 
     fun goToNextStep() {
@@ -167,6 +219,7 @@ class OnBoardingViewModel @Inject constructor(
             OnBoardingStep.ACCOUNT_SETUP -> OnBoardingStep.ACCOUNT_SETUP // Already last
         }
         _uiState.update { it.copy(currentStep = nextStep) }
+        saveProgress()
     }
 
     fun goToPreviousStep() {
@@ -186,6 +239,7 @@ class OnBoardingViewModel @Inject constructor(
             }
         }
         _uiState.update { it.copy(currentStep = previousStep) }
+        saveProgress()
     }
 
     fun startSmsScan() {
@@ -229,15 +283,20 @@ class OnBoardingViewModel @Inject constructor(
                             // finished, so fall back to the last counts seen
                             // while it ran — never to zero.
                             _uiState.update { it.completedWith(workInfo.outputData) }
+                            applyStoredTransactions()
                             loadAccounts()
                         }
                         WorkInfo.State.FAILED, WorkInfo.State.CANCELLED -> {
                             _uiState.update {
                                 it.copy(isScanning = false, scanCompleted = true)
                             }
+                            applyStoredTransactions()
                             loadAccounts()
                         }
-                        else -> { /* ENQUEUED, BLOCKED */ }
+                        else -> {
+                            // ENQUEUED, BLOCKED: queued (or rescheduled after a kill) counts as running.
+                            _uiState.update { it.copy(isScanning = true, scanCompleted = false) }
+                        }
                     }
                 }
         }
@@ -324,3 +383,69 @@ internal fun OnBoardingUiState.completedWith(out: Data): OnBoardingUiState = cop
     scanParsed = out.getInt(OptimizedSmsReaderWorker.PROGRESS_PARSED, scanParsed),
     scanSaved = out.getInt(OptimizedSmsReaderWorker.PROGRESS_SAVED, scanSaved)
 )
+
+/**
+ * The step to reopen at for a saved step name. Steps from the background-access step on
+ * need the SMS permission; without it the user is sent back to ask for it again.
+ */
+internal fun resumeStep(saved: String, smsGranted: Boolean): OnBoardingStep {
+    val step = OnBoardingStep.entries.firstOrNull { it.name == saved } ?: return OnBoardingStep.WELCOME
+    val needsSms = step == OnBoardingStep.BACKGROUND_ACCESS || step == OnBoardingStep.SMS_SCAN
+    return if (needsSms && !smsGranted) OnBoardingStep.PERMISSIONS else step
+}
+
+/**
+ * What a finished scan shows: the transactions stored, when that is more than this run
+ * inserted (a resumed or repeated scan only counts its own inserts, and one that added
+ * nothing new is not "No transactions found"). Left alone while a scan is running.
+ */
+internal fun OnBoardingUiState.withStoredTransactions(stored: Int): OnBoardingUiState =
+    if (isScanning || stored <= scanSaved) {
+        this
+    } else {
+        copy(
+            scanCompleted = true,
+            scanSaved = stored,
+            scanTotal = maxOf(scanTotal, stored)
+        )
+    }
+
+/** The choices to keep across a kill, in the forms onboarding finally writes them. */
+internal fun OnBoardingUiState.toProgress(backgroundColors: List<Int>) = OnboardingProgress(
+    step = currentStep.name,
+    name = userName.trim(),
+    profileImageUri = profileImageUri?.toString() ?: "avatar://$selectedAvatarIndex".takeIf { selectedAvatarIndex >= 0 },
+    backgroundColor = backgroundColors.getOrNull(selectedBackgroundColor),
+    pickedCurrency = selectedCurrency.takeIf { currencyPicked }
+)
+
+/**
+ * This state with [progress] put back: step, name, avatar or photo, background colour and an
+ * explicitly picked currency (so Finish saves it, not the default). Typing before the restore
+ * lands wins over the stored name; an unpicked currency stays the fresh guess.
+ */
+internal fun OnBoardingUiState.restoredFrom(
+    progress: OnboardingProgress,
+    step: OnBoardingStep,
+    smsGranted: Boolean,
+    backgroundColors: List<Int>
+): OnBoardingUiState {
+    val avatar = progress.profileImageUri?.takeIf { it.startsWith("avatar://") }
+        ?.removePrefix("avatar://")?.toIntOrNull()
+    return copy(
+        currentStep = step,
+        userName = userName.ifEmpty { progress.name },
+        smsPermissionGranted = smsGranted,
+        selectedAvatarIndex = when {
+            avatar != null -> avatar
+            progress.profileImageUri != null -> -1
+            else -> selectedAvatarIndex
+        },
+        profileImageUri = if (avatar == null) progress.profileImageUri?.toUri() else null,
+        selectedBackgroundColor = backgroundColors.indexOf(progress.backgroundColor).takeIf { it >= 0 }
+            ?: selectedBackgroundColor,
+        // A currency picked before the restore landed wins, like a name typed before it.
+        selectedCurrency = if (currencyPicked) selectedCurrency else progress.pickedCurrency ?: selectedCurrency,
+        currencyPicked = progress.pickedCurrency != null || currencyPicked
+    )
+}

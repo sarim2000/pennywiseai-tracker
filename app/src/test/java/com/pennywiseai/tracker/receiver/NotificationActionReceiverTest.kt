@@ -200,7 +200,8 @@ class NotificationActionReceiverTest {
             accountBalanceDao,
             transactionDao,
             TestDb(),
-            io.mockk.mockk(relaxed = true)
+            io.mockk.mockk(relaxed = true),
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
         ) {
             override suspend fun applyDeleteBalanceShift(transaction: TransactionEntity) {
                 val bank = transaction.bankName ?: return

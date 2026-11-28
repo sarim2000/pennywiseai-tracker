@@ -147,15 +147,15 @@ class RecentTransactionsWidget : GlanceAppWidget() {
             item {
                 val hidden = everyAmountHidden()
                 val amount = exactText(item.amount, item.currency)
+                // No "+" or income/expense color on the mask: either would still say which way money went.
+                val shown = if (item.transactionType == TransactionType.INCOME && !hidden) withPlus(amount) else amount
                 Text(
-                    // No "+" or income/expense color on the mask: either would still say which way money went.
-                    text = if (item.transactionType == TransactionType.INCOME && !hidden) withPlus(amount) else amount,
+                    text = shown,
                     maxLines = 1,
-                    // TalkBack reads the mask as words, not as a hidden amount.
-                    modifier = if (hidden) {
-                        GlanceModifier.semantics { contentDescription = context.getString(R.string.widget_recent_amount_hidden) }
-                    } else {
-                        GlanceModifier
+                    // TalkBack reads the mask as words. Set on both sides: Glance never clears a
+                    // description, so a revealed row would otherwise still read "Amount hidden".
+                    modifier = GlanceModifier.semantics {
+                        contentDescription = if (hidden) context.getString(R.string.widget_recent_amount_hidden) else shown
                     },
                     style = TextStyle(
                         color = if (hidden) GlanceTheme.colors.onSurface else PennyWiseWidgetTheme.transactionAmountColor(item.transactionType),

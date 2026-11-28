@@ -25,7 +25,11 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AddViewModelDraftTest {
-    private fun withDraft(type: TransactionType, block: (AddViewModel) -> Unit) {
+    private fun withDraft(
+        type: TransactionType,
+        vararg draft: Pair<String, String> = arrayOf("amount" to "12", "note" to "Lunch with team"),
+        block: (AddViewModel) -> Unit,
+    ) {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         try {
             val currency = mockk<CurrencyPreferences> { every { baseCurrency } returns flowOf("USD") }
@@ -46,7 +50,7 @@ class AddViewModelDraftTest {
                 learnedSendersStore = mockk(relaxed = true),
                 profilePreferences = mockk(relaxed = true),
                 mascotMoments = mockk(relaxed = true),
-                savedStateHandle = SavedStateHandle(mapOf("type" to type.name, "amount" to "12")),
+                savedStateHandle = SavedStateHandle(mapOf("type" to type.name, *draft)),
             )
             try {
                 block(viewModel)
@@ -65,10 +69,12 @@ class AddViewModelDraftTest {
         assertEquals(TransactionType.INCOME, transaction.transactionType)
         assertEquals("12", transaction.amount)
         assertEquals("USD", transaction.currency)
+        assertEquals("Lunch with team", transaction.notes)
         val subscription = vm.subscriptionUiState.value
         assertEquals(SubscriptionDirection.INCOME, subscription.direction)
         assertEquals("Income", subscription.category)
         assertEquals("12", subscription.amount)
+        assertEquals("Lunch with team", subscription.notes)
     }
 
     @Test
@@ -77,5 +83,28 @@ class AddViewModelDraftTest {
         assertTrue(transaction.draftLoaded)
         assertEquals(TransactionType.EXPENSE, transaction.transactionType)
         assertEquals(SubscriptionDirection.EXPENSE, vm.subscriptionUiState.value.direction)
+    }
+
+    @Test
+    fun `a draft amount finer than the base currency's minor units is dropped`() =
+        withDraft(TransactionType.EXPENSE, "amount" to "0.004") { vm ->
+            assertEquals("", vm.transactionUiState.value.amount)
+            assertEquals("", vm.subscriptionUiState.value.amount)
+        }
+
+    @Test
+    fun `a draft amount finer than its own currency's minor units is dropped`() =
+        withDraft(TransactionType.EXPENSE, "amount" to "1.235", "currency" to "EUR") { vm ->
+            assertEquals("", vm.transactionUiState.value.amount)
+        }
+
+    @Test
+    fun `a draft amount the currency can hold is kept`() {
+        withDraft(TransactionType.EXPENSE, "amount" to "1.235", "currency" to "KWD") { vm ->
+            assertEquals("1.235", vm.transactionUiState.value.amount)
+        }
+        withDraft(TransactionType.EXPENSE, "amount" to "12.500") { vm ->
+            assertEquals("12.500", vm.transactionUiState.value.amount)
+        }
     }
 }

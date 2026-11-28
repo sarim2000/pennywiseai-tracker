@@ -213,6 +213,8 @@ open class UserPreferencesRepository internal constructor(
         val LAST_AUTH_TIMESTAMP = longPreferencesKey("last_auth_timestamp")
         // Device-local: whether the "App Lock needs a screen lock" notice was shown.
         val APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN = booleanPreferencesKey("app_lock_no_screen_lock_notice_shown")
+        // Device-local, like App Lock: mask every widget amount while App Lock is on. Unset = on.
+        val HIDE_WIDGET_AMOUNTS_WHILE_LOCKED = booleanPreferencesKey("hide_widget_amounts_while_locked")
 
         // In-App Review preferences
         val FIRST_LAUNCH_TIME = longPreferencesKey("first_launch_time")
@@ -301,6 +303,11 @@ open class UserPreferencesRepository internal constructor(
         val PROFILE_BACKGROUND_COLOR = intPreferencesKey("profile_background_color")
         val HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
         val MAIN_ACCOUNT_KEY = stringPreferencesKey("main_account_key")
+        // The onboarding step reached (an OnBoardingStep name), so a killed app resumes there.
+        val ONBOARDING_STEP = stringPreferencesKey("onboarding_step")
+        // The currency the user picked on Welcome; present only for an explicit pick, never a guess.
+        // Not the base currency: that is only written when onboarding finishes.
+        val ONBOARDING_CURRENCY = stringPreferencesKey("onboarding_currency")
         // True once the user explicitly picks a currency in the Settings selector.
         // While true, the main-account-derived currency must not override their choice.
         val BASE_CURRENCY_USER_SET = booleanPreferencesKey("base_currency_user_set")
@@ -381,10 +388,11 @@ open class UserPreferencesRepository internal constructor(
             K.BUDGET_MONTH_CARD_DISMISSED,
             K.WEEKLY_GUESS_HANDLED_WEEK, K.WEEKLY_GUESS_OFF,
             K.CHALLENGES, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES, K.LAST_AUTH_TIMESTAMP,
-            K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
+            K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HIDE_WIDGET_AMOUNTS_WHILE_LOCKED, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
-            K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING,
+            K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING, K.ONBOARDING_STEP,
+            K.ONBOARDING_CURRENCY,
             K.SCHEDULED_FOLDER_BACKUP_ENABLED, K.SCHEDULED_FOLDER_BACKUP_TREE_URI,
             K.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP, K.SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS,
             K.LAST_SCAN_RECORD, K.LAST_LIVE_SMS_AT
@@ -422,7 +430,9 @@ open class UserPreferencesRepository internal constructor(
      * read. [profileId] maps the backup's profile id to this device's (null = gone).
      */
     suspend fun restoreSettings(snapshot: SettingsSnapshot, profileId: (Long) -> Long?) {
+        var hiddenChanged = false
         dataStore.edit { prefs ->
+            val hiddenBefore = prefs[PreferencesKeys.BALANCE_HIDDEN]
             fun <T : Any> List<Preferences.Key<T>>.restore(values: Map<String, T?>, accept: (Preferences.Key<T>, T) -> T? = { _, v -> v }) {
                 for (key in this) {
                     if (key.name !in values) continue
@@ -442,7 +452,10 @@ open class UserPreferencesRepository internal constructor(
                 }
             )
             SettingsBackup.STRING_SETS.restore(snapshot.stringSets.mapValues { (_, v) -> v?.toSet() })
+            hiddenChanged = prefs[PreferencesKeys.BALANCE_HIDDEN] != hiddenBefore
         }
+        // A restored eye changes what the widgets mask, which their data rebuild alone may not redraw.
+        if (hiddenChanged) transactionWidgets.redraw()
     }
 
     private companion object {
@@ -1219,6 +1232,8 @@ open class UserPreferencesRepository internal constructor(
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_LOCK_ENABLED] = enabled
         }
+        // The widgets mask their amounts while the lock is on.
+        transactionWidgets.redraw()
     }
 
     /**
@@ -1232,6 +1247,17 @@ open class UserPreferencesRepository internal constructor(
                 preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] = System.currentTimeMillis()
             }
         }
+        transactionWidgets.redraw()
+    }
+
+    override val hideWidgetAmountsWhileLocked: Flow<Boolean> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.HIDE_WIDGET_AMOUNTS_WHILE_LOCKED] ?: true }
+
+    override suspend fun setHideWidgetAmountsWhileLocked(hide: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HIDE_WIDGET_AMOUNTS_WHILE_LOCKED] = hide
+        }
+        transactionWidgets.redraw()
     }
 
     override val appLockTimeoutMinutes: Flow<Int> = dataStore.data
@@ -1530,7 +1556,7 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
         // The widgets' totals follow the same eye.
-        transactionWidgets.refresh()
+        transactionWidgets.redraw()
         return changed
     }
 
@@ -1546,7 +1572,7 @@ open class UserPreferencesRepository internal constructor(
             hidden = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: hiddenWhenUnset)
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
-        transactionWidgets.refresh()
+        transactionWidgets.redraw()
         return hidden
     }
 
@@ -1847,6 +1873,35 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
+    /** Remembers [progress] across a kill; the profile values go to the keys onboarding finally writes. */
+    suspend fun saveOnboardingProgress(progress: OnboardingProgress) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ONBOARDING_STEP] = progress.step
+            preferences[PreferencesKeys.USER_NAME] = progress.name
+            progress.profileImageUri?.let { preferences[PreferencesKeys.PROFILE_IMAGE_URI] = it }
+            progress.backgroundColor?.let { preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] = it }
+            if (progress.pickedCurrency != null) {
+                preferences[PreferencesKeys.ONBOARDING_CURRENCY] = progress.pickedCurrency
+            } else {
+                preferences.remove(PreferencesKeys.ONBOARDING_CURRENCY)
+            }
+        }
+    }
+
+    /** The saved onboarding progress, or null when onboarding is finished or never left Welcome. */
+    suspend fun getOnboardingProgress(): OnboardingProgress? {
+        val preferences = dataStore.data.first()
+        if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) return null
+        val step = preferences[PreferencesKeys.ONBOARDING_STEP] ?: return null
+        return OnboardingProgress(
+            step = step,
+            name = preferences[PreferencesKeys.USER_NAME] ?: "",
+            profileImageUri = preferences[PreferencesKeys.PROFILE_IMAGE_URI],
+            backgroundColor = preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR],
+            pickedCurrency = preferences[PreferencesKeys.ONBOARDING_CURRENCY]
+        )
+    }
+
     suspend fun updateProfileImageUri(uri: String?) {
         dataStore.edit { preferences ->
             if (uri == null) {
@@ -1884,6 +1939,10 @@ open class UserPreferencesRepository internal constructor(
     suspend fun updateHasCompletedOnboarding(completed: Boolean, freshInstall: Boolean = false) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] = completed
+            if (completed) {
+                preferences.remove(PreferencesKeys.ONBOARDING_STEP)
+                preferences.remove(PreferencesKeys.ONBOARDING_CURRENCY)
+            }
             if (completed && freshInstall) {
                 HomeSectionLayout.seedForFreshInstall(preferences[PreferencesKeys.HOME_SECTIONS])
                     ?.let { preferences[PreferencesKeys.HOME_SECTIONS] = it }
@@ -1998,4 +2057,16 @@ data class StoredLicense(
     val instanceId: String?,
     val validatedAt: Long,
     val productName: String?,
+)
+
+/**
+ * What onboarding keeps across a kill: the [step] and the choices made before it. [profileImageUri]
+ * is the stored form ("avatar://N" or a photo URI), [pickedCurrency] only an explicit pick.
+ */
+data class OnboardingProgress(
+    val step: String,
+    val name: String,
+    val profileImageUri: String? = null,
+    val backgroundColor: Int? = null,
+    val pickedCurrency: String? = null
 )

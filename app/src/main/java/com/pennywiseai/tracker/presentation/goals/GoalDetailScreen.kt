@@ -99,10 +99,11 @@ import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.toUtcDate
+import com.pennywiseai.tracker.utils.toUtcMillis
 import com.pennywiseai.tracker.widget.WidgetPinning
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.ZoneOffset
 
 /** Which money sheet is open. */
 private sealed interface MoneySheetMode {
@@ -576,7 +577,7 @@ private fun MoneySheet(
     }
 
     if (showDatePicker) {
-        val pickerState = rememberDatePickerState(initialSelectedDateMillis = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli())
+        val pickerState = rememberDatePickerState(initialSelectedDateMillis = date.toUtcMillis())
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {

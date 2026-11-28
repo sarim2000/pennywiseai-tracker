@@ -512,6 +512,7 @@ fun MainScreen(
                     initialCustomEndEpochDay = key.endDate,
                     initialAccount = key.account,
                     initialTag = key.tag,
+                    initialAlsoTag = key.alsoTag,
                     currencyOnly = key.currencyOnly,
                     profilePinned = key.profilePinned,
                     initialProfileId = key.profileId,
@@ -619,6 +620,7 @@ fun MainScreen(
                                 endDate = drill.endDateEpochDay,
                                 account = drill.account,
                                 tag = drill.tag,
+                                alsoTag = drill.alsoTag,
                                 type = drill.type
                             )
                         )

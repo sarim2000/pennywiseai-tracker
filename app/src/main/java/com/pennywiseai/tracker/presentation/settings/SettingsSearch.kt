@@ -211,13 +211,18 @@ internal fun settingsSearchIndex(sdkInt: Int = Build.VERSION.SDK_INT): List<Sett
         R.string.settings_security_section, R.string.settings_security_summary, Icons.Default.Lock, SettingsSection.SECURITY,
         Row(
             R.string.settings_app_lock_title,
-            keywords = listOf(R.string.settings_lock_timeout_title, R.string.settings_search_keywords_app_lock),
+            keywords = listOf(
+                R.string.settings_lock_timeout_title,
+                R.string.settings_hide_widget_amounts_title,
+                R.string.settings_search_keywords_app_lock,
+            ),
         ),
         Row(R.string.settings_shake_to_hide_title, R.string.settings_shake_to_hide_subtitle),
     )
     section(
         R.string.settings_data_section, R.string.settings_data_summary, Icons.Default.Backup, SettingsSection.DATA,
         Row(R.string.settings_export_data_title, R.string.settings_export_data_subtitle),
+        Row(R.string.settings_export_encrypted_title, R.string.settings_export_encrypted_subtitle),
         Row(R.string.settings_export_include_receipts_title, R.string.settings_export_include_receipts_subtitle),
         Row(R.string.settings_export_csv_title, R.string.settings_export_csv_subtitle),
         Row(R.string.settings_import_data_title, R.string.settings_import_data_subtitle),

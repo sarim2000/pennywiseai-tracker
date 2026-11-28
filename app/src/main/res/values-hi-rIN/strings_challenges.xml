@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Plan → Challenges. Days are checked against the user's transactions (bank messages and manual entries). -->
+    <!-- %1$d: days to keep clean, %2$d: days in the challenge (7) -->
+    <!-- %1$s: a spending category, e.g. "Food &amp; Dining" -->
+    <!-- TalkBack label of a Start button; %1$s: the challenge's title -->
+    <!-- %1$d: today's day number, %2$d: days in the challenge -->
+    <!-- %1$d: clean days so far, %2$d: clean days needed -->
+    <!-- TalkBack for one day: %1$s the date ("Thursday, 20 Nov"), %2$s its state -->
+    <!-- %1$s: the merchants that counted against the day -->
+    <!-- TalkBack action on a missed day: "Double tap to see what counted" -->
+    <!-- Heading over a missed day's transactions; %1$s: the date -->
+    <!-- %1$s: the category the user is going without -->
+    <!-- %1$s: the merchant of today's counted expense -->
+    <!-- %1$s: the challenge's title -->
+    <!-- %1$d: clean days, %2$d: days needed -->
+    <!-- %1$d: clean days, %2$d: days needed -->
+    <!-- %1$s: the challenge's title -->
+</resources>

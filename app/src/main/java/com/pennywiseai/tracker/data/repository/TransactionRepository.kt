@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
+import com.pennywiseai.tracker.data.database.dao.deleteRebuildableSmsTransactions
 import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
@@ -15,6 +16,7 @@ import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
+import com.pennywiseai.tracker.data.trip.withTripGroup
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -49,6 +51,9 @@ open class TransactionRepository @Inject constructor(
 
     fun getAllTransactions(): Flow<List<TransactionEntity>> =
         transactionDao.getAllTransactions()
+
+    open fun observeTransaction(id: Long): Flow<TransactionEntity?> =
+        transactionDao.observeTransaction(id)
 
     open suspend fun getTransactionById(id: Long): TransactionEntity? =
         transactionDao.getTransactionById(id)
@@ -140,11 +145,21 @@ open class TransactionRepository @Inject constructor(
         endDate: LocalDateTime
     ): Double? = transactionDao.getTotalAmountByTypeAndPeriod(type, startDate, endDate)
 
-    suspend fun insertTransaction(transaction: TransactionEntity): Long =
-        transactionDao.insertTransaction(withCurrentCategoryNames(listOf(transaction)).single())
+    /**
+     * The one place a new row is saved for SMS, notifications, imports and chat adds, so a
+     * running trip (#1463) claims it here. [joinTrip] is false for reconciling entries.
+     */
+    suspend fun insertTransaction(transaction: TransactionEntity, joinTrip: Boolean = true): Long {
+        val named = withCurrentCategoryNames(listOf(transaction))
+        val row = (if (joinTrip) transactionDao.withTripGroup(named) else named).single()
+        // The trip may have been deleted since the lookup; the row must not be saved pointing at nothing.
+        return if (joinTrip) transactionDao.insertClearingDanglingGroup(row) else transactionDao.insertTransaction(row)
+    }
 
-    suspend fun insertTransactions(transactions: List<TransactionEntity>) =
-        transactionDao.insertTransactions(withCurrentCategoryNames(transactions))
+    suspend fun insertTransactions(transactions: List<TransactionEntity>) {
+        val rows = transactionDao.withTripGroup(withCurrentCategoryNames(transactions))
+        transactionDao.insertAllClearingDanglingGroups(rows)
+    }
 
     /**
      * Auto-categorization speaks in built-in names ("Food & Dining"); if the user
@@ -251,11 +266,12 @@ open class TransactionRepository @Inject constructor(
     suspend fun countAllTransactions(): Int =
         transactionDao.countAllTransactions()
 
-    /** See [TransactionDao.deleteRebuildableSmsTransactions]. */
-    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime) =
+    /** See [deleteRebuildableSmsTransactions]; run inside one database transaction. */
+    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime, inboxMessages: Map<Pair<String, String>, Int>): Set<Pair<String, String>> =
         transactionDao.deleteRebuildableSmsTransactions(
             BankNotificationConfig.notificationAliases.toList(),
-            from
+            from,
+            inboxMessages
         )
 
     /** See [TransactionDao.getTransactionByAmountAndDateIncludingDeleted]. */
@@ -643,13 +659,12 @@ open class TransactionRepository @Inject constructor(
         return transactionDao.getTransactionsBetweenDatesList(startDate, endDate)
     }
 
-    suspend fun getUncategorizedTransactions(): List<TransactionEntity> {
-        // Without a category, or in "Others" under whatever name the user gave it.
-        val others = com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current("Others")
-        return getAllTransactionsList().filter { transaction ->
-            transaction.category.isNullOrBlank() || transaction.category == others
-        }
-    }
+    suspend fun getTransactionsPageAfter(after: Long, upTo: Long, limit: Int): List<TransactionEntity> =
+        transactionDao.getTransactionsPageAfter(after, upTo, limit)
+
+    suspend fun maxLiveTransactionId(): Long? = transactionDao.maxLiveTransactionId()
+
+    suspend fun countLiveTransactions(): Int = transactionDao.countLiveTransactions()
 
     // ========== Transaction Split Methods ==========
 

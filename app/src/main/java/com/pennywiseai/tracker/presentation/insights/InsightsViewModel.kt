@@ -70,7 +70,7 @@ internal fun insightsUiState(
     val currencies = (
         reviewed.map { it.currency } + snapshot.insights.map { it.currency } +
             snapshot.subscriptionsMonthly.keys + snapshot.runways.keys +
-            projections.filterValues { it.bills.isNotEmpty() || it.income != null }.keys
+            projections.filterValues { it.hasSomethingDue }.keys
         ).distinct()
     val currency = chosen?.takeIf { it in currencies } ?: currencies.firstOrNull()
     val inCurrency = snapshot.insights.filter { it.currency == currency }
@@ -85,7 +85,7 @@ internal fun insightsUiState(
         subscriptionsMonthly = currency?.let { snapshot.subscriptionsMonthly[it] },
         hasHistory = snapshot.review.hasOlder,
         runway = currency?.let { snapshot.runways[it] },
-        paydayProjection = currency?.let { projections[it] },
+        paydayProjection = currency?.let { projections[it] }?.takeIf { it.hasSomethingDue },
     )
 }
 

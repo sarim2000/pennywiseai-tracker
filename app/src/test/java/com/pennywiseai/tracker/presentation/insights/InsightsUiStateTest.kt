@@ -128,6 +128,19 @@ class InsightsUiStateTest {
     }
 
     @Test
+    fun `a page that's there for another reason shows no flat payday card`() {
+        val today = LocalDate.parse("2026-11-20")
+        val flat = PaydayProjection.of("INR", BigDecimal("500"), emptyList(), emptyList(), today, today.plusDays(10))
+        val state = insightsUiState(
+            snapshot(listOf(currency("INR", 3)), emptyList()),
+            chosen = "INR",
+            projections = mapOf("INR" to flat),
+        )
+        assertEquals("INR", state.currency)
+        assertNull(state.paydayProjection)
+    }
+
+    @Test
     fun `Home shows two insights, leaving budget ones to its Budgets card when that is shown`() {
         val budget = insight("budget", "INR")
         val savings = Insight(

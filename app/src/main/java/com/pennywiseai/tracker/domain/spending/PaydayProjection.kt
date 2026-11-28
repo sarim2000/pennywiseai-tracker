@@ -35,6 +35,9 @@ data class PaydayProjection(
     /** Some accounts were left out because their balance is only an estimate. */
     val partial: Boolean = false,
 ) {
+    /** A bill or an income to show. Without either the balance stays flat until the cycle ends, which says nothing. */
+    val hasSomethingDue: Boolean get() = bills.isNotEmpty() || income != null
+
     companion object {
         /** An income further out than this isn't "payday": the projection runs to the cycle's end. */
         const val MAX_DAYS = 45L

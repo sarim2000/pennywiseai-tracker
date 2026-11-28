@@ -24,7 +24,7 @@
     <string name="account_detail_estimated_amount">прогноз. %1$s</string>
     <!-- %1$s = formatted balance after the transaction -->
     <string name="account_detail_balance_after">• Баланс: %1$s</string>
-    <string name="account_detail_type_credit">Кредит</string>
+    <string name="account_detail_type_credit">Расходы по карте</string>
     <string name="account_detail_type_transfer">Перевод</string>
     <string name="account_detail_type_investment">Инвестиция</string>
     <string name="account_detail_range_last_7_days">Последние 7 дней</string>

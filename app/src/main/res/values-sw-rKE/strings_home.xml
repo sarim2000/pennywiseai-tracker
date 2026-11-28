@@ -83,7 +83,7 @@
     <string name="type_filter_all">Zote</string>
     <string name="type_filter_income">Mapato</string>
     <string name="type_filter_expense">Matumizi</string>
-    <string name="type_filter_credit">Mkopo</string>
+    <string name="type_filter_credit">Matumizi ya kadi</string>
     <string name="type_filter_spending">Matumizi</string>
     <string name="type_filter_transfer">Uhamisho</string>
     <string name="type_filter_investment">Uwekezaji</string>
@@ -201,11 +201,11 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">Pesa zinazozunguka</string>
     <string name="cash_flow_subtitle">Njia zilizo nje ya mtiririko wako halisi wa pesa mwezi huu</string>
-    <string name="cash_flow_credit">Mkopo</string>
+    <string name="cash_flow_credit">Matumizi ya kadi</string>
     <string name="cash_flow_invested">Imewekezwa</string>
     <string name="cash_flow_transferred">Imehamishwa</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">Mkopo</string>
+    <string name="txn_item_tag_credit">Kadi</string>
     <string name="txn_item_tag_transfer">Uhamisho</string>
     <string name="txn_item_tag_investment">Uwekezaji</string>
     <string name="txn_item_tag_recurring">Unajirudia</string>

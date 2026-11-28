@@ -55,7 +55,7 @@
     <!-- Transaction types -->
     <string name="txn_type_income">Даход</string>
     <string name="txn_type_expense">Выдатак</string>
-    <string name="txn_type_credit">Крэдыт</string>
+    <string name="txn_type_credit">Выдаткі па картцы</string>
     <string name="txn_type_transfer">Перавод</string>
     <string name="txn_type_investment">Інвестыцыя</string>
     <!-- Transaction detail -->
@@ -188,7 +188,7 @@
     <string name="txn_totals_income">Даход</string>
     <string name="txn_totals_expense">Выдатак</string>
     <string name="txn_totals_expenses">Выдаткі</string>
-    <string name="txn_totals_credit">Крэдыт</string>
+    <string name="txn_totals_credit">Выдаткі па картцы</string>
     <string name="txn_totals_transfer">Перавод</string>
     <string name="txn_totals_invest">Інвест.</string>
     <string name="txn_totals_net">Вынік</string>

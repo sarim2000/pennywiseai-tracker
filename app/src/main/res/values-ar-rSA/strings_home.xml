@@ -92,7 +92,7 @@
     <string name="type_filter_all">الكل</string>
     <string name="type_filter_income">دخل</string>
     <string name="type_filter_expense">مصروف</string>
-    <string name="type_filter_credit">ائتمان</string>
+    <string name="type_filter_credit">إنفاق البطاقة</string>
     <string name="type_filter_spending">الإنفاق</string>
     <string name="type_filter_transfer">تحويل</string>
     <string name="type_filter_investment">استثمار</string>
@@ -269,11 +269,11 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">حركة الأموال</string>
     <string name="cash_flow_subtitle">أموال لا تدخل في صافي تدفقك النقدي هذا الشهر</string>
-    <string name="cash_flow_credit">ائتمان</string>
+    <string name="cash_flow_credit">إنفاق البطاقة</string>
     <string name="cash_flow_invested">مستثمر</string>
     <string name="cash_flow_transferred">محول</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">ائتمان</string>
+    <string name="txn_item_tag_credit">بطاقة</string>
     <string name="txn_item_tag_transfer">تحويل</string>
     <string name="txn_item_tag_investment">استثمار</string>
     <string name="txn_item_tag_recurring">متكرر</string>

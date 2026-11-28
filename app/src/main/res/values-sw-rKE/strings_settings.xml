@@ -397,10 +397,10 @@
     <string name="faq_expand">Panua</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Aina za Miamala</string>
-    <string name="faq_wallet_credit_question">Kwa nini miamala ya pochi inawekwa kama Mkopo?</string>
-    <string name="faq_wallet_credit_answer">Miamala ya pochi (Amazon Pay, Paytm, n.k.) inawekwa kama Mkopo kwa sababu inatozwa kwanza kwenye akaunti yako ya benki au kadi ya mkopo, si kukatwa moja kwa moja kutoka benki. Hii husaidia kufuatilia njia halisi ya malipo iliyotumika.</string>
+    <string name="faq_wallet_credit_question">Kwa nini miamala ya pochi inawekwa kama Matumizi ya kadi?</string>
+    <string name="faq_wallet_credit_answer">Miamala ya pochi (Amazon Pay, Paytm, n.k.) inawekwa kama Matumizi ya kadi kwa sababu inatozwa kwanza kwenye akaunti yako ya benki au kadi ya mkopo, si kukatwa moja kwa moja kutoka benki. Hii husaidia kufuatilia njia halisi ya malipo iliyotumika.</string>
     <string name="faq_transaction_types_question">Kuna tofauti gani kati ya aina 5 za miamala?</string>
-    <string name="faq_transaction_types_answer">• Matumizi: Pesa zinazotoka kwenye akaunti yako (makato, manunuzi, malipo ya bili)\n• Mapato: Pesa zinazoingia kwenye akaunti yako (mshahara, marejesho, cashback)\n• Uwekezaji: Mifuko ya uwekezaji, hisa, SIP, akaunti za biashara ya hisa\n• Mkopo: Miamala ya kadi ya mkopo na malipo ya pochi (pesa utakazolipa baadaye)\n• Uhamisho: Pesa zinazohamishwa kati ya akaunti zako mwenyewe</string>
+    <string name="faq_transaction_types_answer">• Matumizi: Pesa zinazotoka kwenye akaunti yako (makato, manunuzi, malipo ya bili)\n• Mapato: Pesa zinazoingia kwenye akaunti yako (mshahara, marejesho, cashback)\n• Uwekezaji: Mifuko ya uwekezaji, hisa, SIP, akaunti za biashara ya hisa\n• Matumizi ya kadi: Miamala ya kadi ya mkopo na malipo ya pochi (pesa utakazolipa baadaye)\n• Uhamisho: Pesa zinazohamishwa kati ya akaunti zako mwenyewe</string>
     <string name="faq_transfer_vs_expense_question">Nitumie Uhamisho lini badala ya Matumizi?</string>
     <string name="faq_transfer_vs_expense_answer">Tumia Uhamisho unapohamisha pesa kati ya akaunti zako mwenyewe (k.m. kutoka akiba kwenda akaunti ya kawaida). Haziathiri thamani yako halisi. Tumia Matumizi kwa matumizi halisi.</string>
     <!-- SMS Parsing -->

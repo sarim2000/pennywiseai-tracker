@@ -24,7 +24,7 @@
     <string name="account_detail_estimated_amount">aprox. %1$s</string>
     <!-- %1$s = formatted balance after the transaction -->
     <string name="account_detail_balance_after">• Saldo: %1$s</string>
-    <string name="account_detail_type_credit">Crédito</string>
+    <string name="account_detail_type_credit">Gasto com cartão</string>
     <string name="account_detail_type_transfer">Transferência</string>
     <string name="account_detail_type_investment">Investimento</string>
     <string name="account_detail_range_last_7_days">Últimos 7 Dias</string>

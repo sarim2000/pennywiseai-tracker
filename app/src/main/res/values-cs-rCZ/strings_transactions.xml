@@ -56,7 +56,7 @@
     <!-- Transaction types -->
     <string name="txn_type_income">Výnosy</string>
     <string name="txn_type_expense">Výdaje</string>
-    <string name="txn_type_credit">Kredit</string>
+    <string name="txn_type_credit">Útrata kartou</string>
     <string name="txn_type_transfer">Převod</string>
     <string name="txn_type_investment">Investice</string>
     <!-- Transaction detail -->
@@ -190,7 +190,7 @@
     <string name="txn_totals_income">Výnosy</string>
     <string name="txn_totals_expense">Výdaje</string>
     <string name="txn_totals_expenses">Výdaje</string>
-    <string name="txn_totals_credit">Kredit</string>
+    <string name="txn_totals_credit">Útrata kartou</string>
     <string name="txn_totals_transfer">Převod</string>
     <string name="txn_totals_invest">Investice</string>
     <string name="txn_totals_net">Čistá hodnota</string>

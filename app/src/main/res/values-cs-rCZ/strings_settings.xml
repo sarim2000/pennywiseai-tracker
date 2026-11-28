@@ -423,10 +423,10 @@
     <string name="faq_expand">Rozbalit</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Typy transakcí</string>
-    <string name="faq_wallet_credit_question">Proč jsou transakce peněženky označeny jako kredit?</string>
-    <string name="faq_wallet_credit_answer">Peněženky (Amazon Pay, Paytm, atd.) jsou označeny jako Kredit, protože jsou účtovány na Váš bankovní účet nebo kreditní kartu jako první, nikoli přímé bankovní inkaso. To pomáhá sledovat skutečně použitý způsob platby.</string>
+    <string name="faq_wallet_credit_question">Proč jsou transakce z peněženek označeny jako Útrata kartou?</string>
+    <string name="faq_wallet_credit_answer">Transakce z peněženek (Amazon Pay, Paytm atd.) jsou označeny jako Útrata kartou, protože se nejdříve účtují na váš bankovní účet nebo kreditní kartu a nejde o přímé bankovní inkaso. Pomáhá to sledovat skutečně použitý způsob platby.</string>
     <string name="faq_transaction_types_question">Jaký je rozdíl mezi 5 typy transakcí?</string>
-    <string name="faq_transaction_types_answer">• Výdaje: Peníze z vašeho účtu (debety, nákupy, platby účtu)\n• Příjem z účtu: Peníze přicházející na Váš účet (plat, náhrady, cashback)\n• Investice: Vzájemné finanční prostředky, zásoby, SIP obchodní účty\n• Kredit: transakce kreditních karet a platby v peněžence (peníze, které zaplatíte později)\n• Převést: Peníze přesunuty mezi vašimi vlastními účty (sebepřevody)</string>
+    <string name="faq_transaction_types_answer">• Výdaj: peníze odcházející z vašeho účtu (inkasa, nákupy, platby účtů)\n• Příjem: peníze přicházející na váš účet (plat, vrácené platby, cashback)\n• Investice: podílové fondy, akcie, SIP, obchodní účty\n• Útrata kartou: transakce kreditní kartou a platby z peněženek (peníze, které zaplatíte později)\n• Převod: peníze přesunuté mezi vašimi vlastními účty</string>
     <string name="faq_transfer_vs_expense_question">Kdy mám použít Transfer vs Expense?</string>
     <string name="faq_transfer_vs_expense_answer">Použít převod při přesouvání peněz mezi vlastními účty (např. úspory pro kontrolu). Ty neovlivňují váš čistý majetek. Pro skutečné výdaje použijte výdaje.</string>
     <!-- SMS Parsing -->

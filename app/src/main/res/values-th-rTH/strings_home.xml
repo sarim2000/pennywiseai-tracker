@@ -81,7 +81,7 @@
     <string name="type_filter_all">ทั้งหมด</string>
     <string name="type_filter_income">รายได้</string>
     <string name="type_filter_expense">ค่าใช้จ่าย</string>
-    <string name="type_filter_credit">เครดิต</string>
+    <string name="type_filter_credit">ใช้จ่ายผ่านบัตร</string>
     <string name="type_filter_spending">รายจ่าย</string>
     <string name="type_filter_transfer">โอน</string>
     <string name="type_filter_investment">ลงทุน</string>
@@ -190,11 +190,11 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">เงินที่เคลื่อนไหว</string>
     <string name="cash_flow_subtitle">รายการที่ไม่นับในกระแสเงินสดสุทธิของเดือนนี้</string>
-    <string name="cash_flow_credit">เครดิต</string>
+    <string name="cash_flow_credit">ใช้จ่ายผ่านบัตร</string>
     <string name="cash_flow_invested">ลงทุน</string>
     <string name="cash_flow_transferred">โอน</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">เครดิต</string>
+    <string name="txn_item_tag_credit">บัตร</string>
     <string name="txn_item_tag_transfer">โอน</string>
     <string name="txn_item_tag_investment">การลงทุน</string>
     <string name="txn_item_tag_recurring">เกิดซ้ำ</string>

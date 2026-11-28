@@ -462,7 +462,7 @@
     <!-- Transaction type labels (stored value stays the enum name) -->
     <string name="rules_type_income">Einkommen</string>
     <string name="rules_type_expense">Kosten</string>
-    <string name="rules_type_credit">Gutschrift</string>
+    <string name="rules_type_credit">Kartenausgaben</string>
     <string name="rules_type_transfer">Überweisung</string>
     <string name="rules_type_investment">Investition</string>
     <string name="rules_select_transaction_type">Transaktionstyp auswählen:</string>

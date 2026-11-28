@@ -52,7 +52,7 @@
     <!-- Transaction types -->
     <string name="txn_type_income">Einkommen</string>
     <string name="txn_type_expense">Kosten</string>
-    <string name="txn_type_credit">Gutschrift</string>
+    <string name="txn_type_credit">Kartenausgaben</string>
     <string name="txn_type_transfer">Überweisung</string>
     <string name="txn_type_investment">Investition</string>
     <!-- Transaction detail -->
@@ -180,7 +180,7 @@
     <string name="txn_totals_income">Einkommen</string>
     <string name="txn_totals_expense">Kosten</string>
     <string name="txn_totals_expenses">Ausgaben</string>
-    <string name="txn_totals_credit">Gutschrift</string>
+    <string name="txn_totals_credit">Kartenausgaben</string>
     <string name="txn_totals_transfer">Überweisung</string>
     <string name="txn_totals_invest">Investition</string>
     <string name="txn_totals_net">Netz</string>

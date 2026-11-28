@@ -395,10 +395,10 @@
     <string name="faq_expand">Ausklappen</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Transaktionstypen</string>
-    <string name="faq_wallet_credit_question">Warum sind Wallet-Transaktionen als Credit gekennzeichnet?</string>
-    <string name="faq_wallet_credit_answer">Wallet-Transaktionen (Amazon Pay, Paytm, usw.) sind als Guthaben gekennzeichnet, da diese zuerst auf Ihr Bankkonto oder Ihre Kreditkarte belastet werden, nicht auf Bankeinzahlungen. Dies hilft die aktuelle Zahlungsmethode zu verfolgen.</string>
+    <string name="faq_wallet_credit_question">Warum sind Wallet-Transaktionen als Kartenausgaben gekennzeichnet?</string>
+    <string name="faq_wallet_credit_answer">Wallet-Transaktionen (Amazon Pay, Paytm usw.) sind als Kartenausgaben gekennzeichnet, weil sie zuerst Ihrem Bankkonto oder Ihrer Kreditkarte belastet werden und keine direkten Bankabbuchungen sind. So lässt sich die tatsächlich genutzte Zahlungsmethode nachverfolgen.</string>
     <string name="faq_transaction_types_question">Was ist der Unterschied zwischen den 5 Transaktionstypen?</string>
-    <string name="faq_transaction_types_answer">• Kosten: Geld geht aus Ihrem Konto (Debits, Käufe und Käufe Zahlungen)\n• Einnahmen: Geld auf Ihr Konto (Gehalt, Rückerstattung)\n• Investition: Gegenseitiges Guthaben lager, SIPs, Handelskonten\n• Guthaben: Kreditkartentransaktionen und Wallet-Zahlungen (Geld, das Sie später bezahlen)\n• Überweisung: Geld bewegt sich zwischen Ihren eigenen Konten (Selbstüberweisung)</string>
+    <string name="faq_transaction_types_answer">• Ausgabe: Geld, das Ihr Konto verlässt (Abbuchungen, Einkäufe, Rechnungszahlungen)\n• Einnahme: Geld, das auf Ihr Konto kommt (Gehalt, Erstattungen, Cashback)\n• Investition: Investmentfonds, Aktien, Sparpläne (SIP), Handelskonten\n• Kartenausgaben: Kreditkartentransaktionen und Wallet-Zahlungen (Geld, das Sie später bezahlen)\n• Überweisung: Geld, das zwischen Ihren eigenen Konten bewegt wird</string>
     <string name="faq_transfer_vs_expense_question">Wann sollte ich Transfer gegen Kosten verwenden?</string>
     <string name="faq_transfer_vs_expense_answer">Verwenden Sie Überweisung, wenn Sie Geld zwischen Ihren eigenen Konten verschieben (z. B. Einsparungen zum Überprüfen). Dies wirkt sich nicht auf Ihren Nettowert aus. Verwenden Sie Ausgaben für tatsächliche Ausgaben.</string>
     <!-- SMS Parsing -->

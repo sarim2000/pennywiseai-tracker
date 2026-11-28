@@ -82,7 +82,7 @@
     <string name="type_filter_all">Alle</string>
     <string name="type_filter_income">Einkommen</string>
     <string name="type_filter_expense">Kosten</string>
-    <string name="type_filter_credit">Gutschrift</string>
+    <string name="type_filter_credit">Kartenausgaben</string>
     <string name="type_filter_spending">Ausgaben</string>
     <string name="type_filter_transfer">Überweisung</string>
     <string name="type_filter_investment">Investitionen</string>
@@ -202,11 +202,11 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">Geld in Bewegung</string>
     <string name="cash_flow_subtitle">Kanäle außerhalb Ihres Netto-Cashflow in diesem Monat</string>
-    <string name="cash_flow_credit">Gutschrift</string>
+    <string name="cash_flow_credit">Kartenausgaben</string>
     <string name="cash_flow_invested">Eingeladen</string>
     <string name="cash_flow_transferred">Übertragen</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">Gutschrift</string>
+    <string name="txn_item_tag_credit">Karte</string>
     <string name="txn_item_tag_transfer">Überweisung</string>
     <string name="txn_item_tag_investment">Investition</string>
     <string name="txn_item_tag_recurring">Wiederkehrende</string>

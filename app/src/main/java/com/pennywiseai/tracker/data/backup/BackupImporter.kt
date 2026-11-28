@@ -196,6 +196,15 @@ class BackupImporter @Inject constructor(
     }
 
     /**
+     * An IGNORE insert (transactions, tags, categories) that hits a unique key returns
+     * -1 and writes no row. That is a skipped row, never a parent: callers map an id
+     * and count an import only for a real row id (> 0), so no child can later point
+     * at id -1.
+     */
+    private fun rowOrSkip(insertedId: Long, what: String): Long =
+        checkNotNull(insertedId.takeIf { it > 0L }) { "$what not inserted (duplicate key)" }
+
+    /**
      * A failed DAO call inside the import transaction can't be skipped: Room's
      * AndroidSQLiteDriver runs it on the framework's nested transactions, where a
      * nested failure marks the outer transaction rollback-only, so the final
@@ -296,7 +305,7 @@ class BackupImporter @Inject constructor(
 
                 // Import all data
                 backup.database.categories.insertEachCounting({ skippedRows++ }) { category ->
-                    database.categoryDao().insertCategory(category)
+                    rowOrSkip(database.categoryDao().insertCategory(category), "Category")
                     importedCategories++
                 }
 
@@ -304,8 +313,9 @@ class BackupImporter @Inject constructor(
                 // link to a transaction that actually restored.
                 val restoredTransactionIds = HashMap<Long, Long>()
                 backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
-                    val newId = database.transactionDao().insertTransaction(cleanTransaction(transaction))
-                    if (transaction.id != 0L && newId > 0L) restoredTransactionIds[transaction.id] = newId
+                    // A second row with the same hash is ignored (-1): skipped, and nothing maps to it.
+                    val newId = rowOrSkip(database.transactionDao().insertTransaction(cleanTransaction(transaction)), "Transaction")
+                    if (transaction.id != 0L) restoredTransactionIds[transaction.id] = newId
                     importedTransactions++
                 }
                 reimbursementLinks(backup.database.transactions, restoredTransactionIds) { it in restoredTransactionIds }
@@ -386,7 +396,8 @@ class BackupImporter @Inject constructor(
                 // tags before cross-refs to satisfy the foreign keys.
                 val restoredTagIds = HashSet<Long>()
                 backup.database.tags.insertEachCounting({ skippedRows++ }) { tag ->
-                    database.tagDao().insertTag(tag)
+                    // A second tag with the same name is ignored (-1): its cross-refs are skipped too.
+                    rowOrSkip(database.tagDao().insertTag(tag), "Tag")
                     restoredTagIds += tag.id
                 }
                 backup.database.transactionTagCrossRefs.insertEachCounting({ skippedRows++ }) { ref ->
@@ -510,7 +521,7 @@ class BackupImporter @Inject constructor(
                             isSystem = category.isSystem && !duplicatesBuiltin,
                             systemName = if (duplicatesBuiltin) null else category.systemName
                         )
-                        val newId = database.categoryDao().insertCategory(newCategory)
+                        val newId = rowOrSkip(database.categoryDao().insertCategory(newCategory), "Category")
                         categoryIdMap[category.id] = newId
                         importedCategories++
                     }
@@ -591,6 +602,12 @@ class BackupImporter @Inject constructor(
                             reimbursedById = null
                         )
                         val newId = database.transactionDao().insertTransaction(newTransaction)
+                        if (newId <= 0L) {
+                            // Same hash as an earlier row of this backup: ignored, not imported, and
+                            // left unmapped so no child or link can point at id -1.
+                            skippedDuplicates++
+                            return@insertEachCounting
+                        }
                         // Track old ID -> new ID mapping directly from insert result
                         if (oldId != 0L) {
                             oldToNewTransactionIdMap[oldId] = newId
@@ -700,7 +717,8 @@ class BackupImporter @Inject constructor(
                         val newId = existingTagIdByName[key]
                             ?: database.tagDao().insertTag(tag.copy(id = 0))
                                 .also { id -> if (id > 0L) existingTagIdByName[key] = id }
-                        if (newId > 0L && tag.id != 0L) oldToNewTagIdMap[tag.id] = newId
+                        rowOrSkip(newId, "Tag")
+                        if (tag.id != 0L) oldToNewTagIdMap[tag.id] = newId
                     }
                 }
                 backup.database.transactionTagCrossRefs.insertEachCounting({ skippedRows++ }) { ref ->

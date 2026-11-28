@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
 import com.pennywiseai.tracker.data.database.entity.RuleEntity
+import com.pennywiseai.tracker.data.database.entity.TagEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
@@ -43,9 +44,9 @@ class BackupImportOrphanRowsTest {
 
     @After fun close() = db.close()
 
-    private fun tx(id: Long) = TransactionEntity(
+    private fun tx(id: Long, hash: String = "hash$id") = TransactionEntity(
         id = id, amount = BigDecimal("10"), merchantName = "Shop $id", category = "Food",
-        transactionType = TransactionType.EXPENSE, dateTime = at, transactionHash = "hash$id"
+        transactionType = TransactionType.EXPENSE, dateTime = at, transactionHash = hash
     )
 
     private val rule = RuleEntity(
@@ -112,5 +113,55 @@ class BackupImportOrphanRowsTest {
 
         assertTrue("$result", result is ImportResult.Error)
         assertEquals(0, db.transactionDao().getAllTransactions().first().size)
+    }
+
+    // Rows 1 and 2 share a hash: the second insert is ignored (-1). Its dependants must be skipped and
+    // counted, never stored against id -1 (which would break the foreign key and sink the import).
+    private suspend fun assertDuplicateHashRowIsNotAParent(strategy: ImportStrategy, expectedSkippedRows: Int) {
+        val backup = PennyWiseBackup(
+            database = DatabaseSnapshot(
+                transactions = listOf(tx(1, hash = "same"), tx(2, hash = "same"), tx(3)),
+                rules = listOf(rule),
+                ruleApplications = listOf(application("good", 1), application("onDuplicate", 2)),
+                transactionSplits = listOf(
+                    TransactionSplitEntity(transactionId = 1, category = "Food", amount = BigDecimal("4")),
+                    TransactionSplitEntity(transactionId = 2, category = "Food", amount = BigDecimal("4"))
+                )
+            )
+        )
+
+        val result = importer.importBackup(android.net.Uri.fromFile(file(backup)), strategy)
+
+        assertTrue("$result", result is ImportResult.Success)
+        result as ImportResult.Success
+        assertEquals(2, result.importedTransactions)
+        assertEquals(2, db.transactionDao().getAllTransactions().first().size)
+        assertEquals(listOf("good"), db.ruleApplicationDao().getAllApplications().first().map { it.id })
+        assertEquals(1, db.transactionSplitDao().getAllSplits().first().size)
+        assertTrue(db.transactionSplitDao().getAllSplits().first().all { it.transactionId > 0 })
+        assertEquals(expectedSkippedRows, result.skippedRows + result.skippedDuplicates)
+    }
+
+    // MERGE counts the ignored row as a duplicate; REPLACE_ALL as a skipped row.
+    @Test fun mergeSkipsDependantsOfAnIgnoredDuplicateHashRow() = runBlocking { assertDuplicateHashRowIsNotAParent(ImportStrategy.MERGE, 3) }
+
+    @Test fun replaceAllSkipsDependantsOfAnIgnoredDuplicateHashRow() = runBlocking { assertDuplicateHashRowIsNotAParent(ImportStrategy.REPLACE_ALL, 3) }
+
+    // Two tags named alike: the second insert is ignored (-1), so a link to it is skipped and counted.
+    @Test fun replaceAllSkipsTagLinksOfAnIgnoredDuplicateTag() = runBlocking {
+        val backup = PennyWiseBackup(
+            database = DatabaseSnapshot(
+                transactions = listOf(tx(1)),
+                tags = listOf(TagEntity(id = 1, name = "work"), TagEntity(id = 2, name = "work")),
+                transactionTagCrossRefs = listOf(TransactionTagCrossRef(1, 1), TransactionTagCrossRef(1, 2))
+            )
+        )
+
+        val result = importer.importBackup(android.net.Uri.fromFile(file(backup)), ImportStrategy.REPLACE_ALL)
+
+        assertTrue("$result", result is ImportResult.Success)
+        assertEquals(1, db.tagDao().getAllTagsSync().size)
+        assertEquals(listOf(TransactionTagCrossRef(1, 1)), db.tagDao().getAllCrossRefs())
+        assertEquals(2, (result as ImportResult.Success).skippedRows)
     }
 }

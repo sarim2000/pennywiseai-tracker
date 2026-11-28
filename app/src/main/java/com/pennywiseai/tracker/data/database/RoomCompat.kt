@@ -6,7 +6,9 @@ import androidx.sqlite.SQLiteConnection
 
 /**
  * Room 2's `withTransaction`, on Room 3's [withWriteTransaction] (an IMMEDIATE
- * transaction; a nested call becomes a savepoint inside the outer one).
+ * transaction). A nested call is NOT an isolated savepoint: with AndroidSQLiteDriver
+ * a failure inside it marks the OUTER transaction rollback-only. Never catch a failed
+ * write in a transaction and carry on; let it propagate out of the outermost block.
  */
 // ponytail: keeps the Room 2 name so ~50 call sites and their `return@withTransaction` labels stay untouched.
 suspend fun <R> RoomDatabase.withTransaction(block: suspend () -> R): R =

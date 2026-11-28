@@ -98,6 +98,7 @@ fun TransactionsScreen(
     // Account key / tag carried by an analytics group drill-down (#422)
     initialAccount: String? = null,
     initialTag: String? = null,
+    initialAlsoTag: String? = null,
     focusSearch: Boolean = false,
     // New parameters for budget navigation
     initialStartDateEpochDay: Long? = null,
@@ -140,6 +141,7 @@ fun TransactionsScreen(
     val accountFilter by viewModel.accountFilter.collectAsStateWithLifecycle()
     val accountOptions by viewModel.accountOptions.collectAsStateWithLifecycle()
     val tagFilter by viewModel.tagFilter.collectAsStateWithLifecycle()
+    val alsoTagFilter by viewModel.alsoTagFilter.collectAsStateWithLifecycle()
     val availableTags by viewModel.availableTags.collectAsStateWithLifecycle()
 
     // Bulk-edit selection (#369)
@@ -241,7 +243,10 @@ fun TransactionsScreen(
             add(ActiveFilter("account", label, Icons.Default.AccountBalanceWallet) { viewModel.setAccountFilter(null) })
         }
         tagFilter?.let { tag ->
-            add(ActiveFilter("tag", tag, Icons.Default.Sell) { viewModel.setTagFilter(null) })
+            add(ActiveFilter("tag", tag, Icons.Default.Sell) { viewModel.removeTagFilter() })
+        }
+        alsoTagFilter?.let { tag ->
+            add(ActiveFilter("alsoTag", tag, Icons.Default.Sell) { viewModel.removeAlsoTagFilter() })
         }
         if (hasCurrencyFilter) {
             add(
@@ -285,7 +290,8 @@ fun TransactionsScreen(
             initialCustomEndEpochDay,
             initialAccount,
             initialTag,
-            initialTransactionType
+            initialTransactionType,
+            initialAlsoTag
         )
         if (currencyOnly) initialCurrency?.let(viewModel::pinCurrency)
         if (profilePinned) viewModel.pinProfile(initialProfileId)
@@ -297,7 +303,7 @@ fun TransactionsScreen(
     var processedNavParams by rememberSaveable { mutableStateOf(false) }
 
     // Apply navigation filters only ONCE when actually navigating (not when returning from detail)
-    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialCustomStartEpochDay, initialCustomEndEpochDay, initialAccount, initialTag, initialTransactionType) {
+    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialCustomStartEpochDay, initialCustomEndEpochDay, initialAccount, initialTag, initialAlsoTag, initialTransactionType) {
         if (!processedNavParams && (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null || initialAccount != null || initialTag != null)) {
             viewModel.applyNavigationFilters(
                 initialCategory,
@@ -308,7 +314,8 @@ fun TransactionsScreen(
                 initialCustomEndEpochDay,
                 initialAccount,
                 initialTag,
-                initialTransactionType
+                initialTransactionType,
+                initialAlsoTag
             )
             // Setting the category above dropped it.
             initialCategory?.let { viewModel.leaveOutOf(it, excludedCategories) }

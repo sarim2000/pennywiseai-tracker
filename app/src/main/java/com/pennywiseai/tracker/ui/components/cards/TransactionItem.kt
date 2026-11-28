@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -137,6 +138,9 @@ fun TransactionItem(
                     }
                     else -> {}
                 }
+            }
+            if (transaction.transactionType == TransactionType.INCOME && transaction.budgetImpactType == BudgetImpactType.DEDUCT_SPENT) {
+                add(resources.getString(R.string.txn_detail_budget_impact_refund))
             }
             if (transaction.isRecurring) add(resources.getString(R.string.txn_item_tag_recurring))
             if (isEffectivelyBusiness) add(resources.getString(R.string.txn_item_tag_business))

@@ -36,6 +36,8 @@
     <string name="analytics_filter_all_categories">All categories</string>
     <string name="analytics_filter_account">Account</string>
     <string name="analytics_filter_all_accounts">All accounts</string>
+    <string name="analytics_filter_tag">Tag</string>
+    <string name="analytics_filter_all_tags">All tags</string>
 
     <!-- List rows -->
     <plurals name="analytics_transaction_count">

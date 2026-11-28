@@ -398,6 +398,32 @@
     <string name="trip_window_open">From %1$s</string>
     <string name="trip_overlap_error">These dates overlap “%1$s”. Only one trip can run at a time.</string>
     <string name="trip_picker_ok">OK</string>
+    <string name="trip_chip_no_spend">Nothing spent yet</string>
+    <string name="trip_stop_confirm_title">Stop “%1$s”?</string>
+    <string name="trip_stop_confirm_message">The trip ends now. Spending after this moment won’t join it.</string>
+    <string name="trip_summary_title_running">Trip so far</string>
+    <string name="trip_summary_title_ended">Trip summary</string>
+    <string name="trip_summary_total">Spent</string>
+    <string name="trip_summary_days">Days</string>
+    <string name="trip_summary_days_of">%1$d of %2$d</string>
+    <string name="trip_summary_average">Average per day</string>
+    <string name="trip_summary_categories">Top categories</string>
+    <string name="trip_backfill_title">Add earlier spending?</string>
+    <plurals name="trip_backfill_message">
+        <item quantity="one">%1$d transaction already in the app falls inside these dates.</item>
+        <item quantity="other">%1$d transactions already in the app fall inside these dates.</item>
+    </plurals>
+    <plurals name="trip_backfill_capped">
+        <item quantity="one">More transactions than this fall inside these dates. Showing only the most recent %1$d.</item>
+        <item quantity="other">More transactions than this fall inside these dates. Showing only the most recent %1$d.</item>
+    </plurals>
+    <string name="trip_backfill_select_all">Select all</string>
+    <string name="trip_backfill_select_none">Select none</string>
+    <plurals name="trip_backfill_add">
+        <item quantity="one">Add %1$d to trip</item>
+        <item quantity="other">Add %1$d to trip</item>
+    </plurals>
+    <string name="trip_backfill_skip">Skip</string>
     <string name="group_back">Back</string>
     <string name="group_name">Group name</string>
     <string name="group_note">Note (optional)</string>

@@ -183,6 +183,11 @@ class HomeViewModel @Inject constructor(
         transactionGroupRepository.observeGroupSummaries()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /** "Stop" on the running-trip chip: the same conditional write the trip's own screen uses. */
+    fun stopTrip(groupId: Long) {
+        viewModelScope.launch { transactionGroupRepository.stopTrip(groupId) }
+    }
+
     /** Active goals for the Home "Goals" card (#914): soonest due first, Reached last; empty hides the card. */
     val goals: StateFlow<List<com.pennywiseai.tracker.data.repository.GoalProgress>> =
         goalRepository.observeActiveGoals()

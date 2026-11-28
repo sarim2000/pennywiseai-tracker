@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -19,7 +20,9 @@ data class TransactionGroupsUiState(
     val showCreateDialog: Boolean = false,
     // Name of the trip a new trip's dates overlap, shown in the dialog (#1463).
     val tripOverlap: String? = null,
-    val isSaving: Boolean = false
+    val isSaving: Boolean = false,
+    // Existing rows the just-created trip could take; shown once, then dropped.
+    val backfill: TripBackfillOffer? = null
 )
 
 @HiltViewModel
@@ -59,12 +62,30 @@ class TransactionGroupsViewModel @Inject constructor(
         viewModelScope.launch {
             val (start, end) = trip.window
             try {
-                repository.createGroup(name, note, start, end)
-                _uiState.value = _uiState.value.copy(showCreateDialog = false, tripOverlap = null)
+                val id = repository.createGroup(name, note, start, end)
+                val found = if (start != null) repository.tripBackfillCandidates(id) else null
+                _uiState.value = _uiState.value.copy(
+                    showCreateDialog = false,
+                    tripOverlap = null,
+                    backfill = found?.takeIf { it.rows.isNotEmpty() }?.let { TripBackfillOffer(id, it.rows, it.capped) }
+                )
             } catch (e: TripOverlapException) {
                 _uiState.value = _uiState.value.copy(tripOverlap = e.other)
             } finally {
                 _uiState.value = _uiState.value.copy(isSaving = false)
+            }
+        }
+    }
+
+    fun skipBackfill() { _uiState.value = _uiState.value.copy(backfill = null) }
+
+    /** One database transaction for the whole batch; skipping records nothing. */
+    fun addBackfill(ids: List<Long>) {
+        val offer = _uiState.value.backfill ?: return
+        viewModelScope.launch {
+            // The sheet closes only once the rows are in; a failed write leaves it open to retry.
+            if (runCatching { repository.addTransactionsToGroup(ids, offer.groupId) }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }.isSuccess) {
+                _uiState.update { it.copy(backfill = null) }
             }
         }
     }

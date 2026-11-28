@@ -5,6 +5,9 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.trip.TripBackfill
+import com.pennywiseai.tracker.data.trip.backfillWindowEnd
+import com.pennywiseai.tracker.data.trip.tripBackfillOf
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.coroutines.flow.Flow
@@ -82,6 +85,10 @@ private fun GroupTotals.all(): List<Money> = expense.values + invested.values + 
 class TransactionGroupRepository @Inject constructor(
     private val groupDao: TransactionGroupDao
 ) {
+    private companion object {
+        const val BACKFILL_LIMIT = 500
+    }
+
     fun getAllGroups(): Flow<List<TransactionGroupEntity>> = groupDao.getAllGroups()
 
     /**
@@ -159,6 +166,22 @@ class TransactionGroupRepository @Inject constructor(
     suspend fun addTransactionToGroup(transactionId: Long, groupId: Long) {
         groupDao.addToGroup(transactionId, groupId)
         groupDao.touchGroup(groupId, LocalDateTime.now())
+    }
+
+    /** Existing ungrouped rows that would have auto-joined this trip; empty for a plain group. */
+    suspend fun tripBackfillCandidates(groupId: Long, now: LocalDateTime = LocalDateTime.now()): TripBackfill {
+        val trip = groupDao.getGroupById(groupId) ?: return TripBackfill(emptyList(), false)
+        val start = trip.tripStart ?: return TripBackfill(emptyList(), false)
+        // Nothing dated in the future is offered, even for a trip with no end. The query already
+        // leaves out the trip's exclusions; the shared rule re-checks the rest. One row over the
+        // limit tells us the list is cut.
+        val fetched = groupDao.getTripBackfillCandidates(groupId, start, backfillWindowEnd(trip.tripEnd, now), BACKFILL_LIMIT + 1)
+        return tripBackfillOf(fetched, trip, now, BACKFILL_LIMIT)
+    }
+
+    /** Links all of [transactionIds] in one database transaction. */
+    suspend fun addTransactionsToGroup(transactionIds: List<Long>, groupId: Long) {
+        if (transactionIds.isNotEmpty()) groupDao.addAllToGroup(transactionIds, groupId, LocalDateTime.now())
     }
 
     suspend fun createGroupWithTransaction(name: String, note: String?, transactionId: Long): Long {

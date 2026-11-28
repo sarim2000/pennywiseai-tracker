@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.presentation.groups
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -20,9 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -35,11 +40,15 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.hidesGroupCardTotals
+import com.pennywiseai.tracker.ui.components.cards.shownGroupCardTotals
+import com.pennywiseai.tracker.ui.components.rememberTripNow
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.ui.theme.spending
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -154,6 +163,18 @@ fun TransactionGroupsScreen(
     if (showUpgradeSheet) {
         UpgradeSheet(onDismiss = { showUpgradeSheet = false })
     }
+    uiState.backfill?.let { offer ->
+        TripBackfillSheet(offer = offer, onAdd = viewModel::addBackfill, onSkip = viewModel::skipBackfill)
+    }
+}
+
+private const val TOTALS_MAX_SHARE = 0.42f
+
+/** The two largest currencies and an ellipsis for the rest, so the name column keeps its width; no ellipsis while amounts are hidden. */
+private fun rowTotals(totals: Map<String, com.pennywiseai.tracker.utils.Money>, signPrefix: String = ""): String {
+    val shown = shownGroupCardTotals(totals)
+    return CurrencyFormatter.formatByCurrency(shown, signPrefix = signPrefix) +
+        if (hidesGroupCardTotals(totals) && !AmountPrivacy.hidden) " · …" else ""
 }
 
 @Composable
@@ -204,7 +225,8 @@ private fun GroupListItem(
             )
             if (summary.group.isTrip) {
                 val status = summary.group.tripStatus(now)
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                // The Running chip moves to its own line when the dates leave it no room.
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), itemVerticalAlignment = Alignment.CenterVertically) {
                     Text(
                         tripWindowText(summary.group),
                         style = MaterialTheme.typography.bodyMedium,
@@ -225,11 +247,14 @@ private fun GroupListItem(
             }
         }
 
-        Column(horizontalAlignment = Alignment.End) {
+        // A bounded share of the screen, wrapping: long per-currency totals must not squeeze the name,
+        // and short ones leave the rest to it (#1520).
+        Column(horizontalAlignment = Alignment.End, modifier = Modifier.widthIn(max = (LocalConfiguration.current.screenWidthDp * TOTALS_MAX_SHARE).dp)) {
             if (summary.hasExpense) {
                 Text(
-                    CurrencyFormatter.formatByCurrency(summary.expenseByCurrency, signPrefix = "-"),
+                    rowTotals(summary.expenseByCurrency, signPrefix = "-"),
                     style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.End,
                     color = MaterialTheme.colorScheme.spending
                 )
             }
@@ -237,16 +262,18 @@ private fun GroupListItem(
                 Text(
                     stringResource(
                         R.string.group_card_invested,
-                        CurrencyFormatter.formatByCurrency(summary.investedByCurrency)
+                        rowTotals(summary.investedByCurrency)
                     ),
                     style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.End,
                     color = MaterialTheme.colorScheme.investment
                 )
             }
             if (summary.hasIncome) {
                 Text(
-                    CurrencyFormatter.formatByCurrency(summary.incomeByCurrency, signPrefix = "+"),
+                    rowTotals(summary.incomeByCurrency, signPrefix = "+"),
                     style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.End,
                     color = MaterialTheme.colorScheme.income
                 )
             }

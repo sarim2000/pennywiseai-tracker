@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,10 +36,12 @@ import com.pennywiseai.tracker.data.repository.GroupTotals
 import com.pennywiseai.tracker.data.trip.TripStatus
 import com.pennywiseai.tracker.data.trip.isTrip
 import com.pennywiseai.tracker.data.trip.tripStatus
+import com.pennywiseai.tracker.data.trip.tripSummaryOf
 import com.pennywiseai.tracker.presentation.common.ExportTransactionsDialog
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.rememberTripNow
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
@@ -287,6 +290,15 @@ fun TransactionGroupDetailScreen(
                 }
             }
 
+            // A running or ended trip with spending: its totals, days, average and top categories.
+            val tripStatus = group.tripStatus(tripNow)
+            if (tripStatus == TripStatus.RUNNING || tripStatus == TripStatus.ENDED) {
+                val figures = tripSummaryOf(group, uiState.linkedTransactions, tripNow)
+                if (figures.totalByCurrency.isNotEmpty()) {
+                    item(key = "trip_summary") { TripSummaryCard(figures, tripStatus) }
+                }
+            }
+
             // Each account's part of the totals above, with the same figures and colours.
             // One account would just repeat the total, so it shows from two up.
             if (uiState.accountShares.size > 1) {
@@ -434,6 +446,9 @@ fun TransactionGroupDetailScreen(
             onDismiss = { viewModel.hideEditDialog() },
             onSave = { name, note, trip -> viewModel.updateGroupName(name, note, trip) }
         )
+    }
+    uiState.backfill?.let { offer ->
+        TripBackfillSheet(offer = offer, onAdd = viewModel::addBackfill, onSkip = viewModel::skipBackfill)
     }
     if (showUpgradeSheet || uiState.upgradeRequested) {
         UpgradeSheet(onDismiss = { showUpgradeSheet = false; viewModel.dismissUpgrade() })
@@ -686,8 +701,9 @@ private fun EditGroupDialog(
 ) {
     val nameState = rememberTextFieldState(currentName)
     val noteState = rememberTextFieldState(currentNote ?: "")
-    // Keyed on the stored window: a Stop (or any change) behind the dialog resets the draft to it.
-    var trip by remember(currentTrip) { mutableStateOf(currentTrip) }
+    // Survives rotation with its stored timestamps; keyed on the stored window, so a Stop (or any
+    // change) behind the dialog resets the draft to it.
+    var trip by rememberSaveable(currentTrip, stateSaver = TripDraft.Saver) { mutableStateOf(currentTrip) }
 
     AlertDialog(
         onDismissRequest = onDismiss,

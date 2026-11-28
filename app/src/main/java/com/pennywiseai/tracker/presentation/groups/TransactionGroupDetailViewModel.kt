@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.repository.groupTotalsOf
 import com.pennywiseai.tracker.data.trip.TripOverlapException
 import com.pennywiseai.tracker.data.trip.isTrip
 import com.pennywiseai.tracker.data.trip.tripEditNeedsPro
+import com.pennywiseai.tracker.data.trip.tripStartMovedEarlier
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -42,7 +44,8 @@ data class TransactionGroupDetailUiState(
     val addSearchQuery: String = "",
     val tripOverlap: String? = null,
     val isSaving: Boolean = false,
-    val upgradeRequested: Boolean = false
+    val upgradeRequested: Boolean = false,
+    val backfill: TripBackfillOffer? = null
 )
 
 @HiltViewModel
@@ -156,11 +159,31 @@ class TransactionGroupDetailViewModel @Inject constructor(
                         tripEnd = end
                     )
                 )
-                _uiState.value = _uiState.value.copy(group = repository.getGroupById(groupId), showEditDialog = false, tripOverlap = null)
+                val saved = repository.getGroupById(groupId)
+                // A trip that now reaches further back offers the rows it would have taken.
+                // Published first: the candidate query below is a wait in which a Stop can land, and
+                // the final update must not put this older read of the group back over it.
+                _uiState.update { it.copy(group = saved, showEditDialog = false, tripOverlap = null) }
+                val found = if (saved != null && tripStartMovedEarlier(group, saved)) repository.tripBackfillCandidates(groupId) else null
+                _uiState.update {
+                    it.copy(backfill = found?.takeIf { f -> f.rows.isNotEmpty() }?.let { f -> TripBackfillOffer(groupId, f.rows, f.capped) })
+                }
             } catch (e: TripOverlapException) {
                 _uiState.value = _uiState.value.copy(tripOverlap = e.other)
             } finally {
                 _uiState.value = _uiState.value.copy(isSaving = false)
+            }
+        }
+    }
+
+    fun skipBackfill() { _uiState.value = _uiState.value.copy(backfill = null) }
+
+    /** One database transaction for the whole batch; skipping records nothing. */
+    fun addBackfill(ids: List<Long>) {
+        viewModelScope.launch {
+            // The sheet closes only once the rows are in; a failed write leaves it open to retry.
+            if (runCatching { repository.addTransactionsToGroup(ids, groupId) }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }.isSuccess) {
+                _uiState.update { it.copy(backfill = null) }
             }
         }
     }

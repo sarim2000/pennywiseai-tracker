@@ -146,6 +146,37 @@ interface TransactionGroupDao {
         linkTransaction(transactionId, groupId)
     }
 
+    /**
+     * Ungrouped spending (expense or card spend, not recurring, no loan, not deleted) dated inside
+     * [start]..[end] (open end = no upper bound) that the trip hasn't had removed by hash. Bounded
+     * by the window and [limit], newest first, so a long ledger is never loaded whole.
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE group_id IS NULL AND loan_id IS NULL AND is_recurring = 0 AND is_deleted = 0
+        AND transaction_type IN ('EXPENSE', 'CREDIT')
+        AND date_time >= :start AND (:end IS NULL OR date_time <= :end)
+        AND transaction_hash NOT IN (SELECT transaction_hash FROM trip_exclusions WHERE group_id = :groupId)
+        ORDER BY date_time DESC
+        LIMIT :limit
+    """)
+    suspend fun getTripBackfillCandidates(
+        groupId: Long,
+        start: java.time.LocalDateTime,
+        end: java.time.LocalDateTime?,
+        limit: Int
+    ): List<TransactionEntity>
+
+    /** All of [transactionIds] into [groupId] in one transaction; a row grouped meanwhile is left where it is. */
+    @Transaction
+    suspend fun addAllToGroup(transactionIds: List<Long>, groupId: Long, now: java.time.LocalDateTime) {
+        transactionIds.forEach { id ->
+            val tx = getTransactionById(id)
+            if (tx != null && tx.groupId == null) addToGroup(id, groupId)
+        }
+        touchGroup(groupId, now)
+    }
+
     // Used by BackupImporter.replaceAllData to clear groups before re-import.
     @Query("DELETE FROM transaction_groups")
     suspend fun deleteAllGroups()

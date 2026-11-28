@@ -15,15 +15,19 @@ import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.domain.model.toDatabaseString
+import com.pennywiseai.tracker.domain.spending.CardBillStatus
+import com.pennywiseai.tracker.domain.spending.CardBillsLoader
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
 
@@ -35,6 +39,8 @@ data class ManageAccountsUiState(
     // (bankName, last4) of accounts whose balance was never set from a real figure (#982).
     val unanchoredAccounts: Set<Pair<String, String>> = emptySet(),
     val orphanedCards: List<CardEntity> = emptyList(),
+    /** Where each credit card stands with its bill, for the cards' totals. */
+    val cardBills: List<CardBillStatus> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: UiText? = null,
     val successMessage: UiText? = null,
@@ -61,6 +67,7 @@ data class PendingProfileReassign(
     val transactionCount: Int
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class ManageAccountsViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -71,6 +78,7 @@ class ManageAccountsViewModel @Inject constructor(
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val ignoredAccountsStore: com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore,
+    private val cardBillsLoader: CardBillsLoader,
 ) : ViewModel() {
     private val bankAccountMerges = BankAccountMergeStore(context)
 
@@ -93,6 +101,9 @@ class ManageAccountsViewModel @Inject constructor(
     private val _pendingProfileReassign = MutableStateFlow<PendingProfileReassign?>(null)
     val pendingProfileReassign: StateFlow<PendingProfileReassign?> = _pendingProfileReassign.asStateFlow()
 
+    /** Today, moved on by [refreshDate]: the cards' bills depend on the date as well as their rows. */
+    private val today = MutableStateFlow(LocalDate.now())
+
     /** User's base currency — the default for a new manual account. */
     private var baseCurrency: String = "INR"
 
@@ -105,6 +116,7 @@ class ManageAccountsViewModel @Inject constructor(
         loadAccounts()
         loadHiddenAccounts()
         loadCards()
+        loadCardBills()
         viewModelScope.launch {
             baseCurrency = userPreferencesRepository.baseCurrency.first()
             // Seed the (still-empty) add form with the base currency.
@@ -123,6 +135,21 @@ class ManageAccountsViewModel @Inject constructor(
                     _uiState.update { it.copy(accounts = accounts) }
                 }
         }
+    }
+
+    private fun loadCardBills() {
+        viewModelScope.launch {
+            val creditCards = _uiState.map { state -> state.accounts.filter { it.isCreditCard } }
+                .distinctUntilChanged()
+            combine(creditCards, today, ::Pair)
+                .flatMapLatest { (cards, day) -> cardBillsLoader.observe(cards, day) }
+                .collect { statuses -> _uiState.update { it.copy(cardBills = statuses) } }
+        }
+    }
+
+    /** Called when the screen resumes: a statement may have closed since. */
+    fun refreshDate() {
+        today.value = LocalDate.now()
     }
 
     private fun loadCards() {

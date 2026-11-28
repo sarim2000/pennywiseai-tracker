@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
@@ -30,6 +31,8 @@ import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GroupSummary
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.spending.CardTotals
+import com.pennywiseai.tracker.ui.components.AmountByCurrency
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
@@ -320,7 +323,9 @@ internal fun HomeRecentTransactionsList(
 /**
  * The accounts as compact rows: bank, last 4 and type, and the balance in the account's own
  * currency (pre-converted in unified mode when a rate was found). Low balances say so in error.
- * Hidden amounts follow Home's one eye, on the hero.
+ * A card's row is what's owed on it (#684); the cards' unused limit is one last row of its own,
+ * per currency, over the cards with a limit set (#1393). It opens Accounts, where the cards'
+ * totals are. Hidden amounts follow Home's one eye, on the hero.
  */
 @Composable
 internal fun HomeAccountsSection(
@@ -330,6 +335,8 @@ internal fun HomeAccountsSection(
     onAccountClick: (bankName: String, accountLast4: String) -> Unit,
 ) {
     val accounts = accountBalances + creditCards
+    val cardsWithLimit = creditCards.count(CardTotals::hasLimit)
+    val rowCount = accounts.size + if (cardsWithLimit > 0) 1 else 0
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
@@ -355,7 +362,7 @@ internal fun HomeAccountsSection(
                     )
                 ).joinToString(" · ")
                 GroupedRow(
-                    position = ListItemPosition.from(index, accounts.size),
+                    position = ListItemPosition.from(index, rowCount),
                     onClick = { onAccountClick(account.bankName, account.accountLast4) },
                     horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
                 ) {
@@ -372,6 +379,33 @@ internal fun HomeAccountsSection(
                         style = PennyWiseText.amountRow,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1
+                    )
+                }
+            }
+            if (cardsWithLimit > 0) {
+                GroupedRow(
+                    position = ListItemPosition.from(accounts.size, rowCount),
+                    onClick = onNavigateToManageAccounts,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+                ) {
+                    IconTile(
+                        icon = Icons.Default.CreditCard,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        size = Dimensions.Icon.list,
+                        glyphSize = Dimensions.Icon.inline
+                    )
+                    RowLabels(
+                        title = stringResource(R.string.home_accounts_unused_limit),
+                        subtitle = pluralStringResource(R.plurals.home_accounts_unused_limit_cards, cardsWithLimit, cardsWithLimit),
+                        subtitleMaxLines = 1
+                    )
+                    // One currency per line: on one line, three currencies left the title no room.
+                    AmountByCurrency(
+                        totals = CardTotals.unusedLimit(creditCards),
+                        style = PennyWiseText.amountRow,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        horizontalAlignment = Alignment.End
                     )
                 }
             }

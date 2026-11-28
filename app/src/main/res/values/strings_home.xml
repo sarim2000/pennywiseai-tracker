@@ -18,6 +18,12 @@
     <string name="home_section_loans">Loans</string>
     <string name="home_section_groups">Groups</string>
     <string name="home_section_accounts">Bank Accounts</string>
+    <!-- Last row of Home's accounts: the credit cards' unused limit, totalled per currency -->
+    <string name="home_accounts_unused_limit">Unused card limit</string>
+    <plurals name="home_accounts_unused_limit_cards">
+        <item quantity="one">On %1$d card with a limit set</item>
+        <item quantity="other">On %1$d cards with a limit set</item>
+    </plurals>
     <string name="home_section_money_in_motion">Money in motion</string>
     <string name="home_section_activity">Activity</string>
 

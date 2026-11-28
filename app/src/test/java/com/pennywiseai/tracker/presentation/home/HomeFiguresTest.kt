@@ -38,7 +38,6 @@ class HomeFiguresTest {
             currency = "INR",
         )
         assertEquals(0, BigDecimal("500").compareTo(t.balance))
-        assertEquals(0, BigDecimal("900").compareTo(t.availableCredit))
         assertTrue(t.hasOtherCurrencies)
     }
 

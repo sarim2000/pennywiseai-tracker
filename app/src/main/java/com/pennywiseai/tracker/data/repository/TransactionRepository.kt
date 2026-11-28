@@ -152,18 +152,13 @@ open class TransactionRepository @Inject constructor(
     suspend fun insertTransaction(transaction: TransactionEntity, joinTrip: Boolean = true): Long {
         val named = withCurrentCategoryNames(listOf(transaction))
         val row = (if (joinTrip) transactionDao.withTripGroup(named) else named).single()
-        val id = transactionDao.insertTransaction(row)
-        // The trip may have been deleted since the lookup; don't leave the row pointing at nothing.
-        if (joinTrip && id != -1L && row.groupId != null) transactionDao.clearDanglingGroup(id)
-        return id
+        // The trip may have been deleted since the lookup; the row must not be saved pointing at nothing.
+        return if (joinTrip) transactionDao.insertClearingDanglingGroup(row) else transactionDao.insertTransaction(row)
     }
 
     suspend fun insertTransactions(transactions: List<TransactionEntity>) {
         val rows = transactionDao.withTripGroup(withCurrentCategoryNames(transactions))
-        transactionDao.insertTransactions(rows)
-        // Same repair as [insertTransaction], by hash, and only when some row joined a trip.
-        rows.filter { it.groupId != null }.map { it.transactionHash }.chunked(500)
-            .forEach { transactionDao.clearDanglingGroups(it) }
+        transactionDao.insertAllClearingDanglingGroups(rows)
     }
 
     /**

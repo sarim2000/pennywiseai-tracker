@@ -290,6 +290,25 @@ interface TransactionDao {
     @Query("UPDATE transactions SET group_id = NULL WHERE transaction_hash IN (:hashes) AND group_id IS NOT NULL AND group_id NOT IN (SELECT id FROM transaction_groups)")
     suspend fun clearDanglingGroups(hashes: List<String>)
 
+    /**
+     * Saves a row that may have just joined a trip and clears a group deleted since the lookup,
+     * as one commit. Neither statement throws (the insert ignores a duplicate), so nesting this
+     * inside a caller's transaction cannot fail it.
+     */
+    @Transaction
+    suspend fun insertClearingDanglingGroup(transaction: TransactionEntity): Long {
+        val id = insertTransaction(transaction)
+        if (id != -1L && transaction.groupId != null) clearDanglingGroup(id)
+        return id
+    }
+
+    /** [insertClearingDanglingGroup] for a batch: one read-free repair per 500 grouped rows. */
+    @Transaction
+    suspend fun insertAllClearingDanglingGroups(transactions: List<TransactionEntity>) {
+        insertTransactions(transactions)
+        transactions.filter { it.groupId != null }.map { it.transactionHash }.chunked(500).forEach { clearDanglingGroups(it) }
+    }
+
     @Query("SELECT transaction_hash FROM trip_exclusions WHERE group_id = :groupId")
     suspend fun getTripExclusions(groupId: Long): List<String>
 

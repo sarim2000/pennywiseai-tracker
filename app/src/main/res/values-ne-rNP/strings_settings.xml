@@ -12,7 +12,6 @@
     <string name="settings_pro_subtitle_active">सक्रिय · सबै सुविधाहरू खुला</string>
     <string name="settings_pro_subtitle_upgrade">असीमित नियम, स्टेटमेन्ट, निर्यात र अझै धेरै</string>
     <!-- Personalization -->
-    <string name="settings_personalization_section">आफ्नो अनुसार</string>
     <string name="settings_appearance_title">रुपरेखा</string>
     <string name="settings_appearance_subtitle">थिम, रङ, फन्ट र नेभिगेसन</string>
     <string name="settings_language_title">भाषा</string>
@@ -37,7 +36,6 @@
     <string name="settings_main_account_subtitle">तपाईंको पूर्वनिर्धारित मुद्रा सेट गर्छ</string>
     <string name="settings_main_account_not_set">सेट गरिएको छैन</string>
     <string name="settings_number_format_title">संख्या ढाँचा</string>
-    <string name="settings_number_format_subtitle">ठूला रकमहरू कसरी समूह गरिन्छन्</string>
     <string name="settings_number_format_auto">स्वचालित</string>
     <string name="settings_number_format_indian">भारतीय</string>
     <string name="settings_number_format_international">अन्तर्राष्ट्रिय</string>
@@ -45,7 +43,6 @@
     <string name="settings_number_format_indian_example">1,50,000 (लाख / करोड)</string>
     <string name="settings_number_format_international_example">150,000 (हजार / मिलियन)</string>
     <string name="settings_date_format_title">मिति ढाँचा</string>
-    <string name="settings_date_format_subtitle">मितिहरू कसरी देखाइन्छन्</string>
     <!-- Budget -->
     <string name="settings_budget_cycle_title">बजेट चक्र सुरु हुने दिन</string>
     <string name="settings_budget_cycle_dialog_body">हरेक मासिक बजेट चक्र सुरु हुने दिन छान्नुहोस्। जस्तै 25 भनेको चक्र 25 गतेदेखि अर्को महिनाको 24 गतेसम्म चल्छ।</string>
@@ -75,12 +72,6 @@
     </plurals>
     <!-- Data Management -->
     <string name="settings_data_section">डेटा व्यवस्थापन</string>
-    <string name="settings_manage_accounts_title">खाता व्यवस्थापन</string>
-    <string name="settings_manage_accounts_subtitle">आफ्ना बैंक खाताहरू हेर्नुहोस् र व्यवस्थापन गर्नुहोस्</string>
-    <string name="settings_categories_title">वर्गहरू</string>
-    <string name="settings_categories_subtitle">खर्च र आम्दानीका वर्गहरू व्यवस्थापन गर्नुहोस्</string>
-    <string name="settings_smart_rules_title">स्मार्ट नियमहरू</string>
-    <string name="settings_smart_rules_subtitle">स्वचालित लेनदेन वर्गीकरण</string>
     <string name="settings_budgets_title">बजेटहरू</string>
     <string name="settings_budgets_subtitle">वर्ग अनुसार खर्च सीमा ट्र्याक गर्नुहोस्</string>
     <string name="settings_loans_title">ऋणहरू</string>
@@ -108,8 +99,6 @@
     <string name="settings_import_data_subtitle">ब्याकअपबाट डेटा पुनर्स्थापना गर्नुहोस्</string>
     <string name="settings_import_csv_title">लेनदेन आयात गर्नुहोस् (CSV)</string>
     <string name="settings_import_csv_subtitle">PennyWise CSV निर्यातबाट आयात गर्नुहोस्</string>
-    <string name="settings_import_statement_title">स्टेटमेन्ट आयात गर्नुहोस्</string>
-    <string name="settings_import_statement_subtitle">बैंक स्टेटमेन्ट (Excel, CSV) वा UPI एपका PDF</string>
     <string name="settings_unrecognized_sms_title">नचिनिएका SMS</string>
     <string name="settings_unrecognized_sms_subtitle">समर्थन नभएका बैंक सन्देशहरू हेर्नुहोस् र रिपोर्ट गर्नुहोस्</string>
     <string name="settings_delete_all_title">सबै लेनदेन मेटाउनुहोस्</string>
@@ -215,7 +204,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">AI मोडेल डाउनलोड गर्नुहोस् (%1$d MB)</string>
     <string name="settings_ai_status_downloading">AI मोडेल डाउनलोड हुँदैछ...</string>
-    <string name="settings_ai_status_paused">डाउनलोड रोकियो</string>
     <string name="settings_ai_status_completed">AI मोडेल च्याटको लागि तयार छ</string>
     <string name="settings_ai_status_failed">डाउनलोड असफल</string>
     <string name="settings_ai_status_insufficient_space">पर्याप्त भण्डारण स्थान छैन</string>
@@ -227,8 +215,6 @@
     <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
     <string name="settings_ai_cancel_download">डाउनलोड रद्द गर्नुहोस्</string>
     <string name="settings_ai_info">आफ्नो खर्चबारे AI सँग च्याट गर्नुहोस् र आर्थिक जानकारी पाउनुहोस्। सबै कुराकानी तपाईंकै डिभाइसमा गोप्य रहन्छ।</string>
-    <string name="settings_ai_download_notification_title">AI च्याट मोडेल</string>
-    <string name="settings_ai_download_notification_description">PennyWise को लागि AI च्याट सहायक डाउनलोड हुँदैछ</string>
     <!-- Developer -->
     <string name="settings_developer_section">डेभलपर</string>
     <string name="settings_developer_mode_title">डेभलपर मोड</string>
@@ -237,7 +223,6 @@
     <string name="settings_webhooks_subtitle">छानिएको डेटा आफ्नो इन्डपोइन्टमा पठाउनुहोस्</string>
     <string name="settings_webhooks_subtitle_pro">Pro · छानिएको डेटा आफ्नो इन्डपोइन्टमा पठाउनुहोस्</string>
     <!-- Support & Community -->
-    <string name="settings_support_section">सहयोग र समुदाय</string>
     <string name="settings_help_faq_title">मद्दत र FAQ</string>
     <string name="settings_help_faq_subtitle">सोधिने प्रश्नहरू र मद्दत</string>
     <string name="settings_user_guide_title">प्रयोगकर्ता गाइड</string>
@@ -276,10 +261,6 @@
     <string name="appearance_nav_floating_subtitle">आधुनिक र सफा</string>
     <string name="appearance_nav_normal">सामान्य</string>
     <string name="appearance_nav_normal_subtitle">मानक M3</string>
-    <!-- Cover style -->
-    <string name="appearance_cover_section">कभर शैली</string>
-    <string name="appearance_cover_none">कुनै छैन</string>
-    <string name="appearance_cover_selected">छानिएको</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">फन्टहरू</string>
     <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->

@@ -33,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -86,7 +85,9 @@ fun CustomTitleTopAppBar(
     /** [RevealAmountsAction] first in the actions. Home has its own eye. */
     revealAmountsAction: Boolean = !isHomeScreen,
 ) {
-    val collapsedFraction = scrollBehaviorLarge.state.collapsedFraction
+    // Read in the draw phase (graphicsLayer), not here: a composition read would recompose
+    // both bars on every scroll frame.
+    val collapsedFraction: () -> Float = remember(scrollBehaviorLarge) { { scrollBehaviorLarge.state.collapsedFraction } }
     val actions: @Composable () -> Unit = {
         if (revealAmountsAction) RevealAmountsAction()
         actionContent()
@@ -123,12 +124,15 @@ fun CustomTitleTopAppBar(
         userName = userName,
         profileImageUri = profileImageUri,
         profileBackgroundColor = profileBackgroundColor,
-        collapsedFraction = if (scrollBehaviorLarge != scrollBehaviorSmall) collapsedFraction else 1f,
+        collapsedFraction = if (scrollBehaviorLarge != scrollBehaviorSmall) collapsedFraction else FullyCollapsed,
         // A bar that never expands has nothing to morph from: plain titleLarge.
         morphState = if (scrollBehaviorLarge != scrollBehaviorSmall) scrollBehaviorLarge.state else null,
         modifier = modifier,
     )
 }
+
+/** The regular bar's fraction when there is no separate large bar to hand over from. */
+private val FullyCollapsed: () -> Float = { 1f }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -140,7 +144,7 @@ private fun LargerTopAppBar(
     overline: String?,
     isHomeScreen: Boolean,
     hasBackButton: Boolean = false,
-    collapsedFraction: Float,
+    collapsedFraction: () -> Float,
     extraInfoCard: @Composable () -> Unit = {},
     actionContent: @Composable () -> Unit = {},
     navigationContent: @Composable () -> Unit = {},
@@ -171,7 +175,12 @@ private fun LargerTopAppBar(
             )
         )
         .windowInsetsPadding(WindowInsets.statusBars)
-        .alpha(1f - collapsedFraction)
+        .graphicsLayer {
+            // Modifier.alpha's layer: clips only while translucent.
+            val a = 1f - collapsedFraction()
+            alpha = a
+            clip = a != 1f
+        }
 
     if (!hasBackButton) {
         // A tab root has nothing for the M3 bar's fixed 64dp top row (no back button), so it
@@ -187,7 +196,7 @@ private fun LargerTopAppBar(
                 // The bar's 4dp inset, so the title and the avatar both sit on the 16dp content
                 // margin. Home's greeting (extraInfoCard) brings its own content padding.
                 modifier = modifier.padding(horizontal = Spacing.xs),
-                titleAlpha = CollapsingTitleFade.expanded(collapsedFraction),
+                titleAlpha = { CollapsingTitleFade.expanded(collapsedFraction()) },
                 extraInfoCard = extraInfoCard,
             )
             if (subtitle != null) {
@@ -199,7 +208,7 @@ private fun LargerTopAppBar(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .padding(start = Dimensions.Padding.content)
-                        .graphicsLayer { alpha = CollapsingTitleFade.expanded(collapsedFraction) }
+                        .graphicsLayer { alpha = CollapsingTitleFade.expanded(collapsedFraction()) }
                 )
             }
         }
@@ -218,7 +227,7 @@ private fun LargerTopAppBar(
                 // M3 also draws this slot in the bar's collapsed top row (fading in late), still
                 // in our large style: a ghost behind the regular bar's centred title. Fading the
                 // large title out early hides that copy as well.
-                titleAlpha = CollapsingTitleFade.expanded(collapsedFraction),
+                titleAlpha = { CollapsingTitleFade.expanded(collapsedFraction()) },
                 extraInfoCard = extraInfoCard,
             )
         },
@@ -231,7 +240,7 @@ private fun LargerTopAppBar(
                     // Lines up with the title's start inset.
                     modifier = Modifier
                         .padding(start = Spacing.smd)
-                        .graphicsLayer { alpha = CollapsingTitleFade.expanded(collapsedFraction) }
+                        .graphicsLayer { alpha = CollapsingTitleFade.expanded(collapsedFraction()) }
                 )
             }
         },
@@ -317,7 +326,7 @@ private fun TitleForLargeTopAppBar(
     isHomeScreen: Boolean,
     morphState: TopAppBarState,
     titleMaxLines: Int = 1,
-    titleAlpha: Float = 1f,
+    titleAlpha: () -> Float = { 1f },
     extraInfoCard: @Composable () -> Unit = {},
 ) {
     Column(
@@ -339,7 +348,7 @@ private fun TitleForLargeTopAppBar(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .graphicsLayer { alpha = titleAlpha }
+                        .graphicsLayer { alpha = titleAlpha() }
                 ) {
                     if (overline != null) {
                         Text(
@@ -381,11 +390,13 @@ private fun RegularTopAppBar(
     userName: String = "",
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
-    collapsedFraction: Float,
+    collapsedFraction: () -> Float,
     morphState: TopAppBarState?,
 ) {
+    // Recomposes only when the bar crosses the threshold, not on every scroll frame.
+    val visible by remember(collapsedFraction) { derivedStateOf { collapsedFraction() > 0.01f } }
     BlurredAnimatedVisibility(
-        visible = collapsedFraction > 0.01f,
+        visible = visible,
         enter = pwFadeIn(),
         exit = pwFadeOut()
     ) {
@@ -404,7 +415,11 @@ private fun RegularTopAppBar(
         }
         val barModifier = modifier
             .fillMaxWidth()
-            .alpha(collapsedFraction)
+            .graphicsLayer {
+                val a = collapsedFraction()
+                alpha = a
+                clip = a != 1f
+            }
             .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.statusBars)
 
@@ -437,7 +452,7 @@ private fun RegularTopAppBar(
             // claimed an action button while rendering none ended up with the
             // title visibly off to the right.
             // Shows only once the large title has faded out, so the two never overlap.
-            val titleModifier = Modifier.graphicsLayer { alpha = CollapsingTitleFade.collapsed(collapsedFraction) }
+            val titleModifier = Modifier.graphicsLayer { alpha = CollapsingTitleFade.collapsed(collapsedFraction()) }
             val barTitle: @Composable () -> Unit = {
                 Text(
                     text = title,

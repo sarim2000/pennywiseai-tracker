@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.domain.goals.GoalTone
 import com.pennywiseai.tracker.domain.goals.tone
 import com.pennywiseai.tracker.ui.components.shortLine
 import com.pennywiseai.tracker.ui.components.statusLine
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import io.mockk.every
 import io.mockk.mockk
@@ -162,8 +163,8 @@ class GoalWidgetDataTest {
         assertEquals(listOf(GoalTone.NEUTRAL, GoalTone.WARNING, GoalTone.SUCCESS, GoalTone.ERROR), goals.map { it.shownTone(hidden = false) })
 
         for (goal in goals) {
-            assertEquals(HIDDEN_AMOUNT, goal.shownLine(short = false, hidden = true))
-            assertEquals(HIDDEN_AMOUNT, goal.shownLine(short = true, hidden = true))
+            assertEquals(AmountPrivacy.MASK, goal.shownLine(short = false, hidden = true))
+            assertEquals(AmountPrivacy.MASK, goal.shownLine(short = true, hidden = true))
             assertEquals(GoalTone.NEUTRAL, goal.shownTone(hidden = true))
             assertEquals(goal.line, goal.shownLine(short = false, hidden = false))
             assertEquals(goal.shortLine, goal.shownLine(short = true, hidden = false))

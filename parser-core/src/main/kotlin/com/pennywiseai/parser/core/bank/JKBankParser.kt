@@ -33,15 +33,7 @@ class JKBankParser : BaseIndianBankParser() {
         if (upperSender in jkBankSenders) return true
 
         // DLT patterns (AD-JKBANK-S, etc.)
-        val dltPatterns = listOf(
-            Regex("^[A-Z]{2}-JKBANK.*$"),
-            Regex("^[A-Z]{2}-JKB.*$"),
-            Regex("^[A-Z]{2}-JKBNK.*$"),
-            Regex("^JKBANK-[A-Z]+$"),
-            Regex("^JKB-[A-Z]+$")
-        )
-
-        return dltPatterns.any { it.matches(upperSender) }
+        return DLT_PATTERNS.any { it.matches(upperSender) }
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -63,8 +55,7 @@ class JKBankParser : BaseIndianBankParser() {
     ): String {
         val normalizedAmount = transaction.amount.setScale(2, RoundingMode.HALF_UP)
 
-        // Use the already parsed reference to ensure consistency
-        // This avoids issues where extractJKBankReference might have different patterns than extractReference
+        // Use the already parsed reference to ensure consistency with extractReference
         val reference = transaction.reference
         val transactionTime = extractTransactionTime(smsBody)
 
@@ -73,93 +64,57 @@ class JKBankParser : BaseIndianBankParser() {
             // BEST CASE: Amount + UTR/Ref + Transaction Time
             // This uniquely identifies the transaction even if SMS is sent multiple times
             reference != null && transactionTime != null -> {
-                "JKBANK|${normalizedAmount}|REF:${reference}|TIME:${transactionTime}"
+                "JKBANK|$normalizedAmount|REF:$reference|TIME:$transactionTime"
             }
 
             // GOOD: Amount + UTR/Ref (unique per transaction)
             reference != null -> {
-                "JKBANK|${normalizedAmount}|REF:${reference}"
+                "JKBANK|$normalizedAmount|REF:$reference"
             }
 
             // GOOD: Amount + Transaction Time + Balance
             // Transaction time helps identify the actual transaction, not SMS time
             transactionTime != null && transaction.balance != null -> {
                 val normalizedBalance = transaction.balance.setScale(2, RoundingMode.HALF_UP)
-                "JKBANK|${normalizedAmount}|TIME:${transactionTime}|BAL:${normalizedBalance}"
+                "JKBANK|$normalizedAmount|TIME:$transactionTime|BAL:$normalizedBalance"
             }
 
             // FALLBACK: Amount + Transaction Time
             transactionTime != null -> {
-                "JKBANK|${normalizedAmount}|TIME:${transactionTime}"
+                "JKBANK|$normalizedAmount|TIME:$transactionTime"
             }
 
             // FALLBACK: Amount + Sender + Closing Balance
             // Balance helps differentiate multiple transactions of same amount
             transaction.balance != null -> {
                 val normalizedBalance = transaction.balance.setScale(2, RoundingMode.HALF_UP)
-                "JKBANK|${normalizedAmount}|${sender}|BAL:${normalizedBalance}"
+                "JKBANK|$normalizedAmount|$sender|BAL:$normalizedBalance"
             }
 
             // LAST RESORT: Original method (Amount + Sender + SMS Timestamp)
             // Only used if no transaction-specific data is available
             else -> {
-                "${sender}|${normalizedAmount}|${transaction.timestamp}"
+                "$sender|$normalizedAmount|${transaction.timestamp}"
             }
         }
 
         return md5Hex(hashData)
     }
 
-    private fun extractJKBankReference(message: String): String? {
-        val patterns = listOf(
-            // RTGS-JAKAH25085024027
-            Regex("""RTGS-([A-Z0-9]+)"""),
-            // NEFT/IMPS references
-            Regex("""NEFT-([A-Z0-9]+)"""),
-            Regex("""IMPS-([A-Z0-9]+)"""),
-            // UTR/TRN numbers
-            Regex("""UTR\s+([A-Z0-9]+)"""),
-            Regex("""TRN\s+([A-Z0-9]+)"""),
-            // CHRGS/RTGS/BWY - unique charge reference
-            Regex("""by\s+(CHRGS/[^.]+)"""),
-            // eTFR/mTFR references
-            Regex("""by\s+(eTFR/[^.]+)"""),
-            Regex("""by\s+(mTFR/\d+/[^.]+)"""),
-            // UPI reference
-            Regex("""UPI\s+Ref[:\s]+(\d+)""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in patterns) {
-            pattern.find(message)?.let { match ->
-                return match.groupValues[1].trim()
-            }
-        }
-
-        return null
-    }
-
     private fun extractTransactionTime(message: String): String? {
         // Extract transaction time from JK Bank messages
         // Pattern: "at 10:43 by" or "on 17-Sep-24 at 10:43"
+        // ("on 17-Sep-24 at 10:43" yields the time, since the time pattern is tried first)
         val patterns = listOf(
             // Time only: "at 10:43"
             Regex("""at\s+(\d{1,2}:\d{2}(?::\d{2})?)""", RegexOption.IGNORE_CASE),
-            // Date and time: "on 17-Sep-24 at 10:43"
-            Regex(
-                """on\s+(\d{1,2}-\w{3}-\d{2,4})\s+at\s+(\d{1,2}:\d{2})""",
-                RegexOption.IGNORE_CASE
-            ),
             // Date only: "on 17-Sep-24"
             Regex("""on\s+(\d{1,2}-\w{3}-\d{2,4})""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in patterns) {
             pattern.find(message)?.let { match ->
-                return when (match.groupValues.size) {
-                    2 -> match.groupValues[1] // Time only
-                    3 -> "${match.groupValues[1]} ${match.groupValues[2]}" // Date and time
-                    else -> null
-                }
+                return match.groupValues[1]
             }
         }
 
@@ -239,7 +194,7 @@ class JKBankParser : BaseIndianBankParser() {
             return when {
                 // Bank charges patterns - return null as these are internal bank charges
                 merchant.contains("CHRGS", ignoreCase = true) ||
-                        merchant.contains("CHARGES", ignoreCase = true) -> null
+                    merchant.contains("CHARGES", ignoreCase = true) -> null
                 // Check for specific institutions
                 merchant.contains(
                     "INDIAN CLEARING CORPO",
@@ -563,5 +518,13 @@ class JKBankParser : BaseIndianBankParser() {
         )
 
         return jkBankTransactionKeywords.any { lowerMessage.contains(it) }
+    }
+
+    private companion object {
+        val DLT_PATTERNS = listOf(
+            Regex("^[A-Z]{2}-JKB.*$"),
+            Regex("^JKBANK-[A-Z]+$"),
+            Regex("^JKB-[A-Z]+$")
+        )
     }
 }

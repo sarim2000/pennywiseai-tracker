@@ -15,13 +15,14 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# --rerun-tasks is required: without it Gradle treats the tests as UP-TO-DATE on
-# repeat runs and skips them, so the generated files would not be rewritten. Only
-# this on-demand regen uses it; the CI staleness guard runs the tests normally.
+# --rerun is required: without it Gradle treats jvmTest as UP-TO-DATE on repeat
+# runs and skips it, so the generated files would not be rewritten. It reruns only
+# this task, so compilation stays incremental. Only this on-demand regen uses it;
+# the CI staleness guard runs the tests normally.
 UPDATE_SUPPORTED_BANKS=true ./gradlew :parser-core:jvmTest \
   --tests "com.pennywiseai.parser.core.SupportedBanksDocTest" \
   --tests "com.pennywiseai.parser.core.BankSamplesDocTest" \
-  --rerun-tasks
+  --rerun
 
 echo "Updated the supported-banks catalogue, the README block, the Play listing"
 echo "coverage claim, and the per-bank parse samples."

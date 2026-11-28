@@ -63,7 +63,6 @@ class PennyWiseApplication : Application(), Configuration.Provider {
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
-    private var isInForeground = false
 
     /**
      * Publicly accessible flag to check if the app is in the foreground.
@@ -248,13 +247,10 @@ class PennyWiseApplication : Application(), Configuration.Provider {
 
         override fun onActivityStarted(activity: Activity) {
             activityReferences++
-            if (!isInForeground) {
+            if (!isAppInForeground) {
                 // App came to foreground
-                isInForeground = true
                 isAppInForeground = true
                 refreshBillingOnce()
-                // Check if app should be locked when returning from background
-                checkAndLockApp()
             }
         }
 
@@ -266,7 +262,6 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             activityReferences--
             if (activityReferences == 0) {
                 // App went to background
-                isInForeground = false
                 isAppInForeground = false
                 // Ends the unlock and starts the lock timeout. A rotation stops
                 // the only activity too, but the user never left.
@@ -282,13 +277,5 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
 
         override fun onActivityDestroyed(activity: Activity) {}
-
-        private fun checkAndLockApp() {
-            applicationScope.launch {
-                // The AppLockRepository will determine if app should be locked
-                // based on timeout settings
-                // The lock state will be observed by the AppLockViewModel
-            }
-        }
     }
 }

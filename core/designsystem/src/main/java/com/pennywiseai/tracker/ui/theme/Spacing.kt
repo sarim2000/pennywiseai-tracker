@@ -62,9 +62,6 @@ object Spacing {
          */
         val groupedListGap = 2.dp
 
-        /** Inset for content nested inside an already-padded card. */
-        val nestedContent = 12.dp
-
         /** Bottom breathing room so the last row clears the nav bar / FABs. */
         val scrollBottomPadding = 24.dp
     }

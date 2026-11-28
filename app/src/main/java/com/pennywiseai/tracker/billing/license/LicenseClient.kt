@@ -11,6 +11,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -88,7 +89,7 @@ class LicenseClient @Inject constructor() {
         client.post("$BASE_URL/licenses/deactivate") {
             contentType(ContentType.Application.Json)
             setBody(DeactivateRequest(key, instanceId))
-        }.status.isSuccessCode()
+        }.status.isSuccess()
     } catch (e: Exception) {
         false
     }
@@ -106,13 +107,11 @@ class LicenseClient @Inject constructor() {
             client.post(BuildConfig.LICENSE_MOVE_URL) {
                 contentType(ContentType.Application.Json)
                 setBody(MoveRequest(key, email))
-            }.status.isSuccessCode()
+            }.status.isSuccess()
         } catch (e: Exception) {
             false
         }
     }
-
-    private fun HttpStatusCode.isSuccessCode() = value in 200..299
 
     @Serializable private data class ActivateRequest(val license_key: String, val name: String)
     @Serializable private data class ValidateRequest(val license_key: String, val license_key_instance_id: String?)

@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.domain.model.AccountType
@@ -30,7 +31,6 @@ import javax.inject.Inject
 data class ManageAccountsUiState(
     val accounts: List<AccountBalanceEntity> = emptyList(),
     val hiddenAccounts: Set<String> = emptySet(),
-    val balanceHistory: List<AccountBalanceEntity> = emptyList(),
     val linkedCards: Map<String, List<CardEntity>> = emptyMap(), // accountLast4 -> List of cards
     // (bankName, last4) of accounts whose balance was never set from a real figure (#982).
     val unanchoredAccounts: Set<Pair<String, String>> = emptySet(),
@@ -70,7 +70,7 @@ class ManageAccountsViewModel @Inject constructor(
     private val database: com.pennywiseai.tracker.data.database.PennyWiseDatabase,
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
-    private val ignoredAccountsStore: com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
 ) : ViewModel() {
     private val bankAccountMerges = BankAccountMergeStore(context)
 
@@ -97,35 +97,18 @@ class ManageAccountsViewModel @Inject constructor(
     private var baseCurrency: String = "INR"
 
     init {
-        // Once, not in loadAccounts(): that runs again after edits and would stack collectors.
+        // Room flows: each collector re-emits after every write, so edits never reload them.
         viewModelScope.launch {
             accountBalanceRepository.getUnanchoredAccounts()
                 .collect { keys -> _uiState.update { it.copy(unanchoredAccounts = keys) } }
         }
-        loadAccounts()
-        loadHiddenAccounts()
-        loadCards()
-        viewModelScope.launch {
-            baseCurrency = userPreferencesRepository.baseCurrency.first()
-            // Seed the (still-empty) add form with the base currency.
-            _formState.update { if (it.bankName.isBlank()) it.copy(currency = baseCurrency) else it }
-        }
-    }
-
-    fun updateCurrency(currency: String) {
-        _formState.update { it.copy(currency = currency) }
-    }
-
-    private fun loadAccounts() {
         viewModelScope.launch {
             accountBalanceRepository.getAllLatestBalances()
                 .collect { accounts ->
                     _uiState.update { it.copy(accounts = accounts) }
                 }
         }
-    }
-
-    private fun loadCards() {
+        loadHiddenAccounts()
         viewModelScope.launch {
             cardRepository.getAllCards().collect { allCards ->
                 // Group cards by linked account
@@ -152,6 +135,15 @@ class ManageAccountsViewModel @Inject constructor(
                 }
             }
         }
+        viewModelScope.launch {
+            baseCurrency = userPreferencesRepository.baseCurrency.first()
+            // Seed the (still-empty) add form with the base currency.
+            _formState.update { if (it.bankName.isBlank()) it.copy(currency = baseCurrency) else it }
+        }
+    }
+
+    fun updateCurrency(currency: String) {
+        _formState.update { it.copy(currency = currency) }
     }
 
     private fun loadHiddenAccounts() {
@@ -302,7 +294,7 @@ class ManageAccountsViewModel @Inject constructor(
     }
 
     fun toggleAccountVisibility(bankName: String, accountLast4: String) {
-        val key = com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore.keyFor(bankName, accountLast4)
+        val key = IgnoredAccountsStore.keyFor(bankName, accountLast4)
         val hidden = _uiState.value.hiddenAccounts.toMutableSet()
 
         if (hidden.contains(key)) {
@@ -318,46 +310,8 @@ class ManageAccountsViewModel @Inject constructor(
     }
 
     fun isAccountHidden(bankName: String, accountLast4: String): Boolean {
-        val key = "${bankName}_$accountLast4"
+        val key = IgnoredAccountsStore.keyFor(bankName, accountLast4)
         return _uiState.value.hiddenAccounts.contains(key)
-    }
-
-    fun clearError() {
-        _formState.update { it.copy(errorMessage = null) }
-        _uiState.update { it.copy(errorMessage = null) }
-    }
-
-    fun loadBalanceHistory(bankName: String, accountLast4: String) {
-        viewModelScope.launch {
-            val history = accountBalanceRepository.getBalanceHistoryForAccount(bankName, accountLast4)
-            _uiState.update { it.copy(balanceHistory = history) }
-        }
-    }
-
-    fun deleteBalanceRecord(id: Long, bankName: String, accountLast4: String) {
-        viewModelScope.launch {
-            // Check if this is the only record
-            val count = accountBalanceRepository.getBalanceCountForAccount(bankName, accountLast4)
-            if (count > 1) {
-                accountBalanceRepository.deleteBalanceById(id)
-                // Reload history and accounts
-                loadBalanceHistory(bankName, accountLast4)
-                loadAccounts()
-            }
-        }
-    }
-
-    fun updateBalanceRecord(id: Long, newBalance: BigDecimal, bankName: String, accountLast4: String) {
-        viewModelScope.launch {
-            accountBalanceRepository.updateBalanceById(id, newBalance)
-            // Reload history and accounts
-            loadBalanceHistory(bankName, accountLast4)
-            loadAccounts()
-        }
-    }
-
-    fun clearBalanceHistory() {
-        _uiState.update { it.copy(balanceHistory = emptyList()) }
     }
 
     fun linkCardToAccount(cardId: Long, accountLast4: String) {
@@ -401,9 +355,6 @@ class ManageAccountsViewModel @Inject constructor(
                 // Clear message after delay
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
-
-                loadCards() // Reload cards to update UI
-                loadAccounts() // Reload accounts to show new balance
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to link card", e)
                 _uiState.update {
@@ -416,7 +367,6 @@ class ManageAccountsViewModel @Inject constructor(
     fun unlinkCard(cardId: Long) {
         viewModelScope.launch {
             cardRepository.unlinkCard(cardId)
-            loadCards() // Reload cards to update UI
         }
     }
 
@@ -430,21 +380,12 @@ class ManageAccountsViewModel @Inject constructor(
                 // Clear message after delay
                 delay(2000)
                 _uiState.update { it.copy(successMessage = null) }
-
-                loadCards() // Reload cards to update UI
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to delete card", e)
                 _uiState.update {
                     it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_delete_card_failed, listOf("${e.message}")))
                 }
             }
-        }
-    }
-
-    fun setCardActive(cardId: Long, isActive: Boolean) {
-        viewModelScope.launch {
-            cardRepository.setCardActive(cardId, isActive)
-            loadCards() // Reload cards to update UI
         }
     }
 
@@ -488,7 +429,6 @@ class ManageAccountsViewModel @Inject constructor(
                 _uiState.update { it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_card_updated)) }
                 delay(2000)
                 _uiState.update { it.copy(successMessage = null) }
-                loadCards()
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to update card", e)
                 _uiState.update {
@@ -515,7 +455,7 @@ class ManageAccountsViewModel @Inject constructor(
                 }
 
                 // Remove from hidden accounts if present
-                val key = "${bankName}_$accountLast4"
+                val key = IgnoredAccountsStore.keyFor(bankName, accountLast4)
                 val hidden = _uiState.value.hiddenAccounts.toMutableSet()
                 hidden.remove(key)
                 ignoredAccountsStore.replaceAll(hidden)
@@ -530,8 +470,6 @@ class ManageAccountsViewModel @Inject constructor(
                 // Clear message after delay
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
-
-                loadCards() // Reload cards to update UI
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_delete_account_failed, listOf("${e.message}")))
@@ -647,7 +585,7 @@ class ManageAccountsViewModel @Inject constructor(
                 }
 
                 // Clear any "hidden" preference for the now-gone source.
-                val key = "${source.bankName}_${source.accountLast4}"
+                val key = IgnoredAccountsStore.keyFor(source.bankName, source.accountLast4)
                 val hidden = _uiState.value.hiddenAccounts.toMutableSet()
                 if (hidden.remove(key)) {
                     ignoredAccountsStore.replaceAll(hidden)
@@ -664,7 +602,6 @@ class ManageAccountsViewModel @Inject constructor(
                         showSupportNudge = it.showSupportNudge || nudge
                     )
                 }
-                loadCards()
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
             } catch (e: Exception) {
@@ -771,8 +708,8 @@ class ManageAccountsViewModel @Inject constructor(
                     }
 
                     // Update hidden accounts preference if bank name changed
-                    val oldKey = "${oldBankName}_$accountLast4"
-                    val newKey = "${newBankName}_$accountLast4"
+                    val oldKey = IgnoredAccountsStore.keyFor(oldBankName, accountLast4)
+                    val newKey = IgnoredAccountsStore.keyFor(newBankName, accountLast4)
                     val hidden = _uiState.value.hiddenAccounts.toMutableSet()
                     if (hidden.contains(oldKey)) {
                         hidden.remove(oldKey)

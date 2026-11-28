@@ -21,7 +21,7 @@ class BPCEParser : BankParser() {
         }
 
         return lowerMessage.contains("virement instantané") ||
-                super.isTransactionMessage(message)
+            super.isTransactionMessage(message)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -69,9 +69,5 @@ class BPCEParser : BankParser() {
         }
 
         return super.extractMerchant(message, sender)
-    }
-
-    override fun extractAccountLast4(message: String): String? {
-        return super.extractAccountLast4(message)
     }
 }

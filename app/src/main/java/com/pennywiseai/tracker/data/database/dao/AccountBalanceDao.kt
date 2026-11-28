@@ -170,39 +170,6 @@ interface AccountBalanceDao {
     """)
     suspend fun deleteRebuildableBalances()
 
-    @Query("""
-        SELECT DISTINCT ab1.*
-        FROM account_balances ab1
-        INNER JOIN (
-            SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
-            FROM account_balances
-            WHERE strftime('%Y-%m', timestamp/1000, 'unixepoch') = strftime('%Y-%m', 'now')
-            GROUP BY bank_name, account_last4
-        ) ab2
-        ON ab1.bank_name = ab2.bank_name
-        AND ab1.account_last4 = ab2.account_last4
-        AND ab1.timestamp = ab2.max_timestamp
-        ORDER BY ab1.balance DESC
-    """)
-    fun getCurrentMonthLatestBalances(): Flow<List<AccountBalanceEntity>>
-
-    @Query("""
-        SELECT SUM(balance) as total FROM (
-            SELECT DISTINCT 
-                ab1.balance
-            FROM account_balances ab1
-            INNER JOIN (
-                SELECT bank_name, account_last4, MAX(timestamp) as max_timestamp
-                FROM account_balances
-                GROUP BY bank_name, account_last4
-            ) ab2 
-            ON ab1.bank_name = ab2.bank_name 
-            AND ab1.account_last4 = ab2.account_last4 
-            AND ab1.timestamp = ab2.max_timestamp
-        )
-    """)
-    fun getTotalBalance(): Flow<BigDecimal?>
-
     @Transaction
     @Query("""
         SELECT * FROM account_balances
@@ -216,17 +183,6 @@ interface AccountBalanceDao {
         startDate: LocalDateTime,
         endDate: LocalDateTime
     ): Flow<List<AccountBalanceEntity>>
-
-    @Query("""
-        SELECT COUNT(DISTINCT bank_name || account_last4) FROM account_balances
-    """)
-    fun getAccountCount(): Flow<Int>
-
-    // Never prune OPENING anchors — they carry an intentionally early timestamp (so
-    // they never win "latest"), which would otherwise make them the prime target of a
-    // timestamp-cutoff delete and silently break the derived manual-balance model.
-    @Query("DELETE FROM account_balances WHERE timestamp < :beforeDate AND (source_type IS NULL OR source_type != 'OPENING')")
-    suspend fun deleteOldBalances(beforeDate: LocalDateTime): Int
 
     @Update
     suspend fun updateBalance(balance: AccountBalanceEntity)
@@ -255,14 +211,6 @@ interface AccountBalanceDao {
     @Query("""SELECT COUNT(*) FROM account_balances
         WHERE bank_name = :bankName AND account_last4 = :accountLast4""")
     suspend fun getBalanceCountForAccount(bankName: String, accountLast4: String): Int
-
-    @Transaction
-    @Query("""
-        SELECT * FROM account_balances
-        WHERE timestamp >= :startDate
-        ORDER BY timestamp ASC
-    """)
-    fun getBalancesFromDate(startDate: LocalDateTime): Flow<List<AccountBalanceEntity>>
 
     @Query("DELETE FROM account_balances WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun deleteAccount(bankName: String, accountLast4: String): Int

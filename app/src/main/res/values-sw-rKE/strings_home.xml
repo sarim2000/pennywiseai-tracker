@@ -110,7 +110,6 @@
     <string name="sms_scan_failed">Skani imeshindwa. Tafadhali jaribu tena.</string>
     <string name="sms_scan_cancelled">Skani imesitishwa</string>
     <string name="sms_scan_starting">Inaanza kuskani...</string>
-    <string name="sms_scan_indicator">Inaskani SMS: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
     <string name="duration_hours_minutes">saa %1$d dk %2$d</string>
     <string name="duration_minutes_seconds">dk %1$d sek %2$d</string>

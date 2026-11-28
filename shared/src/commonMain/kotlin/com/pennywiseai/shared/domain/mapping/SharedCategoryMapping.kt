@@ -2,25 +2,6 @@ package com.pennywiseai.shared.domain.mapping
 
 object SharedCategoryMapping {
 
-    // --- helpers ---
-    private fun matches(
-        merchantRaw: String,
-        anyOf: Set<String>,
-        noneOf: Set<String> = emptySet()
-    ): Boolean {
-        val m = merchantRaw.lowercase()
-        if (noneOf.any { m.contains(it) }) return false
-
-        return anyOf.any { keyword ->
-            if (!keyword.contains(" ")) {
-                val regex = "\\b${keyword.replace(".", "\\.")}\\b".toRegex()
-                regex.containsMatchIn(m)
-            } else {
-                m.contains(keyword)
-            }
-        }
-    }
-
     // --- keyword sets (single source of truth) ---
     private val FOOD = setOf(
         "swiggy",
@@ -882,7 +863,22 @@ object SharedCategoryMapping {
         val categoryName: String,
         val includes: Set<String>,
         val excludes: Set<String> = emptySet()
-    )
+    ) {
+        // Built once: single words match on word boundaries, phrases as substrings.
+        private val includeMatchers: List<(String) -> Boolean> = includes.map { keyword ->
+            if (!keyword.contains(" ")) {
+                val regex = "\\b${keyword.replace(".", "\\.")}\\b".toRegex()
+                return@map { m: String -> regex.containsMatchIn(m) }
+            }
+            return@map { m: String -> m.contains(keyword) }
+        }
+
+        /** [merchantLower] must already be lowercased. */
+        fun matches(merchantLower: String): Boolean {
+            if (excludes.any { merchantLower.contains(it) }) return false
+            return includeMatchers.any { it(merchantLower) }
+        }
+    }
 
     private val RULES: List<Rule> = listOf(
         Rule("Tax", TAX),
@@ -911,7 +907,7 @@ object SharedCategoryMapping {
     fun getCategory(merchantName: String): String {
         val merchantLower = merchantName.lowercase()
         for (rule in RULES) {
-            if (matches(merchantLower, rule.includes, rule.excludes)) {
+            if (rule.matches(merchantLower)) {
                 return rule.categoryName
             }
         }

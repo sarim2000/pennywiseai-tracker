@@ -90,22 +90,6 @@ class BudgetCycleTest {
     }
 
     @Test
-    fun `currentCycleStartYearMonth returns September for startDay 25 today Oct 5`() {
-        val today = LocalDate.of(2026, 10, 5)
-        val ym = BudgetCycle.currentCycleStartYearMonth(today, startDay = 25)
-
-        assertEquals(YearMonth.of(2026, 9), ym)
-    }
-
-    @Test
-    fun `currentCycleStartYearMonth returns October for startDay 25 today Oct 26`() {
-        val today = LocalDate.of(2026, 10, 26)
-        val ym = BudgetCycle.currentCycleStartYearMonth(today, startDay = 25)
-
-        assertEquals(YearMonth.of(2026, 10), ym)
-    }
-
-    @Test
     fun `clampStartDay clamps 0 to 1 and 32 to 31, preserving LAST_WORKING_DAY`() {
         assertEquals(1, BudgetCycle.clampStartDay(0))
         assertEquals(31, BudgetCycle.clampStartDay(32))
@@ -248,7 +232,7 @@ class BudgetCycleTest {
     }
 
     @Test
-    fun `LAST_WORKING_DAY previousCycle and nextCycle tile seamlessly`() {
+    fun `LAST_WORKING_DAY previousCycle tiles seamlessly`() {
         val current = BudgetCycle.currentCycle(LocalDate.of(2026, 10, 30), BudgetCycle.LAST_WORKING_DAY, locale = Locale.US)
         assertEquals(LocalDate.of(2026, 10, 30), current.first)
         assertEquals(LocalDate.of(2026, 11, 29), current.second)
@@ -256,24 +240,6 @@ class BudgetCycleTest {
         val (prevStart, prevEnd) = BudgetCycle.previousCycle(current, BudgetCycle.LAST_WORKING_DAY, locale = Locale.US)
         assertEquals(LocalDate.of(2026, 9, 30), prevStart)
         assertEquals(LocalDate.of(2026, 10, 29), prevEnd)
-
-        val (nextStart, nextEnd) = BudgetCycle.nextCycle(current, BudgetCycle.LAST_WORKING_DAY, locale = Locale.US)
-        assertEquals(LocalDate.of(2026, 11, 30), nextStart)
-        // Dec 31, 2026 is Thursday (last working day of Dec), so Nov cycle ends Dec 30
-        assertEquals(LocalDate.of(2026, 12, 30), nextEnd)
-    }
-
-    @Test
-    fun `LAST_WORKING_DAY currentCycleStartYearMonth resolves accurately`() {
-        val us = Locale.US
-        // Oct 15 is before Oct 30 -> started in Sep 2026
-        assertEquals(YearMonth.of(2026, 9), BudgetCycle.currentCycleStartYearMonth(LocalDate.of(2026, 10, 15), BudgetCycle.LAST_WORKING_DAY, us))
-
-        // Oct 30 is on last working day -> started in Oct 2026
-        assertEquals(YearMonth.of(2026, 10), BudgetCycle.currentCycleStartYearMonth(LocalDate.of(2026, 10, 30), BudgetCycle.LAST_WORKING_DAY, us))
-
-        // Oct 31 is after last working day -> started in Oct 2026
-        assertEquals(YearMonth.of(2026, 10), BudgetCycle.currentCycleStartYearMonth(LocalDate.of(2026, 10, 31), BudgetCycle.LAST_WORKING_DAY, us))
     }
 
     @Test

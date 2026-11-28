@@ -34,9 +34,6 @@ private class FakeCategoryRepository(
 
     override fun observeCategories(): Flow<List<SharedCategory>> = flowOf(emptyList())
 
-    override fun observeCategoriesByIncomeType(isIncome: Boolean): Flow<List<SharedCategory>> =
-        flowOf(emptyList())
-
     override suspend fun countCategories(): Int = startCount
 
     override suspend fun insertCategories(categories: List<SharedCategory>) {

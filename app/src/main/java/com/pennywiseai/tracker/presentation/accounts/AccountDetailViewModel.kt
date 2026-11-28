@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
-import com.pennywiseai.tracker.data.currency.CurrencyConversionService.TransactionData
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
@@ -193,22 +192,6 @@ class AccountDetailViewModel @Inject constructor(
                     }
                 }
         }
-
-        viewModelScope.launch {
-            selectedDateRange.flatMapLatest { dateRange ->
-                val (startDate, endDate) = getDateRangeValues(dateRange)
-                accountBalanceRepository.getBalanceHistory(
-                    bankName,
-                    accountLast4,
-                    startDate,
-                    endDate
-                )
-            }.collect { balanceHistory ->
-                _uiState.update { state ->
-                    state.copy(balanceHistory = balanceHistory)
-                }
-            }
-        }
     }
 
     private fun observeBalanceChartData() {
@@ -318,7 +301,6 @@ data class AccountDetailUiState(
     val bankName: String = "",
     val accountLast4: String = "",
     val currentBalance: AccountBalanceEntity? = null,
-    val balanceHistory: List<AccountBalanceEntity> = emptyList(),
     val balanceChartData: List<BalancePoint> = emptyList(),
     val transactions: List<TransactionEntity> = emptyList(),
     val totalIncome: BigDecimal = BigDecimal.ZERO,

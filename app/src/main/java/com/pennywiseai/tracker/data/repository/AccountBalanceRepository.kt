@@ -118,15 +118,6 @@ open class AccountBalanceRepository @Inject constructor(
         }
     }
 
-    /**
-     * Resolves an account when only the last-4 digits are known — used by the
-     * TRANSFER balance-update path where `from_account` / `to_account` only
-     * persist the last4. See AccountBalanceDao.getLatestBalanceByLast4.
-     */
-    suspend fun getLatestBalanceByLast4(accountLast4: String): AccountBalanceEntity? {
-        return accountBalanceDao.getLatestBalanceByLast4(accountLast4)
-    }
-
     fun getLatestBalanceFlow(bankName: String, accountLast4: String): Flow<AccountBalanceEntity?> {
         return accountBalanceDao.getLatestBalanceFlow(bankName, accountLast4)
     }
@@ -139,10 +130,6 @@ open class AccountBalanceRepository @Inject constructor(
     fun getUnanchoredAccounts(): Flow<Set<Pair<String, String>>> =
         accountBalanceDao.getBalanceSourceRows().map(BalanceCalculator::unanchoredAccounts)
 
-    fun getTotalBalance(): Flow<BigDecimal?> {
-        return accountBalanceDao.getTotalBalance()
-    }
-
     fun getBalanceHistory(
         bankName: String,
         accountLast4: String,
@@ -150,22 +137,6 @@ open class AccountBalanceRepository @Inject constructor(
         endDate: LocalDateTime
     ): Flow<List<AccountBalanceEntity>> {
         return accountBalanceDao.getBalanceHistory(bankName, accountLast4, startDate, endDate)
-    }
-
-    fun getAccountCount(): Flow<Int> {
-        return accountBalanceDao.getAccountCount()
-    }
-
-    suspend fun deleteOldBalances(beforeDate: LocalDateTime): Int {
-        return accountBalanceDao.deleteOldBalances(beforeDate)
-    }
-
-    suspend fun updateBalance(balance: AccountBalanceEntity) {
-        accountBalanceDao.updateBalance(balance)
-    }
-
-    suspend fun deleteBalance(balance: AccountBalanceEntity) {
-        accountBalanceDao.deleteBalance(balance)
     }
 
     /**
@@ -285,10 +256,6 @@ open class AccountBalanceRepository @Inject constructor(
             }
         }
 
-    fun getBalancesFromDate(startDate: LocalDateTime): Flow<List<AccountBalanceEntity>> {
-        return accountBalanceDao.getBalancesFromDate(startDate)
-    }
-
     suspend fun deleteAccount(bankName: String, accountLast4: String): Int {
         return accountBalanceDao.deleteAccount(bankName, accountLast4)
     }
@@ -310,10 +277,6 @@ open class AccountBalanceRepository @Inject constructor(
 
     suspend fun updateStatementDay(bankName: String, accountLast4: String, statementDay: Int?): Int {
         return accountBalanceDao.updateStatementDay(bankName, accountLast4, statementDay)
-    }
-
-    suspend fun deleteAllBalances() {
-        accountBalanceDao.deleteAllBalances()
     }
 
     /** See [AccountBalanceDao.deleteRebuildableBalances]. */
@@ -433,10 +396,6 @@ open class AccountBalanceRepository @Inject constructor(
     /** Lets a check that reads the alert flag run after the resets queued before it. */
     suspend fun awaitLowBalanceRearms() {
         rearmJobs.toList().joinAll()
-    }
-
-    suspend fun updateAccountCurrency(bankName: String, accountLast4: String, currency: String): Int {
-        return accountBalanceDao.updateAccountCurrency(bankName, accountLast4, currency)
     }
 
     /**

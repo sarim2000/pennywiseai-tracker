@@ -110,7 +110,6 @@
     <string name="sms_scan_failed">El escaneo falló. Inténtalo de nuevo.</string>
     <string name="sms_scan_cancelled">Escaneo cancelado</string>
     <string name="sms_scan_starting">Iniciando escaneo…</string>
-    <string name="sms_scan_indicator">Escaneando SMS: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
     <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <string name="duration_minutes_seconds">%1$d min %2$d s</string>

@@ -22,7 +22,7 @@ class TamilnadMercantileBankParser : BaseIndianBankParser() {
     override fun getBankName() = "Tamilnad Mercantile Bank"
 
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s_-]"""), "").contains("TMBANK")
+        sender.uppercase().replace(SENDER_SEPARATOR, "").contains("TMBANK")
 
     override fun extractTransactionType(message: String): TransactionType? {
         val lower = message.lowercase()
@@ -63,4 +63,8 @@ class TamilnadMercantileBankParser : BaseIndianBankParser() {
         Regex("""AVBL\s+bal\s+is\s+Rs\.?\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
             .find(message)?.groupValues?.get(1)?.replace(",", "")?.toBigDecimalOrNull()
             ?: super.extractBalance(message)
+
+    private companion object {
+        val SENDER_SEPARATOR = Regex("""[\s_-]""")
+    }
 }

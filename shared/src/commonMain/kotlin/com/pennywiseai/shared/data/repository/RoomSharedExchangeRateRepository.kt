@@ -8,8 +8,4 @@ class RoomSharedExchangeRateRepository(
     private val dao: SharedExchangeRateDao
 ) : SharedExchangeRateRepository {
     override fun observeAll(): Flow<List<SharedExchangeRateEntity>> = dao.observeAll()
-    override suspend fun getRate(fromCurrency: String, toCurrency: String): SharedExchangeRateEntity? =
-        dao.getRate(fromCurrency, toCurrency)
-
-    override suspend fun upsert(rate: SharedExchangeRateEntity): Long = dao.upsert(rate)
 }

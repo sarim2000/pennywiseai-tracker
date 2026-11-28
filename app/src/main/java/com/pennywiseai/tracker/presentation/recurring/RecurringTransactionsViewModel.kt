@@ -9,8 +9,8 @@ import com.pennywiseai.tracker.data.database.entity.RecurringFrequency
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.RecurringTransactionRepository
-import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +26,7 @@ import javax.inject.Inject
 @HiltViewModel
 class RecurringTransactionsViewModel @Inject constructor(
     private val repository: RecurringTransactionRepository,
-    getCategoriesUseCase: GetCategoriesUseCase,
+    categoryRepository: CategoryRepository,
     userPreferencesRepository: CurrencyPreferences,
     entitlementGate: EntitlementGate
 ) : ViewModel() {
@@ -49,7 +49,7 @@ class RecurringTransactionsViewModel @Inject constructor(
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val categories: StateFlow<List<CategoryEntity>> =
-        getCategoriesUseCase.execute()
+        categoryRepository.getAllCategories()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val baseCurrency: StateFlow<String> =

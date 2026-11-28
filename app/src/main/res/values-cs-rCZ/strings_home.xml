@@ -118,7 +118,6 @@
     <string name="sms_scan_failed">Skenování se nezdařilo. Zkuste to prosím znovu.</string>
     <string name="sms_scan_cancelled">Skenování zrušeno</string>
     <string name="sms_scan_starting">Spouštění skenování...</string>
-    <string name="sms_scan_indicator">Skenování SMS: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
     <string name="duration_hours_minutes">%1$dh %2$dm</string>
     <string name="duration_minutes_seconds">%1$dm %2$ds</string>

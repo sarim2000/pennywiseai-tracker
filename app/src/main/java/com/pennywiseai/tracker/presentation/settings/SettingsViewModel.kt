@@ -14,7 +14,6 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.core.Constants
-import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.core.DateFormatStyle
 import com.pennywiseai.tracker.core.NumberFormatStyle
 import com.pennywiseai.tracker.data.backup.BackupExporter
@@ -32,13 +31,11 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.domain.usecase.DeleteAllTransactionsUseCase
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
-import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -46,7 +43,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -57,12 +53,10 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.IOException
-import java.net.URLEncoder
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -71,7 +65,6 @@ class SettingsViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val modelRepository: ModelRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     private val transactionRepository: TransactionRepository,
     private val deleteAllTransactionsUseCase: DeleteAllTransactionsUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
@@ -280,14 +273,6 @@ class SettingsViewModel @Inject constructor(
             initialValue = null
         )
 
-    // Unrecognized SMS state
-    val unreportedSmsCount = unrecognizedSmsRepository.getUnreportedCount()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 0
-        )
-
     private var watchingModelStatus = false
 
     /**
@@ -326,12 +311,7 @@ class SettingsViewModel @Inject constructor(
                         _downloadedMB.value = _totalMB.value
                     }
                     // Cancelled elsewhere (e.g. from Chat) while this screen was alive.
-                    m == ModelState.NOT_DOWNLOADED && _downloadState.value == DownloadState.DOWNLOADING -> {
-                        _downloadState.value = DownloadState.NOT_DOWNLOADED
-                        _downloadProgress.value = 0
-                        _downloadedMB.value = 0
-                        _totalMB.value = 0
-                    }
+                    m == ModelState.NOT_DOWNLOADED && _downloadState.value == DownloadState.DOWNLOADING -> resetDownload()
                 }
             }
         }
@@ -358,7 +338,7 @@ class SettingsViewModel @Inject constructor(
         // a deleted (hash-invalid) model shows NOT_DOWNLOADED rather than a stale COMPLETED.
         if (modelRepository.isModelDownloaded()) {
             _downloadState.value = DownloadState.COMPLETED
-            _totalMB.value = modelFile.length() / (1024 * 1024)
+            _totalMB.value = modelFile.length() / BYTES_PER_MB
             _downloadedMB.value = _totalMB.value
             _downloadProgress.value = 100
         } else {
@@ -371,6 +351,10 @@ class SettingsViewModel @Inject constructor(
 
     fun cancelDownload() {
         modelDownloader.cancel()
+        resetDownload()
+    }
+
+    private fun resetDownload() {
         _downloadState.value = DownloadState.NOT_DOWNLOADED
         _downloadProgress.value = 0
         _downloadedMB.value = 0
@@ -382,10 +366,7 @@ class SettingsViewModel @Inject constructor(
             val modelFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
             if (modelFile.exists()) {
                 modelFile.delete()
-                _downloadState.value = DownloadState.NOT_DOWNLOADED
-                _downloadProgress.value = 0
-                _downloadedMB.value = 0
-                _totalMB.value = 0
+                resetDownload()
                 // Clear any saved download ID
                 userPreferencesRepository.clearActiveDownloadId()
                 // Update model repository state
@@ -572,32 +553,6 @@ class SettingsViewModel @Inject constructor(
             userPreferencesRepository.updateSmsScanAllTime(false)
             userPreferencesRepository.updateSmsScanUseCustomDate(true)
             userPreferencesRepository.updateSmsScanCustomDate(normalizedDate)
-        }
-    }
-
-    fun openUnrecognizedSmsReport(context: Context) {
-        viewModelScope.launch {
-            try {
-                val firstUnreported = unrecognizedSmsRepository.getFirstUnreported()
-
-                if (firstUnreported != null) {
-                    val url = SmsReportUrlBuilder.buildUrl(context, firstUnreported.smsBody, firstUnreported.sender)
-                    Log.d("SettingsViewModel", "Full URL length: ${url.length}")
-
-                    // Open in browser
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                    context.startActivity(intent)
-
-                    // Mark as reported
-                    unrecognizedSmsRepository.markAsReported(listOf(firstUnreported.id))
-
-                    Log.d("SettingsViewModel", "Opened report for unrecognized SMS from: ${firstUnreported.sender}")
-                } else {
-                    Log.d("SettingsViewModel", "No unreported SMS messages found")
-                }
-            } catch (e: Exception) {
-                Log.e("SettingsViewModel", "Error opening unrecognized SMS report", e)
-            }
         }
     }
 
@@ -1097,7 +1052,6 @@ data class BackupPassphrasePrompt(val uri: Uri, val wrongPassphrase: Boolean = f
 enum class DownloadState {
     NOT_DOWNLOADED,
     DOWNLOADING,
-    PAUSED,
     COMPLETED,
     FAILED,
     ERROR_INSUFFICIENT_SPACE

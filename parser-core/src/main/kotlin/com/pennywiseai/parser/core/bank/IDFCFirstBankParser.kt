@@ -24,8 +24,8 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("IDFCBK") ||
-                normalizedSender.contains("IDFCFB") ||
-                normalizedSender.contains("IDFC")
+            normalizedSender.contains("IDFCFB") ||
+            normalizedSender.contains("IDFC")
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -84,7 +84,7 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
         currencySpentPattern.find(message)?.let { match ->
             val currency = match.groupValues[1].uppercase()
             // Validate: 3 letters, not month abbreviations
-            if (!currency.matches(Regex("^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$"))) {
+            if (!currency.matches(MONTH_ABBREVIATION)) {
                 return currency
             }
         }
@@ -137,20 +137,7 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
 
         // Skip bill reminders and due date notifications
         if (lowerMessage.contains("reminder") ||
-            lowerMessage.contains("is due on") ||
-            lowerMessage.contains("bill of rs") && lowerMessage.contains("due")
-        ) {
-            return false
-        }
-
-        // Skip payment request messages (common across banks)
-        if (lowerMessage.contains("has requested") ||
-            lowerMessage.contains("payment request") ||
-            lowerMessage.contains("collect request") ||
-            lowerMessage.contains("requesting payment") ||
-            lowerMessage.contains("requests rs") ||
-            lowerMessage.contains("ignore if paid") ||
-            lowerMessage.contains("ignore if already paid")
+            (lowerMessage.contains("bill of rs") && lowerMessage.contains("due"))
         ) {
             return false
         }
@@ -361,5 +348,9 @@ class IDFCFirstBankParser : BaseIndianBankParser() {
         }
 
         return super.extractReference(message)
+    }
+
+    private companion object {
+        val MONTH_ABBREVIATION = Regex("^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$")
     }
 }

@@ -18,7 +18,7 @@ class SafwaIslamicBankParser : BankParser() {
     override fun getCurrency() = "JOD"
 
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s\-_]"""), "") == "SAFWABANK"
+        sender.uppercase().replace(SENDER_SEPARATOR, "") == "SAFWABANK"
 
     private val pattern = Regex(
         """^(.+?)\s*بمبلغ\s+([\d,]+(?:\.\d+)?)\s+دينار(?:\s+[اأ]ردني)?\s+الرصيد\s+المتوفر\s+(-?[\d,]+(?:\.\d+)?)"""
@@ -48,5 +48,9 @@ class SafwaIslamicBankParser : BankParser() {
             // (the app's numberless-account path), or the balance would never be saved.
             isMobileWallet = true
         )
+    }
+
+    private companion object {
+        val SENDER_SEPARATOR = Regex("""[\s\-_]""")
     }
 }

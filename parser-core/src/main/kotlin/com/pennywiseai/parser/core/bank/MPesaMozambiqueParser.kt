@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
@@ -38,7 +39,7 @@ class MPesaMozambiqueParser : BankParser() {
         val normalizedSender = sender.uppercase()
         // M-Pesa Mozambique uses the same sender ID; differentiation is by content.
         return normalizedSender.contains("MPESA") ||
-                normalizedSender.contains("M-PESA")
+            normalizedSender.contains("M-PESA")
     }
 
     /**
@@ -54,7 +55,7 @@ class MPesaMozambiqueParser : BankParser() {
 
     private fun isMozambiqueMessage(message: String): Boolean {
         return message.contains("Confirmado", ignoreCase = true) &&
-                message.contains("MT", ignoreCase = false)
+            message.contains("MT", ignoreCase = false)
     }
 
     private fun parseAmount(raw: String): BigDecimal? {
@@ -194,9 +195,9 @@ class MPesaMozambiqueParser : BankParser() {
 
     override fun cleanMerchantName(merchant: String): String {
         return merchant
-            .replace(Regex("""\s*\(.*?\)\s*$"""), "")  // Remove trailing parentheses
+            .replace(CompiledPatterns.Cleaning.TRAILING_PARENTHESES, "")  // Remove trailing parentheses
             .replace(Regex("""\.\s*$"""), "")            // Remove trailing period
-            .replace(Regex("""\s*-\s*$"""), "")          // Remove trailing dash
+            .replace(CompiledPatterns.Cleaning.TRAILING_DASH, "")  // Remove trailing dash
             .trim()
     }
 }

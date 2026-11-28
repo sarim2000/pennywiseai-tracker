@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.domain.usecase
 
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState

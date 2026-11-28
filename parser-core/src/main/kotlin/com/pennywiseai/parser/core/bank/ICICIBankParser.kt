@@ -132,7 +132,7 @@ class ICICIBankParser : BaseIndianBankParser() {
             val currency = match.groupValues[1].uppercase()
             // Validate it's a valid currency code (3 letters, not month abbreviations)
             if (currency.length == 3 &&
-                !currency.matches(Regex("^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$"))
+                !currency.matches(MONTH_ABBREVIATION)
             ) {
                 return currency
             }
@@ -146,19 +146,7 @@ class ICICIBankParser : BaseIndianBankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        return normalizedSender.contains("ICICI") ||
-            normalizedSender.contains("ICICIB") ||
-            // DLT patterns for transactions (-S suffix)
-            normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB-S$")) ||
-            normalizedSender.matches(Regex("^[A-Z]{2}-ICICI-S$")) ||
-            // Other DLT patterns
-            normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB-[TPG]$")) ||
-            // Legacy patterns
-            normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB$")) ||
-            normalizedSender.matches(Regex("^[A-Z]{2}-ICICI$")) ||
-            // Direct sender IDs
-            normalizedSender == "ICICIB" ||
-            normalizedSender == "ICICIBANK"
+        return normalizedSender.contains("ICICI")
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -594,29 +582,12 @@ class ICICIBankParser : BaseIndianBankParser() {
 
         val lowerMessage = message.lowercase()
 
-        // Skip SMS BLOCK instructions (not a transaction)
-        if (lowerMessage.contains("sms block") && lowerMessage.contains("to 9215676766")) {
-            // This is just instruction text at the end of transaction messages
-            // Don't skip the entire message, just ignore this part
-        }
-
         // Skip cash deposit confirmation messages (these are duplicates)
         // We only want to process the actual credit notification
         if (lowerMessage.contains("cash deposit transaction") &&
             lowerMessage.contains("has been completed")
         ) {
             return false // Skip this confirmation message
-        }
-
-        // Skip payment due reminders
-        if (lowerMessage.contains("is due by")) {
-            return false // Skip payment due reminders
-        }
-
-        // Skip future debit notifications - these are not actual transactions yet
-        // Examples: "will be debited on", "will be debited with", "account will be debited"
-        if (lowerMessage.contains("will be debited")) {
-            return false // This is a future debit notification, not an actual transaction
         }
 
         // Skip credit card bill payment confirmations - these are transfers between own accounts
@@ -673,5 +644,9 @@ class ICICIBankParser : BaseIndianBankParser() {
 
         // Fall back to base class for standard checks
         return super.extractTransactionType(message)
+    }
+
+    private companion object {
+        val MONTH_ABBREVIATION = Regex("^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$")
     }
 }

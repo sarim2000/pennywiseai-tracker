@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Subscriptions screen: "Suggested" section listing payments that repeat in the user's history but aren't tracked yet -->
-    <string name="subscriptions_suggested_section">Suggested</string>
-    <string name="subscriptions_suggested_hint">Payments that repeat in your history. Not counted until you track them.</string>
     <!-- %1$d: total number of suggestions -->
     <string name="subscriptions_suggested_show_all">Show all (%1$d)</string>
     <string name="subscriptions_suggested_show_less">Show less</string>
@@ -15,7 +13,6 @@
     </plurals>
     <!-- Amount range of a bill whose amount changes. %1$s lowest amount, %2$s highest amount, both with currency -->
     <string name="subscription_suggestion_amount_range">%1$s–%2$s</string>
-    <string name="subscription_suggestion_varies">Amount varies</string>
     <string name="subscription_suggestion_review">Review</string>
     <string name="subscription_suggestion_not_recurring">Not recurring</string>
 

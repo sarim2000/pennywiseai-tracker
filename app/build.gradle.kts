@@ -11,12 +11,19 @@ plugins {
     alias(libs.plugins.dependency.analysis)
 }
 
+// Empty when local.properties is missing (CI/CD builds)
+val localPropertiesFile = rootProject.file("local.properties")
+val localProperties = Properties().apply {
+    localPropertiesFile.takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+
 android {
     namespace = "com.pennywiseai.tracker"
     compileSdk = 37
 
     buildFeatures {
         buildConfig = true
+        compose = true
     }
 
     defaultConfig {
@@ -28,34 +35,20 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Load RSA public key from local.properties
-        val localPropertiesFile = rootProject.file("local.properties")
-        if (localPropertiesFile.exists()) {
-            val localProperties = Properties()
-            localProperties.load(localPropertiesFile.inputStream())
-
-            val rsaPublicKey = localProperties.getProperty("RSA_PUBLIC_KEY", "")
-            buildConfigField("String", "RSA_PUBLIC_KEY", "\"$rsaPublicKey\"")
-            // Cloudflare Worker that frees a license key's activation so it
-            // can move to a new phone. Empty = "Move to this device" hidden.
-            val licenseMoveUrl = localProperties.getProperty("LICENSE_MOVE_URL", "")
-            buildConfigField("String", "LICENSE_MOVE_URL", "\"$licenseMoveUrl\"")
-        } else {
-            // Fallback empty key for CI/CD builds
-            buildConfigField("String", "RSA_PUBLIC_KEY", "\"\"")
-            buildConfigField("String", "LICENSE_MOVE_URL", "\"\"")
-        }
+        // RSA public key from local.properties (empty for CI/CD builds)
+        val rsaPublicKey = localProperties.getProperty("RSA_PUBLIC_KEY", "")
+        buildConfigField("String", "RSA_PUBLIC_KEY", "\"$rsaPublicKey\"")
+        // Cloudflare Worker that frees a license key's activation so it
+        // can move to a new phone. Empty = "Move to this device" hidden.
+        val licenseMoveUrl = localProperties.getProperty("LICENSE_MOVE_URL", "")
+        buildConfigField("String", "LICENSE_MOVE_URL", "\"$licenseMoveUrl\"")
     }
 
     signingConfigs {
         // Only create signing config for non-F-Droid builds
         if (!gradle.startParameter.taskNames.any { it.contains("fdroid", ignoreCase = true) }) {
-            val localPropertiesFile = rootProject.file("local.properties")
             if (localPropertiesFile.exists()) {
                 create("release") {
-                    val localProperties = Properties()
-                    localProperties.load(localPropertiesFile.inputStream())
-
                     val keystorePath = localProperties.getProperty("RELEASE_STORE_FILE", "")
                     if (keystorePath.isNotEmpty()) {
                         storeFile = file(keystorePath)
@@ -124,17 +117,9 @@ android {
                 "proguard-rules.pro"
             )
 
-            // Only apply signing config to standard flavor
-            for (flavor in productFlavors) {
-                if (flavor.name == "standard") {
-                    // Check if release signing config exists
-                    val releaseSigningConfig = signingConfigs.findByName("release")
-                    // Only use release signing if keystore is configured
-                    if (releaseSigningConfig != null && releaseSigningConfig.storeFile != null) {
-                        signingConfig = releaseSigningConfig
-                    }
-                }
-            }
+            // Use release signing only if a keystore is configured (signingConfigs
+            // above skips creating it for F-Droid builds)
+            signingConfigs.findByName("release")?.takeIf { it.storeFile != null }?.let { signingConfig = it }
 
             // Include debug symbols for native crashes
             ndk {
@@ -162,9 +147,6 @@ android {
                 "org/bouncycastle/**",
             )
         }
-    }
-    buildFeatures {
-        compose = true
     }
 
     testOptions {
@@ -255,17 +237,18 @@ tasks.register<Copy>("copyChangelog") {
 
 android.sourceSets["main"].assets.directories.add(generatedAssetsDir.get().asFile.path)
 
-tasks.matching { it.name.startsWith("merge") && it.name.contains("Assets") }.configureEach {
+// named { } filters by name alone, so unlike matching { } it doesn't realize every task.
+tasks.named { it.startsWith("merge") && it.contains("Assets") }.configureEach {
     dependsOn("copyChangelog")
 }
 
 // Dependency Analysis (buildHealth) reads the asset sources too.
-tasks.matching { it.name.startsWith("explodeAssetSource") }.configureEach {
+tasks.named { it.startsWith("explodeAssetSource") }.configureEach {
     dependsOn("copyChangelog")
 }
 
 // Lint tasks also need to depend on copyChangelog since they analyze generated assets
-tasks.matching { it.name.contains("lint") || it.name.contains("Lint") }.configureEach {
+tasks.named { it.contains("lint") || it.contains("Lint") }.configureEach {
     dependsOn("copyChangelog")
 }
 

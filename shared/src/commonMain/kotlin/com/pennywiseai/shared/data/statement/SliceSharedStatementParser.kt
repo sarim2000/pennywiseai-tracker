@@ -35,6 +35,7 @@ class SliceSharedStatementParser : SharedStatementParser {
             Regex("""(\d{6,})\s+(-?)₹([\d,]+(?:\.\d{1,2})?)(?!\d)\s+₹([\d,]+(?:\.\d{1,2})?)(?!\d)\s*$""")
 
         private val accountNumberPattern = Regex("""A/C number\s+(\d{6,})""")
+        private val whitespacePattern = Regex("""\s+""")
 
         // IFSC-shaped token inside a UPI descriptor (AAAA0XXXXXX).
         private val ifscPattern = Regex("""^[A-Z]{4}0[A-Z0-9]{6}$""")
@@ -126,7 +127,7 @@ class SliceSharedStatementParser : SharedStatementParser {
 
         val details = block
             .substring(start.range.last + 1, tail.range.first)
-            .replace(Regex("""\s+"""), " ")
+            .replace(whitespacePattern, " ")
             .trim()
         if (details.isEmpty()) return null
 

@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
@@ -63,10 +64,10 @@ class MPesaTanzaniaParser : BankParser() {
         val normalizedSender = sender.uppercase()
         // M-Pesa Tanzania uses same sender IDs as Kenya; differentiation is by content.
         return normalizedSender.contains("MPESA") ||
-                normalizedSender.contains("M-PESA") ||
-                normalizedSender == "MPESA" ||
-                normalizedSender == "M-PESA" ||
-                normalizedSender.contains("VODACOM")
+            normalizedSender.contains("M-PESA") ||
+            normalizedSender == "MPESA" ||
+            normalizedSender == "M-PESA" ||
+            normalizedSender.contains("VODACOM")
     }
 
     /**
@@ -323,14 +324,14 @@ class MPesaTanzaniaParser : BankParser() {
      */
     private fun cleanTzMerchant(raw: String): String {
         return raw
-            .replace(Regex("""\s*\(.*?\)\s*$"""), "")           // trailing parentheses
+            .replace(CompiledPatterns.Cleaning.TRAILING_PARENTHESES, "")  // trailing parentheses
             .replace(Regex("""\s+on\s+\d.*""", RegexOption.IGNORE_CASE), "")   // date suffix
             .replace(Regex("""\s+tarehe\s+\d.*""", RegexOption.IGNORE_CASE), "") // Swahili date suffix
             .replace(Regex("""\s+for\s+account.*""", RegexOption.IGNORE_CASE), "")
             .replace(Regex("""\s+Total\s+fee.*""", RegexOption.IGNORE_CASE), "")
             .replace(Regex("""\s*,.*$"""), "")                  // trailing comma clause
             .replace(Regex("""\.\s*$"""), "")                   // trailing period
-            .replace(Regex("""\s*-\s*$"""), "")                 // trailing dash
+            .replace(CompiledPatterns.Cleaning.TRAILING_DASH, "")  // trailing dash
             .trim()
     }
 }

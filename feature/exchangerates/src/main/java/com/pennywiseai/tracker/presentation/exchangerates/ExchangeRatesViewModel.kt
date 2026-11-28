@@ -1,9 +1,9 @@
 package com.pennywiseai.tracker.presentation.exchangerates
 
-import com.pennywiseai.feature.exchangerates.R
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.feature.exchangerates.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -87,34 +87,31 @@ class ExchangeRatesViewModel @Inject constructor(
     }
 
     fun setCustomRate(fromCurrency: String, toCurrency: String, rate: BigDecimal) {
-        viewModelScope.launch {
-            try {
-                exchangeRatesData.setCustomRate(fromCurrency, toCurrency, rate)
-                loadRates()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = R.string.exchange_rates_error_set_custom) }
-            }
+        mutate(R.string.exchange_rates_error_set_custom) {
+            exchangeRatesData.setCustomRate(fromCurrency, toCurrency, rate)
         }
     }
 
     fun clearCustomRate(fromCurrency: String, toCurrency: String) {
-        viewModelScope.launch {
-            try {
-                exchangeRatesData.clearCustomRate(fromCurrency, toCurrency)
-                loadRates()
-            } catch (e: Exception) {
-                _uiState.update { it.copy(error = R.string.exchange_rates_error_clear_custom) }
-            }
+        mutate(R.string.exchange_rates_error_clear_custom) {
+            exchangeRatesData.clearCustomRate(fromCurrency, toCurrency)
         }
     }
 
     fun clearAllCustomRates() {
+        mutate(R.string.exchange_rates_error_clear_all_custom) {
+            exchangeRatesData.clearAllCustomRates()
+        }
+    }
+
+    /** Runs [action], then reloads the rates; a failure shows [error] instead. */
+    private fun mutate(@StringRes error: Int, action: suspend () -> Unit) {
         viewModelScope.launch {
             try {
-                exchangeRatesData.clearAllCustomRates()
+                action()
                 loadRates()
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = R.string.exchange_rates_error_clear_all_custom) }
+                _uiState.update { it.copy(error = error) }
             }
         }
     }

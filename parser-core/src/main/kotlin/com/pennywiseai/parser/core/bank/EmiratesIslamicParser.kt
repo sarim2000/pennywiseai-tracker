@@ -26,10 +26,10 @@ class EmiratesIslamicParser : UAEBankParser() {
         // Sender is "EI SMS"; normalize by uppercasing and stripping spaces.
         // Match the exact "EISMS" token and the full bank name, but never a bare
         // two-letter "EI" substring (far too broad; would steal other banks' SMS).
-        val normalizedSender = sender.uppercase().replace(Regex("\\s+"), "")
+        val normalizedSender = sender.uppercase().replace(WHITESPACE, "")
         return normalizedSender == "EISMS" ||
-                normalizedSender == "EMIRATESISLAMIC" ||
-                normalizedSender == "EMIRATESISLAMICBANK"
+            normalizedSender == "EMIRATESISLAMIC" ||
+            normalizedSender == "EMIRATESISLAMICBANK"
     }
 
     override fun isTransactionMessage(message: String): Boolean {
@@ -145,5 +145,9 @@ class EmiratesIslamicParser : UAEBankParser() {
         }
 
         return super.extractBalance(message)
+    }
+
+    private companion object {
+        val WHITESPACE = Regex("\\s+")
     }
 }

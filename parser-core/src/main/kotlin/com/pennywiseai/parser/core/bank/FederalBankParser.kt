@@ -26,16 +26,7 @@ class FederalBankParser : BaseIndianBankParser() {
             normalizedSender.contains("FEDERAL") ||
             normalizedSender.contains("FEDFIB") ||
             normalizedSender.contains("FEDSMS") ||
-            normalizedSender.contains("FEDSCP") ||
-            // DLT patterns for transactions (-S suffix)
-            normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK-S$")) ||
-            normalizedSender.matches(Regex("^[A-Z]{2}-FEDSCP-S$")) ||
-            // FedFiB patterns
-            normalizedSender.matches(Regex("^[A-Z]{2}-FedFiB-[A-Z]$")) ||
-            // Other DLT patterns
-            normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK-[TPG]$")) ||
-            // Legacy patterns
-            normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK$"))
+            normalizedSender.contains("FEDSCP")
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -636,11 +627,6 @@ class FederalBankParser : BaseIndianBankParser() {
 
     override fun extractReference(message: String): String? {
         return super.extractReference(message)?.takeIf { ref -> ref.any(Char::isDigit) }
-    }
-
-    override fun extractBalance(message: String): BigDecimal? {
-        // Don't extract credit limit as balance
-        return super.extractBalance(message)
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

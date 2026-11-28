@@ -10,7 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -256,22 +255,7 @@ class CurrencyConversionService @Inject constructor(
             currencies.forEach { fromCurrency ->
                 currencies.forEach { toCurrency ->
                     if (fromCurrency != toCurrency) {
-                        val rate = if (fromCurrency == apiBaseCurrency) {
-                            allRates[toCurrency]
-                        } else if (toCurrency == apiBaseCurrency) {
-                            allRates[fromCurrency]?.let { fromRate ->
-                                BigDecimal.ONE.divide(fromRate, MathContext(10))
-                            }
-                        } else {
-                            // Cross-currency conversion: fromCurrency -> USD -> toCurrency
-                            val fromToUsd = allRates[fromCurrency]
-                            val usdToTo = allRates[toCurrency]
-                            if (fromToUsd != null && usdToTo != null) {
-                                usdToTo.divide(fromToUsd, MathContext(10))
-                            } else {
-                                null
-                            }
-                        }
+                        val rate = rateViaUsd(allRates, fromCurrency, toCurrency)
 
                         if (rate != null) {
                             // Skip overwriting custom rates set by user
@@ -311,11 +295,20 @@ class CurrencyConversionService @Inject constructor(
         maxOf(nextUpdateTimeUnix, (System.currentTimeMillis() + TimeConstants.MILLIS_PER_HOUR) / 1000)
 
     /**
-     * Get the base currency for the app
+     * The [from] → [to] rate from a USD-based [rates] table: direct when either
+     * side is USD, otherwise crossed through USD. Null when a side is missing.
      */
-    private suspend fun getBaseCurrency(): String {
-        return userPreferencesRepository.baseCurrency.first() ?: "INR"
-    }
+    private fun rateViaUsd(rates: Map<String, BigDecimal>, from: String, to: String): BigDecimal? =
+        if (from == "USD") {
+            rates[to]
+        } else if (to == "USD") {
+            rates[from]?.let { fromRate -> BigDecimal.ONE.divide(fromRate, MathContext(10)) }
+        } else {
+            // Cross-currency: from -> USD -> to
+            val fromToUsd = rates[from]
+            val usdToTo = rates[to]
+            if (fromToUsd != null && usdToTo != null) usdToTo.divide(fromToUsd, MathContext(10)) else null
+        }
 
     /**
      * Non-fetching lookup: the rate from the in-memory cache (if valid) or a fresh
@@ -378,22 +371,7 @@ class CurrencyConversionService @Inject constructor(
                 )
 
                 // Calculate the rate we need
-                val rate = if (fromCurrency == baseCurrency) {
-                    allRates[toCurrency]
-                } else if (toCurrency == baseCurrency) {
-                    allRates[fromCurrency]?.let { fromRate ->
-                        BigDecimal.ONE.divide(fromRate, MathContext(10))
-                    }
-                } else {
-                    // Cross-currency: fromCurrency -> USD -> toCurrency
-                    val fromToUsd = allRates[fromCurrency]
-                    val usdToTo = allRates[toCurrency]
-                    if (fromToUsd != null && usdToTo != null) {
-                        usdToTo.divide(fromToUsd, MathContext(10))
-                    } else {
-                        null
-                    }
-                }
+                val rate = rateViaUsd(allRates, fromCurrency, toCurrency)
 
                 if (rate != null) {
                     val entity = ExchangeRateEntity(
@@ -465,24 +443,6 @@ class CurrencyConversionService @Inject constructor(
     }
 
     /**
-     * Get information about rate freshness for debugging
-     */
-    suspend fun getRateFreshnessInfo(): RateFreshnessInfo {
-        val currentTime = LocalDateTime.now()
-        val usdRates = exchangeRateDao.getExchangeRatesForCurrency("USD", currentTime)
-        val latestRate = exchangeRateDao.getLatestRate()
-
-        return RateFreshnessInfo(
-            hasValidUsdRates = usdRates.isNotEmpty(),
-            validUsdRatesCount = usdRates.size,
-            latestUpdateTime = latestRate?.updatedAt,
-            latestExpiryTime = usdRates.map { it.expiresAt }.maxOrNull(),
-            isStale = areOverallRatesStale(),
-            currentTime = currentTime
-        )
-    }
-
-    /**
      * Update cache with new rate. rateCache is a ConcurrentHashMap and
      * lastCacheUpdate is @Volatile, so this is safe from concurrent callers
      * without taking fetchMutex (which is reserved for fetch serialization;
@@ -500,42 +460,6 @@ class CurrencyConversionService @Inject constructor(
      */
     private fun isCacheValid(): Boolean {
         return lastCacheUpdate.isAfter(LocalDateTime.now().minusHours(1))
-    }
-
-    /**
-     * Clear expired rates from database
-     */
-    suspend fun cleanupExpiredRates() {
-        val expiryTime = LocalDateTime.now().minusDays(7) // Keep rates for 7 days
-        exchangeRateDao.deleteExpiredRates(expiryTime)
-    }
-
-    /**
-     * Get all available currencies with exchange rates
-     */
-    suspend fun getAvailableCurrencies(): List<String> {
-        return exchangeRateDao.getAvailableCurrencies()
-    }
-
-    /**
-     * Convert multiple amounts to base currency
-     */
-    suspend fun convertToBaseCurrency(
-        transactions: List<TransactionData>,
-        baseCurrency: String
-    ): Map<String, BigDecimal> {
-        val convertedAmounts = mutableMapOf<String, BigDecimal>()
-
-        transactions.forEach { transaction ->
-            val convertedAmount = convertAmount(
-                amount = transaction.amount,
-                fromCurrency = transaction.currency,
-                toCurrency = baseCurrency
-            )
-            convertedAmounts[transaction.id] = convertedAmount
-        }
-
-        return convertedAmounts
     }
 
     /**
@@ -596,19 +520,4 @@ class CurrencyConversionService @Inject constructor(
     fun getAllRatesFlow(): Flow<List<ExchangeRateEntity>> {
         return exchangeRateDao.getAllRatesFlow()
     }
-
-    data class TransactionData(
-        val id: String,
-        val amount: BigDecimal,
-        val currency: String
-    )
-
-    data class RateFreshnessInfo(
-        val hasValidUsdRates: Boolean,
-        val validUsdRatesCount: Int,
-        val latestUpdateTime: LocalDateTime?,
-        val latestExpiryTime: LocalDateTime?,
-        val isStale: Boolean,
-        val currentTime: LocalDateTime
-    )
 }

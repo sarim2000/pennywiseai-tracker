@@ -12,7 +12,6 @@ import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
-import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -377,8 +376,6 @@ object AiToolLogic {
             else -> throw IllegalArgumentException("apply_to_past must be none, uncategorized or all.")
         }
     }
-
-    private fun money(m: Money) = money(m.amount, m.currency)
 
     private fun money(amount: BigDecimal, currency: String) = buildJsonObject {
         put("amount", amount.setScale(MinorUnits.digits(currency), RoundingMode.HALF_UP).toPlainString())

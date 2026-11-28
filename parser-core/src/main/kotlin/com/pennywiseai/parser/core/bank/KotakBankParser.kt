@@ -17,14 +17,10 @@ class KotakBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
 
-        // DLT patterns for Kotak Bank — covers KOTAKB, KOTAKD, and similar variants
-        if (normalizedSender.matches(Regex("^[A-Z]{2}-KOTAK[A-Z]-[ST]$"))) {
-            return true
-        }
-
         // RCS senders arrive with a decoded display name (e.g. "Kotak",
         // "Kotak Mahindra Bank", "Kotak811") instead of the DLT header, so match
-        // any sender that contains the brand token.
+        // any sender that contains the brand token. This also covers the DLT
+        // headers (KOTAKB, KOTAKD, and similar variants).
         return normalizedSender.contains("KOTAK")
     }
 

@@ -8,14 +8,12 @@ import com.pennywiseai.shared.data.model.SharedTransaction
 import com.pennywiseai.shared.data.model.SharedTransactionType
 import com.pennywiseai.shared.data.statement.SharedStatementImportResult
 import com.pennywiseai.shared.data.util.currentTimeMillis
-import com.pennywiseai.shared.data.util.monthStartEpochMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillisIST
-import com.pennywiseai.shared.domain.money.CurrencyConverter
-import com.pennywiseai.shared.domain.money.MinorUnits
-import com.pennywiseai.shared.domain.money.MoneyTotals
 import com.pennywiseai.shared.domain.chat.ChatAssistant
 import com.pennywiseai.shared.domain.chat.ChatToolResult
 import com.pennywiseai.shared.domain.chat.PendingChatAction
+import com.pennywiseai.shared.domain.money.CurrencyConverter
+import com.pennywiseai.shared.domain.money.MoneyTotals
 import com.pennywiseai.shared.domain.usecase.AiSmsReading
 import com.pennywiseai.shared.domain.usecase.BankSmsImportResult
 import com.pennywiseai.shared.domain.usecase.CreateManualTransactionUseCase
@@ -105,7 +103,6 @@ data class SharedSubscriptionItem(
 data class SharedHomeSnapshot(
     val categories: List<String>,
     val recentTransactions: List<SharedRecentTransactionItem>,
-    val recentTransactionSummaries: List<String>,
     val transactionCount: Int,
     val subscriptionCount: Int,
     val budgetCount: Int,
@@ -132,8 +129,7 @@ data class SharedRecentTransactionItem(
     val occurredAtEpochMillis: Long,
     val note: String?,
     val bankName: String?,
-    val accountLast4: String?,
-    val summary: String
+    val accountLast4: String?
 )
 
 class PennyWiseSharedFacade {
@@ -275,28 +271,6 @@ class PennyWiseSharedFacade {
         }
     }
 
-    fun updateExpenseAndLoadHome(
-        transactionId: Long,
-        merchantName: String,
-        category: String,
-        amountMinor: Long,
-        note: String? = null,
-        currency: String = "INR"
-    ): SharedHomeSnapshot = safeSnapshot {
-        updateTransactionAndLoadHome(
-            transactionId = transactionId,
-            merchantName = merchantName,
-            category = category,
-            amountMinor = amountMinor,
-            note = note,
-            currency = currency,
-            transactionType = "EXPENSE",
-            occurredAtEpochMillis = com.pennywiseai.shared.data.util.currentTimeMillis(),
-            bankName = null,
-            accountLast4 = null
-        )
-    }
-
     fun updateTransactionAndLoadHome(
         transactionId: Long,
         merchantName: String,
@@ -335,15 +309,6 @@ class PennyWiseSharedFacade {
 
     fun importStatementTextAndLoadHome(statementText: String): SharedHomeSnapshot = safeSnapshot {
         runBlocking {
-            // Debug: parse and print first 3 transactions with timestamps
-            val debugParser = com.pennywiseai.shared.data.statement.SharedStatementParserFactory.getParser(statementText)
-            if (debugParser != null) {
-                val debugParsed = debugParser.parse(statementText)
-                debugParsed.take(3).forEachIndexed { i, tx ->
-                    println("[PennyWise DEBUG] Tx #${i + 1}: merchant=${tx.merchant}, amount=${tx.amountMinor}, timestamp=${tx.timestampEpochMillis}, type=${tx.transactionType}, bank=${tx.bankName}")
-                }
-            }
-
             when (val result = importStatementUseCase.importFromText(statementText)) {
                 is SharedStatementImportResult.Success -> {
                     loadHomeSnapshot(
@@ -389,23 +354,6 @@ class PennyWiseSharedFacade {
             }
         } catch (_: Throwable) {
             false
-        }
-    }
-
-    fun searchTransactions(query: String): List<SharedRecentTransactionItem> {
-        return try {
-            runBlocking {
-                val lowerQuery = query.lowercase()
-                graph.transactionRepository.observeTransactions().first()
-                    .filter {
-                        it.merchantName.lowercase().contains(lowerQuery) ||
-                            (it.note?.lowercase()?.contains(lowerQuery) == true) ||
-                            it.category.lowercase().contains(lowerQuery)
-                    }
-                    .map { it.toItem() }
-            }
-        } catch (_: Throwable) {
-            emptyList()
         }
     }
 
@@ -1018,7 +966,6 @@ class PennyWiseSharedFacade {
 
         val monthStart = monthStartEpochMillisIST()
         val thisMonthTxns = transactions.filter { it.occurredAtEpochMillis >= monthStart }
-        println("[HomeSnapshot] monthStart=$monthStart, thisMonthTxnCount=${thisMonthTxns.size}, totalTxns=${transactions.size}")
         // EXPENSE only, matching Android's home breakdown: TRANSFER moves money
         // between the user's own accounts, and INVESTMENT/CREDIT are tracked as
         // their own types.
@@ -1028,7 +975,6 @@ class PennyWiseSharedFacade {
         return SharedHomeSnapshot(
             categories = categories,
             recentTransactions = recentTransactions,
-            recentTransactionSummaries = recentTransactions.map { it.summary },
             transactionCount = transactions.size,
             subscriptionCount = subscriptions.size,
             budgetCount = budgets.size,
@@ -1055,7 +1001,6 @@ class PennyWiseSharedFacade {
             SharedHomeSnapshot(
                 categories = listOf("Others"),
                 recentTransactions = emptyList(),
-                recentTransactionSummaries = emptyList(),
                 transactionCount = 0,
                 subscriptionCount = 0,
                 budgetCount = 0,
@@ -1079,8 +1024,7 @@ class PennyWiseSharedFacade {
             occurredAtEpochMillis = occurredAtEpochMillis,
             note = note,
             bankName = bankName,
-            accountLast4 = accountLast4,
-            summary = "$merchantName - $category - $currency ${MinorUnits.toPlain(amountMinor, currency)}"
+            accountLast4 = accountLast4
         )
 
     private fun com.pennywiseai.shared.data.local.entity.SharedAccountBalanceEntity.toAccountItem() =

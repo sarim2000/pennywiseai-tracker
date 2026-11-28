@@ -156,10 +156,7 @@
     <string name="manage_accounts_hidden_badge">Игнорируется</string>
     <string name="manage_accounts_business_badge">Бизнес</string>
     <string name="manage_accounts_outstanding">Непогашенный</string>
-    <string name="manage_accounts_available">Доступно</string>
     <string name="manage_accounts_credit_limit">Кредитный лимит</string>
-    <!-- %1$d = utilization percentage -->
-    <string name="manage_accounts_utilization_used">(%1$d%% использовано)</string>
     <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
     <!-- %1$s = formatted available credit -->
     <!-- Summary cards at the top of Manage Accounts -->
@@ -187,7 +184,6 @@
     <string name="manage_accounts_decrease">Уменьшить</string>
     <string name="manage_accounts_increase">Увеличить</string>
     <string name="manage_accounts_low_balance">Низкий баланс</string>
-    <string name="manage_accounts_balance">Баланс</string>
     <string name="manage_accounts_linked_cards">Привязанные карты</string>
     <string name="manage_accounts_card_inactive">(Неактивно)</string>
     <!-- %1$s = short date -->
@@ -271,8 +267,6 @@
     <string name="loan_detail_record_payment">Запись Оплата</string>
     <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">осталось %1$s</string>
-    <!-- %1$d = percentage repaid -->
-    <string name="loan_detail_percent_repaid">Оплачено %1$d%%</string>
     <string name="loan_detail_history">История</string>
     <string name="loan_detail_settle_title">Заселение займа</string>
     <string name="loan_detail_settle_message">Пометить этот кредит как оплаченный? Любой остаток будет забыт.</string>
@@ -295,23 +289,6 @@
     <string name="loan_detail_enter_amount">Введите сумму</string>
     <string name="loan_detail_amount_label">Сумма</string>
     <string name="loan_detail_add">Добавить</string>
-    <!-- ══ Accounts overview card (home) ══ -->
-    <string name="accounts_overview_title">Обзор счетов</string>
-    <string name="accounts_overview_bank_balance">Баланс банка</string>
-    <string name="accounts_overview_bank_balance_count">Баланс банка • %1$d</string>
-    <string name="accounts_overview_available_credit">Доступные кредиты</string>
-    <string name="accounts_overview_available_credit_count">Доступные кредиты • %1$d</string>
-    <string name="accounts_overview_balance">Баланс</string>
-    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
-    <string name="accounts_overview_used">Используется: %1$s (%2$d%%)</string>
-    <string name="accounts_overview_available_limit">Доступный предел</string>
-    <string name="accounts_overview_show_less">Показать меньше</string>
-    <plurals name="accounts_overview_view_all">
-        <item quantity="one">Посмотреть все %1$d аккаунт</item>
-        <item quantity="few">Просмотр всех аккаунтов %1$d</item>
-        <item quantity="many">Просмотр всех аккаунтов %1$d</item>
-        <item quantity="other">Просмотр всех аккаунтов %1$d</item>
-    </plurals>
     <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
     <!-- Net worth: what you own minus what you owe, per currency -->
 </resources>

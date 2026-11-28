@@ -30,13 +30,14 @@ class StandardCharteredBangladeshParser : BankParser() {
             """^Dear\s+Client,\s*BDT\s+($RAW)\s+was\s+(deposited\s+to|debited\s+from)\s+Acc\.\s+ending\s+[xX*]*([0-9]{4})\s+on\s+$DATE\.\s+Available\s+balance\s+is\s+now\s+BDT\s+($RAW)\.\s+For\s+enquiries,\s+please\s+call\s+[0-9]+\.?\s*$""",
             RegexOption.IGNORE_CASE
         )
+        private val DLT_AFFIXES = Regex("""^[A-Z]{2}-|-[A-Z]$""")
     }
 
     override fun getBankName(): String = "Standard Chartered Bank (Bangladesh)"
     override fun getCurrency(): String = "BDT"
     override fun canHandle(sender: String): Boolean =
         // Strip a DLT-style wrapper ("VM-StanChartBD-S") before the exact match.
-        sender.trim().uppercase().replace(Regex("""^[A-Z]{2}-|-[A-Z]$"""), "")
+        sender.trim().uppercase().replace(DLT_AFFIXES, "")
             .replace(Regex("""[\s_-]"""), "") == "STANCHARTBD"
 
     private fun money(raw: String): BigDecimal? =

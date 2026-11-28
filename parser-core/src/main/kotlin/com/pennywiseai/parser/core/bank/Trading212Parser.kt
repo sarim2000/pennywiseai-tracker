@@ -20,7 +20,7 @@ class Trading212Parser : BankParser() {
     override fun getCurrency() = "GBP"
 
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s_-]"""), "") == "TRADING212"
+        sender.uppercase().replace(SENDER_SEPARATOR, "") == "TRADING212"
 
     private val interestPattern = Regex(
         """earned\s+£\s*([0-9,]+(?:\.\d{1,2})?)\s+interest""",
@@ -43,5 +43,9 @@ class Trading212Parser : BankParser() {
             bankName = getBankName(),
             currency = getCurrency()
         )
+    }
+
+    private companion object {
+        val SENDER_SEPARATOR = Regex("""[\s_-]""")
     }
 }

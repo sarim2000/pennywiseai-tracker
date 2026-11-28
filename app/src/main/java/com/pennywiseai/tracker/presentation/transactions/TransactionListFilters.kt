@@ -9,13 +9,12 @@ import com.pennywiseai.tracker.data.database.entity.countedCategory
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import java.math.BigDecimal
-import java.time.LocalDate
 
 /*
  * The Transactions list's in-memory query steps, as plain functions of their inputs.
  * TransactionsViewModel decides when they run and on which thread, and applies them in this
- * order: categories, type, search, tracked accounts and profile, account, tag, currency, sort,
- * date groups.
+ * order: categories, type, search, tracked accounts and profile, account, tag, currency and
+ * sort.
  */
 
 /**
@@ -190,21 +189,3 @@ internal fun sortTransactions(
         SortOption.MERCHANT_AZ -> transactions.sortedBy { it.merchantName.lowercase() }
         SortOption.MERCHANT_ZA -> transactions.sortedByDescending { it.merchantName.lowercase() }
     }
-
-internal fun groupTransactionsByDate(
-    transactions: List<TransactionEntity>,
-    today: LocalDate = LocalDate.now(),
-): Map<DateGroup, List<TransactionEntity>> {
-    val yesterday = today.minusDays(1)
-    val weekStart = today.minusWeeks(1)
-
-    return transactions.groupBy { transaction ->
-        val transactionDate = transaction.dateTime.toLocalDate()
-        when {
-            transactionDate == today -> DateGroup.TODAY
-            transactionDate == yesterday -> DateGroup.YESTERDAY
-            transactionDate > weekStart -> DateGroup.THIS_WEEK
-            else -> DateGroup.EARLIER
-        }
-    }
-}

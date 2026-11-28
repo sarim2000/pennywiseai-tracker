@@ -15,9 +15,9 @@ class CitiBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "CITI" ||
-                upperSender.contains("CITIBANK") ||
-                upperSender == "692484" ||  // DLT sender ID
-                upperSender.matches(Regex("""^[A-Z]{2}-CITI-[A-Z]$"""))
+            upperSender.contains("CITIBANK") ||
+            upperSender == "692484" ||  // DLT sender ID
+            upperSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -120,5 +120,9 @@ class CitiBankParser : BankParser() {
         }
 
         return super.isTransactionMessage(message)
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("""^[A-Z]{2}-CITI-[A-Z]$""")
     }
 }

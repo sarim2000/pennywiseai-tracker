@@ -130,16 +130,6 @@ class AppLockViewModel @Inject constructor(
     }
 
     /**
-     * Manually lock the app (used when app goes to background)
-     */
-    fun lockApp() {
-        viewModelScope.launch {
-            val shouldLock = appLockRepository.shouldLockApp()
-            _uiState.update { it.copy(isLocked = shouldLock, checks = it.checks + 1) }
-        }
-    }
-
-    /**
      * Refresh lock state (check if app should be locked)
      */
     fun refreshLockState() {

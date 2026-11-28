@@ -4,9 +4,9 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
-import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.widget.WidgetRefresher
@@ -15,14 +15,13 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
 
 data class LoansUiState(
-    val activeLoans: List<LoanEntity> = emptyList(),
-    val settledLoans: List<LoanEntity> = emptyList(),
     /** All loans grouped by person — what the list renders. */
     val people: List<LoanPerson> = emptyList(),
     val totalLentRemaining: BigDecimal = BigDecimal.ZERO,
@@ -52,60 +51,42 @@ class LoansViewModel @Inject constructor(
     private fun loadLoans() {
         viewModelScope.launch {
             combine(
-                loanRepository.getActiveLoans(),
                 loanRepository.getAllLoans(),
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency,
                 userPreferencesRepository.baseCurrency
-            ) { active, all, isUnified, displayCurrency, baseCurrency ->
-                LoanInputs(
-                    activeLoans = active,
-                    allLoans = all,
-                    isUnified = isUnified,
-                    displayCurrency = displayCurrency,
-                    baseCurrency = baseCurrency
-                )
-            }.collect { inputs ->
-                val summaryCurrency = if (inputs.isUnified) inputs.displayCurrency else inputs.baseCurrency
+            ) { all, isUnified, displayCurrency, baseCurrency ->
+                val active = all.filter { it.status == LoanStatus.ACTIVE }
+                val summaryCurrency = if (isUnified) displayCurrency else baseCurrency
 
-                val loanCurrencies = inputs.activeLoans.map { it.currency }.distinct()
-                if (inputs.isUnified && loanCurrencies.size > 1) {
+                val loanCurrencies = active.map { it.currency }.distinct()
+                if (isUnified && loanCurrencies.size > 1) {
                     currencyConversionService.refreshExchangeRatesForAccount((loanCurrencies + summaryCurrency).distinct())
                 }
 
-                val loansForTotals = if (inputs.isUnified) {
-                    inputs.activeLoans
+                val loansForTotals = if (isUnified) {
+                    active
                 } else {
-                    inputs.activeLoans.filter { it.currency.equals(summaryCurrency, ignoreCase = true) }
+                    active.filter { it.currency.equals(summaryCurrency, ignoreCase = true) }
                 }
 
-                val (lent, borrowed) = if (inputs.isUnified) {
+                val (lent, borrowed) = if (isUnified) {
                     computeUnifiedTotals(loansForTotals, summaryCurrency)
                 } else {
                     computeNativeTotals(loansForTotals)
                 }
 
                 _uiState.value = LoansUiState(
-                    activeLoans = inputs.activeLoans,
-                    settledLoans = inputs.allLoans.filter { it.status == LoanStatus.SETTLED },
-                    people = groupLoansByPerson(inputs.allLoans),
+                    people = groupLoansByPerson(all),
                     totalLentRemaining = lent,
                     totalBorrowedRemaining = borrowed,
                     summaryCurrency = summaryCurrency,
                     isLoading = false,
                     showSettledLoans = _uiState.value.showSettledLoans
                 )
-            }
+            }.collect()
         }
     }
-
-    private data class LoanInputs(
-        val activeLoans: List<LoanEntity>,
-        val allLoans: List<LoanEntity>,
-        val isUnified: Boolean,
-        val displayCurrency: String,
-        val baseCurrency: String
-    )
 
     private suspend fun computeUnifiedTotals(
         loans: List<LoanEntity>,

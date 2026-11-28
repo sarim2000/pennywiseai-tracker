@@ -374,15 +374,12 @@ class SmsTransactionProcessor @Inject constructor(
 
             if (card == null) {
                 val isCredit = (parsedTransaction.type.toEntityType() == TransactionType.CREDIT)
-                parsedTransaction.accountLast4?.let { accountLast4 ->
+                card = parsedTransaction.accountLast4?.let { accountLast4 ->
                     cardRepository.findOrCreateCard(
                         cardLast4 = accountLast4,
                         bankName = parsedTransaction.bankName,
                         isCredit = isCredit
                     )
-                }
-                card = parsedTransaction.accountLast4?.let {
-                    cardRepository.getCard(parsedTransaction.bankName, it)
                 }
             }
 

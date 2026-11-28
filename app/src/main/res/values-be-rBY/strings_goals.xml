@@ -19,7 +19,7 @@
     <string name="goals_archived">У архіве</string>
     <string name="goals_due_on">Да %1$s</string>
     <string name="goals_ring_description">Адкладзена %1$d%%</string>
-    <!-- Goal card in the Plan tab. %1$s = target amount, %2$s = due date -->
+    <!-- Goal card in the Plan tab -->
     <!-- %1$s = amount -->
     <plurals name="goals_months_left">
         <item quantity="one">Застаўся %d месяц</item>
@@ -50,9 +50,6 @@
     <string name="goal_edit_save">Захаваць</string>
     <string name="goal_action_cancel">Скасаваць</string>
     <!-- Detail -->
-    <string name="goal_detail_left">Засталося</string>
-    <string name="goal_detail_per_month">У месяц</string>
-    <string name="goal_detail_over">Больш на %1$s</string>
     <string name="goal_detail_history">Паступленні і зняцці</string>
     <string name="goal_detail_history_empty">Пакуль нічога не дададзена. Націсніце «Дадаць грошы», калі нешта адкладзяце.</string>
     <string name="goal_add_money">Дадаць грошы</string>

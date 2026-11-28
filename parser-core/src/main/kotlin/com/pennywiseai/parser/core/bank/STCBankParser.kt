@@ -24,7 +24,7 @@ class STCBankParser : BankParser() {
     override fun getCurrency() = "SAR"
 
     override fun canHandle(sender: String): Boolean {
-        val normalized = sender.uppercase().replace(Regex("[\\s\\-_]"), "")
+        val normalized = sender.uppercase().replace(SENDER_SEPARATOR, "")
         return normalized.contains("STCBANK") || normalized == "STC" || normalized == "STCPAY"
     }
 
@@ -192,5 +192,6 @@ class STCBankParser : BankParser() {
             """(?:online\s+)?purchase\s+transaction\s+amount\s+([0-9][0-9,]*(?:\.\d{1,2})?)\s*(?:SAR|SR)\b""",
             RegexOption.IGNORE_CASE
         )
+        private val SENDER_SEPARATOR = Regex("[\\s\\-_]")
     }
 }

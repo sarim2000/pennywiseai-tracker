@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
@@ -16,77 +17,20 @@ class ADCBParser : FABParser() {
 
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
-        return upperSender == "ADCBALERT" ||
-                upperSender.contains("ADCB") ||
-                upperSender.contains("ADCBANK") ||
-                // DLT patterns for UAE
-                upperSender.matches(Regex("^[A-Z]{2}-ADCB-[A-Z]$"))
+        return upperSender.contains("ADCB")
     }
 
     override fun extractAmount(message: String): BigDecimal? {
         // Try patterns in order of specificity - most transaction-specific first
-        val patterns = listOf(
-            // 1. "was used for CURRENCYamount" - debit card usage (handle both spaced and non-spaced)
-            Regex("""was used for\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-
-            // 2. "used for CURRENCYamount" - debit card usage (shorter version)
-            Regex("""used for\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-
-            // 3. "CURRENCYamount withdrawn from" - ATM withdrawals
-            Regex(
-                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+withdrawn from""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 4. "CURRENCYamount has been deposited via ATM" - ATM deposits
-            Regex(
-                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+has been deposited via ATM""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 5. "CURRENCYamount transferred via" - transfers
-            Regex(
-                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+transferred via""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 6. "Cr. transaction of CURRENCY amount" - credit transactions
-            Regex(
-                """Cr\. transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 7. "Dr. transaction of CURRENCY amount" - debit transactions
-            Regex(
-                """Dr\.?\s*transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 8. "Transaction of CURRENCY amount" - failed transactions
-            Regex(
-                """Transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
-                RegexOption.IGNORE_CASE
-            ),
-
-            // 9. "Amount Paid: CURRENCY amount" - TouchPoints redemption
-            Regex("""Amount Paid:\s*([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in patterns) {
+        for (pattern in ADCB_AMOUNT_PATTERNS) {
             val match = pattern.find(message)
             if (match != null) {
                 val currencyCode = match.groupValues[1].trim()
                 val amountStr = match.groupValues[2].trim()
 
                 // Validate currency code (3 letters, not month names)
-                if (currencyCode.length == 3 &&
-                    currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(
-                        Regex(
-                            """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""",
-                            RegexOption.IGNORE_CASE
-                        )
-                    )
+                if (currencyCode.matches(CompiledPatterns.Currency.ISO_CODE) &&
+                    !isMonthAbbreviation(currencyCode)
                 ) {
                     try {
                         val amount = BigDecimal(amountStr.replace(",", ""))
@@ -113,14 +57,8 @@ class ADCBParser : FABParser() {
                 val currencyCode = match.groupValues[1].trim()
                 val amountStr = match.groupValues[2].trim()
 
-                if (currencyCode.length == 3 &&
-                    currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(
-                        Regex(
-                            """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""",
-                            RegexOption.IGNORE_CASE
-                        )
-                    )
+                if (currencyCode.matches(CompiledPatterns.Currency.ISO_CODE) &&
+                    !isMonthAbbreviation(currencyCode)
                 ) {
                     try {
                         val amount = BigDecimal(amountStr.replace(",", ""))
@@ -145,7 +83,7 @@ class ADCBParser : FABParser() {
     override fun containsCardPurchase(message: String): Boolean {
         // ADCB debit card purchase patterns
         return message.contains("was used for", ignoreCase = true) ||
-                message.contains("used for", ignoreCase = true)
+            message.contains("used for", ignoreCase = true)
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
@@ -368,7 +306,79 @@ class ADCBParser : FABParser() {
         val lowerMessage = message.lowercase()
 
         // Skip non-transaction messages specific to ADCB
-        val adcbNonTransactionKeywords = listOf(
+        if (ADCB_NON_TRANSACTION_KEYWORDS.any { it.containsMatchIn(lowerMessage) }) {
+            return false
+        }
+
+        // ADCB-specific transaction indicators
+        val adcbTransactionKeywords = listOf(
+            "your debit card",
+            "your credit card",
+            "used for",
+            "withdrawn from",
+            "deposited via atm",
+            "transferred via",
+            "cr. transaction",
+            "dr. transaction",
+            "cr.transaction",
+            "dr.transaction",
+            "transaction.*was successful",
+            "touchpoints redemption"
+        )
+
+        if (adcbTransactionKeywords.any { lowerMessage.contains(it) }) {
+            return true
+        }
+
+        // Fallback to FAB's transaction detection
+        return super.isTransactionMessage(message)
+    }
+
+    // Override currency extraction for ADCB's multi-currency support
+    override fun extractCurrency(message: String): String? {
+        // Extract currency from the transaction context, not balance info
+        // Focus on the same contexts as extractAmount to ensure consistency
+
+        // Look for currency codes in transaction-specific contexts
+        for (pattern in ADCB_CURRENCY_PATTERNS) {
+            pattern.find(message)?.let { match ->
+                val currencyCode = match.groupValues[1].uppercase()
+                // Validate it's a 3-letter code (standard ISO currency format) but not month names
+                if (currencyCode.matches(CompiledPatterns.Currency.ISO_CODE) &&
+                    !isMonthAbbreviation(currencyCode)
+                ) {
+                    return currencyCode
+                }
+            }
+        }
+
+        // Fallback: look for currency codes in the transaction part of the message
+        if (containsCardPurchase(message)) {
+            val afterUsage = if (message.contains("was used for", ignoreCase = true)) {
+                message.substringAfter("was used for")
+            } else {
+                message.substringAfter("used for")
+            }
+            val beforeBalance =
+                afterUsage.substringBefore(" Avl.Bal").substringBefore(" Available balance")
+            // Handle both spaced and non-spaced currency+amount patterns
+            val currencyPattern = Regex("""([A-Z]{3})\s*[0-9,]+(?:\.\d{2})?""")
+            currencyPattern.find(beforeBalance)?.let { match ->
+                val currencyCode = match.groupValues[1].uppercase()
+                if (currencyCode.matches(CompiledPatterns.Currency.ISO_CODE) &&
+                    !isMonthAbbreviation(currencyCode)
+                ) {
+                    return currencyCode
+                }
+            }
+        }
+
+        // Default to AED for ADCB (UAE Dirham) only if no other currency found
+        return "AED"
+    }
+
+    private companion object {
+        val ADCB_NON_TRANSACTION_KEYWORDS = listOf(
             // Failed transactions - these have amounts but shouldn't be parsed as successful transactions
             "could not be completed",
             "insufficient funds",
@@ -394,49 +404,9 @@ class ADCBParser : FABParser() {
             "sr no.",
             "for clarifications please call",
             "for assistance please call"
-        )
+        ).map { Regex(it, RegexOption.IGNORE_CASE) }
 
-        if (adcbNonTransactionKeywords.any { keyword ->
-                lowerMessage.contains(Regex(keyword, RegexOption.IGNORE_CASE))
-            }) {
-            return false
-        }
-
-        // ADCB-specific transaction indicators
-        val adcbTransactionKeywords = listOf(
-            "your debit card",
-            "your credit card",
-            "was used for",
-            "used for",
-            "withdrawn from",
-            "deposited via atm",
-            "transferred via",
-            "cr. transaction",
-            "dr. transaction",
-            "cr.transaction",
-            "dr.transaction",
-            "transaction.*was successful",
-            "touchpoints redemption",
-            "debit card.*used for",  // "Debit card XXX0830 linked to acc. XXX810001 used for"
-            "touchpoints redemption request",
-            "account number XXX.*was successful"
-        )
-
-        if (adcbTransactionKeywords.any { lowerMessage.contains(it) }) {
-            return true
-        }
-
-        // Fallback to FAB's transaction detection
-        return super.isTransactionMessage(message)
-    }
-
-    // Override currency extraction for ADCB's multi-currency support
-    override fun extractCurrency(message: String): String? {
-        // Extract currency from the transaction context, not balance info
-        // Focus on the same contexts as extractAmount to ensure consistency
-
-        // Look for currency codes in transaction-specific contexts
-        val transactionCurrencyPatterns = listOf(
+        val ADCB_CURRENCY_PATTERNS = listOf(
             // "was used for CURRENCYamount" - debit card usage
             Regex("""was used for\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
 
@@ -480,50 +450,51 @@ class ADCBParser : FABParser() {
             Regex("""Amount Paid:\s*([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE)
         )
 
-        for (pattern in transactionCurrencyPatterns) {
-            pattern.find(message)?.let { match ->
-                val currencyCode = match.groupValues[1].uppercase()
-                // Validate it's a 3-letter code (standard ISO currency format) but not month names
-                if (currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(
-                        Regex(
-                            """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""",
-                            RegexOption.IGNORE_CASE
-                        )
-                    )
-                ) {
-                    return currencyCode
-                }
-            }
-        }
+        val ADCB_AMOUNT_PATTERNS = listOf(
+            // 1. "was used for CURRENCYamount" - debit card usage (handle both spaced and non-spaced)
+            Regex("""was used for\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
 
-        // Fallback: look for currency codes in the transaction part of the message
-        if (containsCardPurchase(message)) {
-            val afterUsage = if (message.contains("was used for", ignoreCase = true)) {
-                message.substringAfter("was used for")
-            } else {
-                message.substringAfter("used for")
-            }
-            val beforeBalance =
-                afterUsage.substringBefore(" Avl.Bal").substringBefore(" Available balance")
-            // Handle both spaced and non-spaced currency+amount patterns
-            val currencyPattern = Regex("""([A-Z]{3})\s*[0-9,]+(?:\.\d{2})?""")
-            currencyPattern.find(beforeBalance)?.let { match ->
-                val currencyCode = match.groupValues[1].uppercase()
-                if (currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(
-                        Regex(
-                            """^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""",
-                            RegexOption.IGNORE_CASE
-                        )
-                    )
-                ) {
-                    return currencyCode
-                }
-            }
-        }
+            // 2. "used for CURRENCYamount" - debit card usage (shorter version)
+            Regex("""used for\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
 
-        // Default to AED for ADCB (UAE Dirham) only if no other currency found
-        return "AED"
+            // 3. "CURRENCYamount withdrawn from" - ATM withdrawals
+            Regex(
+                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+withdrawn from""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 4. "CURRENCYamount has been deposited via ATM" - ATM deposits
+            Regex(
+                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+has been deposited via ATM""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 5. "CURRENCYamount transferred via" - transfers
+            Regex(
+                """\b([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)\s+transferred via""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 6. "Cr. transaction of CURRENCY amount" - credit transactions
+            Regex(
+                """Cr\. transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 7. "Dr. transaction of CURRENCY amount" - debit transactions
+            Regex(
+                """Dr\.?\s*transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 8. "Transaction of CURRENCY amount" - failed transactions
+            Regex(
+                """Transaction of\s+([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""",
+                RegexOption.IGNORE_CASE
+            ),
+
+            // 9. "Amount Paid: CURRENCY amount" - TouchPoints redemption
+            Regex("""Amount Paid:\s*([A-Z]{3})\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        )
     }
 }

@@ -53,11 +53,11 @@ import com.pennywiseai.tracker.domain.goals.pill
 import com.pennywiseai.tracker.domain.goals.tone
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.presentation.plan.PlanIconBadge
-import com.pennywiseai.tracker.presentation.plan.PlanMeter
 import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.GoalRing
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockAction
+import com.pennywiseai.tracker.ui.components.WavyMeter
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -172,7 +172,7 @@ fun GoalCard(
             )
             GoalStatusPill(progress)
             if (!AmountPrivacy.hidden) {
-                PlanMeter(
+                WavyMeter(
                     fraction = progress.fraction(),
                     color = color,
                     trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,

@@ -40,11 +40,6 @@ class SubscriptionRepository @Inject constructor(
     fun getEndedSubscriptions(): Flow<List<SubscriptionEntity>> =
         subscriptionDao.getSubscriptionsByState(SubscriptionState.ENDED)
 
-    fun getUpcomingSubscriptions(daysAhead: Int = 7): Flow<List<SubscriptionEntity>> {
-        val futureDate = LocalDate.now().plusDays(daysAhead.toLong())
-        return subscriptionDao.getUpcomingSubscriptions(futureDate)
-    }
-
     suspend fun getSubscriptionById(id: Long): SubscriptionEntity? =
         subscriptionDao.getSubscriptionById(id)
 
@@ -143,19 +138,11 @@ class SubscriptionRepository @Inject constructor(
      * Cycle-aware date advance. Months/years use real calendar arithmetic
      * (so "Monthly" lands on the same day-of-month next month, not strictly
      * +30 days). Unknown cycles fall back to monthly so a stale or hand-
-     * inserted row never silently advances by 0 days.
+     * inserted row never silently advances by 0 days. One cycle on, or back
+     * with [reverse]; the table is [RecurringCharge.advance].
      */
-    fun advance(date: LocalDate, billingCycle: String, reverse: Boolean = false): LocalDate {
-        val sign = if (reverse) -1L else 1L
-        return when (billingCycle.uppercase()) {
-            "WEEKLY" -> date.plusWeeks(sign)
-            "MONTHLY" -> date.plusMonths(sign)
-            "QUARTERLY" -> date.plusMonths(3L * sign)
-            "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> date.plusMonths(6L * sign)
-            "ANNUAL", "YEARLY" -> date.plusYears(sign)
-            else -> date.plusMonths(sign)
-        }
-    }
+    fun advance(date: LocalDate, billingCycle: String, reverse: Boolean = false): LocalDate =
+        RecurringCharge.advance(date, billingCycle, if (reverse) -1L else 1L)
 
     /** Active INCOME subscriptions due on or before [date] (#371). */
     suspend fun getDueIncomeSubscriptions(date: LocalDate = LocalDate.now()): List<SubscriptionEntity> =

@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
@@ -43,9 +44,9 @@ class MPESAParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("MPESA") ||
-                normalizedSender.contains("M-PESA") ||
-                normalizedSender == "MPESA" ||
-                normalizedSender == "M-PESA"
+            normalizedSender.contains("M-PESA") ||
+            normalizedSender == "MPESA" ||
+            normalizedSender == "M-PESA"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -258,12 +259,12 @@ class MPESAParser : BankParser() {
         // For M-PESA, we want to keep "LIMITED" in company names like "BANK OF BARODA KENYA LIMITED"
         // So we only apply basic cleaning, not the LTD/LIMITED removal
         return merchant
-            .replace(Regex("""\s*\(.*?\)\s*$"""), "")  // Remove trailing parentheses
-            .replace(Regex("""\s+Ref\s+No.*""", RegexOption.IGNORE_CASE), "")  // Remove ref numbers
-            .replace(Regex("""\s+on\s+\d{2}.*"""), "")  // Remove date suffixes
-            .replace(Regex("""\s+UPI.*""", RegexOption.IGNORE_CASE), "")  // Remove UPI suffixes
-            .replace(Regex("""\s+at\s+\d{2}:\d{2}.*"""), "")  // Remove time suffixes
-            .replace(Regex("""\s*-\s*$"""), "")  // Remove trailing dash
+            .replace(CompiledPatterns.Cleaning.TRAILING_PARENTHESES, "")  // Remove trailing parentheses
+            .replace(CompiledPatterns.Cleaning.REF_NUMBER_SUFFIX, "")  // Remove ref numbers
+            .replace(CompiledPatterns.Cleaning.DATE_SUFFIX, "")  // Remove date suffixes
+            .replace(CompiledPatterns.Cleaning.UPI_SUFFIX, "")  // Remove UPI suffixes
+            .replace(CompiledPatterns.Cleaning.TIME_SUFFIX, "")  // Remove time suffixes
+            .replace(CompiledPatterns.Cleaning.TRAILING_DASH, "")  // Remove trailing dash
             .trim()
     }
 }

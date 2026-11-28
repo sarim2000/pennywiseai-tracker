@@ -15,9 +15,9 @@ class DiscoverCardParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "DISCOVER" ||
-                upperSender.contains("DISCOVERCARD") ||
-                upperSender == "347268" ||  // DLT sender ID
-                upperSender.matches(Regex("""^[A-Z]{2}-DISCOVER-[A-Z]$"""))
+            upperSender.contains("DISCOVERCARD") ||
+            upperSender == "347268" ||  // DLT sender ID
+            upperSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -111,5 +111,9 @@ class DiscoverCardParser : BankParser() {
         }
 
         return super.isTransactionMessage(message)
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("""^[A-Z]{2}-DISCOVER-[A-Z]$""")
     }
 }

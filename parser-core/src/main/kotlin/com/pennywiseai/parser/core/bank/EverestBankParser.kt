@@ -16,17 +16,17 @@ class EverestBankParser : BankParser() {
         val upperSender = sender.uppercase()
         return when {
             // Numeric senders (phone numbers, short codes)
-            sender.matches(Regex("""^\d{7,10}$""")) -> true
+            sender.matches(NUMERIC_SENDER) -> true
 
             // Text-based senders
             upperSender == "EVEREST" ||
-                    upperSender.contains("EVERESTBANK") ||
-                    upperSender.contains("EBL") ||
-                    upperSender == "UJJ SH" ||
-                    upperSender == "CWRD" ||  // ATM withdrawal code
+                upperSender.contains("EVERESTBANK") ||
+                upperSender.contains("EBL") ||
+                upperSender == "UJJ SH" ||
+                upperSender == "CWRD" ||  // ATM withdrawal code
 
-                    // DLT patterns for Nepal
-                    upperSender.matches(Regex("""^[A-Z]{2}-EVEREST-[A-Z]$""")) -> true
+                // DLT patterns for Nepal
+                upperSender.matches(DLT_SENDER) -> true
 
             else -> false
         }
@@ -208,5 +208,10 @@ class EverestBankParser : BankParser() {
         }
 
         return super.isTransactionMessage(message)
+    }
+
+    private companion object {
+        val NUMERIC_SENDER = Regex("""^\d{7,10}$""")
+        val DLT_SENDER = Regex("""^[A-Z]{2}-EVEREST-[A-Z]$""")
     }
 }

@@ -19,18 +19,7 @@ class IDBIBankParser : BaseIndianBankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        return normalizedSender.contains("IDBIBK") ||
-                normalizedSender.contains("IDBIBANK") ||
-                normalizedSender.contains("IDBI") ||
-                // DLT patterns for transactions (-S suffix)
-                normalizedSender.matches(Regex("^[A-Z]{2}-IDBIBK-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-IDBI-S$")) ||
-                // Legacy patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-IDBIBK$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-IDBI$")) ||
-                // Direct sender IDs
-                normalizedSender == "IDBIBK" ||
-                normalizedSender == "IDBIBANK"
+        return normalizedSender.contains("IDBI")
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -195,17 +184,5 @@ class IDBIBankParser : BaseIndianBankParser() {
 
         // Fall back to base class
         return super.extractBalance(message)
-    }
-
-    override fun isTransactionMessage(message: String): Boolean {
-        val lowerMessage = message.lowercase()
-
-        // Skip UPI block instructions (not a transaction)
-        if (lowerMessage.contains("to block upi") && lowerMessage.contains("send sms")) {
-            // This is just instruction text, don't skip the entire message
-        }
-
-        // Fall back to base class for standard checks
-        return super.isTransactionMessage(message)
     }
 }

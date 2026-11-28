@@ -1,20 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ══ Home subscriptions card: next due charge ══ -->
-    <!-- %1$s is the merchant, %2$s is when it is due (one of the strings below). -->
-    <string name="home_subscriptions_next_due">Next: %1$s · %2$s</string>
-    <string name="home_subscriptions_due_today">today</string>
-    <string name="home_subscriptions_due_tomorrow">tomorrow</string>
-    <string name="home_subscriptions_due_overdue">overdue</string>
-    <plurals name="home_subscriptions_due_in_days">
-        <item quantity="one">in %1$d day</item>
-        <item quantity="other">in %1$d days</item>
-    </plurals>
-
     <!-- ══ Plan tab: Bills section ══ -->
-    <string name="plan_bills_hero_title">Subscriptions &amp; bills</string>
-    <!-- After the monthly total, e.g. "$59.46 a month" -->
-    <string name="plan_bills_per_month">a month</string>
     <!-- %1$s = when it's due (e.g. "Due tomorrow"), %2$s = the account it's paid from -->
     <string name="plan_bills_due_from">%1$s · %2$s</string>
 </resources>

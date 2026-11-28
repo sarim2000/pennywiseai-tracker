@@ -8,14 +8,13 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.core.entitlement.FreeTierLimits
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.events.MascotMoment
 import com.pennywiseai.tracker.data.events.MascotMoments
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.repository.RuleRepository
-import com.pennywiseai.tracker.domain.service.RuleTemplateService
 import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCase
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
 import com.pennywiseai.tracker.domain.usecase.DryRunResult
@@ -33,10 +32,10 @@ import javax.inject.Inject
 class RulesViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val ruleRepository: RuleRepository,
-    private val ruleTemplateService: RuleTemplateService,
     private val initializeRuleTemplatesUseCase: InitializeRuleTemplatesUseCase,
     private val applyRulesToPastTransactionsUseCase: ApplyRulesToPastTransactionsUseCase,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
     private val mascotMoments: MascotMoments,
     entitlementGate: EntitlementGate,
 ) : ViewModel() {
@@ -46,8 +45,6 @@ class RulesViewModel @Inject constructor(
      * and the inline quota caption on the Rules screen.
      */
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
-
-    private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -99,16 +96,13 @@ class RulesViewModel @Inject constructor(
         initialValue = true,
     )
 
-    /**
-     * Non-hidden accounts from `hidden_accounts` SharedPreferences key.
-     */
+    /** Accounts the user hasn't ignored ([IgnoredAccountsStore]). */
     val accounts: StateFlow<List<AccountInfo>> = accountBalanceRepository.getAllLatestBalances()
         .map { balances ->
-            val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+            val hiddenAccounts = ignoredAccountsStore.keys()
             balances
                 .filter { balance ->
-                    val key = "${balance.bankName}_${balance.accountLast4}"
-                    !hiddenAccounts.contains(key)
+                    IgnoredAccountsStore.keyFor(balance.bankName, balance.accountLast4) !in hiddenAccounts
                 }
                 .map { balance ->
                     AccountInfo(
@@ -119,7 +113,7 @@ class RulesViewModel @Inject constructor(
                         accountType = balance.accountType
                     )
                 }
-                .distinctBy { "${it.bankName}_${it.accountLast4}" }
+                .distinctBy { IgnoredAccountsStore.keyFor(it.bankName, it.accountLast4) }
         }
         .stateIn(
             scope = viewModelScope,
@@ -346,34 +340,6 @@ class RulesViewModel @Inject constructor(
                         }
                     )
                 }
-                _batchApplyResult.value = result
-                rulesAppliedMoment(result)?.let(mascotMoments::announce)
-            } catch (e: Exception) {
-                e.printStackTrace()
-                _batchApplyResult.value = BatchApplyResult(
-                    totalProcessed = 0,
-                    totalUpdated = 0,
-                    errors = listOf("Error: ${e.message}")
-                )
-            } finally {
-                _isLoading.value = false
-                _batchApplyProgress.value = null
-            }
-        }
-    }
-
-    fun applyAllRulesToPastTransactions() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _batchApplyProgress.value = 0 to 0
-            _batchApplyResult.value = null
-
-            try {
-                val result = applyRulesToPastTransactionsUseCase.applyAllActiveRulesToTransactions(
-                    onProgress = { processed, total ->
-                        _batchApplyProgress.value = processed to total
-                    }
-                )
                 _batchApplyResult.value = result
                 rulesAppliedMoment(result)?.let(mascotMoments::announce)
             } catch (e: Exception) {

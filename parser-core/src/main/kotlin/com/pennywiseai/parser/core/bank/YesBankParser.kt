@@ -17,11 +17,10 @@ class YesBankParser : BaseIndianBankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
-        // DLT patterns for Yes Bank (XX-YESBNK-S format)
-        return normalizedSender.matches(Regex("^[A-Z]{2}-YESBNK-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-YESBNK$")) ||
-                normalizedSender == "YESBNK" ||
-                normalizedSender == "YESBANK"
+        // DLT patterns for Yes Bank (XX-YESBNK-S format, or legacy without suffix)
+        return normalizedSender.matches(DLT_SENDER) ||
+            normalizedSender == "YESBNK" ||
+            normalizedSender == "YESBANK"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -211,5 +210,9 @@ class YesBankParser : BaseIndianBankParser() {
 
         // Fall back to base class
         return super.detectIsCard(message)
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("^[A-Z]{2}-YESBNK(?:-S)?$")
     }
 }

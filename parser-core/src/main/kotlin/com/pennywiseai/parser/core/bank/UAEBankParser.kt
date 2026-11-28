@@ -11,15 +11,13 @@ import java.math.BigDecimal
  */
 abstract class UAEBankParser : BankParser() {
 
-
-
     /**
      * Checks if the message contains a credit/debit card purchase pattern.
      * Common across UAE banks.
      */
     protected open fun containsCardPurchase(message: String): Boolean {
         return message.contains("Credit Card Purchase", ignoreCase = true) ||
-                message.contains("Debit Card Purchase", ignoreCase = true)
+            message.contains("Debit Card Purchase", ignoreCase = true)
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -33,36 +31,23 @@ abstract class UAEBankParser : BankParser() {
     }
 
     override fun extractCurrency(message: String): String? {
-        // Explicit patterns with [A-Z]{3} inlined to avoid compilation issues
-        val currencyPatterns = listOf(
-            Regex("""Amount\s+([A-Z]{3})""", RegexOption.IGNORE_CASE),
-            Regex("""\b([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
-            Regex("""for\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
-            Regex("""of\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
-            Regex("""[A-Z]{3}\s+([A-Z]{3})""", RegexOption.IGNORE_CASE)
-        )
-
-        for (pattern in currencyPatterns) {
+        for (pattern in CURRENCY_PATTERNS) {
             val found = pattern.find(message)
             if (found != null) {
-                // Check all groups starting from 1
-                for (i in 1 until found.groups.size) {
-                    val groupVal = found.groupValues[i]
-                    val upperVal = groupVal.uppercase()
-                    if (upperVal.length == 3 && 
-                        upperVal.all { it.isLetter() } && 
-                        !isMonthAbbreviation(upperVal)) {
-                        return upperVal
-                    }
+                // Every pattern has exactly one group: the currency code
+                val upperVal = found.groupValues[1].uppercase()
+                if (upperVal.length == 3 &&
+                    upperVal.all { it.isLetter() } &&
+                    !isMonthAbbreviation(upperVal)) {
+                    return upperVal
                 }
             }
         }
-        
+
         // Final fallback
-        val simplePattern = Regex("""\b([A-Z]{3})\s+\d""", RegexOption.IGNORE_CASE)
-        simplePattern.find(message)?.let { 
-             val code = it.groupValues[1].uppercase()
-             if (!isMonthAbbreviation(code)) return code
+        CURRENCY_FALLBACK.find(message)?.let {
+            val code = it.groupValues[1].uppercase()
+            if (!isMonthAbbreviation(code)) return code
         }
 
         return null
@@ -73,13 +58,7 @@ abstract class UAEBankParser : BankParser() {
     override fun extractAmount(message: String): BigDecimal? {
         // Generic multi-currency amount extraction for UAE banks
         // Patterns: "AED 100.00", "USD 50.50", "Purchase of EUR 20.00", etc.
-        val patterns = listOf(
-            Regex("""(?:purchase of|transfer of|amount|for|of)\s+(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
-            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+\*+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE) // Masked amount *123.45
-        )
-
-        for (pattern in patterns) {
+        for (pattern in AMOUNT_PATTERNS) {
             pattern.find(message)?.let { match ->
                 val currencyCode = match.groupValues[1].uppercase()
                 // Skip if currency code looks like a month
@@ -88,7 +67,7 @@ abstract class UAEBankParser : BankParser() {
                 }
 
                 var amountStr = match.groupValues[2].replace(",", "")
-                
+
                 // Handle masked amounts if present (e.g. *123.45 or ***.45)
                 if (amountStr.contains("*")) {
                     amountStr = amountStr.replace("*", "")
@@ -106,10 +85,7 @@ abstract class UAEBankParser : BankParser() {
         return super.extractAmount(message)
     }
 
-    private fun isMonthAbbreviation(code: String): Boolean {
-        val months = setOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
-        return months.contains(code)
-    }
+    protected fun isMonthAbbreviation(code: String): Boolean = code in MONTH_ABBREVIATIONS
 
     override fun extractTransactionType(message: String): TransactionType? {
         val lowerMessage = message.lowercase()
@@ -119,13 +95,13 @@ abstract class UAEBankParser : BankParser() {
             lowerMessage.contains("credit card purchase") -> TransactionType.CREDIT
             containsCardPurchase(message) -> TransactionType.EXPENSE
 
-            //Cheque transactions
+            // Cheque transactions
             lowerMessage.contains("cheque credited") -> TransactionType.INCOME
             lowerMessage.contains("cheque returned") -> TransactionType.EXPENSE
 
             // ATM withdrawals are expenses
-            lowerMessage.contains("atm cash withdrawal") || 
-            (lowerMessage.contains("atm") && lowerMessage.contains("withdrawn")) -> TransactionType.EXPENSE
+            lowerMessage.contains("atm cash withdrawal") ||
+                (lowerMessage.contains("atm") && lowerMessage.contains("withdrawn")) -> TransactionType.EXPENSE
 
             // Income transactions
             lowerMessage.contains("inward remittance") -> TransactionType.INCOME
@@ -141,9 +117,9 @@ abstract class UAEBankParser : BankParser() {
 
             // Standard keywords
             lowerMessage.contains("credit") && !lowerMessage.contains("credit card") &&
-                    !lowerMessage.contains("debit") &&
-                    !lowerMessage.contains("purchase") &&
-                    !lowerMessage.contains("payment") -> TransactionType.INCOME
+                !lowerMessage.contains("debit") &&
+                !lowerMessage.contains("purchase") &&
+                !lowerMessage.contains("payment") -> TransactionType.INCOME
 
             lowerMessage.contains("debit") && !lowerMessage.contains("credit") -> TransactionType.EXPENSE
             lowerMessage.contains("purchase") -> TransactionType.EXPENSE
@@ -151,5 +127,23 @@ abstract class UAEBankParser : BankParser() {
 
             else -> super.extractTransactionType(message)
         }
+    }
+
+    private companion object {
+        // Explicit patterns with [A-Z]{3} inlined to avoid compilation issues
+        val CURRENCY_PATTERNS = listOf(
+            Regex("""Amount\s+([A-Z]{3})""", RegexOption.IGNORE_CASE),
+            Regex("""\b([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
+            Regex("""for\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
+            Regex("""of\s+([A-Z]{3})\s+[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE),
+            Regex("""[A-Z]{3}\s+([A-Z]{3})""", RegexOption.IGNORE_CASE)
+        )
+        val CURRENCY_FALLBACK = Regex("""\b([A-Z]{3})\s+\d""", RegexOption.IGNORE_CASE)
+        val AMOUNT_PATTERNS = listOf(
+            Regex("""(?:purchase of|transfer of|amount|for|of)\s+(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            Regex("""(${CompiledPatterns.Currency.ISO_CODE.pattern})\s+\*+([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE) // Masked amount *123.45
+        )
+        val MONTH_ABBREVIATIONS = setOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
     }
 }

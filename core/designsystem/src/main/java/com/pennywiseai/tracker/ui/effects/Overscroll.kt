@@ -68,15 +68,9 @@ fun parabolaScrollEasing(
     }
 }
 
-/**
- * Linear, you probably wouldn't think of using it.
- */
-val LinearScrollEasing: (currentOffset: Float, newOffset: Float) -> Float =
-    { currentOffset, newOffset -> currentOffset + newOffset }
-
 internal val DefaultParabolaScrollEasing: (currentOffset: Float, newOffset: Float) -> Float
     @Composable
-        get() {
+    get() {
         val density = LocalDensity.current.density
         return { currentOffset, newOffset ->
             parabolaScrollEasing(currentOffset, newOffset, density = density)
@@ -96,22 +90,6 @@ fun Modifier.overScrollVertical(
     springDamp: Float = OutBoundSpringDamp,
 ): Modifier = overScrollOutOfBound(
     isVertical = true,
-    nestedScrollToParent,
-    scrollEasing,
-    springStiff,
-    springDamp
-)
-
-/**
- * @see overScrollOutOfBound
- */
-fun Modifier.overScrollHorizontal(
-    nestedScrollToParent: Boolean = true,
-    scrollEasing: ((currentOffset: Float, newOffset: Float) -> Float)? = null,
-    springStiff: Float = OutBoundSpringStiff,
-    springDamp: Float = OutBoundSpringDamp,
-): Modifier = overScrollOutOfBound(
-    isVertical = false,
     nestedScrollToParent,
     scrollEasing,
     springStiff,
@@ -324,7 +302,7 @@ fun rememberOverscrollFlingBehavior(
         private val Float.canNotBeConsumed: Boolean // this is Velocity
             get() {
                 val state = getScrollState()
-                return !(this < 0 && state.canScrollBackward || this > 0 && state.canScrollForward)
+                return !((this < 0 && state.canScrollBackward) || (this > 0 && state.canScrollForward))
             }
 
         override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {

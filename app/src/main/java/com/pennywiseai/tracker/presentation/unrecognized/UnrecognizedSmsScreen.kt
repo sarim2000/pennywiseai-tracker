@@ -41,7 +41,6 @@ import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
-import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -50,7 +49,6 @@ import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +60,6 @@ fun UnrecognizedSmsScreen(
 ) {
     val unrecognizedMessages by viewModel.unrecognizedMessages.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
-    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val showReported by viewModel.showReported.collectAsStateWithLifecycle()
     val formatChanged by viewModel.formatChanged.collectAsStateWithLifecycle()
     val taughtTemplates by viewModel.taughtTemplates.collectAsStateWithLifecycle()
@@ -220,12 +217,7 @@ fun UnrecognizedSmsScreen(
                 }
             }
 
-            // Loading State — skeleton items
-            if (isLoading) {
-                items(4) {
-                    UnrecognizedSmsItemSkeleton()
-                }
-            } else if (unrecognizedMessages.isEmpty()) {
+            if (unrecognizedMessages.isEmpty()) {
                 // Empty State
                 item {
                     PennyWiseEmptyState(
@@ -476,11 +468,4 @@ private fun SuggestionLine(tx: ParsedTransaction, onAdd: () -> Unit) {
             Text(stringResource(R.string.unrecognized_suggestion_add))
         }
     }
-}
-
-@Composable
-private fun UnrecognizedSmsItemSkeleton(
-    modifier: Modifier = Modifier
-) {
-    TransactionItemSkeleton(modifier = modifier)
 }

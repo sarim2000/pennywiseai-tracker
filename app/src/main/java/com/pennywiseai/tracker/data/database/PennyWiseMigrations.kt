@@ -644,12 +644,10 @@ object PennyWiseMigrations {
     }
 
     /**
-     * Single source of truth for the migration list. Both the Hilt-built
-     * database (DatabaseModule.providePennyWiseDatabase) and the
-     * BroadcastReceiver fallback path (PennyWiseDatabase.getInstance) reference this
-     * — adding a new migration here registers it for both. Splitting
-     * them previously caused a v47→v48 boot crash because the Hilt
-     * builder didn't know about MIGRATION_47_48.
+     * Single source of truth for the migration list, used by the Hilt-built
+     * database (DatabaseModule.providePennyWiseDatabase). A separate,
+     * hand-kept list previously caused a v47→v48 boot crash because the
+     * Hilt builder didn't know about MIGRATION_47_48.
      */
     val ALL_MIGRATIONS: Array<Migration> = arrayOf(
         MIGRATION_12_14,

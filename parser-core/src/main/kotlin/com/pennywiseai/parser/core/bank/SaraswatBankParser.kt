@@ -26,11 +26,8 @@ class SaraswatBankParser : BaseIndianBankParser() {
 
         if (normalizedSender in saraswatSenders) return true
 
-        // DLT patterns (XX-SARBNK-S/T format)
-        return normalizedSender.matches(Regex("^[A-Z]{2}-SARBNK-[ST]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-SARASWAT-[ST]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-SARBNK$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-SARASWAT$"))
+        // DLT patterns (XX-SARBNK-S/T format, or without suffix)
+        return normalizedSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -199,5 +196,9 @@ class SaraswatBankParser : BaseIndianBankParser() {
 
         // Fall back to base class for standard checks
         return super.isTransactionMessage(message)
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("^[A-Z]{2}-(?:SARBNK|SARASWAT)(?:-[ST])?$")
     }
 }

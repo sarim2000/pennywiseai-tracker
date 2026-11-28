@@ -31,14 +31,14 @@ class SabbBankParser : BankParser() {
     override fun getCurrency() = "SAR"
 
     override fun canHandle(sender: String): Boolean {
-        val normalized = sender.uppercase().replace(Regex("[\\s\\-_]"), "")
+        val normalized = sender.uppercase().replace(SENDER_SEPARATOR, "")
         // Match sender variants like "SAB", "SABB", "SAB-Bank", "JD-SAB-S".
         // Avoid catching banks with "SAB" as a sub-token only when there is
         // additional bank-identifying context.
         if (normalized == "SAB" || normalized == "SABB") return true
         if (normalized.contains("SABBANK") || normalized.contains("SABB")) return true
         // DLT-style headers e.g. "JD-SAB-S", "VK-SAB-T"
-        if (Regex("""(?:^|[^A-Z])SAB(?:[^A-Z]|$)""").containsMatchIn(sender.uppercase())) return true
+        if (SAB_TOKEN.containsMatchIn(sender.uppercase())) return true
         // Arabic name for SABB / Saudi Awwal Bank
         if (sender.contains("ساب") || sender.contains("الأول")) return true
         return false
@@ -203,5 +203,10 @@ class SabbBankParser : BankParser() {
             "SAR"
         )
         return keywords.any { message.contains(it) }
+    }
+
+    private companion object {
+        val SAB_TOKEN = Regex("""(?:^|[^A-Z])SAB(?:[^A-Z]|$)""")
+        val SENDER_SEPARATOR = Regex("[\\s\\-_]")
     }
 }

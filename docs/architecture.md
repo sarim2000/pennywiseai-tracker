@@ -137,7 +137,7 @@ app/
 │   │   └── smsscan/             # The SMS scan's stages: source, classifier, pipeline, writer, cleanup
 │   ├── widget/                  # Home-screen widgets
 │   ├── billing/                 # Play Billing, license keys, EntitlementGate
-│   ├── backup/ core/ initializer/ utils/
+│   ├── backup/ core/ utils/
 └── build.gradle.kts             # Flavors: standard, fdroid
 core/designsystem/               # PennyWiseTheme, ui.theme tokens, fonts, LocalBlurEffects,
 │                                #   overscroll effect, appearance enums (same packages as before the move)

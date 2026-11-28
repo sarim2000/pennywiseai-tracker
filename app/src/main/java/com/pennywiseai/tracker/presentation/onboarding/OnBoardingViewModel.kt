@@ -68,13 +68,11 @@ data class OnBoardingUiState(
     /** True once the user changes the pre-selected currency; a guess left as is stays overridable. */
     val currencyPicked: Boolean = false,
     val smsPermissionGranted: Boolean = false,
-    val smsPermissionSkipped: Boolean = false,
     val isScanning: Boolean = false,
     val scanTotal: Int = 0,
     val scanProcessed: Int = 0,
     val scanParsed: Int = 0,
     val scanSaved: Int = 0,
-    val scanTimeElapsed: Long = 0L,
     val scanEstimatedRemaining: Long = 0L,
     val scanCompleted: Boolean = false,
     val accounts: List<AccountBalanceEntity> = emptyList(),
@@ -183,22 +181,10 @@ class OnBoardingViewModel @Inject constructor(
 
     fun onSmsPermissionResult(granted: Boolean) {
         _uiState.update {
-            it.copy(
-                smsPermissionGranted = granted,
-                smsPermissionSkipped = !granted
-            )
+            it.copy(smsPermissionGranted = granted)
         }
         // Granted from the dialog or app settings: move on rather than wait for Continue.
         if (granted && _uiState.value.currentStep == OnBoardingStep.PERMISSIONS) goToNextStep()
-    }
-
-    fun skipSmsPermission() {
-        _uiState.update { it.copy(smsPermissionSkipped = true) }
-    }
-
-    fun navigateToStep(step: OnBoardingStep) {
-        _uiState.update { it.copy(currentStep = step) }
-        saveProgress()
     }
 
     fun goToNextStep() {
@@ -261,7 +247,6 @@ class OnBoardingViewModel @Inject constructor(
                     val processed = progress.getInt(OptimizedSmsReaderWorker.PROGRESS_PROCESSED, 0)
                     val parsed = progress.getInt(OptimizedSmsReaderWorker.PROGRESS_PARSED, 0)
                     val saved = progress.getInt(OptimizedSmsReaderWorker.PROGRESS_SAVED, 0)
-                    val elapsed = progress.getLong(OptimizedSmsReaderWorker.PROGRESS_TIME_ELAPSED, 0L)
                     val remaining = progress.getLong(OptimizedSmsReaderWorker.PROGRESS_ESTIMATED_TIME_REMAINING, 0L)
 
                     when (workInfo.state) {
@@ -273,7 +258,6 @@ class OnBoardingViewModel @Inject constructor(
                                     scanProcessed = processed,
                                     scanParsed = parsed,
                                     scanSaved = saved,
-                                    scanTimeElapsed = elapsed,
                                     scanEstimatedRemaining = remaining
                                 )
                             }

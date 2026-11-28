@@ -12,7 +12,6 @@
     <string name="settings_pro_subtitle_active">Inatumika · vipengele vyote vya ziada vimefunguliwa</string>
     <string name="settings_pro_subtitle_upgrade">Kanuni, taarifa za benki, uhamishaji wa data bila kikomo, na zaidi</string>
     <!-- Personalization -->
-    <string name="settings_personalization_section">Mapendeleo</string>
     <string name="settings_appearance_title">Mwonekano</string>
     <string name="settings_appearance_subtitle">Mandhari, rangi, fonti &amp; urambazaji</string>
     <string name="settings_language_title">Lugha</string>
@@ -37,7 +36,6 @@
     <string name="settings_main_account_subtitle">Inaweka sarafu yako chaguomsingi</string>
     <string name="settings_main_account_not_set">Haijawekwa</string>
     <string name="settings_number_format_title">Muundo wa Namba</string>
-    <string name="settings_number_format_subtitle">Jinsi kiasi kikubwa kinavyopangwa</string>
     <string name="settings_number_format_auto">Otomatiki</string>
     <string name="settings_number_format_indian">Kihindi</string>
     <string name="settings_number_format_international">Kimataifa</string>
@@ -45,7 +43,6 @@
     <string name="settings_number_format_indian_example">1,50,000 (laki / crore)</string>
     <string name="settings_number_format_international_example">150,000 (elfu / milioni)</string>
     <string name="settings_date_format_title">Muundo wa Tarehe</string>
-    <string name="settings_date_format_subtitle">Jinsi tarehe zinavyoonyeshwa</string>
     <!-- Budget -->
     <string name="settings_budget_cycle_title">Siku ya Kuanza Mzunguko wa Bajeti</string>
     <string name="settings_budget_cycle_dialog_body">Chagua siku ambayo kila mzunguko wa bajeti ya mwezi unaanza. k.m. 25 inamaanisha mzunguko ni kuanzia tarehe 25 hadi tarehe 24 ya mwezi unaofuata.</string>
@@ -75,12 +72,6 @@
     </plurals>
     <!-- Data Management -->
     <string name="settings_data_section">Usimamizi wa Data</string>
-    <string name="settings_manage_accounts_title">Simamia Akaunti</string>
-    <string name="settings_manage_accounts_subtitle">Ona na usimamie akaunti zako za benki</string>
-    <string name="settings_categories_title">Kategoria</string>
-    <string name="settings_categories_subtitle">Simamia kategoria za matumizi na mapato</string>
-    <string name="settings_smart_rules_title">Kanuni Mahiri</string>
-    <string name="settings_smart_rules_subtitle">Kupanga miamala kwenye kategoria kiotomatiki</string>
     <string name="settings_budgets_title">Bajeti</string>
     <string name="settings_budgets_subtitle">Fuatilia vikomo vya matumizi kwa kategoria</string>
     <string name="settings_loans_title">Mikopo</string>
@@ -108,8 +99,6 @@
     <string name="settings_import_data_subtitle">Rejesha data kutoka kwenye nakala</string>
     <string name="settings_import_csv_title">Ingiza Miamala (CSV)</string>
     <string name="settings_import_csv_subtitle">Ingiza kutoka faili ya CSV ya PennyWise</string>
-    <string name="settings_import_statement_title">Ingiza Taarifa ya Benki</string>
-    <string name="settings_import_statement_subtitle">Taarifa za benki (Excel, CSV) au PDF za app za UPI</string>
     <string name="settings_unrecognized_sms_title">SMS Zisizotambuliwa</string>
     <string name="settings_unrecognized_sms_subtitle">Ona na uripoti ujumbe wa benki usioungwa mkono</string>
     <string name="settings_delete_all_title">Futa Miamala Yote</string>
@@ -215,7 +204,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Pakua modeli ya AI (%1$d MB)</string>
     <string name="settings_ai_status_downloading">Inapakua modeli ya AI...</string>
-    <string name="settings_ai_status_paused">Upakuaji umekatizwa</string>
     <string name="settings_ai_status_completed">Modeli ya AI iko tayari kwa gumzo</string>
     <string name="settings_ai_status_failed">Upakuaji umeshindwa</string>
     <string name="settings_ai_status_insufficient_space">Hakuna nafasi ya kutosha ya kuhifadhi</string>
@@ -227,8 +215,6 @@
     <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
     <string name="settings_ai_cancel_download">Sitisha Upakuaji</string>
     <string name="settings_ai_info">Ongea na AI kuhusu matumizi yako na upate maarifa ya kifedha. Mazungumzo yote yanabaki faragha kwenye simu yako.</string>
-    <string name="settings_ai_download_notification_title">Modeli ya Gumzo ya AI</string>
-    <string name="settings_ai_download_notification_description">Inapakua msaidizi wa gumzo wa AI wa PennyWise</string>
     <!-- Developer -->
     <string name="settings_developer_section">Msanidi</string>
     <string name="settings_developer_mode_title">Hali ya Msanidi</string>
@@ -236,7 +222,6 @@
     <string name="settings_webhooks_subtitle">Tuma data uliyochagua kwenye endpoint yako</string>
     <string name="settings_webhooks_subtitle_pro">Pro · Tuma data uliyochagua kwenye endpoint yako</string>
     <!-- Support & Community -->
-    <string name="settings_support_section">Msaada &amp; Jumuiya</string>
     <string name="settings_help_faq_title">Msaada &amp; Maswali</string>
     <string name="settings_help_faq_subtitle">Maswali yanayoulizwa mara kwa mara na msaada</string>
     <string name="settings_user_guide_title">Mwongozo wa Mtumiaji</string>
@@ -276,10 +261,6 @@
     <string name="appearance_nav_floating_subtitle">Ya kisasa &amp; Maridadi</string>
     <string name="appearance_nav_normal">Kawaida</string>
     <string name="appearance_nav_normal_subtitle">M3 ya kawaida</string>
-    <!-- Cover style -->
-    <string name="appearance_cover_section">Mtindo wa Jalada</string>
-    <string name="appearance_cover_none">Hakuna</string>
-    <string name="appearance_cover_selected">Imechaguliwa</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Fonti</string>
     <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->

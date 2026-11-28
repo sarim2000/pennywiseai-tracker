@@ -13,7 +13,6 @@
     <string name="settings_pro_subtitle_active">Активные · все функции разблокированы</string>
     <string name="settings_pro_subtitle_upgrade">Неограниченные правила, заявления, экспорт и многое другое</string>
     <!-- Personalization -->
-    <string name="settings_personalization_section">Персонализация</string>
     <string name="settings_appearance_title">Внешний вид</string>
     <string name="settings_appearance_subtitle">Тема, цвета, шрифты &amp; навигация</string>
     <string name="settings_language_title">Язык</string>
@@ -38,7 +37,6 @@
     <string name="settings_main_account_subtitle">Устанавливает валюту по умолчанию</string>
     <string name="settings_main_account_not_set">Не задано</string>
     <string name="settings_number_format_title">Числовой формат</string>
-    <string name="settings_number_format_subtitle">Как группируются разряды больших сумм</string>
     <string name="settings_number_format_auto">Авто</string>
     <string name="settings_number_format_indian">Индийский</string>
     <string name="settings_number_format_international">Международные</string>
@@ -46,7 +44,6 @@
     <string name="settings_number_format_indian_example">1,50,000 (озеро / урожай)</string>
     <string name="settings_number_format_international_example">150,000 (тысяча / миллион)</string>
     <string name="settings_date_format_title">Формат даты</string>
-    <string name="settings_date_format_subtitle">Как отображаются даты</string>
     <!-- Budget -->
     <string name="settings_budget_cycle_title">День начала цикла бюджета</string>
     <string name="settings_budget_cycle_dialog_body">Выберите день каждого месячного бюджетного цикла, например 25 означает, что цикл проходит с 25 по 24 следующего месяца.</string>
@@ -80,12 +77,6 @@
     </plurals>
     <!-- Data Management -->
     <string name="settings_data_section">Управление данными</string>
-    <string name="settings_manage_accounts_title">Управление аккаунтами</string>
-    <string name="settings_manage_accounts_subtitle">Просмотр и управление банковскими счетами</string>
-    <string name="settings_categories_title">Категории</string>
-    <string name="settings_categories_subtitle">Управлять категориями расходов и доходов</string>
-    <string name="settings_smart_rules_title">Умные правила</string>
-    <string name="settings_smart_rules_subtitle">Автоматическая категоризация транзакций</string>
     <string name="settings_budgets_title">Бюджеты</string>
     <string name="settings_budgets_subtitle">Отслеживать лимиты расходов по категориям</string>
     <string name="settings_loans_title">Долги</string>
@@ -113,8 +104,6 @@
     <string name="settings_import_data_subtitle">Восстановить данные из резервной копии</string>
     <string name="settings_import_csv_title">Импорт транзакций (CSV)</string>
     <string name="settings_import_csv_subtitle">Импортировать из CSV PennyWise</string>
-    <string name="settings_import_statement_title">Импортировать отчёт</string>
-    <string name="settings_import_statement_subtitle">Банковские выписки (Excel, CSV) или PDF из UPI-приложений</string>
     <string name="settings_unrecognized_sms_title">Нераспознанные СМС</string>
     <string name="settings_unrecognized_sms_subtitle">Просмотр и отчет о неподдерживаемых банковских сообщениях</string>
     <string name="settings_delete_all_title">Удалить все транзакции</string>
@@ -234,7 +223,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Скачать модель AI (%1$d MB)</string>
     <string name="settings_ai_status_downloading">Загрузка модели ИИ...</string>
-    <string name="settings_ai_status_paused">Загрузка прервана</string>
     <string name="settings_ai_status_completed">Модель AI готова к чату</string>
     <string name="settings_ai_status_failed">Ошибка загрузки</string>
     <string name="settings_ai_status_insufficient_space">Недостаточно места</string>
@@ -247,8 +235,6 @@
     <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
     <string name="settings_ai_cancel_download">Отменить загрузку</string>
     <string name="settings_ai_info">Общайтесь с ИИ о ваших расходах и получайте финансовые знания. Все разговоры остаются приватными на вашем устройстве.</string>
-    <string name="settings_ai_download_notification_title">Модель чата ИИ</string>
-    <string name="settings_ai_download_notification_description">Загрузка помощника AI для PennyWise</string>
     <!-- Developer -->
     <string name="settings_developer_section">Разработчик</string>
     <string name="settings_developer_mode_title">Режим разработчика</string>
@@ -257,7 +243,6 @@
     <string name="settings_webhooks_subtitle">Отправка выбранных данных на ваш адрес</string>
     <string name="settings_webhooks_subtitle_pro">Pro · Отправка выбранных данных на ваш адрес</string>
     <!-- Support & Community -->
-    <string name="settings_support_section">Поддержка &amp; Сообщество</string>
     <string name="settings_help_faq_title">Помощь &amp; FAQ</string>
     <string name="settings_help_faq_subtitle">Часто задаваемые вопросы и помощь</string>
     <string name="settings_user_guide_title">Руководство пользователя</string>
@@ -297,10 +282,6 @@
     <string name="appearance_nav_floating_subtitle">Современное &amp; сын</string>
     <string name="appearance_nav_normal">Обычный</string>
     <string name="appearance_nav_normal_subtitle">Стандарт M3</string>
-    <!-- Cover style -->
-    <string name="appearance_cover_section">Стиль обложки</string>
-    <string name="appearance_cover_none">Нет</string>
-    <string name="appearance_cover_selected">Выбрано</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Шрифты</string>
     <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->

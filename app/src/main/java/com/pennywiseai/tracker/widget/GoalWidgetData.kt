@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.domain.goals.percent
 import com.pennywiseai.tracker.domain.goals.tone
 import com.pennywiseai.tracker.ui.components.shortLine
 import com.pennywiseai.tracker.ui.components.statusLine
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.inAppLanguage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -39,11 +40,11 @@ data class GoalWidgetItem(
 )
 
 /**
- * [GoalWidgetItem.line] (or [short]: its shortLine) as a widget shows it: [HIDDEN_AMOUNT] while
+ * [GoalWidgetItem.line] (or [short]: its shortLine) as a widget shows it: [AmountPrivacy.MASK] while
  * amounts are hidden, since "Reached", "Behind" or "Missed" gives the hidden progress away.
  */
 fun GoalWidgetItem.shownLine(short: Boolean, hidden: Boolean): String = when {
-    hidden -> HIDDEN_AMOUNT
+    hidden -> AmountPrivacy.MASK
     short -> shortLine
     else -> line
 }

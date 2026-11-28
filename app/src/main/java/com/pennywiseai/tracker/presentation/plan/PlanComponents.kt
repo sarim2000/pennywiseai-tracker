@@ -18,21 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.pennywiseai.tracker.ui.components.WavyMeter
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.readableOn
-
-/** A determinate data meter: the app's still wavy bar (see [WavyMeter]). */
-@Composable
-internal fun PlanMeter(
-    fraction: Float,
-    color: Color,
-    trackColor: Color,
-    modifier: Modifier = Modifier,
-    dense: Boolean = false,
-) {
-    WavyMeter(fraction = fraction, color = color, trackColor = trackColor, modifier = modifier, dense = dense)
-}
 
 /** [this] colour washed over [surface]: the fill behind a glyph or pill drawn in it. */
 @Composable

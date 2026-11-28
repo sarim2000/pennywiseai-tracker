@@ -72,7 +72,7 @@ class TransactionDetailStaleSaveTest {
         balances, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
         tags, mockk(relaxed = true), prefs, mockk(relaxed = true),
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), goals,
-        mockk(relaxed = true), mockk(relaxed = true)
+        mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true)
     ).apply { loadTransaction(1) }
 
     @Before fun setUp() {

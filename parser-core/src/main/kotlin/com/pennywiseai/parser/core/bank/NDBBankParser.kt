@@ -39,7 +39,7 @@ class NDBBankParser : BankParser() {
         // Sender is "NDB ALERT"; tolerate separator variants ("NDBALERT",
         // "NDB-ALERT") plus a bare "NDB". Exact matches only — a contains("NDB")
         // check would collide with IndusInd's "INDBNK" sender.
-        val normalized = sender.uppercase().replace(Regex("[\\s-]"), "")
+        val normalized = sender.uppercase().replace(SENDER_SEPARATOR, "")
         return normalized == "NDBALERT" || normalized == "NDB"
     }
 
@@ -102,5 +102,9 @@ class NDBBankParser : BankParser() {
         // "AC XXXXXXXX7497" — last 4 digits after the X-masked prefix.
         val pattern = Regex("""AC\s+X+(\d{4})(?!\d)""", RegexOption.IGNORE_CASE)
         return pattern.find(message)?.groupValues?.get(1)
+    }
+
+    private companion object {
+        val SENDER_SEPARATOR = Regex("[\\s-]")
     }
 }

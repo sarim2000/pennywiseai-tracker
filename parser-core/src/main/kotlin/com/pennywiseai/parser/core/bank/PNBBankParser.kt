@@ -16,16 +16,13 @@ class PNBBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("PUNJAB NATIONAL BANK") || // RCS sender (any case)
-                normalizedSender.contains("PNBBNK") ||
-                normalizedSender.contains("PUNBN") ||
-                normalizedSender.contains("PNBSMS") || // Matches V?-PNBSMS-S
-                normalizedSender.matches(Regex("^[A-Z]{2}-PNBBNK-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-PNB-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-PNBBNK$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-PNB$")) ||
-                normalizedSender.matches(Regex("^(?:[A-Z]{2}-)?PNBCCD(?:-[ST])?$")) || // Credit card alerts
-                normalizedSender == "PNBBNK" ||
-                normalizedSender == "PNB"
+            normalizedSender.contains("PNBBNK") ||
+            normalizedSender.contains("PUNBN") ||
+            normalizedSender.contains("PNBSMS") || // Matches V?-PNBSMS-S
+            normalizedSender.matches(PNB_S_SENDER) ||
+            normalizedSender.matches(PNB_LEGACY_SENDER) ||
+            normalizedSender.matches(PNBCCD_SENDER) || // Credit card alerts
+            normalizedSender == "PNB"
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -423,5 +420,11 @@ class PNBBankParser : BaseIndianBankParser() {
         override val accountLast4: String? = null
     ) : MandateInfo {
         override val dateFormat = "dd-MMM-yy"
+    }
+
+    private companion object {
+        val PNB_S_SENDER = Regex("^[A-Z]{2}-PNB-S$")
+        val PNB_LEGACY_SENDER = Regex("^[A-Z]{2}-PNB$")
+        val PNBCCD_SENDER = Regex("^(?:[A-Z]{2}-)?PNBCCD(?:-[ST])?$")
     }
 }

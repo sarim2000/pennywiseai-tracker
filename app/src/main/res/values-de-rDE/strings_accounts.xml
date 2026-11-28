@@ -144,10 +144,7 @@
     <string name="manage_accounts_hidden_badge">Ignoriert</string>
     <string name="manage_accounts_business_badge">Geschäftlich</string>
     <string name="manage_accounts_outstanding">Ausstehend</string>
-    <string name="manage_accounts_available">Verfügbar</string>
     <string name="manage_accounts_credit_limit">Kreditlimit</string>
-    <!-- %1$d = utilization percentage -->
-    <string name="manage_accounts_utilization_used">(%1$d%% verwendet)</string>
     <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
     <!-- %1$s = formatted available credit -->
     <!-- Summary cards at the top of Manage Accounts -->
@@ -175,7 +172,6 @@
     <string name="manage_accounts_decrease">Verkleinern</string>
     <string name="manage_accounts_increase">Erhöhen</string>
     <string name="manage_accounts_low_balance">Niedriger Saldo</string>
-    <string name="manage_accounts_balance">Saldo</string>
     <string name="manage_accounts_linked_cards">Verknüpfte Karten</string>
     <string name="manage_accounts_card_inactive">(inaktiv)</string>
     <!-- %1$s = short date -->
@@ -259,8 +255,6 @@
     <string name="loan_detail_record_payment">Zahlung aufzeichnen</string>
     <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">verbleibend von %1$s</string>
-    <!-- %1$d = percentage repaid -->
-    <string name="loan_detail_percent_repaid">%1$d%% zurückgezahlt</string>
     <string name="loan_detail_history">Verlauf</string>
     <string name="loan_detail_settle_title">Darlehen abrechnen</string>
     <string name="loan_detail_settle_message">Dieses Darlehen als begleicht? Alle verbleibenden Guthaben werden vergeben.</string>
@@ -283,21 +277,6 @@
     <string name="loan_detail_enter_amount">Betrag eingeben</string>
     <string name="loan_detail_amount_label">Betrag</string>
     <string name="loan_detail_add">Hinzufügen</string>
-    <!-- ══ Accounts overview card (home) ══ -->
-    <string name="accounts_overview_title">Kundenübersicht</string>
-    <string name="accounts_overview_bank_balance">Bankguthaben</string>
-    <string name="accounts_overview_bank_balance_count">Bankguthaben • %1$d</string>
-    <string name="accounts_overview_available_credit">Verfügbares Guthaben</string>
-    <string name="accounts_overview_available_credit_count">Verfügbarer Kredit • %1$d</string>
-    <string name="accounts_overview_balance">Saldo</string>
-    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
-    <string name="accounts_overview_used">Verwendet: %1$s (%2$d%%)</string>
-    <string name="accounts_overview_available_limit">Verfügbares Limit</string>
-    <string name="accounts_overview_show_less">Weniger anzeigen</string>
-    <plurals name="accounts_overview_view_all">
-        <item quantity="one">Alle %1$d Konto anzeigen</item>
-        <item quantity="other">Alle %1$d Konten anzeigen</item>
-    </plurals>
     <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
     <!-- Net worth: what you own minus what you owe, per currency -->
 </resources>

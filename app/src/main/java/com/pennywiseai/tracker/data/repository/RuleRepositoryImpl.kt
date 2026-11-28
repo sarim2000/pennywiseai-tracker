@@ -1,12 +1,12 @@
 package com.pennywiseai.tracker.data.repository
 
-import com.pennywiseai.tracker.domain.model.rule.withCategoryRenamed
 import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
 import com.pennywiseai.tracker.data.database.dao.RuleDao
 import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
 import com.pennywiseai.tracker.data.database.entity.RuleEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.rule.*
+import com.pennywiseai.tracker.domain.model.rule.withCategoryRenamed
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import kotlinx.coroutines.flow.Flow
@@ -44,17 +44,6 @@ class RuleRepositoryImpl @Inject constructor(
             .filter { rule -> isRuleApplicableToTransactionType(rule, type) }
     }
 
-    override suspend fun getActiveRulesByTypes(types: List<TransactionType>): List<TransactionRule> {
-        // Get all active rules and filter in memory based on conditions
-        val allActiveRules = ruleDao.getActiveRules()
-
-        return allActiveRules
-            .map { entity -> entityToRule(entity) }
-            .filter { rule ->
-                types.any { type -> isRuleApplicableToTransactionType(rule, type) }
-            }
-    }
-
     override suspend fun getRuleById(ruleId: String): TransactionRule? {
         return ruleDao.getRuleById(ruleId)?.let { entityToRule(it) }
     }
@@ -90,29 +79,10 @@ class RuleRepositoryImpl @Inject constructor(
         ruleDao.setRuleActive(ruleId, isActive)
     }
 
-    override suspend fun updateRulePriority(ruleId: String, priority: Int) {
-        ruleDao.updateRulePriority(ruleId, priority)
-    }
-
-    override suspend fun saveRuleApplication(application: RuleApplication) {
-        ruleApplicationDao.insertApplication(applicationToEntity(application))
-    }
-
     override suspend fun saveRuleApplications(applications: List<RuleApplication>) {
         ruleApplicationDao.insertApplications(
             applications.map { applicationToEntity(it) }
         )
-    }
-
-    override suspend fun getRuleApplicationsForTransaction(transactionId: String): List<RuleApplication> {
-        return ruleApplicationDao.getApplicationsByTransaction(transactionId)
-            .map { entityToApplication(it) }
-    }
-
-    override fun getRuleApplicationsForRule(ruleId: String): Flow<List<RuleApplication>> {
-        return ruleApplicationDao.getApplicationsByRule(ruleId).map { entities ->
-            entities.map { entityToApplication(it) }
-        }
     }
 
     override suspend fun getRuleApplicationCount(ruleId: String): Int {
@@ -161,17 +131,6 @@ class RuleRepositoryImpl @Inject constructor(
             transactionId = application.transactionId,
             fieldsModified = ruleEngine.serializeFieldModifications(application.fieldsModified),
             appliedAt = LocalDateTime.ofEpochSecond(application.appliedAt / 1000, 0, ZoneOffset.UTC)
-        )
-    }
-
-    private fun entityToApplication(entity: RuleApplicationEntity): RuleApplication {
-        return RuleApplication(
-            id = entity.id,
-            ruleId = entity.ruleId,
-            ruleName = entity.ruleName,
-            transactionId = entity.transactionId,
-            fieldsModified = ruleEngine.deserializeFieldModifications(entity.fieldsModified),
-            appliedAt = entity.appliedAt.toEpochSecond(ZoneOffset.UTC) * 1000
         )
     }
 }

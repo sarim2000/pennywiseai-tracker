@@ -19,7 +19,7 @@
     <string name="goals_archived">Archivada</string>
     <string name="goals_due_on">Vence el %1$s</string>
     <string name="goals_ring_description">%1$d%% ahorrado</string>
-    <!-- Goal card in the Plan tab. %1$s = target amount, %2$s = due date -->
+    <!-- Goal card in the Plan tab -->
     <!-- %1$s = amount -->
     <plurals name="goals_months_left">
         <item quantity="one">Queda %d mes</item>
@@ -48,9 +48,6 @@
     <string name="goal_action_ok">Aceptar</string>
     <string name="goal_action_cancel">Cancelar</string>
     <!-- Detail -->
-    <string name="goal_detail_left">Falta</string>
-    <string name="goal_detail_per_month">Por mes</string>
-    <string name="goal_detail_over">%1$s de más</string>
     <string name="goal_detail_history">Entradas y salidas</string>
     <string name="goal_detail_history_empty">Aún no has agregado nada. Usa Agregar dinero cuando apartes algo.</string>
     <string name="goal_add_money">Agregar dinero</string>

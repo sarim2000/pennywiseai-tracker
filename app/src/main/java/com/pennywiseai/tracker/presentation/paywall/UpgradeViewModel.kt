@@ -2,13 +2,13 @@ package com.pennywiseai.tracker.presentation.paywall
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.billing.PurchaseLauncher
 import com.pennywiseai.tracker.billing.PurchaseResult
-import com.pennywiseai.tracker.BuildConfig
-import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.billing.license.LicenseManager
+import com.pennywiseai.tracker.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -150,25 +150,22 @@ class UpgradeViewModel @Inject constructor(
 
     private fun refresh() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessage = null) }
+            _state.update { it.copy(errorMessage = null) }
             val result = purchaseLauncher.refresh()
             handleRefreshResult(result)
         }
     }
 
     private fun handleRefreshResult(result: PurchaseResult) {
-        when (result) {
-            is PurchaseResult.Success -> _state.update {
-                it.copy(isLoading = false, isPurchasing = false)
-            }
-            is PurchaseResult.ServiceUnavailable -> _state.update {
-                it.copy(
-                    isLoading = false,
-                    isPurchasing = false,
-                    errorMessage = UiText.Res(R.string.upgrade_error_play_unavailable),
-                )
-            }
-            else -> _state.update { it.copy(isLoading = false, isPurchasing = false) }
+        _state.update {
+            it.copy(
+                isPurchasing = false,
+                errorMessage = if (result is PurchaseResult.ServiceUnavailable) {
+                    UiText.Res(R.string.upgrade_error_play_unavailable)
+                } else {
+                    it.errorMessage
+                },
+            )
         }
     }
 }

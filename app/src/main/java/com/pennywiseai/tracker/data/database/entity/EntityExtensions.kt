@@ -24,15 +24,3 @@ fun AccountBalanceEntity.formatBalance(): String =
  */
 fun SubscriptionEntity.formatAmount(): String =
     CurrencyFormatter.formatCurrency(amount, currency)
-
-/**
- * Formats the card's last balance with its currency
- */
-fun CardEntity.formatLastBalance(): String =
-    CurrencyFormatter.formatCurrency(lastBalance ?: java.math.BigDecimal.ZERO, currency)
-
-/**
- * Formats the account's credit limit with its currency (for credit card accounts)
- */
-fun AccountBalanceEntity.formatCreditLimit(): String =
-    CurrencyFormatter.formatCurrency(creditLimit ?: java.math.BigDecimal.ZERO, currency)

@@ -168,10 +168,7 @@
     <string name="manage_accounts_hidden_badge">متجاهَل</string>
     <string name="manage_accounts_business_badge">أعمال</string>
     <string name="manage_accounts_outstanding">المستحق</string>
-    <string name="manage_accounts_available">متاح</string>
     <string name="manage_accounts_credit_limit">حد الائتمان</string>
-    <!-- %1$d = utilization percentage -->
-    <string name="manage_accounts_utilization_used">(استُخدم %1$d%%)</string>
     <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
     <!-- %1$s = formatted available credit -->
     <!-- Summary cards at the top of Manage Accounts -->
@@ -199,7 +196,6 @@
     <string name="manage_accounts_decrease">إنقاص</string>
     <string name="manage_accounts_increase">زيادة</string>
     <string name="manage_accounts_low_balance">رصيد منخفض</string>
-    <string name="manage_accounts_balance">الرصيد</string>
     <string name="manage_accounts_linked_cards">البطاقات المرتبطة</string>
     <string name="manage_accounts_card_inactive">(غير نشطة)</string>
     <!-- %1$s = short date -->
@@ -283,8 +279,6 @@
     <string name="loan_detail_record_payment">تسجيل دفعة</string>
     <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">متبقٍ من أصل %1$s</string>
-    <!-- %1$d = percentage repaid -->
-    <string name="loan_detail_percent_repaid">تم سداد %1$d%%</string>
     <string name="loan_detail_history">السجل</string>
     <string name="loan_detail_settle_title">تسوية القرض</string>
     <string name="loan_detail_settle_message">هل تريد تحديد هذا القرض على أنه مسوّى؟ سيتم التنازل عن أي رصيد متبقٍ.</string>
@@ -307,25 +301,6 @@
     <string name="loan_detail_enter_amount">أدخل المبلغ</string>
     <string name="loan_detail_amount_label">المبلغ</string>
     <string name="loan_detail_add">إضافة</string>
-    <!-- ══ Accounts overview card (home) ══ -->
-    <string name="accounts_overview_title">لمحة عامة عن الحسابات</string>
-    <string name="accounts_overview_bank_balance">رصيد البنك</string>
-    <string name="accounts_overview_bank_balance_count">رصيد البنك • %1$d</string>
-    <string name="accounts_overview_available_credit">الائتمان المتاح</string>
-    <string name="accounts_overview_available_credit_count">الائتمان المتاح • %1$d</string>
-    <string name="accounts_overview_balance">الرصيد</string>
-    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
-    <string name="accounts_overview_used">المستخدَم: %1$s (%2$d%%)</string>
-    <string name="accounts_overview_available_limit">الحد المتاح</string>
-    <string name="accounts_overview_show_less">إظهار أقل</string>
-    <plurals name="accounts_overview_view_all">
-        <item quantity="zero">عرض كل الحسابات (%1$d)</item>
-        <item quantity="one">عرض الحساب (%1$d)</item>
-        <item quantity="two">عرض الحسابين</item>
-        <item quantity="few">عرض كل الحسابات (%1$d)</item>
-        <item quantity="many">عرض كل الحسابات (%1$d)</item>
-        <item quantity="other">عرض كل الحسابات (%1$d)</item>
-    </plurals>
     <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
     <!-- Net worth: what you own minus what you owe, per currency -->
     <string name="net_worth_title">صافي الثروة</string>

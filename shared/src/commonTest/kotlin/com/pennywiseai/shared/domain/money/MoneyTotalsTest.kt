@@ -92,7 +92,7 @@ class MoneyTotalsTest {
     private fun txn(amountMinor: Long, currency: String) = SharedRecentTransactionItem(
         transactionId = 0L, merchantName = "Shop", category = "Others", amountMinor = amountMinor,
         currency = currency, transactionType = "EXPENSE", occurredAtEpochMillis = 0L, note = null,
-        bankName = null, accountLast4 = null, summary = ""
+        bankName = null, accountLast4 = null
     )
 
     @Test

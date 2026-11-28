@@ -222,9 +222,11 @@ class ChatAssistant(
             return "$currency ${MinorUnits.toPlain(minor, currency)}"
         }
 
+        private val NON_ALPHANUMERIC = Regex("[^a-z0-9]+")
+
         /** Category the user named, tolerant of "Food", "food and dining", "FOOD & DINING". */
         internal fun matchCategory(wanted: String, categories: List<SharedCategory>): String? {
-            val norm = { x: String -> x.lowercase().replace("&", "and").replace(Regex("[^a-z0-9]+"), " ").trim() }
+            val norm = { x: String -> x.lowercase().replace("&", "and").replace(NON_ALPHANUMERIC, " ").trim() }
             val w = norm(wanted)
             if (w.isEmpty()) return null
             return categories.firstOrNull { norm(it.name) == w }?.name
@@ -408,7 +410,7 @@ object ChatPrompt {
         Accounts: ${promptList(accounts, MAX_ACCOUNT_CHARS).ifEmpty { "none yet" }}
 
         Plain text only: no markdown, asterisks or backticks.
-        """.trimIndent()
+    """.trimIndent()
 
     /** Names joined in order until [maxChars]; the rest are counted, not listed. */
     fun promptList(names: List<String>, maxChars: Int): String {

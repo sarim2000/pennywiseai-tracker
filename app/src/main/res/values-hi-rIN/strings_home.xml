@@ -110,7 +110,6 @@
     <string name="sms_scan_failed">स्कैन विफल। कृपया पुनः प्रयास करें।</string>
     <string name="sms_scan_cancelled">स्कैन रद्द कर दिया गया</string>
     <string name="sms_scan_starting">स्कैन शुरू हो रहा है...</string>
-    <string name="sms_scan_indicator">एसएमएस स्कैनिंग: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
     <string name="duration_minutes_seconds">%1$dm %2$ds</string>
     <string name="duration_seconds">%1$ds</string>

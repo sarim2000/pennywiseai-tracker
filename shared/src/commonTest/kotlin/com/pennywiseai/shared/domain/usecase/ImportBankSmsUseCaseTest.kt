@@ -3,7 +3,6 @@ package com.pennywiseai.shared.domain.usecase
 import com.pennywiseai.shared.data.local.entity.SharedAccountBalanceEntity
 import com.pennywiseai.shared.data.local.entity.SharedCardEntity
 import com.pennywiseai.shared.data.local.entity.SharedMerchantMappingEntity
-import com.pennywiseai.shared.data.local.entity.SharedRuleApplicationEntity
 import com.pennywiseai.shared.data.local.entity.SharedRuleEntity
 import com.pennywiseai.shared.data.model.SharedCategory
 import com.pennywiseai.shared.data.model.SharedTransaction
@@ -386,7 +385,6 @@ internal class FakeAccounts : SharedAccountRepository {
     override suspend fun getLatestBalance(bankName: String, accountLast4: String) =
         balances.lastOrNull { it.bankName == bankName && it.accountLast4 == accountLast4 }
     override suspend fun getDistinctAccounts() = balances.toList()
-    override suspend fun deleteBalanceById(id: Long) {}
     override suspend fun deleteByAccount(bankName: String, accountLast4: String) {}
     override suspend fun deleteCardById(id: Long) {}
     override suspend fun renameAccount(oldBankName: String, newBankName: String, accountLast4: String) {}
@@ -394,26 +392,21 @@ internal class FakeAccounts : SharedAccountRepository {
 
 internal class FakeMappings : SharedMerchantMappingRepository {
     val rows = mutableMapOf<String, String>()
-    override fun observeAll(): Flow<List<SharedMerchantMappingEntity>> = flowOf(emptyList())
     override suspend fun getByMerchant(merchantName: String) =
         rows[merchantName]?.let { SharedMerchantMappingEntity(merchantName, it, 0L, 0L) }
-    override suspend fun upsert(mapping: SharedMerchantMappingEntity) {}
 }
 
 internal class FakeRules : SharedRuleRepository {
     val rows = mutableListOf<SharedRuleEntity>()
     override fun observeRules(): Flow<List<SharedRuleEntity>> = flowOf(rows.toList())
-    override fun observeRuleApplications(): Flow<List<SharedRuleApplicationEntity>> = flowOf(emptyList())
     override suspend fun upsertRule(rule: SharedRuleEntity) {}
     override suspend fun deleteRuleById(ruleId: String) {}
-    override suspend fun addApplication(application: SharedRuleApplicationEntity) {}
 }
 
 internal class FakeCategories : SharedCategoryRepository {
     private val categories = listOf("Food & Dining" to false, "Groceries" to false, "Travel" to false, "Salary" to true)
         .map { (name, isIncome) -> SharedCategory(name = name, colorHex = "#000000", isIncome = isIncome, createdAtEpochMillis = 0L, updatedAtEpochMillis = 0L) }
     override fun observeCategories(): Flow<List<SharedCategory>> = flowOf(categories)
-    override fun observeCategoriesByIncomeType(isIncome: Boolean) = flowOf(categories.filter { it.isIncome == isIncome })
     override suspend fun getById(id: Long): SharedCategory? = null
     override suspend fun countCategories() = categories.size
     override suspend fun insertCategories(categories: List<SharedCategory>) {}

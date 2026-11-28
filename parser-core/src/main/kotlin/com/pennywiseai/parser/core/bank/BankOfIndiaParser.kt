@@ -26,14 +26,14 @@ class BankOfIndiaParser : BaseIndianBankParser() {
         if (normalizedSender in boiSenders) return true
 
         // DLT patterns (XX-BOIIND-S/T or XX-BOIBNK-S/T format)
-        return normalizedSender.matches(Regex("^[A-Z]{2}-BOIIND-[ST]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-BOIBNK-[ST]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-BOI-[ST]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-BOIIND$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-BOIBNK$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-BOI$")) ||
-                normalizedSender.matches(Regex("^BK-BOIIND.*$")) ||
-                normalizedSender.matches(Regex("^JD-BOIIND.*$"))
+        return normalizedSender.matches(BOIIND_DLT_SENDER) ||
+            normalizedSender.matches(BOIBNK_DLT_SENDER) ||
+            normalizedSender.matches(BOI_DLT_SENDER) ||
+            normalizedSender.matches(BOIIND_LEGACY_SENDER) ||
+            normalizedSender.matches(BOIBNK_LEGACY_SENDER) ||
+            normalizedSender.matches(BOI_LEGACY_SENDER) ||
+            normalizedSender.matches(BK_BOIIND_SENDER) ||
+            normalizedSender.matches(JD_BOIIND_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -86,7 +86,7 @@ class BankOfIndiaParser : BaseIndianBankParser() {
 
         // BOI specific: Cash deposits should be INCOME (not investment)
         if (lowerMessage.contains("deposited in your account") ||
-            lowerMessage.contains("cash") && lowerMessage.contains("deposited")
+            (lowerMessage.contains("cash") && lowerMessage.contains("deposited"))
         ) {
             return TransactionType.INCOME
         }
@@ -99,11 +99,11 @@ class BankOfIndiaParser : BaseIndianBankParser() {
         // UPI Mandate for mutual funds/investments
         if (lowerMessage.contains("mandate") &&
             (lowerMessage.contains("mutual fund") ||
-                    lowerMessage.contains("iccl") ||
-                    lowerMessage.contains("groww") ||
-                    lowerMessage.contains("zerodha") ||
-                    lowerMessage.contains("kuvera") ||
-                    lowerMessage.contains("paytm money"))
+                lowerMessage.contains("iccl") ||
+                lowerMessage.contains("groww") ||
+                lowerMessage.contains("zerodha") ||
+                lowerMessage.contains("kuvera") ||
+                lowerMessage.contains("paytm money"))
         ) {
             return TransactionType.INVESTMENT
         }
@@ -377,24 +377,18 @@ class BankOfIndiaParser : BaseIndianBankParser() {
             }
         }
 
-        // Skip OTP and verification messages
-        if (lowerMessage.contains("otp") ||
-            lowerMessage.contains("one time password") ||
-            lowerMessage.contains("verification code")
-        ) {
-            return false
-        }
-
-        // Skip promotional messages
-        if (lowerMessage.contains("offer") ||
-            lowerMessage.contains("discount") ||
-            lowerMessage.contains("cashback offer") ||
-            lowerMessage.contains("win ")
-        ) {
-            return false
-        }
-
-        // Fall back to base class for standard checks
+        // The base class skips OTP, promotional and other non-transaction messages.
         return super.isTransactionMessage(message)
+    }
+
+    private companion object {
+        val BOIIND_DLT_SENDER = Regex("^[A-Z]{2}-BOIIND-[ST]$")
+        val BOIBNK_DLT_SENDER = Regex("^[A-Z]{2}-BOIBNK-[ST]$")
+        val BOI_DLT_SENDER = Regex("^[A-Z]{2}-BOI-[ST]$")
+        val BOIIND_LEGACY_SENDER = Regex("^[A-Z]{2}-BOIIND$")
+        val BOIBNK_LEGACY_SENDER = Regex("^[A-Z]{2}-BOIBNK$")
+        val BOI_LEGACY_SENDER = Regex("^[A-Z]{2}-BOI$")
+        val BK_BOIIND_SENDER = Regex("^BK-BOIIND.*$")
+        val JD_BOIIND_SENDER = Regex("^JD-BOIIND.*$")
     }
 }

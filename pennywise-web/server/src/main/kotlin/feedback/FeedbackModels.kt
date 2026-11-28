@@ -65,9 +65,3 @@ data class FeedbackListResponse(
     val items: List<FeedbackItem>,
     val total: Int
 )
-
-data class RateLimitInfo(
-    val fingerprint: String,
-    val submissionCount: Int,
-    val lastSubmissionAt: Long
-)

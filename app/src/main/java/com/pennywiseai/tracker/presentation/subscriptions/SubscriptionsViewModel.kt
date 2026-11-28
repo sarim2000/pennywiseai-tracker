@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -107,16 +108,7 @@ class SubscriptionsViewModel @Inject constructor(
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency,
                 userPreferencesRepository.baseCurrency
-            ) { subscriptions, ended, isUnified, displayCurrency, baseCurrency ->
-                arrayOf(subscriptions, ended, isUnified, displayCurrency, baseCurrency)
-            }.collect { values ->
-                @Suppress("UNCHECKED_CAST")
-                val subscriptions = values[0] as List<SubscriptionEntity>
-                @Suppress("UNCHECKED_CAST")
-                val endedSubscriptions = values[1] as List<SubscriptionEntity>
-                val isUnified = values[2] as Boolean
-                val displayCurrency = values[3] as String
-                val baseCurrency = values[4] as String
+            ) { subscriptions, endedSubscriptions, isUnified, displayCurrency, baseCurrency ->
                 // Unified mode collapses everything into displayCurrency, so a
                 // single figure is honest. Native mode keeps each currency apart —
                 // a ₹ + $ mix can't be one figure — so we expose a per-currency map
@@ -186,7 +178,6 @@ class SubscriptionsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     activeSubscriptions = ordered,
                     paidThisCycleIds = paidIds,
-                    paidThisCycleCount = paid.size,
                     endedSubscriptions = endedSubscriptions,
                     totalMonthlyAmount = totalMonthlyAmount,
                     totalByCurrency = totalByCurrency,
@@ -195,7 +186,7 @@ class SubscriptionsViewModel @Inject constructor(
                     isUnifiedMode = isUnified,
                     isLoading = false
                 )
-            }
+            }.collect()
         }
     }
 
@@ -419,8 +410,6 @@ data class SubscriptionsUiState(
     val activeSubscriptions: List<SubscriptionEntity> = emptyList(),
     /** IDs of subs in [activeSubscriptions] whose current cycle is paid — used to drive the row badge. */
     val paidThisCycleIds: Set<Long> = emptySet(),
-    /** Count of subs in [activeSubscriptions] whose current cycle is paid. */
-    val paidThisCycleCount: Int = 0,
     val endedSubscriptions: List<SubscriptionEntity> = emptyList(),
     /** Unified-mode header total, already converted to [displayCurrency]. */
     val totalMonthlyAmount: BigDecimal = BigDecimal.ZERO,

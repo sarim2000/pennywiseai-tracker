@@ -19,9 +19,6 @@ interface MerchantAliasDao {
     @Query("SELECT * FROM merchant_aliases ORDER BY merchant_name ASC")
     fun getAllAliases(): Flow<List<MerchantAliasEntity>>
 
-    @Query("SELECT COUNT(*) FROM merchant_aliases")
-    suspend fun getAliasCount(): Int
-
     @Query("DELETE FROM merchant_aliases")
     suspend fun deleteAllAliases()
 

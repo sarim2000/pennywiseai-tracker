@@ -19,7 +19,7 @@ class BarqParser : BankParser() {
     override fun getCurrency() = "SAR"
 
     override fun canHandle(sender: String): Boolean {
-        val normalized = sender.uppercase().replace(Regex("[\\s_-]"), "")
+        val normalized = sender.uppercase().replace(SENDER_SEPARATOR, "")
         return normalized == "BARQAPP" || normalized == "BARQAPPAD"
     }
 
@@ -209,5 +209,6 @@ class BarqParser : BankParser() {
             """(?:Sender\s+A/C|To\s*:[^\n]*\n(?:Bank\s*:[^\n]*\n)?\s*A/C)\s*:?\s*\*+\d{4}\b""",
             RegexOption.IGNORE_CASE
         )
+        private val SENDER_SEPARATOR = Regex("[\\s_-]")
     }
 }

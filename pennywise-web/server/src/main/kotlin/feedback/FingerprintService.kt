@@ -10,15 +10,6 @@ object FingerprintService {
     private const val COOKIE_NAME = "pw_fp"
     private const val COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365 // 1 year
 
-    fun getFingerprint(call: ApplicationCall): String {
-        val existingCookie = call.request.cookies[COOKIE_NAME]
-        if (existingCookie != null && existingCookie.length == 64) {
-            return existingCookie
-        }
-
-        return generateFingerprint(call)
-    }
-
     fun generateFingerprint(call: ApplicationCall): String {
         val userAgent = call.request.userAgent() ?: "unknown"
         val ip = call.request.local.remoteHost

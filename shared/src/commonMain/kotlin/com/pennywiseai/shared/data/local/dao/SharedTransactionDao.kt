@@ -39,6 +39,9 @@ interface SharedTransactionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transaction: SharedTransactionEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(transactions: List<SharedTransactionEntity>)
+
     @Update
     suspend fun update(transaction: SharedTransactionEntity)
 

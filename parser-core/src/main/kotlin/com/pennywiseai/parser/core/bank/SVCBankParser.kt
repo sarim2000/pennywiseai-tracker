@@ -15,7 +15,7 @@ class SVCBankParser : BaseIndianBankParser() {
 
     // "SVC" or a DLT header like "VM-SVCBNK-S"; segment match so unrelated headers containing "SVC" don't match.
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().split(Regex("""[\s_-]+""")).any { it == "SVC" || it.startsWith("SVCB") }
+        sender.uppercase().split(SENDER_SEPARATORS).any { it == "SVC" || it.startsWith("SVCB") }
 
     override fun extractAmount(message: String): BigDecimal? =
         Regex("""(?:DEBITED|CREDITED)\s+for\s+Rs\.?\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
@@ -41,4 +41,8 @@ class SVCBankParser : BaseIndianBankParser() {
 
     override fun extractReference(message: String): String? =
         upiInfo.find(message)?.groupValues?.get(1) ?: super.extractReference(message)
+
+    private companion object {
+        val SENDER_SEPARATORS = Regex("""[\s_-]+""")
+    }
 }

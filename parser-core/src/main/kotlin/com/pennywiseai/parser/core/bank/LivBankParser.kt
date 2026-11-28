@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
@@ -18,11 +19,8 @@ class LivBankParser : UAEBankParser() {
     override fun getBankName() = "Liv Bank"
 
     override fun canHandle(sender: String): Boolean {
-        val normalizedSender = sender.uppercase().replace(Regex("\\s+"), "")
-        return normalizedSender == "LIV" ||
-                normalizedSender.contains("LIV") ||
-                // DLT patterns for UAE (if they exist)
-                normalizedSender.matches(Regex("^[A-Z]{2}-LIV-[A-Z]$"))
+        val normalizedSender = sender.uppercase().replace(WHITESPACE, "")
+        return normalizedSender.contains("LIV")
     }
 
     override fun isTransactionMessage(message: String): Boolean {
@@ -165,9 +163,9 @@ class LivBankParser : UAEBankParser() {
 
         // Liv-specific card indicators
         return lowerMessage.contains("debit card ending") ||
-                lowerMessage.contains("credit card ending") ||
-                lowerMessage.contains("purchase of") ||  // Liv Bank uses this for card purchases
-                super.detectIsCard(message)
+            lowerMessage.contains("credit card ending") ||
+            lowerMessage.contains("purchase of") ||  // Liv Bank uses this for card purchases
+            super.detectIsCard(message)
     }
 
     override fun containsCardPurchase(message: String): Boolean {
@@ -175,8 +173,8 @@ class LivBankParser : UAEBankParser() {
 
         // Liv Bank uses "Purchase of" with "Debit Card ending" or "Credit Card ending"
         return (lowerMessage.contains("purchase of") &&
-                (lowerMessage.contains("debit card ending") || lowerMessage.contains("credit card ending"))) ||
-                super.containsCardPurchase(message)
+            (lowerMessage.contains("debit card ending") || lowerMessage.contains("credit card ending"))) ||
+            super.containsCardPurchase(message)
     }
 
     override fun extractCurrency(message: String): String? {
@@ -197,8 +195,8 @@ class LivBankParser : UAEBankParser() {
                 val currencyCode = match.groupValues[1].uppercase()
 
                 // Validate it's a 3-letter code (standard ISO currency format) but not month names
-                if (currencyCode.matches(Regex("""[A-Z]{3}""")) &&
-                    !currencyCode.matches(Regex("""^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)$""", RegexOption.IGNORE_CASE))
+                if (currencyCode.matches(CompiledPatterns.Currency.ISO_CODE) &&
+                    !isMonthAbbreviation(currencyCode)
                 ) {
                     return currencyCode
                 }
@@ -207,5 +205,9 @@ class LivBankParser : UAEBankParser() {
 
         // Default to AED for Liv Bank (UAE Dirham)
         return "AED"
+    }
+
+    private companion object {
+        val WHITESPACE = Regex("\\s+")
     }
 }

@@ -26,7 +26,6 @@
     <string name="settings_pro_subtitle_active">مفعّل · كل الميزات المتقدمة متاحة</string>
     <string name="settings_pro_subtitle_upgrade">قواعد وكشوف حساب وتصدير بلا حدود، والمزيد</string>
     <!-- Personalization -->
-    <string name="settings_personalization_section">التخصيص</string>
     <string name="settings_appearance_title">المظهر</string>
     <string name="settings_appearance_subtitle">السمة والألوان والخطوط والتنقل</string>
     <string name="settings_language_title">اللغة</string>
@@ -53,7 +52,6 @@
     <string name="settings_main_account_subtitle">يحدد عملتك الافتراضية</string>
     <string name="settings_main_account_not_set">غير محدد</string>
     <string name="settings_number_format_title">تنسيق الأرقام</string>
-    <string name="settings_number_format_subtitle">طريقة تجميع خانات المبالغ الكبيرة</string>
     <string name="settings_number_format_auto">تلقائي</string>
     <string name="settings_number_format_indian">هندي</string>
     <string name="settings_number_format_international">دولي</string>
@@ -61,7 +59,6 @@
     <string name="settings_number_format_indian_example">1,50,000 (لاك / كرور)</string>
     <string name="settings_number_format_international_example">150,000 (ألف/مليون)</string>
     <string name="settings_date_format_title">تنسيق التاريخ</string>
-    <string name="settings_date_format_subtitle">طريقة عرض التواريخ</string>
     <!-- Budget -->
     <string name="settings_budget_cycle_title">يوم بداية دورة الميزانية</string>
     <string name="settings_budget_cycle_dialog_body">اختر اليوم الذي تبدأ فيه كل دورة ميزانية شهرية. على سبيل المثال، 25 يعني أن الدورة تمتد من 25 إلى 24 من الشهر التالي.</string>
@@ -101,12 +98,6 @@
     </plurals>
     <!-- Data Management -->
     <string name="settings_data_section">إدارة البيانات</string>
-    <string name="settings_manage_accounts_title">إدارة الحسابات</string>
-    <string name="settings_manage_accounts_subtitle">عرض وإدارة حساباتك المصرفية</string>
-    <string name="settings_categories_title">الفئات</string>
-    <string name="settings_categories_subtitle">إدارة فئات المصروفات والدخل</string>
-    <string name="settings_smart_rules_title">القواعد الذكية</string>
-    <string name="settings_smart_rules_subtitle">تصنيف المعاملات تلقائيًا</string>
     <string name="settings_budgets_title">الميزانيات</string>
     <string name="settings_budgets_subtitle">تتبع حدود الإنفاق حسب الفئة</string>
     <string name="settings_loans_title">القروض</string>
@@ -134,8 +125,6 @@
     <string name="settings_import_data_subtitle">استعادة البيانات من النسخة الاحتياطية</string>
     <string name="settings_import_csv_title">استيراد المعاملات (CSV)</string>
     <string name="settings_import_csv_subtitle">استيراد من ملف CSV صدّرته من PennyWise</string>
-    <string name="settings_import_statement_title">استيراد كشف حساب</string>
-    <string name="settings_import_statement_subtitle">كشوف حساب بنكية (Excel وCSV) أو ملفات PDF من تطبيقات UPI</string>
     <string name="settings_unrecognized_sms_title">رسائل لم يُتعرّف عليها</string>
     <string name="settings_unrecognized_sms_subtitle">عرض الرسائل المصرفية غير المدعومة والإبلاغ عنها</string>
     <string name="settings_delete_all_title">حذف جميع المعاملات</string>
@@ -283,7 +272,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">تنزيل نموذج الذكاء الاصطناعي (%1$d MB)</string>
     <string name="settings_ai_status_downloading">جارٍ تنزيل نموذج الذكاء الاصطناعي...</string>
-    <string name="settings_ai_status_paused">توقف التنزيل</string>
     <string name="settings_ai_status_completed">نموذج الذكاء الاصطناعي جاهز للدردشة</string>
     <string name="settings_ai_status_failed">فشل التنزيل</string>
     <string name="settings_ai_status_insufficient_space">لا توجد مساحة تخزين كافية</string>
@@ -296,8 +284,6 @@
     <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
     <string name="settings_ai_cancel_download">إلغاء التنزيل</string>
     <string name="settings_ai_info">تحدّث مع الذكاء الاصطناعي عن مصروفاتك واحصل على رؤى مالية. تبقى كل المحادثات خاصة على جهازك.</string>
-    <string name="settings_ai_download_notification_title">نموذج دردشة الذكاء الاصطناعي</string>
-    <string name="settings_ai_download_notification_description">جارٍ تنزيل مساعد الدردشة بالذكاء الاصطناعي لـ PennyWise</string>
     <!-- Developer -->
     <string name="settings_developer_section">المطور</string>
     <string name="settings_developer_mode_title">وضع المطور</string>
@@ -306,7 +292,6 @@
     <string name="settings_webhooks_subtitle">إرسال البيانات المختارة إلى نقطة النهاية الخاصة بك</string>
     <string name="settings_webhooks_subtitle_pro">Pro · إرسال البيانات المختارة إلى نقطة النهاية الخاصة بك</string>
     <!-- Support & Community -->
-    <string name="settings_support_section">الدعم والمجتمع</string>
     <string name="settings_help_faq_title">المساعدة والأسئلة الشائعة</string>
     <string name="settings_help_faq_subtitle">الأسئلة الشائعة والمساعدة</string>
     <string name="settings_user_guide_title">دليل المستخدم</string>
@@ -384,10 +369,6 @@
     <string name="appearance_nav_floating_subtitle">عصري وأنيق</string>
     <string name="appearance_nav_normal">عادي</string>
     <string name="appearance_nav_normal_subtitle">M3 القياسي</string>
-    <!-- Cover style -->
-    <string name="appearance_cover_section">نمط الغلاف</string>
-    <string name="appearance_cover_none">لا يوجد</string>
-    <string name="appearance_cover_selected">المحدد</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">الخطوط</string>
     <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->

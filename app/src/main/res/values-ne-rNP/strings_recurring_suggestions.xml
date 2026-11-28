@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Subscriptions screen: "Suggested" section listing payments that repeat in the user's history but aren't tracked yet -->
-    <string name="subscriptions_suggested_section">सुझाव गरिएका</string>
-    <string name="subscriptions_suggested_hint">तपाईंको इतिहासमा दोहोरिने भुक्तानीहरू। ट्र्याक नगरेसम्म यिनलाई गनिँदैन।</string>
     <!-- %1$d: total number of suggestions -->
     <string name="subscriptions_suggested_show_all">सबै हेर्नुहोस् (%1$d)</string>
     <string name="subscriptions_suggested_show_less">कम हेर्नुहोस्</string>
@@ -12,7 +10,6 @@
         <item quantity="other">%1$d भुक्तानी</item>
     </plurals>
     <!-- Amount range of a bill whose amount changes. %1$s lowest amount, %2$s highest amount, both with currency -->
-    <string name="subscription_suggestion_varies">रकम फरक पर्छ</string>
     <string name="subscription_suggestion_review">हेर्नुहोस्</string>
     <string name="subscription_suggestion_not_recurring">दोहोरिने होइन</string>
     <!-- Review sheet. %1$s billing cycle (e.g. "Monthly"), %2$s category -->

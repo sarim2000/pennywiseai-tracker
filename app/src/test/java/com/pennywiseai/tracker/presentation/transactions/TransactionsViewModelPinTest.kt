@@ -106,10 +106,6 @@ class TransactionsViewModelPinTest {
             every { selectedProfileId } returns homeProfile
             every { budgetCycleStartDay } returns flowOf(1)
             coEvery { getBudgetCycleStartDay() } returns 1
-            every { smsScanMonths } returns flowOf(3)
-            every { smsScanAllTime } returns flowOf(true)
-            every { smsScanUseCustomDate } returns flowOf(false)
-            every { smsScanCustomDate } returns flowOf(null)
         }
         val accounts = mockk<AccountBalanceRepository> { every { getAllLatestBalances() } returns flowOf(emptyList()) }
         val cards = mockk<CardRepository> { every { getAllCards() } returns flowOf(emptyList()) }

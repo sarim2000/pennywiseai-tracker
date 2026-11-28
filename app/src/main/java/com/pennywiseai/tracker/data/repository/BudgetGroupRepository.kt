@@ -121,12 +121,6 @@ class BudgetGroupRepository @Inject constructor(
     fun getActiveGroups(): Flow<List<BudgetWithCategories>> =
         budgetDao.getActiveBudgetsWithCategories()
 
-    fun getAssignedCategories(): Flow<List<String>> =
-        budgetDao.getAllAssignedCategoryNames()
-
-    suspend fun hasAnyGroups(): Boolean =
-        budgetDao.getActiveGroupCount() > 0
-
     /**
      * Single-budget lookup by id, used by the Budget History drill-down
      * screen. Returns null if the budget was deleted.
@@ -405,33 +399,6 @@ class BudgetGroupRepository @Inject constructor(
         }
     }
 
-    suspend fun addCategoryToGroup(budgetId: Long, categoryName: String, amount: BigDecimal) {
-        budgetDao.insertBudgetCategory(
-            BudgetCategoryEntity(
-                budgetId = budgetId,
-                categoryName = categoryName,
-                budgetAmount = amount
-            )
-        )
-        recomputeGroupTotal(budgetId)
-    }
-
-    suspend fun updateCategoryBudget(budgetId: Long, categoryName: String, amount: BigDecimal) {
-        budgetDao.updateCategoryBudgetAmount(budgetId, categoryName, amount)
-        recomputeGroupTotal(budgetId)
-    }
-
-    suspend fun removeCategoryFromGroup(budgetId: Long, categoryName: String) {
-        budgetDao.deleteCategoryFromBudget(budgetId, categoryName)
-        recomputeGroupTotal(budgetId)
-    }
-
-    private suspend fun recomputeGroupTotal(budgetId: Long) {
-        val categories = budgetDao.getCategoriesForBudgetList(budgetId)
-        val total = categories.fold(BigDecimal.ZERO) { acc, cat -> acc + cat.budgetAmount }
-        budgetDao.updateBudgetLimitAmount(budgetId, total)
-    }
-
     private fun percentOf(part: BigDecimal, total: BigDecimal, coerceMinZero: Boolean = true): Float {
         val pct = part.toFloat() / total.toFloat() * 100f
         return if (coerceMinZero) pct.coerceAtLeast(0f) else pct
@@ -526,8 +493,6 @@ class BudgetGroupRepository @Inject constructor(
                             transactionsByWindow = emptyMap(),
                             today = today,
                             isCurrentMonth = isCurrentMonth,
-                            monthStart = monthStart,
-                            monthEnd = monthEnd,
                             currency = currency
                         )
                     } else {
@@ -575,8 +540,6 @@ class BudgetGroupRepository @Inject constructor(
                             transactionsByWindow = transactionsByWindow,
                             today = today,
                             isCurrentMonth = isCurrentMonth,
-                            monthStart = monthStart,
-                            monthEnd = monthEnd,
                             currency = currency,
                             displayedCapDate = if (isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth)) today else monthEnd,
                             displayedIsLive = isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth),
@@ -1077,8 +1040,6 @@ class BudgetGroupRepository @Inject constructor(
         transactionsByWindow: Map<BudgetWindow, List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>>,
         today: LocalDate,
         isCurrentMonth: Boolean,
-        monthStart: LocalDate = displayWindow.start,
-        monthEnd: LocalDate = displayWindow.end,
         currency: String,
         displayedCapDate: LocalDate = displayWindow.end,
         displayedIsLive: Boolean = false,

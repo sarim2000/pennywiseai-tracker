@@ -18,7 +18,7 @@ class MobilyPayParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         // Normalize only display punctuation/whitespace, then require the whole sender
         // to match. This supports common display variants without matching unrelated SMS.
-        val normalized = sender.trim().uppercase().replace(Regex("[\\s\\-_]"), "")
+        val normalized = sender.trim().uppercase().replace(SENDER_SEPARATOR, "")
         return normalized == "MOBILYPAY"
     }
 
@@ -140,5 +140,9 @@ class MobilyPayParser : BankParser() {
             lower.contains("transfer received") || lower.contains("transfer sent") ||
             (lower.contains("adjustment") &&
                 (lower.contains("credit") || lower.contains("debit")))
+    }
+
+    private companion object {
+        val SENDER_SEPARATOR = Regex("[\\s\\-_]")
     }
 }

@@ -14,7 +14,7 @@ class IPPBParser : BankParser() {
         val normalizedSender = sender.uppercase()
 
         // Pattern: XX-IPBMSG-S or XX-IPBMSG-T where XX is any two letters
-        return normalizedSender.matches(Regex("^[A-Z]{2}-IPBMSG-[ST]$"))
+        return normalizedSender.matches(DLT_SENDER)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -153,5 +153,9 @@ class IPPBParser : BankParser() {
         }
 
         return super.isTransactionMessage(message)
+    }
+
+    private companion object {
+        val DLT_SENDER = Regex("^[A-Z]{2}-IPBMSG-[ST]$")
     }
 }

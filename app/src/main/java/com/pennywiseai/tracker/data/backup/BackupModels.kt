@@ -531,8 +531,7 @@ sealed class ExportResult {
  */
 enum class ImportStrategy {
     REPLACE_ALL,    // Replace all existing data
-    MERGE,          // Merge with existing data (skip duplicates)
-    SELECTIVE       // User selects what to import
+    MERGE           // Merge with existing data (skip duplicates)
 }
 
 /**

@@ -19,17 +19,13 @@ class IndianBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
         return normalized.contains("INDIAN BANK") ||
-                normalized.contains("INDIANBANK") ||
-                normalized.contains("INDIANBK") ||
-                // Match DLT patterns for transactions (-S suffix)
-                normalized.matches(Regex("^[A-Z]{2}-INDBNK-S$")) ||
-                // Also handle other patterns for completeness
-                normalized.matches(Regex("^[A-Z]{2}-INDBNK-[TPG]$")) ||
-                // Legacy patterns without suffix
-                normalized.matches(Regex("^[A-Z]{2}-INDBNK$")) ||
-                // Direct sender IDs
-                normalized == "INDBNK" ||
-                normalized == "INDIAN"
+            normalized.contains("INDIANBANK") ||
+            normalized.contains("INDIANBK") ||
+            // DLT patterns: -S for transactions, -T/-P/-G, or legacy without suffix
+            normalized.matches(DLT_SENDER) ||
+            // Direct sender IDs
+            normalized == "INDBNK" ||
+            normalized == "INDIAN"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -339,6 +335,8 @@ class IndianBankParser : BaseIndianBankParser() {
     ) : MandateInfo {
         override val dateFormat = "dd-MMM-yy"
     }
+
+    private companion object {
+        val DLT_SENDER = Regex("^[A-Z]{2}-INDBNK(?:-[STPG])?$")
+    }
 }
-
-

@@ -137,10 +137,7 @@
     <string name="manage_accounts_hidden_badge">ละเว้น</string>
     <string name="manage_accounts_business_badge">ธุรกิจ</string>
     <string name="manage_accounts_outstanding">ยอดคงค้าง</string>
-    <string name="manage_accounts_available">พร้อมใช้งาน</string>
     <string name="manage_accounts_credit_limit">วงเงินเครดิต</string>
-    <!-- %1$d = utilization percentage -->
-    <string name="manage_accounts_utilization_used">(%1$d%% ใช้แล้ว)</string>
     <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
     <!-- %1$s = formatted available credit -->
     <!-- Summary cards at the top of Manage Accounts -->
@@ -168,7 +165,6 @@
     <string name="manage_accounts_decrease">ลด</string>
     <string name="manage_accounts_increase">เพิ่ม</string>
     <string name="manage_accounts_low_balance">ยอดเงินเหลือน้อย</string>
-    <string name="manage_accounts_balance">ยอดคงเหลือ</string>
     <string name="manage_accounts_linked_cards">บัตรที่เชื่อมต่อ</string>
     <string name="manage_accounts_card_inactive">(ไม่ใช้งาน)</string>
     <!-- %1$s = short date -->
@@ -252,8 +248,6 @@
     <string name="loan_detail_record_payment">บันทึกการชำระ</string>
     <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">ที่เหลือจาก %1$s</string>
-    <!-- %1$d = percentage repaid -->
-    <string name="loan_detail_percent_repaid">ชำระคืนแล้ว %1$d%%</string>
     <string name="loan_detail_history">ประวัติ</string>
     <string name="loan_detail_settle_title">ปิดเงินกู้</string>
     <string name="loan_detail_settle_message">ทำเครื่องหมายว่าเงินกู้นี้ชำระแล้วไหม? ยอดที่เหลือจะถูกยกให้</string>
@@ -276,20 +270,6 @@
     <string name="loan_detail_enter_amount">ใส่จำนวนเงิน</string>
     <string name="loan_detail_amount_label">จำนวนเงิน</string>
     <string name="loan_detail_add">เพิ่ม</string>
-    <!-- ══ Accounts overview card (home) ══ -->
-    <string name="accounts_overview_title">ภาพรวมบัญชี</string>
-    <string name="accounts_overview_bank_balance">ยอดเงินในธนาคาร</string>
-    <string name="accounts_overview_bank_balance_count">ยอดเงินในธนาคาร • %1$d</string>
-    <string name="accounts_overview_available_credit">วงเงินคงเหลือ</string>
-    <string name="accounts_overview_available_credit_count">วงเงินคงเหลือ • %1$d</string>
-    <string name="accounts_overview_balance">ยอดคงเหลือ</string>
-    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
-    <string name="accounts_overview_used">ใช้ไป: %1$s (%2$d%%)</string>
-    <string name="accounts_overview_available_limit">วงเงินที่ใช้ได้</string>
-    <string name="accounts_overview_show_less">แสดงน้อยลง</string>
-    <plurals name="accounts_overview_view_all">
-        <item quantity="other">ดูบัญชีทั้งหมด %1$d บัญชี</item>
-    </plurals>
     <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
     <!-- Net worth: what you own minus what you owe, per currency -->
 </resources>

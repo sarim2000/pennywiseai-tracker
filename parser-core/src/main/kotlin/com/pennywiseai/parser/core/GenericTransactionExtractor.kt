@@ -24,18 +24,14 @@ object GenericTransactionExtractor {
     data class Suggestion(val transaction: ParsedTransaction, val confidence: Int)
 
     fun extract(sender: String, body: String, timestamp: Long = 0L): Suggestion? {
-        if (PERSONAL_NUMBER.matches(sender.replace(" ", "")) || Base.isNonTransaction(body)) return null
         // A declined or failed attempt moved no money, so it must never become a suggestion.
         // ("Reversed" is not in the list: a reversal credit returns real money.)
-        if (FAILED.containsMatchIn(body)) return null
+        if (isNeverTransaction(sender, body)) return null
 
         val money = MONEY.findAll(body).mapNotNull { printed(it, body) }.toList()
         val main = money.firstOrNull { it.figure == null } ?: return null
         // A completed reversal/refund returns money, whatever the original purchase wording says.
-        val type = if (REFUND.containsMatchIn(body)) TransactionType.INCOME
-        else DIRECTION.find(body)
-            ?.let { if (it.groups[1] != null) TransactionType.EXPENSE else TransactionType.INCOME }
-            ?: return null
+        val type = if (REFUND.containsMatchIn(body)) TransactionType.INCOME else directionOf(body) ?: return null
 
         // Only figures in the transaction's own currency: a balance is never mixed with another currency.
         fun figure(kind: String) = money.firstOrNull { it.figure == kind && it.currency == main.currency }?.amount

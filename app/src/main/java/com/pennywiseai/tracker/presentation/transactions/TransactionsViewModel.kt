@@ -37,7 +37,6 @@ import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.utils.CurrencyUtils
-import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import com.pennywiseai.tracker.utils.dateQueryWindow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -188,44 +187,23 @@ class TransactionsViewModel @Inject constructor(
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
 
     private val _currencyGroupedTotals = MutableStateFlow(CurrencyGroupedTotals())
-    val currencyGroupedTotals: StateFlow<CurrencyGroupedTotals> = _currencyGroupedTotals.asStateFlow()
 
     // Available currencies for the selected time period
     val availableCurrencies: StateFlow<List<String>> = combine(selectedPeriod, customDateRange, budgetCycleStartDay) { period, customRange, _ ->
         period to customRange
     }.flatMapLatest { (period, customRange) ->
-        if (period == TimePeriod.ALL) {
-            transactionRepository.getAllCurrencies()
-        } else if (period == TimePeriod.CUSTOM && customRange != null) {
-            val (startDate, endDate) = customRange
-            val startDateTime = startDate.atStartOfDay()
-            val endDateTime = endDate.atTime(23, 59, 59)
-            transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
-        } else if (period.followsBudgetCycle) {
-            val (startDate, endDate) = getCycleRange(period)
-            val startDateTime = startDate.atStartOfDay()
-            val endDateTime = endDate.atTime(23, 59, 59)
-            transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
-        } else {
-            val dateRange = getDateRangeForPeriod(period)
-            if (dateRange != null) {
-                val (startDate, endDate) = dateRange
-                val startDateTime = startDate.atStartOfDay()
-                val endDateTime = endDate.atTime(23, 59, 59)
-                transactionRepository.getCurrenciesForPeriod(startDateTime, endDateTime)
-            } else {
-                transactionRepository.getAllCurrencies()
-            }
+        val range = when {
+            period == TimePeriod.ALL -> null
+            period == TimePeriod.CUSTOM && customRange != null -> customRange
+            period.followsBudgetCycle -> getCycleRange(period)
+            else -> getDateRangeForPeriod(period)
         }
+        range?.let { (startDate, endDate) ->
+            transactionRepository.getCurrenciesForPeriod(startDate.atStartOfDay(), endDate.atTime(23, 59, 59))
+        } ?: transactionRepository.getAllCurrencies()
     }
         .combine(userPreferencesRepository.baseCurrency) { currencies, base ->
-            currencies.sortedWith { a, b ->
-                when {
-                    a == base -> -1
-                    b == base -> 1
-                    else -> a.compareTo(b)
-                }
-            }
+            currencies.sortedWith(compareBy<String> { it != base }.thenBy { it })
         }
         .stateIn(
             scope = viewModelScope,
@@ -468,7 +446,7 @@ class TransactionsViewModel @Inject constructor(
 
     /**
      * Soft-delete every currently-selected transaction. Undo restores them all
-     * via the same per-row undoDelete path the single-row flow uses.
+     * through the same restore use case the single-row undo uses.
      */
     fun bulkDelete() {
         val ids = _selectedIds.value
@@ -592,77 +570,6 @@ class TransactionsViewModel @Inject constructor(
     // Used for the category filter chips row
     private val _availableCategories = MutableStateFlow<List<String>>(emptyList())
     val availableCategories: StateFlow<List<String>> = _availableCategories.asStateFlow()
-
-    // SMS scan period for info banner
-    val smsScanMonths: StateFlow<Int> = userPreferencesRepository.smsScanMonths
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 3
-        )
-
-    private val smsScanAllTime: StateFlow<Boolean> = userPreferencesRepository.smsScanAllTime
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
-    private val smsScanUseCustomDate: StateFlow<Boolean> = userPreferencesRepository.smsScanUseCustomDate
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = false
-        )
-
-    private val smsScanCustomDate: StateFlow<Long?> = userPreferencesRepository.smsScanCustomDate
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
-        )
-
-    fun isShowingLimitedData(): Boolean {
-        if (smsScanAllTime.value) return false
-
-        val currentPeriod = _selectedPeriod.value
-        val scanStartDate = getSmsScanStartDate() ?: return false
-
-        return when (currentPeriod) {
-            TimePeriod.ALL -> true
-            TimePeriod.CURRENT_FY -> {
-                val dateRange = getDateRangeForPeriod(TimePeriod.CURRENT_FY)
-                if (dateRange != null) {
-                    val (fyStart, _) = dateRange
-                    fyStart.isBefore(scanStartDate)
-                } else {
-                    false
-                }
-            }
-            TimePeriod.CUSTOM -> {
-                val customRange = customDateRange.value
-                if (customRange != null) {
-                    val (startDate, _) = customRange
-                    startDate.isBefore(scanStartDate)
-                } else {
-                    false
-                }
-            }
-            else -> false
-        }
-    }
-
-    private fun getSmsScanStartDate(): LocalDate? {
-        if (smsScanUseCustomDate.value) {
-            return smsScanCustomDate.value?.let { millis ->
-                java.time.Instant.ofEpochMilli(millis)
-                    .atZone(java.time.ZoneId.systemDefault())
-                    .toLocalDate()
-            }
-        }
-
-        return LocalDate.now().minusMonths(smsScanMonths.value.toLong())
-    }
 
     init {
         // Observe selected profile from preferences and cache profile account keys
@@ -876,7 +783,6 @@ class TransactionsViewModel @Inject constructor(
                         }
                         ComputedList(
                             transactions = sorted,
-                            grouped = groupTransactionsByDate(sorted),
                             // Calculate totals for filtered transactions
                             totals = calculateCurrencyGroupedTotals(
                                 splitShares.forTotals(sorted),
@@ -893,7 +799,6 @@ class TransactionsViewModel @Inject constructor(
             .onEach { computed ->
                 _uiState.value = _uiState.value.copy(
                     transactions = computed.transactions,
-                    groupedTransactions = computed.grouped,
                     splitShares = computed.splitShares,
                     isLoading = false
                 )
@@ -1109,16 +1014,6 @@ class TransactionsViewModel @Inject constructor(
         }
     }
 
-    fun undoDelete() {
-        _deletedTransaction.value?.let { transaction ->
-            viewModelScope.launch {
-                restoreTransactionUseCase(transaction)
-                _deletedTransaction.value = null
-                refreshWidgets()
-            }
-        }
-    }
-
     fun undoDeleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             restoreTransactionUseCase(transaction)
@@ -1175,28 +1070,43 @@ class TransactionsViewModel @Inject constructor(
     ) {
         if (!hasAppliedInitialFilters) {
             // Only apply filters once, when first navigating to the screen
-            clearCategoryFilter()
-            updateSearchQuery("")
-            selectPeriod(TimePeriod.THIS_MONTH)
-            setTransactionTypeFilter(navigatedType(type))
-            setSortOption(SortOption.DATE_NEWEST)
-            setAccountFilter(account)
-            setTagFilter(tag)
-            if (tag != null) _alsoTagFilter.value = alsoTag?.takeIf { it.isNotBlank() }
-
-            // Typed nav keys carry names as they are: "Savings 10%" isn't URL-encoded.
-            category?.let { setCategoryFilter(it) }
-            merchant?.let { updateSearchQuery(it) }
-
-            period?.let { periodName ->
-                applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
-            }
-
-            // Only set currency if it's provided (from navigation)
-            currency?.let { selectCurrency(it) }
-
+            resetToNavigated(category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type, alsoTag)
             hasAppliedInitialFilters = true
         }
+    }
+
+    /** Resets the list's filters, then applies the ones a navigation carries. */
+    private fun resetToNavigated(
+        category: String?,
+        merchant: String?,
+        period: String?,
+        currency: String?,
+        startDateEpochDay: Long?,
+        endDateEpochDay: Long?,
+        account: String?,
+        tag: String?,
+        type: String?,
+        alsoTag: String?
+    ) {
+        clearCategoryFilter()
+        updateSearchQuery("")
+        selectPeriod(TimePeriod.THIS_MONTH)
+        setTransactionTypeFilter(navigatedType(type))
+        setSortOption(SortOption.DATE_NEWEST)
+        setAccountFilter(account)
+        setTagFilter(tag)
+        if (tag != null) _alsoTagFilter.value = alsoTag?.takeIf { it.isNotBlank() }
+
+        // Typed nav keys carry names as they are: "Savings 10%" isn't URL-encoded.
+        category?.let { setCategoryFilter(it) }
+        merchant?.let { updateSearchQuery(it) }
+
+        period?.let { periodName ->
+            applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
+        }
+
+        // Only set currency if it's provided (from navigation)
+        currency?.let { selectCurrency(it) }
     }
 
     /**
@@ -1252,24 +1162,7 @@ class TransactionsViewModel @Inject constructor(
         appliedNavigationParams = currentParams
 
         // Reset filters for new navigation
-        clearCategoryFilter()
-        updateSearchQuery("")
-        selectPeriod(TimePeriod.THIS_MONTH)
-        setTransactionTypeFilter(navigatedType(type))
-        setSortOption(SortOption.DATE_NEWEST)
-        setAccountFilter(account)
-        setTagFilter(tag)
-        if (tag != null) _alsoTagFilter.value = alsoTag?.takeIf { it.isNotBlank() }
-
-        category?.let { setCategoryFilter(it) }
-        merchant?.let { updateSearchQuery(it) }
-
-        period?.let { periodName ->
-            applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
-        }
-
-        // Only set currency if it's provided (from navigation)
-        currency?.let { selectCurrency(it) }
+        resetToNavigated(category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type, alsoTag)
     }
 
     /**
@@ -1463,15 +1356,10 @@ class TransactionsViewModel @Inject constructor(
         } ?: return null
         return dates.first.atStartOfDay() to dates.second.atTime(23, 59, 59)
     }
-
-    fun getReportUrl(transaction: TransactionEntity): String {
-        return SmsReportUrlBuilder.buildUrl(context, transaction.smsBody, transaction.smsSender)
-    }
 }
 
 data class TransactionsUiState(
     val transactions: List<TransactionEntity> = emptyList(),
-    val groupedTransactions: Map<DateGroup, List<TransactionEntity>> = emptyMap(),
     /** Set while a category filter is on: split rows count only their share in it (#1192). */
     val splitShares: CategorySplitShares? = null,
     val isLoading: Boolean = true
@@ -1487,17 +1375,9 @@ private data class FilteredRows(
 /** One finished computation of the list, published to the UI state in one go. */
 private class ComputedList(
     val transactions: List<TransactionEntity>,
-    val grouped: Map<DateGroup, List<TransactionEntity>>,
     val totals: CurrencyGroupedTotals,
     val splitShares: CategorySplitShares?
 )
-
-enum class DateGroup(@StringRes val labelRes: Int) {
-    TODAY(R.string.txn_list_group_today),
-    YESTERDAY(R.string.txn_list_group_yesterday),
-    THIS_WEEK(R.string.txn_list_group_this_week),
-    EARLIER(R.string.txn_list_group_earlier)
-}
 
 enum class SortOption(@StringRes val labelRes: Int) {
     DATE_NEWEST(R.string.txn_list_sort_newest),

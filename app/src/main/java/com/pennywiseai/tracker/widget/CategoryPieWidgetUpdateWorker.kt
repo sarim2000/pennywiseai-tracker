@@ -17,6 +17,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.forTotals
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
@@ -60,7 +61,8 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
     private val categoryRepository: CategoryRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val currencyConversionService: CurrencyConversionService
+    private val currencyConversionService: CurrencyConversionService,
+    private val ignoredAccountsStore: IgnoredAccountsStore
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -116,9 +118,7 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
 
             // Scope to the selected profile and drop hidden accounts, mirroring
             // Home and Analytics — the widget must agree with the in-app pie.
-            val hidden = applicationContext
-                .getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
-                .getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+            val hidden = ignoredAccountsStore.keys()
             val selectedProfileId = userPreferencesRepository.selectedProfileId.first()
             val profileKeys =
                 buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalances().first())
@@ -186,11 +186,12 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 if (total.signum() == 0) 0f
                 else (amount.toFloat() / total.toFloat()) * 100f
 
+            val ctx = applicationContext.inAppLanguage()
             val slices = buildList {
                 top.forEach { (name, amount) ->
                     add(
                         CategoryPieSlice(
-                            name = CategoryMapping.label(applicationContext.inAppLanguage(), name, categories),
+                            name = CategoryMapping.label(ctx, name, categories),
                             colorArgb = CategoryMapping.colorFor(name, colorOverrides[name])
                                 .toArgb().toLong(),
                             percent = percentOf(amount)
@@ -200,7 +201,7 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 if (otherTotal.signum() > 0) {
                     add(
                         CategoryPieSlice(
-                            name = applicationContext.inAppLanguage().getString(R.string.widget_pie_other),
+                            name = ctx.getString(R.string.widget_pie_other),
                             colorArgb = 0xFF9E9E9EL,
                             percent = percentOf(otherTotal)
                         )

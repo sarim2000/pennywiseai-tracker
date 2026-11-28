@@ -150,10 +150,7 @@
     <string name="manage_accounts_hidden_badge">Ignored</string>
     <string name="manage_accounts_business_badge">Business</string>
     <string name="manage_accounts_outstanding">Outstanding</string>
-    <string name="manage_accounts_available">Available</string>
     <string name="manage_accounts_credit_limit">Credit Limit</string>
-    <!-- %1$d = utilization percentage -->
-    <string name="manage_accounts_utilization_used">(%1$d%% used)</string>
     <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
     <string name="manage_accounts_limit_used">%1$d%% of %2$s limit used</string>
     <!-- %1$s = formatted available credit -->
@@ -185,7 +182,6 @@
     <string name="manage_accounts_decrease">Decrease</string>
     <string name="manage_accounts_increase">Increase</string>
     <string name="manage_accounts_low_balance">Low balance</string>
-    <string name="manage_accounts_balance">Balance</string>
     <string name="manage_accounts_linked_cards">Linked Cards</string>
     <string name="manage_accounts_card_inactive">(Inactive)</string>
     <!-- %1$s = short date -->
@@ -271,8 +267,6 @@
     <string name="loan_detail_record_payment">Record Payment</string>
     <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">remaining of %1$s</string>
-    <!-- %1$d = percentage repaid -->
-    <string name="loan_detail_percent_repaid">%1$d%% repaid</string>
     <string name="loan_detail_history">History</string>
     <string name="loan_detail_settle_title">Settle Loan</string>
     <string name="loan_detail_settle_message">Mark this loan as settled? Any remaining balance will be forgiven.</string>
@@ -302,22 +296,6 @@
     <string name="loan_detail_enter_amount">Enter amount</string>
     <string name="loan_detail_amount_label">Amount</string>
     <string name="loan_detail_add">Add</string>
-
-    <!-- ══ Accounts overview card (home) ══ -->
-    <string name="accounts_overview_title">Accounts Overview</string>
-    <string name="accounts_overview_bank_balance">Bank Balance</string>
-    <string name="accounts_overview_bank_balance_count">Bank Balance • %1$d</string>
-    <string name="accounts_overview_available_credit">Available Credit</string>
-    <string name="accounts_overview_available_credit_count">Available Credit • %1$d</string>
-    <string name="accounts_overview_balance">Balance</string>
-    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
-    <string name="accounts_overview_used">Used: %1$s (%2$d%%)</string>
-    <string name="accounts_overview_available_limit">Available Limit</string>
-    <string name="accounts_overview_show_less">Show Less</string>
-    <plurals name="accounts_overview_view_all">
-        <item quantity="one">View All %1$d Account</item>
-        <item quantity="other">View All %1$d Accounts</item>
-    </plurals>
 
     <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
     <string name="card_bill_title">Card bill</string>

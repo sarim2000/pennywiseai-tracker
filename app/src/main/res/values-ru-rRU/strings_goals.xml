@@ -19,7 +19,7 @@
     <string name="goals_archived">В архиве</string>
     <string name="goals_due_on">Срок: %1$s</string>
     <string name="goals_ring_description">Накоплено %1$d%%</string>
-    <!-- Goal card in the Plan tab. %1$s = target amount, %2$s = due date -->
+    <!-- Goal card in the Plan tab -->
     <!-- %1$s = amount -->
     <plurals name="goals_months_left">
         <item quantity="one">Остался %d месяц</item>
@@ -50,9 +50,6 @@
     <string name="goal_edit_save">Сохранить</string>
     <string name="goal_action_cancel">Отмена</string>
     <!-- Detail -->
-    <string name="goal_detail_left">Осталось</string>
-    <string name="goal_detail_per_month">В месяц</string>
-    <string name="goal_detail_over">Сверх цели %1$s</string>
     <string name="goal_detail_history">Пополнения и снятия</string>
     <string name="goal_detail_history_empty">Пока ничего не добавлено. Нажмите «Добавить деньги», когда отложите сумму.</string>
     <string name="goal_add_money">Добавить деньги</string>

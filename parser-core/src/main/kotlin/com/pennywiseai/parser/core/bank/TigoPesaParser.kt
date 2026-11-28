@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
@@ -45,12 +46,12 @@ class TigoPesaParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("TIGOPESA") ||
-                normalizedSender.contains("TIGO PESA") ||
-                normalizedSender.contains("MIXX BY YAS") ||
-                normalizedSender.contains("MIXXBYYAS") ||
-                normalizedSender == "TIGO" ||
-                // Handle sender format like "TIGOPESA(smsfp)"
-                normalizedSender.startsWith("TIGOPESA")
+            normalizedSender.contains("TIGO PESA") ||
+            normalizedSender.contains("MIXX BY YAS") ||
+            normalizedSender.contains("MIXXBYYAS") ||
+            normalizedSender == "TIGO" ||
+            // Handle sender format like "TIGOPESA(smsfp)"
+            normalizedSender.startsWith("TIGOPESA")
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -296,9 +297,9 @@ class TigoPesaParser : BankParser() {
 
     override fun cleanMerchantName(merchant: String): String {
         return merchant
-            .replace(Regex("""\s*\(.*?\)\s*$"""), "")  // Remove trailing parentheses
+            .replace(CompiledPatterns.Cleaning.TRAILING_PARENTHESES, "")  // Remove trailing parentheses
             .replace(Regex("""\s+on\s+\d{2}/.*"""), "")  // Remove date suffix
-            .replace(Regex("""\s*-\s*$"""), "")  // Remove trailing dash
+            .replace(CompiledPatterns.Cleaning.TRAILING_DASH, "")  // Remove trailing dash
             .replace(Regex("""^\s*-\s*"""), "")  // Remove leading dash
             .replace(Regex("""\s+$"""), "")  // Remove trailing whitespace
             .trim()

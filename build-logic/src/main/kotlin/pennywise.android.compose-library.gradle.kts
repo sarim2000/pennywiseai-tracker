@@ -42,3 +42,9 @@ kotlin {
         optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
     }
 }
+
+// Same stability config as :app, so BigDecimal / java.time fields (e.g. ExchangeRateSnapshot)
+// don't make a module's composables unstable.
+composeCompiler {
+    stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("compose_compiler_config.conf"))
+}

@@ -136,10 +136,6 @@ class TransactionsViewModelListTest {
             every { selectedProfileId } returns flowOf(profileId)
             every { budgetCycleStartDay } returns flowOf(1)
             coEvery { getBudgetCycleStartDay() } returns 1
-            every { smsScanMonths } returns flowOf(3)
-            every { smsScanAllTime } returns flowOf(true)
-            every { smsScanUseCustomDate } returns flowOf(false)
-            every { smsScanCustomDate } returns flowOf(null)
         }
         val accounts = mockk<AccountBalanceRepository> { every { getAllLatestBalances() } returns flowOf(emptyList()) }
         val cards = mockk<CardRepository> { every { getAllCards() } returns flowOf(emptyList()) }
@@ -244,7 +240,7 @@ class TransactionsViewModelListTest {
     }
 
     @Test
-    fun `sort, date groups and totals follow the listed rows`() = runTest(dispatcher) {
+    fun `sort and totals follow the listed rows`() = runTest(dispatcher) {
         start(
             rows = listOf(
                 row(1, amount = "10"),
@@ -256,9 +252,6 @@ class TransactionsViewModelListTest {
         viewModel.setSortOption(SortOption.AMOUNT_HIGHEST)
 
         assertListed(listOf(2L, 3L, 1L))
-        val state = viewModel.uiState.value
-        assertEquals(listOf(3L, 1L), state.groupedTransactions.getValue(DateGroup.THIS_WEEK).map { it.id })
-        assertEquals(listOf(2L), state.groupedTransactions.getValue(DateGroup.EARLIER).map { it.id })
         val totals = withTimeout(10_000) { viewModel.filteredTotals.first { it.transactionCount > 0 } }
         assertSameAmount("60", totals.expenses)
         assertEquals(3, totals.transactionCount)

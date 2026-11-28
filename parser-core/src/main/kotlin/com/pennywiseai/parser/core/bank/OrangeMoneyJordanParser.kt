@@ -23,7 +23,7 @@ class OrangeMoneyJordanParser : BankParser() {
     override fun getCurrency() = "JOD"
 
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s\-_]"""), "") == "ORANGEMONEY"
+        sender.uppercase().replace(SENDER_SEPARATOR, "") == "ORANGEMONEY"
 
     private val shapes = listOf(
         Regex("""تمت\s+عملية\s+شراء\s+من\s+محفظتك.*?بمبلغ\s+$AMT\s+دينار.*?\s+من\s+(?<m>.+?)\s+بالرقم\s+المرجعي""") to TransactionType.EXPENSE,
@@ -58,5 +58,6 @@ class OrangeMoneyJordanParser : BankParser() {
 
     private companion object {
         const val AMT = """(?<amt>[\d,]+(?:\.\d+)?)"""
+        val SENDER_SEPARATOR = Regex("""[\s\-_]""")
     }
 }

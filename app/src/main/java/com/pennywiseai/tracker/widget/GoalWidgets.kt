@@ -58,6 +58,7 @@ import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.roundToInt
@@ -147,10 +148,10 @@ private fun GoalRingImage(item: GoalWidgetItem, size: Dp, stroke: Dp) {
     }
 }
 
-/** The goal's "40%", or [HIDDEN_AMOUNT] while amounts are hidden. */
+/** The goal's "40%", or [AmountPrivacy.MASK] while amounts are hidden. */
 @Composable
 private fun goalPercent(item: GoalWidgetItem): String =
-    if (everyAmountHidden()) HIDDEN_AMOUNT else LocalContext.current.latinString(R.string.budgets_percent, item.percent)
+    if (everyAmountHidden()) AmountPrivacy.MASK else LocalContext.current.latinString(R.string.budgets_percent, item.percent)
 
 /** An arc from 12 o'clock covering [fraction] of a ring, on a transparent bitmap. */
 private fun renderArc(context: Context, fraction: Float, color: Int, size: Dp, stroke: Dp): Bitmap {

@@ -44,7 +44,6 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.domain.spending.budgetPace
 import com.pennywiseai.tracker.presentation.home.heroBudget
 import com.pennywiseai.tracker.presentation.home.rememberToday
-import com.pennywiseai.tracker.presentation.plan.PlanMeter
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.presentation.plan.PlanTopBar
 import com.pennywiseai.tracker.presentation.plan.planOverline
@@ -715,7 +714,7 @@ private fun BudgetDetails(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (hasLimit && !AmountPrivacy.hidden) {
-                            PlanMeter(
+                            WavyMeter(
                                 fraction = category.percentageUsed / 100f,
                                 color = when {
                                     isLimit && category.percentageUsed >= DANGER_PERCENT -> MaterialTheme.colorScheme.error

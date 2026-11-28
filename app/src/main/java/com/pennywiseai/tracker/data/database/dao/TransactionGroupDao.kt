@@ -48,9 +48,6 @@ interface TransactionGroupDao {
     @Query("SELECT * FROM transactions WHERE group_id IS NOT NULL AND is_deleted = 0")
     fun getAllGroupedTransactions(): Flow<List<TransactionEntity>>
 
-    @Query("SELECT COUNT(*) FROM transactions WHERE group_id = :groupId AND is_deleted = 0")
-    fun getTransactionCount(groupId: Long): Flow<Int>
-
     @Query("UPDATE transactions SET group_id = :groupId, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id = :transactionId")
     suspend fun linkTransaction(transactionId: Long, groupId: Long)
 

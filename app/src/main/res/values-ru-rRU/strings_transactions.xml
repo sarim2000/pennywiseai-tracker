@@ -61,7 +61,6 @@
     <string name="txn_type_investment">Инвестиция</string>
     <!-- Transaction detail -->
     <string name="txn_detail_updated">Транзакция успешно обновлена</string>
-    <string name="txn_detail_title">Детали транзакции</string>
     <string name="txn_detail_title_edit">Редактировать транзакцию</string>
     <string name="txn_detail_back">Назад</string>
     <string name="txn_detail_action_cancel">Отмена</string>
@@ -75,7 +74,6 @@
     <string name="txn_detail_menu_duplicate">Дублировать</string>
     <!-- Opens the transactions list for this merchant; %1$s is its name -->
     <!-- Opens the transactions list for this category; %1$s is its name -->
-    <string name="txn_detail_menu_report_issue">Сообщить о проблеме</string>
     <string name="txn_detail_delete_title">Удалить транзакцию</string>
     <string name="txn_detail_delete_message">Вы уверены, что хотите удалить эту транзакцию? Это действие нельзя отменить.</string>
     <string name="txn_detail_unmark_loan_title">Снять отметку займа?</string>
@@ -85,7 +83,6 @@
     <!-- %1$s = person name, %2$s = formatted amount -->
     <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">Снять отметку займа</string>
-    <string name="txn_detail_mark_as_loan">Отметить как заём</string>
     <string name="txn_detail_loan_lent_to">Передано %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Занято от %1$s</string>
     <!-- A repayment row on a loan. %1$s = person name -->
@@ -97,7 +94,6 @@
     <string name="txn_detail_close">Закрыть</string>
     <string name="txn_detail_exclude_analytics_title">Исключить из аналитики</string>
     <string name="txn_detail_exclude_analytics_subtitle">Септ в истории &amp; баланс, игнорируемый в статистике расходов</string>
-    <string name="txn_detail_label_date_time">Дата &amp; Время</string>
     <plurals name="txn_detail_split_categories">
         <item quantity="one">Сплит (категория%1$d)</item>
         <item quantity="few">Сплит (%1$d категорий)</item>
@@ -105,8 +101,6 @@
         <item quantity="other">Сплит (%1$d категорий)</item>
     </plurals>
     <string name="txn_detail_label_category">Категория</string>
-    <string name="txn_detail_label_bank">Банк</string>
-    <string name="txn_detail_label_description">Описание</string>
     <plurals name="txn_detail_label_tags">
         <item quantity="one">Тег</item>
         <item quantity="few">Теги</item>
@@ -187,16 +181,12 @@
     <string name="txn_detail_group_create">Создать</string>
     <string name="txn_detail_group_create_new">Создать новую группу</string>
     <!-- Transaction totals card -->
-    <string name="txn_totals_income">Доход</string>
-    <string name="txn_totals_expense">Расход</string>
-    <string name="txn_totals_expenses">Расходы</string>
     <string name="txn_totals_credit">Кредит</string>
     <string name="txn_totals_transfer">Перевод</string>
     <string name="txn_totals_invest">Инвестиции</string>
     <string name="txn_totals_net">Чистая сумма</string>
     <string name="txn_totals_select_currency">Выберите валюту</string>
     <!-- Transactions list -->
-    <string name="txn_list_title">Хронология</string>
     <string name="txn_list_back">Назад</string>
     <string name="txn_list_deleted">Транзакция удалена</string>
     <string name="txn_list_undo">Отменить</string>
@@ -211,8 +201,6 @@
     <string name="txn_list_budget_split_notice">Суммы могут отличаться от бюджета в связи с дробными операциями</string>
     <string name="txn_list_group_today">Сегодня</string>
     <string name="txn_list_group_yesterday">Вчера</string>
-    <string name="txn_list_group_this_week">Эта неделя</string>
-    <string name="txn_list_group_earlier">Ранее</string>
     <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">Сначала новые</string>
     <string name="txn_list_sort_oldest">Сначала старые</string>
@@ -224,7 +212,6 @@
     <string name="txn_list_group_name">Название группы</string>
     <string name="txn_list_group_create">Создать</string>
     <string name="txn_list_group_create_new">Создать новую группу</string>
-    <string name="txn_list_more_options">Больше опций</string>
     <string name="txn_list_clear_filters">Очистить фильтры</string>
     <string name="txn_list_all_categories">Все категории</string>
     <string name="txn_list_all_profiles">Все профили</string>
@@ -244,7 +231,6 @@
     </plurals>
     <string name="txn_list_search">Поиск</string>
     <string name="txn_list_search_in_category">Поиск в %1$s...</string>
-    <string name="txn_list_search_placeholder">Поиск транзакций...</string>
     <string name="txn_list_clear_search">Очистить поиск</string>
     <string name="txn_list_empty_no_results">Нет результатов для \"%1$s\"</string>
     <string name="txn_list_empty_period">Ничего для %1$s</string>
@@ -283,14 +269,12 @@
     <string name="add_field_notes">Заметки (необязательно)</string>
     <string name="add_field_reference">Номер операции (необязательно)</string>
     <string name="add_field_category">Категория</string>
-    <string name="add_clear">Очистить</string>
     <string name="add_save">Сохранить</string>
     <string name="add_ok">ОК</string>
     <string name="add_cancel">Отмена</string>
     <string name="add_select_time">Выберите время</string>
     <string name="add_txn_from_account">Со счета</string>
     <string name="add_txn_to_account">На счет</string>
-    <string name="add_txn_select_account">Выберите счет</string>
     <string name="add_txn_no_account">Нет учетной записи (Ввод вручную)</string>
     <string name="add_txn_no_account_hint">Не повлияет на баланс аккаунта</string>
     <string name="add_receipt">Квитанция (необязательно)</string>
@@ -322,7 +306,6 @@
     <string name="add_error_amount_required">Сумма обязательна</string>
     <string name="add_error_amount_invalid">Неверная сумма</string>
     <string name="add_error_amount_positive">Сумма должна быть больше 0</string>
-    <string name="add_error_merchant_required">Продавец/Описание обязательно</string>
     <string name="add_error_merchant_too_short">Слишком коротко</string>
     <string name="add_error_category_required">Категория обязательна</string>
     <!-- Transaction groups -->
@@ -414,29 +397,15 @@
     <string name="quick_category_progress">%1$d из %2$d</string>
     <string name="quick_category_save_failed">Не удалось сохранить. Попробуйте ещё раз.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <string name="quick_add_title">Расход наличными</string>
     <string name="quick_add_more_details">Подробнее</string>
     <string name="quick_add_where_hint">Где? (необязательно)</string>
-    <!-- %1$s the cash account the spend comes out of -->
-    <string name="quick_add_from">Со счета: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Сохранено: %1$s · %2$s</string>
-    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
-    <!-- Clears a day said out loud ("yesterday") back to today -->
     <!-- Amount sums: the operator row above the keyboard while an amount field has focus -->
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">Выбрать диапазон дат</string>
     <string name="date_range_ok">ОК</string>
     <string name="date_range_cancel">Отмена</string>
-    <string name="filter_row_more">Больше фильтров</string>
-    <plurals name="filter_row_more_active">
-        <item quantity="one">Больше фильтров (%1$d активных)</item>
-        <item quantity="few">Больше фильтров (%1$d активных)</item>
-        <item quantity="many">Больше фильтров (%1$d активных)</item>
-        <item quantity="other">Больше фильтров (%1$d активных)</item>
-    </plurals>
-    <string name="filter_row_collapse">Свернуть</string>
-    <string name="filter_row_expand">Развернуть</string>
     <string name="split_editor_title">Разделить категории</string>
     <string name="split_editor_remove_all">Удалить разделы</string>
     <string name="split_editor_add">Добавить сплит</string>

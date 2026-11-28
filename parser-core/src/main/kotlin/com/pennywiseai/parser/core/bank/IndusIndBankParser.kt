@@ -24,11 +24,11 @@ class IndusIndBankParser : BaseIndianBankParser() {
 
         // DLT/route patterns frequently used in India
         // Allow -S, -T, or no suffix (e.g., VM-INDUSB, VM-INDUSB-S, VM-INDUSB-T)
-        if (s.matches(Regex("^[A-Z]{2}-INDUSB(?:-[A-Z])?$"))) return true
-        if (s.matches(Regex("^[A-Z]{2}-INDUSIND(?:-[A-Z])?$"))) return true
+        if (s.matches(INDUSB_SENDER)) return true
+        if (s.matches(INDUSIND_SENDER)) return true
 
         // Some routes omit the trailing suffix or vary the middle part
-        if (s.matches(Regex("^[A-Z]{2}-INDUS(?:[A-Z]{2,})?-[A-Z]$"))) return true
+        if (s.matches(INDUS_ROUTE_SENDER)) return true
 
         return false
     }
@@ -73,8 +73,6 @@ class IndusIndBankParser : BaseIndianBankParser() {
         return super.detectIsCard(message)
     }
 
-
-
     /**
      * Detect balance-only notifications (not transactions).
      * Examples:
@@ -83,9 +81,9 @@ class IndusIndBankParser : BaseIndianBankParser() {
     override fun isBalanceUpdateNotification(message: String): Boolean {
         val lower = message.lowercase()
         val hasBalanceCue = lower.contains("avl bal") ||
-                lower.contains("available bal") ||
-                lower.contains("account balance") ||
-                lower.contains("a/c balance")
+            lower.contains("available bal") ||
+            lower.contains("account balance") ||
+            lower.contains("a/c balance")
         val hasTxnVerb = listOf("debited", "credited", "withdrawn", "spent", "transferred")
             .any { lower.contains(it) }
         return hasBalanceCue && lower.contains("as on") && !hasTxnVerb
@@ -341,5 +339,8 @@ class IndusIndBankParser : BaseIndianBankParser() {
             """\s+(?:Limited|Ltd\.?|Pvt\.?|Private).*$""",
             RegexOption.IGNORE_CASE
         )
+        private val INDUSB_SENDER = Regex("^[A-Z]{2}-INDUSB(?:-[A-Z])?$")
+        private val INDUSIND_SENDER = Regex("^[A-Z]{2}-INDUSIND(?:-[A-Z])?$")
+        private val INDUS_ROUTE_SENDER = Regex("^[A-Z]{2}-INDUS(?:[A-Z]{2,})?-[A-Z]$")
     }
 }

@@ -20,7 +20,6 @@ class RoomSharedAccountRepository(
         balanceDao.getLatest(bankName, accountLast4)
     override suspend fun getDistinctAccounts(): List<SharedAccountBalanceEntity> =
         balanceDao.getDistinctAccounts()
-    override suspend fun deleteBalanceById(id: Long) = balanceDao.deleteById(id)
     override suspend fun deleteByAccount(bankName: String, accountLast4: String) =
         balanceDao.deleteByAccount(bankName, accountLast4)
     override suspend fun deleteCardById(id: Long) = cardDao.deleteById(id)

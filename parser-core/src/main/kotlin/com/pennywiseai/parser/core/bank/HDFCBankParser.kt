@@ -43,13 +43,12 @@ class HDFCBankParser : BaseIndianBankParser() {
         if (message.contains("reversed", ignoreCase = true) ||
             message.contains("reversal", ignoreCase = true)
         ) {
-            Regex("""\bBy\s+(.+?)(?:\s{2,}|\s+On\s)""", RegexOption.IGNORE_CASE)
-                .find(message)?.let { match ->
-                    val merchant = cleanMerchantName(match.groupValues[1].trim())
-                    if (merchant.isNotEmpty()) {
-                        return merchant
-                    }
+            REVERSAL_BY_MERCHANT.find(message)?.let { match ->
+                val merchant = cleanMerchantName(match.groupValues[1].trim())
+                if (merchant.isNotEmpty()) {
+                    return merchant
                 }
+            }
         }
 
         // HDFC Bank Card spends: "Spent Rs.xxx From HDFC Bank Card xxxx At [MERCHANT] On xxx",
@@ -71,7 +70,7 @@ class HDFCBankParser : BaseIndianBankParser() {
             val onIndex = if (atIndex == -1) {
                 -1
             } else {
-                Regex("""\s+On\s+\d""", RegexOption.IGNORE_CASE).find(message, atIndex + 4)?.range?.first
+                CARD_SPEND_ON_DATE.find(message, atIndex + 4)?.range?.first
                     ?: message.indexOf(" On ", atIndex + 4, ignoreCase = true)
             }
             if (atIndex != -1 && onIndex != -1) {
@@ -87,11 +86,7 @@ class HDFCBankParser : BaseIndianBankParser() {
             message.contains("At ", ignoreCase = true) &&
             message.contains("Card", ignoreCase = true)
         ) {
-            val txnAtPattern = Regex(
-                """At\s+(.+?)\s*(?:by\s+UPI|on\s+\d|$)""",
-                setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
-            )
-            txnAtPattern.find(message)?.let { match ->
+            TXN_AT_MERCHANT.find(message)?.let { match ->
                 val merchant = match.groupValues[1].trim()
                 if (merchant.isNotEmpty()) {
                     return cleanMerchantName(merchant)
@@ -102,8 +97,7 @@ class HDFCBankParser : BaseIndianBankParser() {
         // Check for ATM withdrawals - extract location
         if (message.contains("withdrawn", ignoreCase = true)) {
             // Pattern: "At +18 Random Location" or "At ATM Location On"
-            val atLocationPattern = Regex("""At\s+\+?([^O]+?)\s+On""", RegexOption.IGNORE_CASE)
-            atLocationPattern.find(message)?.let { match ->
+            ATM_LOCATION.find(message)?.let { match ->
                 val location = match.groupValues[1].trim()
                 return if (location.isNotEmpty()) {
                     "ATM at ${cleanMerchantName(location)}"
@@ -128,11 +122,7 @@ class HDFCBankParser : BaseIndianBankParser() {
             ))
         ) {
             // Pattern for "at [merchant] by UPI" or just "at [merchant]"
-            val atPattern = Regex(
-                """at\s+([^@\s]+(?:@[^\s]+)?(?:\s+[^\s]+)?)(?:\s+by\s+|\s+on\s+|$)""",
-                RegexOption.IGNORE_CASE
-            )
-            atPattern.find(message)?.let { match ->
+            BLOCK_CC_AT_MERCHANT.find(message)?.let { match ->
                 val merchant = match.groupValues[1].trim()
                 // For UPI VPA, extract the part before @ (e.g., "paytmqr" from "paytmqr@paytm")
                 val cleanedMerchant = if (merchant.contains("@")) {
@@ -152,24 +142,19 @@ class HDFCBankParser : BaseIndianBankParser() {
         }
 
         if (message.contains("NetBanking", ignoreCase = true)) {
-            Regex("""to\s+(.+?)\s+via\s+HDFC\s+Bank\s+NetBanking""", RegexOption.IGNORE_CASE)
-                .find(message)?.let { match ->
-                    val merchant = cleanMerchantName(match.groupValues[1].trim())
-                    if (merchant.isNotEmpty()) {
-                        return merchant
-                    }
+            NETBANKING_MERCHANT.find(message)?.let { match ->
+                val merchant = cleanMerchantName(match.groupValues[1].trim())
+                if (merchant.isNotEmpty()) {
+                    return merchant
                 }
+            }
         }
 
         // Try HDFC specific patterns
 
         // Pattern 0: NEFT/RTGS credit - "for NEFT Cr-IFSCCODE-COMPANY NAME-BENEFICIARY-REF"
         if (message.contains("NEFT", ignoreCase = true) || message.contains("RTGS", ignoreCase = true)) {
-            val neftPattern = Regex(
-                """(?:NEFT|RTGS)\s+Cr-[A-Z]{4}0[A-Z0-9]{6}-([^-]+)""",
-                RegexOption.IGNORE_CASE
-            )
-            neftPattern.find(message)?.let { match ->
+            NEFT_CREDIT_MERCHANT.find(message)?.let { match ->
                 val merchant = match.groupValues[1].trim()
                 if (merchant.isNotEmpty() && !merchant.all { it.isDigit() }) {
                     return cleanMerchantName(merchant)
@@ -214,11 +199,7 @@ class HDFCBankParser : BaseIndianBankParser() {
                     ignoreCase = true
                 )
             ) {
-                val fromVpaPattern = Regex(
-                    """from\s+VPA\s*([^@\s]+)@[^\s]+\s*\(UPI\s+\d+\)""",
-                    RegexOption.IGNORE_CASE
-                )
-                fromVpaPattern.find(message)?.let { match ->
+                FROM_VPA_USERNAME.find(message)?.let { match ->
                     val vpaUsername = match.groupValues[1].trim()
                     if (vpaUsername.isNotEmpty()) {
                         return cleanMerchantName(vpaUsername)
@@ -263,11 +244,7 @@ class HDFCBankParser : BaseIndianBankParser() {
 
         // Pattern 7: "towards [Merchant Name]" (for payment alerts)
         if (message.contains("towards", ignoreCase = true)) {
-            val towardsPattern = Regex(
-                """towards\s+([^\n]+?)(?:\s+UMRN|\s+ID:|\s+Alert:|$)""",
-                RegexOption.IGNORE_CASE
-            )
-            towardsPattern.find(message)?.let { match ->
+            TOWARDS_MERCHANT.find(message)?.let { match ->
                 val merchant = match.groupValues[1].trim()
                 if (merchant.isNotEmpty()) {
                     return cleanMerchantName(merchant)
@@ -277,9 +254,7 @@ class HDFCBankParser : BaseIndianBankParser() {
 
         // Pattern 8: "For: [Description]" (for payment alerts)
         if (message.contains("For:", ignoreCase = true)) {
-            val forColonPattern =
-                Regex("""For:\s+([^\n]+?)(?:\s+From|\s+Via|$)""", RegexOption.IGNORE_CASE)
-            forColonPattern.find(message)?.let { match ->
+            FOR_COLON_MERCHANT.find(message)?.let { match ->
                 val merchant = match.groupValues[1].trim()
                 if (merchant.isNotEmpty()) {
                     return cleanMerchantName(merchant)
@@ -293,9 +268,7 @@ class HDFCBankParser : BaseIndianBankParser() {
                 ignoreCase = true
             )
         ) {
-            val forPattern =
-                Regex("""for\s+([^\n]+?)(?:\s+mandate|\s+will\s+be|\s+ID:|\s+Act:|$)""", RegexOption.IGNORE_CASE)
-            forPattern.find(message)?.let { match ->
+            FOR_MERCHANT.find(message)?.let { match ->
                 val merchant = match.groupValues[1].trim()
                 if (merchant.isNotEmpty()) {
                     return cleanMerchantName(merchant)
@@ -330,7 +303,7 @@ class HDFCBankParser : BaseIndianBankParser() {
             // Credit card transactions - ONLY if message contains CC or PCC indicators
             // Any transaction with BLOCK CC or BLOCK PCC is a credit card transaction.
             // The space is optional: PIXEL cards write "SMS BLOCKPCC 1234".
-            Regex("""\bblock\s?p?cc\b""").containsMatchIn(lowerMessage) -> TransactionType.CREDIT
+            BLOCK_CC_INSTRUCTION.containsMatchIn(lowerMessage) -> TransactionType.CREDIT
 
             // "INR X deposited in HDFC Bank A/c … for Interest paid till …" — money in.
             // Checked before the expense keywords: the narration's "paid" would
@@ -395,8 +368,7 @@ class HDFCBankParser : BaseIndianBankParser() {
     override fun extractAccountLast4(message: String): String? {
         super.extractAccountLast4(message)?.let { return it }
         // Pattern for "Card x####" format in withdrawals — already exactly 4 digits
-        val cardPattern = Regex("""Card\s+x(\d{4})""", RegexOption.IGNORE_CASE)
-        cardPattern.find(message)?.let { match ->
+        CARD_X_LAST4.find(message)?.let { match ->
             return match.groupValues[1]
         }
 
@@ -405,24 +377,18 @@ class HDFCBankParser : BaseIndianBankParser() {
         // after the capture group prevents us from greedily grabbing the
         // first 4 of a longer digit run, which would return the wrong
         // last-4 if HDFC ever uses 5+ digits.
-        val plainCardPattern = Regex(
-            """HDFC\s+Bank\s+(?:Credit|Debit)\s+Card\s+(\d{4})\b""",
-            RegexOption.IGNORE_CASE
-        )
-        plainCardPattern.find(message)?.let { match ->
+        PLAIN_CARD_LAST4.find(message)?.let { match ->
             return match.groupValues[1]
         }
 
         // "BLOCK DC ####" / "BLOCK CC ####" / "BLOCKPCC ####" — the card's last 4.
         // PIXEL credit cards only name the card here ("SMS BLOCKPCC 1234").
-        val blockDCPattern = Regex("""BLOCK\s*(?:DC|P?CC)\s+(\d{4})\b""", RegexOption.IGNORE_CASE)
-        blockDCPattern.find(message)?.let { match ->
+        BLOCK_CARD_LAST4.find(message)?.let { match ->
             return match.groupValues[1]
         }
 
         // Pattern for "HDFC Bank XXNNNN" format — require mask prefix, cap digits
-        val hdfcBankPattern = Regex("""HDFC\s+Bank\s+([X\*]+\d{3,6})""", RegexOption.IGNORE_CASE)
-        hdfcBankPattern.find(message)?.let { match ->
+        HDFC_BANK_ACCOUNT_MASK.find(message)?.let { match ->
             return extractLast4Digits(match.groupValues[1])
         }
 
@@ -445,9 +411,7 @@ class HDFCBankParser : BaseIndianBankParser() {
 
     override fun extractBalance(message: String): BigDecimal? {
         // HDFC specific pattern for "Avl bal:INR NNNN.NN"
-        val avlBalINRPattern =
-            Regex("""Avl\s+bal:?\s*INR\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        avlBalINRPattern.find(message)?.let { match ->
+        AVL_BAL_INR.find(message)?.let { match ->
             val balanceStr = match.groupValues[1].replace(",", "")
             return try {
                 BigDecimal(balanceStr)
@@ -457,11 +421,7 @@ class HDFCBankParser : BaseIndianBankParser() {
         }
 
         // Pattern for "Available Balance: INR NNNN.NN"
-        val availableBalINRPattern = Regex(
-            """Available\s+Balance:?\s*INR\s*([0-9,]+(?:\.\d{2})?)""",
-            RegexOption.IGNORE_CASE
-        )
-        availableBalINRPattern.find(message)?.let { match ->
+        AVAILABLE_BAL_INR.find(message)?.let { match ->
             val balanceStr = match.groupValues[1].replace(",", "")
             return try {
                 BigDecimal(balanceStr)
@@ -471,8 +431,7 @@ class HDFCBankParser : BaseIndianBankParser() {
         }
 
         // Pattern for "Bal Rs.NNNN.NN" or "Bal Rs NNNN.NN"
-        val balRsPattern = Regex("""Bal\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
-        balRsPattern.find(message)?.let { match ->
+        BAL_RS.find(message)?.let { match ->
             val balanceStr = match.groupValues[1].replace(",", "")
             return try {
                 BigDecimal(balanceStr)
@@ -483,11 +442,6 @@ class HDFCBankParser : BaseIndianBankParser() {
 
         // Fall back to base class patterns for Rs format
         return super.extractBalance(message)
-    }
-
-    override fun cleanMerchantName(merchant: String): String {
-        // Use parent class implementation which already uses CompiledPatterns
-        return super.cleanMerchantName(merchant)
     }
 
     override fun isTransactionMessage(message: String): Boolean {
@@ -526,13 +480,8 @@ class HDFCBankParser : BaseIndianBankParser() {
             }
         }
 
-        // Skip payment request messages
-        if (lowerMessage.contains("has requested") ||
-            lowerMessage.contains("payment request") ||
-            lowerMessage.contains("to pay, download") ||
-            lowerMessage.contains("collect request") ||
-            lowerMessage.contains("ignore if already paid")
-        ) {
+        // Skip payment request messages (the shared skip-list below covers the rest)
+        if (lowerMessage.contains("to pay, download")) {
             return false
         }
 
@@ -743,5 +692,27 @@ class HDFCBankParser : BaseIndianBankParser() {
         override val accountLast4: String? = null
     ) : MandateInfo {
         override val dateFormat = "dd/MM/yy"
+    }
+
+    private companion object {
+        val REVERSAL_BY_MERCHANT = Regex("""\bBy\s+(.+?)(?:\s{2,}|\s+On\s)""", RegexOption.IGNORE_CASE)
+        val CARD_SPEND_ON_DATE = Regex("""\s+On\s+\d""", RegexOption.IGNORE_CASE)
+        val TXN_AT_MERCHANT = Regex("""At\s+(.+?)\s*(?:by\s+UPI|on\s+\d|$)""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        val ATM_LOCATION = Regex("""At\s+\+?([^O]+?)\s+On""", RegexOption.IGNORE_CASE)
+        val BLOCK_CC_AT_MERCHANT = Regex("""at\s+([^@\s]+(?:@[^\s]+)?(?:\s+[^\s]+)?)(?:\s+by\s+|\s+on\s+|$)""", RegexOption.IGNORE_CASE)
+        val NETBANKING_MERCHANT = Regex("""to\s+(.+?)\s+via\s+HDFC\s+Bank\s+NetBanking""", RegexOption.IGNORE_CASE)
+        val NEFT_CREDIT_MERCHANT = Regex("""(?:NEFT|RTGS)\s+Cr-[A-Z]{4}0[A-Z0-9]{6}-([^-]+)""", RegexOption.IGNORE_CASE)
+        val FROM_VPA_USERNAME = Regex("""from\s+VPA\s*([^@\s]+)@[^\s]+\s*\(UPI\s+\d+\)""", RegexOption.IGNORE_CASE)
+        val TOWARDS_MERCHANT = Regex("""towards\s+([^\n]+?)(?:\s+UMRN|\s+ID:|\s+Alert:|$)""", RegexOption.IGNORE_CASE)
+        val FOR_COLON_MERCHANT = Regex("""For:\s+([^\n]+?)(?:\s+From|\s+Via|$)""", RegexOption.IGNORE_CASE)
+        val FOR_MERCHANT = Regex("""for\s+([^\n]+?)(?:\s+mandate|\s+will\s+be|\s+ID:|\s+Act:|$)""", RegexOption.IGNORE_CASE)
+        val BLOCK_CC_INSTRUCTION = Regex("""\bblock\s?p?cc\b""")
+        val CARD_X_LAST4 = Regex("""Card\s+x(\d{4})""", RegexOption.IGNORE_CASE)
+        val PLAIN_CARD_LAST4 = Regex("""HDFC\s+Bank\s+(?:Credit|Debit)\s+Card\s+(\d{4})\b""", RegexOption.IGNORE_CASE)
+        val BLOCK_CARD_LAST4 = Regex("""BLOCK\s*(?:DC|P?CC)\s+(\d{4})\b""", RegexOption.IGNORE_CASE)
+        val HDFC_BANK_ACCOUNT_MASK = Regex("""HDFC\s+Bank\s+([X\*]+\d{3,6})""", RegexOption.IGNORE_CASE)
+        val AVL_BAL_INR = Regex("""Avl\s+bal:?\s*INR\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        val AVAILABLE_BAL_INR = Regex("""Available\s+Balance:?\s*INR\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+        val BAL_RS = Regex("""Bal\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
     }
 }

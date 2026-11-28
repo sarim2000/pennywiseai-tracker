@@ -13,7 +13,6 @@
     <string name="settings_pro_subtitle_active">Aktivní · odemknuté funkce</string>
     <string name="settings_pro_subtitle_upgrade">Neomezená pravidla, prohlášení, vývoz a další</string>
     <!-- Personalization -->
-    <string name="settings_personalization_section">Přizpůsobení</string>
     <string name="settings_appearance_title">Vzhled</string>
     <string name="settings_appearance_subtitle">Motivy, barvy, písma &amp; navigace</string>
     <string name="settings_language_title">Jazyk</string>
@@ -38,7 +37,6 @@
     <string name="settings_main_account_subtitle">Nastaví výchozí měnu</string>
     <string name="settings_main_account_not_set">Nenastaveno</string>
     <string name="settings_number_format_title">Formát čísla</string>
-    <string name="settings_number_format_subtitle">Jak se seskupují číslice velkých částek</string>
     <string name="settings_number_format_auto">Automaticky</string>
     <string name="settings_number_format_indian">Indický</string>
     <string name="settings_number_format_international">Mezinárodní</string>
@@ -46,7 +44,6 @@
     <string name="settings_number_format_indian_example">1,50,000 (jezero/koridor)</string>
     <string name="settings_number_format_international_example">150,000 (v tisících za milion)</string>
     <string name="settings_date_format_title">Formát data</string>
-    <string name="settings_date_format_subtitle">Jak se zobrazují data</string>
     <!-- Budget -->
     <string name="settings_budget_cycle_title">Den začátku rozpočtového cyklu</string>
     <string name="settings_budget_cycle_dialog_body">Vyberte den zahájení každého měsíčního rozpočtového cyklu, např. 25 znamená, že cyklus probíhá od 25. do 24. dne následujícího měsíce.</string>
@@ -80,12 +77,6 @@
     </plurals>
     <!-- Data Management -->
     <string name="settings_data_section">Správa dat</string>
-    <string name="settings_manage_accounts_title">Správa účtů</string>
-    <string name="settings_manage_accounts_subtitle">Zobrazit a spravovat vaše bankovní účty</string>
-    <string name="settings_categories_title">Kategorie</string>
-    <string name="settings_categories_subtitle">Spravujte kategorie výdajů a příjmů</string>
-    <string name="settings_smart_rules_title">Chytrá pravidla</string>
-    <string name="settings_smart_rules_subtitle">Automatické kategorizování transakcí</string>
     <string name="settings_budgets_title">Rozpočty</string>
     <string name="settings_budgets_subtitle">Limity výdajů na trasu podle kategorií</string>
     <string name="settings_loans_title">Půjčky</string>
@@ -113,8 +104,6 @@
     <string name="settings_import_data_subtitle">Obnovit data ze zálohy</string>
     <string name="settings_import_csv_title">Importovat transakce (CSV)</string>
     <string name="settings_import_csv_subtitle">Import z PennyWise CSV exportu</string>
-    <string name="settings_import_statement_title">Prohlášení o importu</string>
-    <string name="settings_import_statement_subtitle">Bankovní výpisy (Excel, CSV) nebo PDF z UPI aplikací</string>
     <string name="settings_unrecognized_sms_title">Nerozpoznané SMS</string>
     <string name="settings_unrecognized_sms_subtitle">Zobrazit a nahlásit nepodporované bankovní zprávy</string>
     <string name="settings_delete_all_title">Odstranit všechny transakce</string>
@@ -234,7 +223,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Stáhnout model AI (%1$d MB)</string>
     <string name="settings_ai_status_downloading">Stahování AI modelu...</string>
-    <string name="settings_ai_status_paused">Stahování přerušeno</string>
     <string name="settings_ai_status_completed">AI model připraven k chatu</string>
     <string name="settings_ai_status_failed">Stahování se nezdařilo</string>
     <string name="settings_ai_status_insufficient_space">Nedostatek volného místa</string>
@@ -247,8 +235,6 @@
     <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
     <string name="settings_ai_cancel_download">Zrušit stahování</string>
     <string name="settings_ai_info">Chatujte s AI o vašich výdajích a získejte finanční přehledy. Všechny konverzace zůstávají na vašem zařízení soukromé.</string>
-    <string name="settings_ai_download_notification_title">Model AI chatu</string>
-    <string name="settings_ai_download_notification_description">Stahování AI chatovacího asistenta PennyWise</string>
     <!-- Developer -->
     <string name="settings_developer_section">Vývojář</string>
     <string name="settings_developer_mode_title">Vývojářský režim</string>
@@ -257,7 +243,6 @@
     <string name="settings_webhooks_subtitle">Odesílat vybraná data na váš endpoint</string>
     <string name="settings_webhooks_subtitle_pro">Pro · Odesílat vybraná data na váš endpoint</string>
     <!-- Support & Community -->
-    <string name="settings_support_section">Podpora &amp; komunita</string>
     <string name="settings_help_faq_title">Pomozte &amp; FAQ</string>
     <string name="settings_help_faq_subtitle">Často kladené otázky a pomoc</string>
     <string name="settings_user_guide_title">Uživatelská příručka</string>
@@ -297,10 +282,6 @@
     <string name="appearance_nav_floating_subtitle">Moderní &amp; Spáč</string>
     <string name="appearance_nav_normal">Normální</string>
     <string name="appearance_nav_normal_subtitle">Standardní M3</string>
-    <!-- Cover style -->
-    <string name="appearance_cover_section">Styl obalu</string>
-    <string name="appearance_cover_none">Nic</string>
-    <string name="appearance_cover_selected">Vybrané</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Písma</string>
     <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->

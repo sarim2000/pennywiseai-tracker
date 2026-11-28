@@ -15,7 +15,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -37,7 +36,6 @@ class AddViewModelDraftTest {
                 appContext = mockk(relaxed = true),
                 addTransactionUseCase = mockk(relaxed = true),
                 addSubscriptionUseCase = mockk(relaxed = true),
-                getCategoriesUseCase = mockk { every { execute() } returns flowOf(emptyList()) },
                 categoryRepository = mockk(relaxed = true),
                 accountBalanceRepository = mockk(relaxed = true),
                 budgetGroupRepository = mockk(relaxed = true),
@@ -65,7 +63,6 @@ class AddViewModelDraftTest {
     @Test
     fun `an income draft opens both forms as income`() = withDraft(TransactionType.INCOME) { vm ->
         val transaction = vm.transactionUiState.value
-        assertTrue(transaction.draftLoaded)
         assertEquals(TransactionType.INCOME, transaction.transactionType)
         assertEquals("12", transaction.amount)
         assertEquals("USD", transaction.currency)
@@ -80,7 +77,6 @@ class AddViewModelDraftTest {
     @Test
     fun `an expense draft keeps the subscription form on expense`() = withDraft(TransactionType.EXPENSE) { vm ->
         val transaction = vm.transactionUiState.value
-        assertTrue(transaction.draftLoaded)
         assertEquals(TransactionType.EXPENSE, transaction.transactionType)
         assertEquals(SubscriptionDirection.EXPENSE, vm.subscriptionUiState.value.direction)
     }

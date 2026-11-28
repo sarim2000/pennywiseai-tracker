@@ -32,7 +32,7 @@ kotlin {
             dependencies {
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.serialization.json)
-                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1") // same as parser-core's
+                implementation(libs.kotlinx.datetime)
                 implementation(libs.androidx.room.runtime)
                 implementation(project(":parser-core"))
             }
@@ -54,9 +54,6 @@ kotlin {
             // Bank SMS parsers are platform code in parser-core (no common API),
             // so the one bridge file compiles into each platform source set.
             kotlin.srcDir("src/bankParserMain/kotlin")
-            dependencies {
-                implementation(libs.pdfbox.android)
-            }
         }
         if (org.jetbrains.kotlin.konan.target.HostManager.hostIsMac) {
             iosMain {

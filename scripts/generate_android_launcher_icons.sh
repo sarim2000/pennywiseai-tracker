@@ -2,10 +2,7 @@
 # Regenerate Android launcher mipmaps from the iOS master icon (CLI).
 # Requires ImageMagick 7+ (`magick`) or 6.x (`convert`) with WebP support.
 #
-# Usage (from anywhere):
-#   /Users/sarim/dev/personal/pennywiseai-tracker/scripts/generate_android_launcher_icons.sh
-#
-# Or from repo root:
+# Usage (from repo root):
 #   ./scripts/generate_android_launcher_icons.sh
 #
 # Optional env:

@@ -13,9 +13,6 @@ class RoomSharedCategoryRepository(
     override fun observeCategories(): Flow<List<SharedCategory>> =
         dao.observeCategories().map { list -> list.map { it.toDomain() } }
 
-    override fun observeCategoriesByIncomeType(isIncome: Boolean): Flow<List<SharedCategory>> =
-        dao.observeCategoriesByIncomeType(isIncome).map { list -> list.map { it.toDomain() } }
-
     override suspend fun getById(id: Long): SharedCategory? =
         dao.getById(id)?.toDomain()
 

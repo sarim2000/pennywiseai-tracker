@@ -203,9 +203,6 @@ object Dimensions {
         /** Minimum height of a single-line list row. */
         val listItemMinHeight = 56.dp
 
-        /** Minimum height of a two-line list row (M3 spec). */
-        val listItemMinHeightTwoLine = 72.dp
-
         val dividerThickness = 1.dp
 
         /** Divider between the stat blocks of a summary card (Analytics). */
@@ -243,17 +240,10 @@ object Dimensions {
         val goalRingSmall = 40.dp
         val goalRingSmallStroke = 4.dp
 
-        /** The big goal ring on the goal's own screen, and its stroke. */
-        val goalRingLarge = 168.dp
-        val goalRingLargeStroke = 12.dp
-
         /** Insights hero: the period-history chart, its widest bar and its shortest non-zero bar. */
         val insightsChartHeight = 160.dp
         val insightsBarMaxWidth = 32.dp
         val insightsBarMinHeight = 12.dp
-
-        /** The gauge owl on the Plan tab's budget hero card. */
-        val planHeroMascot = 64.dp
 
         /** One column of a spreadsheet preview (statement import's column mapping, #13). */
         val tableCellWidth = 112.dp
@@ -284,12 +274,5 @@ object Dimensions {
         val chatHeroMascot = 112.dp
 
         val budgetPaceChartHeight = 120.dp
-    }
-
-    // ── Motion ────────────────────────────────────────────────────────────
-    object Animation {
-        const val short = 120
-        const val medium = 250
-        const val long = 400
     }
 }

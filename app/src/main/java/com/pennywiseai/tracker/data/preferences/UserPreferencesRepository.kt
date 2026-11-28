@@ -865,12 +865,6 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
-    suspend fun saveActiveDownloadId(id: Long) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.ACTIVE_DOWNLOAD_ID] = id
-        }
-    }
-
     suspend fun getActiveDownloadId(): Long? {
         return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.ACTIVE_DOWNLOAD_ID] }
@@ -1265,12 +1259,6 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.APP_LOCK_TIMEOUT_MINUTES] ?: 1 // Default to 1 minute
         }
 
-    suspend fun setAppLockTimeoutMinutes(minutes: Int) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.APP_LOCK_TIMEOUT_MINUTES] = minutes
-        }
-    }
-
     /**
      * Atomically updates timeout and authentication timestamp.
      * This prevents immediate lock when changing timeout by resetting the auth time.
@@ -1320,12 +1308,6 @@ open class UserPreferencesRepository internal constructor(
         .map { preferences ->
             preferences[PreferencesKeys.HAS_USED_FULL_RESYNC] ?: false
         }
-
-    suspend fun markFullResyncUsed() {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.HAS_USED_FULL_RESYNC] = true
-        }
-    }
 
     // Pro tier — UI-cached entitlement so first frame after cold start
     // doesn't flicker `false → true` while BillingClient connects. Real
@@ -1454,12 +1436,6 @@ open class UserPreferencesRepository internal constructor(
         .map { preferences ->
             preferences[PreferencesKeys.HAS_MIGRATED_TO_BUDGET_GROUPS] ?: false
         }
-
-    suspend fun setHasMigratedToBudgetGroups(migrated: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.HAS_MIGRATED_TO_BUDGET_GROUPS] = migrated
-        }
-    }
 
     // Monthly Budget
     val monthlyBudgetLimit: Flow<java.math.BigDecimal?> = dataStore.data

@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.CompiledPatterns
 import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
@@ -30,9 +31,9 @@ class SelcomPesaParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("SELCOM") ||
-                normalizedSender.contains("SELCOMPESA") ||
-                normalizedSender == "SELCOM PESA" ||
-                normalizedSender == "SELCOM"
+            normalizedSender.contains("SELCOMPESA") ||
+            normalizedSender == "SELCOM PESA" ||
+            normalizedSender == "SELCOM"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -221,15 +222,15 @@ class SelcomPesaParser : BankParser() {
 
         // Card transactions mention "card ending with" or "using your card"
         return lowerMessage.contains("card ending") ||
-                lowerMessage.contains("using your card")
+            lowerMessage.contains("using your card")
     }
 
     override fun cleanMerchantName(merchant: String): String {
         return merchant
-            .replace(Regex("""\s*\(.*?\)\s*$"""), "")  // Remove trailing parentheses
+            .replace(CompiledPatterns.Cleaning.TRAILING_PARENTHESES, "")  // Remove trailing parentheses
             .replace(Regex("""\s+-\s+.*$"""), "")  // Remove " - Service" suffix
             .replace(Regex("""\s+on\s+\d{4}.*"""), "")  // Remove date suffix
-            .replace(Regex("""\s*-\s*$"""), "")  // Remove trailing dash
+            .replace(CompiledPatterns.Cleaning.TRAILING_DASH, "")  // Remove trailing dash
             .trim()
     }
 }

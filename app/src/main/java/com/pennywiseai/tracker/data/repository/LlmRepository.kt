@@ -171,8 +171,6 @@ class LlmRepository @Inject constructor(
 
     fun getAllMessages(): Flow<List<ChatMessage>> = chatDao.getAllMessages()
 
-    fun getAllMessagesIncludingSystem(): Flow<List<ChatMessage>> = chatDao.getAllMessagesIncludingSystem()
-
     fun sendMessageStream(userMessage: String): Flow<String> = flow {
         _lastReply.value = null
         turnSubject = null
@@ -477,8 +475,6 @@ class LlmRepository @Inject constructor(
             _contextTokens.value = 0
         }
     }
-
-    suspend fun getMessageCount(): Int = chatDao.getMessageCount()
 
     /**
      * Resolves one tool call into a line for the chat. Returns null when there's

@@ -14,9 +14,6 @@ data object AppLock : NavKey
 data object OnBoarding : NavKey
 
 @Serializable
-data object Permission : NavKey
-
-@Serializable
 data object Home : NavKey
 
 /** The Transactions tab; any filter set means a drill-down (shows a back arrow). */

@@ -57,7 +57,7 @@ fun underBudgetCycle(today: LocalDate, startDay: Int): BudgetWindow? {
  * current month moves on with it (the app kept alive from 28 Dec to 3 Jan lands on January,
  * where the under-budget card shows); a page the user moved to an older month stays put.
  */
-internal fun followToday(selected: YearMonth?, before: LocalDate, now: LocalDate): YearMonth? {
+internal fun followToday(selected: YearMonth, before: LocalDate, now: LocalDate): YearMonth {
     val current = YearMonth.from(now)
     return if (selected == YearMonth.from(before) && current.isAfter(selected)) current else selected
 }

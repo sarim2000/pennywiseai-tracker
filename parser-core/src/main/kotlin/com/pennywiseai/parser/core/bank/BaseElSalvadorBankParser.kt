@@ -20,7 +20,7 @@ abstract class BaseElSalvadorBankParser : BankParser() {
 
     override fun isTransactionMessage(message: String): Boolean {
         val lower = message.lowercase()
-        if (lower.contains("codigo") || lower.contains("clave") || lower.contains("otp")) return false
+        if (lower.contains("codigo") || lower.contains("clave")) return false
         if (FinancialMessageSafety.isSecurityCode(message)) return false
         if (FinancialMessageSafety.isOperationalOrPromotionalNotice(message)) return false
         // A declined or merely *requested* payment moved no money. The samples say
@@ -28,7 +28,6 @@ abstract class BaseElSalvadorBankParser : BankParser() {
         // unsuccessful variants exist; treat any of these as not-a-transaction
         // rather than booking an amount that never left the account.
         if (FinancialMessageSafety.hasExplicitFailure(message, SPANISH_FAILURES)) return false
-        if (SPANISH_FAILURES.any { lower.contains(it) }) return false
         return extractTransactionType(message) != null
     }
 

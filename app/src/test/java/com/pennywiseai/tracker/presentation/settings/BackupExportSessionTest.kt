@@ -65,7 +65,6 @@ class BackupExportSessionTest {
             context = context,
             modelRepository = mockk(relaxed = true),
             userPreferencesRepository = preferences,
-            unrecognizedSmsRepository = mockk(relaxed = true),
             transactionRepository = mockk(relaxed = true),
             deleteAllTransactionsUseCase = mockk(relaxed = true),
             accountBalanceRepository = mockk(relaxed = true),

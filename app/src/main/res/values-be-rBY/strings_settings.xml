@@ -11,7 +11,6 @@
     <string name="settings_pro_subtitle_active">Актыўна · усе пашыраныя функцыі адкрыты</string>
     <string name="settings_pro_subtitle_upgrade">Неабмежаваныя правілы, выпіскі, экспарт і іншае</string>
     <!-- Personalization -->
-    <string name="settings_personalization_section">Персаналізацыя</string>
     <string name="settings_appearance_title">Знешні выгляд</string>
     <string name="settings_appearance_subtitle">Тэма, колеры, шрыфты і навігацыя</string>
     <string name="settings_language_title">Мова</string>
@@ -36,7 +35,6 @@
     <string name="settings_main_account_subtitle">Вызначае вашу асноўную валюту</string>
     <string name="settings_main_account_not_set">Не зададзены</string>
     <string name="settings_number_format_title">Фармат лікаў</string>
-    <string name="settings_number_format_subtitle">Як групуюцца разрады ў вялікіх сумах</string>
     <string name="settings_number_format_auto">Аўта</string>
     <string name="settings_number_format_indian">Індыйскі</string>
     <string name="settings_number_format_international">Міжнародны</string>
@@ -44,7 +42,6 @@
     <string name="settings_number_format_indian_example">1,50,000 (лакхі / кроры)</string>
     <string name="settings_number_format_international_example">150,000 (тысячы / мільёны)</string>
     <string name="settings_date_format_title">Фармат даты</string>
-    <string name="settings_date_format_subtitle">Як паказваюцца даты</string>
     <!-- Budget -->
     <string name="settings_budget_cycle_title">Дзень пачатку бюджэтнага цыкла</string>
     <string name="settings_budget_cycle_dialog_body">Абярыце дзень, з якога пачынаецца кожны месячны цыкл бюджэту. Напр. 25 азначае, што цыкл ідзе з 25-га па 24-е наступнага месяца.</string>
@@ -78,12 +75,6 @@
     </plurals>
     <!-- Data Management -->
     <string name="settings_data_section">Кіраванне данымі</string>
-    <string name="settings_manage_accounts_title">Кіраванне рахункамі</string>
-    <string name="settings_manage_accounts_subtitle">Прагляд і кіраванне банкаўскімі рахункамі</string>
-    <string name="settings_categories_title">Катэгорыі</string>
-    <string name="settings_categories_subtitle">Кіраванне катэгорыямі выдаткаў і даходаў</string>
-    <string name="settings_smart_rules_title">Разумныя правілы</string>
-    <string name="settings_smart_rules_subtitle">Аўтаматычная катэгарызацыя транзакцый</string>
     <string name="settings_budgets_title">Бюджэты</string>
     <string name="settings_budgets_subtitle">Ліміты выдаткаў па катэгорыях</string>
     <string name="settings_loans_title">Пазыкі</string>
@@ -111,8 +102,6 @@
     <string name="settings_import_data_subtitle">Аднавіць даныя з рэзервовай копіі</string>
     <string name="settings_import_csv_title">Імпарт транзакцый (CSV)</string>
     <string name="settings_import_csv_subtitle">Імпарт з экспарту PennyWise у CSV</string>
-    <string name="settings_import_statement_title">Імпарт выпіскі</string>
-    <string name="settings_import_statement_subtitle">Банкаўскія выпіскі (Excel, CSV) або PDF з UPI-праграм</string>
     <string name="settings_unrecognized_sms_title">Нераспазнаныя SMS</string>
     <string name="settings_unrecognized_sms_subtitle">Праглядайце непадтрымліваемыя банкаўскія паведамленні і дасылайце іх нам</string>
     <string name="settings_delete_all_title">Выдаліць усе транзакцыі</string>
@@ -232,7 +221,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Спампаваць мадэль AI (%1$d МБ)</string>
     <string name="settings_ai_status_downloading">Спампоўваецца мадэль AI...</string>
-    <string name="settings_ai_status_paused">Спампоўванне перапынена</string>
     <string name="settings_ai_status_completed">Мадэль AI гатовая да чату</string>
     <string name="settings_ai_status_failed">Не ўдалося спампаваць</string>
     <string name="settings_ai_status_insufficient_space">Недастаткова месца</string>
@@ -245,8 +233,6 @@
     <string name="settings_ai_download_progress">%1$d МБ / %2$d МБ</string>
     <string name="settings_ai_cancel_download">Скасаваць спампоўванне</string>
     <string name="settings_ai_info">Размаўляйце з AI пра свае выдаткі і атрымлівайце фінансавыя парады. Усе размовы застаюцца прыватнымі на вашай прыладзе.</string>
-    <string name="settings_ai_download_notification_title">Мадэль AI-чата</string>
-    <string name="settings_ai_download_notification_description">Спампоўваецца AI-памочнік для PennyWise</string>
     <!-- Developer -->
     <string name="settings_developer_section">Для распрацоўшчыкаў</string>
     <string name="settings_developer_mode_title">Рэжым распрацоўшчыка</string>
@@ -255,7 +241,6 @@
     <string name="settings_webhooks_subtitle">Адпраўляць абраныя даныя на ваш сервер</string>
     <string name="settings_webhooks_subtitle_pro">Pro · Адпраўляць абраныя даныя на ваш сервер</string>
     <!-- Support & Community -->
-    <string name="settings_support_section">Падтрымка і супольнасць</string>
     <string name="settings_help_faq_title">Даведка і FAQ</string>
     <string name="settings_help_faq_subtitle">Частыя пытанні і дапамога</string>
     <string name="settings_user_guide_title">Кіраўніцтва карыстальніка</string>
@@ -294,10 +279,6 @@
     <string name="appearance_nav_floating_subtitle">Сучасная і лёгкая</string>
     <string name="appearance_nav_normal">Звычайная</string>
     <string name="appearance_nav_normal_subtitle">Стандартная M3</string>
-    <!-- Cover style -->
-    <string name="appearance_cover_section">Стыль вокладкі</string>
-    <string name="appearance_cover_none">Няма</string>
-    <string name="appearance_cover_selected">Абрана</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Шрыфты</string>
     <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->

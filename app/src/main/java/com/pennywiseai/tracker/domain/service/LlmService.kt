@@ -37,7 +37,6 @@ interface LlmService {
         withTools: Boolean = false
     ): Result<Unit>
 
-    fun sendMessage(message: String): Flow<String>
     fun sendMessageEvents(message: String): Flow<LlmEvent>
     fun hasActiveConversation(): Boolean
     suspend fun closeConversation()

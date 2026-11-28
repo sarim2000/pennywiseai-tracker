@@ -143,10 +143,7 @@
     <string name="manage_accounts_hidden_badge">Imepuuzwa</string>
     <string name="manage_accounts_business_badge">Biashara</string>
     <string name="manage_accounts_outstanding">Deni</string>
-    <string name="manage_accounts_available">Inapatikana</string>
     <string name="manage_accounts_credit_limit">Kikomo cha Mkopo</string>
-    <!-- %1$d = utilization percentage -->
-    <string name="manage_accounts_utilization_used">(%1$d%% imetumika)</string>
     <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
     <!-- %1$s = formatted available credit -->
     <!-- Summary cards at the top of Manage Accounts -->
@@ -174,7 +171,6 @@
     <string name="manage_accounts_decrease">Punguza</string>
     <string name="manage_accounts_increase">Ongeza</string>
     <string name="manage_accounts_low_balance">Salio la chini</string>
-    <string name="manage_accounts_balance">Salio</string>
     <string name="manage_accounts_linked_cards">Kadi Zilizounganishwa</string>
     <string name="manage_accounts_card_inactive">(Haitumiki)</string>
     <!-- %1$s = short date -->
@@ -256,8 +252,6 @@
     <string name="loan_detail_record_payment">Rekodi Malipo</string>
     <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">kimebaki kati ya %1$s</string>
-    <!-- %1$d = percentage repaid -->
-    <string name="loan_detail_percent_repaid">%1$d%% imerejeshwa</string>
     <string name="loan_detail_history">Historia</string>
     <string name="loan_detail_settle_title">Maliza Mkopo</string>
     <string name="loan_detail_settle_message">Uweke mkopo huu kuwa umelipwa? Salio lolote lililobaki litasamehewa.</string>
@@ -280,21 +274,6 @@
     <string name="loan_detail_enter_amount">Weka kiasi</string>
     <string name="loan_detail_amount_label">Kiasi</string>
     <string name="loan_detail_add">Ongeza</string>
-    <!-- ══ Accounts overview card (home) ══ -->
-    <string name="accounts_overview_title">Muhtasari wa Akaunti</string>
-    <string name="accounts_overview_bank_balance">Salio la Benki</string>
-    <string name="accounts_overview_bank_balance_count">Salio la Benki • %1$d</string>
-    <string name="accounts_overview_available_credit">Mkopo Unaopatikana</string>
-    <string name="accounts_overview_available_credit_count">Mkopo Unaopatikana • %1$d</string>
-    <string name="accounts_overview_balance">Salio</string>
-    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
-    <string name="accounts_overview_used">Imetumika: %1$s (%2$d%%)</string>
-    <string name="accounts_overview_available_limit">Kikomo Kinachopatikana</string>
-    <string name="accounts_overview_show_less">Onyesha Chache</string>
-    <plurals name="accounts_overview_view_all">
-        <item quantity="one">Ona Akaunti %1$d</item>
-        <item quantity="other">Ona Akaunti Zote %1$d</item>
-    </plurals>
     <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
     <!-- Net worth: what you own minus what you owe, per currency -->
 </resources>

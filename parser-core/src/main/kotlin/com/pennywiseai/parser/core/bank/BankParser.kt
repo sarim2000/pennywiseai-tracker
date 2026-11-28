@@ -40,6 +40,39 @@ abstract class BankParser {
 
         /** Words that only a loan repayment uses; they beat an investment keyword ("Edelweiss"). */
         private val LOAN_REPAYMENT = Regex("""\bloans?\b|\bemi\b""")
+
+        private val ONE_TIME_PASSWORD = Regex("""one[-\s]?time password""")
+
+        /** Debit verbs that mark a convert-to-EMI SMS as a completed payment, not an offer. */
+        private val EMI_DEBIT_VERB = Regex("""\b(debited|deducted|spent|charged|withdrawn)\b""")
+
+        private val CURRENCY_BEFORE_AMOUNT = Regex("""([A-Z]{3})\s*[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE)
+
+        /** A masked card number: "XXXX1234", "*1234", "1234". */
+        private val MASKED_CARD = Regex("""(?:xx|XX|\*{2,})?\d{4}""")
+
+        // Currency token: most banks print "Rs"/"₹", but some (e.g. IndusInd) use
+        // "Avl Lmt: INR ..." — accept all three.
+        private const val LIMIT_CURRENCY = """(?:Rs\.?|INR|₹)"""
+        private val AVAILABLE_LIMIT_PATTERNS = listOf(
+            // "Available limit Rs.111,111.89" / "Available limit INR 111,111.89"
+            Regex("""Available\s+limit\s+$LIMIT_CURRENCY\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
+            // "Available limit: Rs 111,111.89"
+            Regex("""Available\s+limit:?\s*$LIMIT_CURRENCY\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
+            // "Avl Lmt: Rs 111,111.89" / "Avl Lmt: INR 111,111.89" (ICICI, IndusInd, others)
+            Regex("""Avl\s+Lmt:?\s*$LIMIT_CURRENCY\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
+            // "Avail Limit Rs.111,111.89"
+            Regex("""Avail\s+Limit:?\s*$LIMIT_CURRENCY\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
+            // "Available Credit Limit: Rs.111,111.89"
+            Regex("""Available\s+Credit\s+Limit:?\s*$LIMIT_CURRENCY\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
+            // "Limit: Rs.111,111.89" (generic, but only for credit card messages)
+            Regex("""(?:^|\s)Limit:?\s*$LIMIT_CURRENCY\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
+        )
+
+        /** Words that are never a merchant name; "BLOCK …" instructions are caught by prefix. */
+        private val MERCHANT_STOP_WORDS = setOf(
+            "USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE", "BLOCK"
+        )
     }
 
     /**
@@ -79,12 +112,7 @@ abstract class BankParser {
         }
 
         // Extract available limit for credit card transactions
-        val availableLimit = if (type == TransactionType.CREDIT) {
-            val limit = extractAvailableLimit(smsBody)
-            limit
-        } else {
-            null
-        }
+        val availableLimit = if (type == TransactionType.CREDIT) extractAvailableLimit(smsBody) else null
 
         val rawAccountLast4 = extractAccountLast4(smsBody)
         val safeAccountLast4 = rawAccountLast4?.let { extractLast4Digits(it) } ?: rawAccountLast4
@@ -160,7 +188,7 @@ abstract class BankParser {
         if (lowerMessage.contains("otp") ||
             // Hyphenated "One-Time Password" (Amex SafeKey) used to slip through
             // and got booked as a card spend.
-            lowerMessage.contains(Regex("""one[-\s]?time password""")) ||
+            lowerMessage.contains(ONE_TIME_PASSWORD) ||
             lowerMessage.contains("verification code")
         ) {
             return true
@@ -220,7 +248,7 @@ abstract class BankParser {
         // "Ignore if any amount is already paid".
         if (lowerMessage.contains("convert") &&
             (lowerMessage.contains("smartemi") || lowerMessage.contains("into emi")) &&
-            !Regex("""\b(debited|deducted|spent|charged|withdrawn)\b""").containsMatchIn(lowerMessage)
+            !EMI_DEBIT_VERB.containsMatchIn(lowerMessage)
         ) {
             return true
         }
@@ -266,8 +294,7 @@ abstract class BankParser {
      */
     protected open fun extractCurrency(message: String): String? {
         // Default implementation - try to find currency pattern
-        val currencyPattern = Regex("""([A-Z]{3})\s*[0-9,]+(?:\.\d{2})?""", RegexOption.IGNORE_CASE)
-        currencyPattern.find(message)?.let { match ->
+        CURRENCY_BEFORE_AMOUNT.find(message)?.let { match ->
             return match.groupValues[1].uppercase()
         }
         return null
@@ -453,12 +480,11 @@ abstract class BankParser {
         // Escape the last4 for safe regex usage
         val escapedLast4 = Regex.escape(last4)
 
-        // Check if it's part of a date pattern (dd/mm/yyyy, dd-mm-yyyy, etc.)
+        // Check if it's part of a date pattern (dd/mm/yyyy, dd-mm-yyyy, etc.). Unanchored,
+        // so these also cover "on 04/11/2025" and "dated 05-02-2025".
         val datePatterns = listOf(
             Regex("""\d{1,2}[/-]\d{1,2}[/-]$escapedLast4"""),  // 04/11/2025, 05-02-2025
-            Regex("""$escapedLast4[/-]\d{1,2}[/-]\d{1,2}"""),  // 2025/11/04, 2025-02-05
-            Regex("""\bon\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE),  // "on 04/11/2025"
-            Regex("""\bdated\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE)  // "dated 05-02-2025"
+            Regex("""$escapedLast4[/-]\d{1,2}[/-]\d{1,2}""")  // 2025/11/04, 2025-02-05
         )
 
         for (datePattern in datePatterns) {
@@ -471,7 +497,6 @@ abstract class BankParser {
         if (last4.toIntOrNull() in 2000..2099) {
             // Only reject if it appears to be a year in date context
             val yearContextPatterns = listOf(
-                Regex("""\bon\s+\d{1,2}[/-]\d{1,2}[/-]$escapedLast4""", RegexOption.IGNORE_CASE),
                 Regex("""\bdated\s+.*?$escapedLast4""", RegexOption.IGNORE_CASE),
                 Regex("""$escapedLast4(?:\s|$)""")  // Year at end of phrase
             )
@@ -513,31 +538,13 @@ abstract class BankParser {
      * This is the remaining credit available to spend, NOT the total credit limit.
      */
     protected open fun extractAvailableLimit(message: String): BigDecimal? {
-        // Currency token: most banks print "Rs"/"₹", but some (e.g. IndusInd) use
-        // "Avl Lmt: INR ..." — accept all three. Only ever evaluated for CREDIT
-        // messages (extractAvailableLimit is gated on type == CREDIT in parse()).
-        val cur = """(?:Rs\.?|INR|₹)"""
-        val creditLimitPatterns = listOf(
-            // "Available limit Rs.111,111.89" / "Available limit INR 111,111.89"
-            Regex("""Available\s+limit\s+$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
-            // "Available limit: Rs 111,111.89"
-            Regex("""Available\s+limit:?\s*$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
-            // "Avl Lmt: Rs 111,111.89" / "Avl Lmt: INR 111,111.89" (ICICI, IndusInd, others)
-            Regex("""Avl\s+Lmt:?\s*$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
-            // "Avail Limit Rs.111,111.89"
-            Regex("""Avail\s+Limit:?\s*$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
-            // "Available Credit Limit: Rs.111,111.89"
-            Regex("""Available\s+Credit\s+Limit:?\s*$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE),
-            // "Limit: Rs.111,111.89" (generic, but only for credit card messages)
-            Regex("""(?:^|\s)Limit:?\s*$cur\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
-        )
-
-        for ((index, pattern) in creditLimitPatterns.withIndex()) {
+        // Only ever evaluated for CREDIT messages (extractAvailableLimit is gated on
+        // type == CREDIT in parse()).
+        for (pattern in AVAILABLE_LIMIT_PATTERNS) {
             pattern.find(message)?.let { match ->
                 val limitStr = match.groupValues[1].replace(",", "")
                 return try {
-                    val limit = BigDecimal(limitStr)
-                    limit
+                    BigDecimal(limitStr)
                 } catch (e: NumberFormatException) {
                     null
                 }
@@ -594,8 +601,7 @@ abstract class BankParser {
 
         // Check for masked card number patterns (e.g., "XXXX1234", "*1234", "ending 1234")
         // BUT only if we haven't already excluded it as an account transaction
-        val maskedCardRegex = Regex("""(?:xx|XX|\*{2,})?\d{4}""")
-        if (lowerMessage.contains("ending") && maskedCardRegex.containsMatchIn(message)) {
+        if (lowerMessage.contains("ending") && MASKED_CARD.containsMatchIn(message)) {
             return true
         }
 
@@ -622,14 +628,8 @@ abstract class BankParser {
      * Validates if the extracted merchant name is valid.
      */
     protected open fun isValidMerchantName(name: String): Boolean {
-        val commonWords =
-            setOf(
-                "USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE",
-                "BLOCK", "BLOCK UPI", "UPIBLOCK", "BLOCK ACT", "BLOCK CARD", "BLOCK A/C", "BLOCK ACCOUNT"
-            )
-
         val upper = name.uppercase().trim()
-        val isBlockInstruction = upper in commonWords ||
+        val isBlockInstruction = upper in MERCHANT_STOP_WORDS ||
             upper.startsWith("BLOCK UPI") ||
             upper.startsWith("BLOCK CARD") ||
             upper.startsWith("BLOCK ACT") ||
@@ -641,7 +641,6 @@ abstract class BankParser {
         return name.length >= Constants.Parsing.MIN_MERCHANT_NAME_LENGTH &&
             name.any { it.isLetter() } &&
             !isBlockInstruction &&
-            !name.all { it.isDigit() } &&
             !name.contains("@") // Not a UPI ID
     }
 }

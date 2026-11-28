@@ -9,28 +9,20 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.currentNameFor
-import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.data.model.MerchantSuggestion
 import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
-import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
 import com.pennywiseai.tracker.data.trip.withTripGroup
-import com.pennywiseai.tracker.domain.model.BudgetCycle
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.min
 
 @Singleton
 open class TransactionRepository @Inject constructor(
@@ -73,46 +65,11 @@ open class TransactionRepository @Inject constructor(
             endDate.atTime(23, 59, 59)
         )
 
-    /**
-     * Gets transactions filtered at the database level for better performance.
-     * Combines date range, currency, and transaction type filters to reduce memory usage.
-     *
-     * @param startDate Start of the date range (inclusive)
-     * @param endDate End of the date range (inclusive)
-     * @param currency Currency code to filter by (e.g., "INR", "USD")
-     * @param transactionType Optional transaction type filter (null means all types)
-     * @return Flow of filtered transactions
-     */
-    fun getTransactionsFiltered(
-        startDate: LocalDate,
-        endDate: LocalDate,
-        currency: String,
-        transactionType: TransactionType? = null
-    ): Flow<List<TransactionEntity>> =
-        transactionDao.getTransactionsFiltered(
-            startDate.atStartOfDay(),
-            endDate.atTime(23, 59, 59),
-            currency,
-            transactionType
-        )
-
-    fun getTransactionsByType(type: TransactionType): Flow<List<TransactionEntity>> =
-        transactionDao.getTransactionsByType(type)
-
-    fun getTransactionsByCategory(category: String): Flow<List<TransactionEntity>> =
-        transactionDao.getTransactionsByCategory(category)
-
-    fun searchTransactions(query: String): Flow<List<TransactionEntity>> =
-        transactionDao.searchTransactions(query)
-
     fun getAllCurrencies(): Flow<List<String>> =
         transactionDao.getAllCurrencies()
 
     fun getCurrenciesForPeriod(startDate: LocalDateTime, endDate: LocalDateTime): Flow<List<String>> =
         transactionDao.getCurrenciesForPeriod(startDate, endDate)
-
-    fun getAllCategories(): Flow<List<String>> =
-        transactionDao.getAllCategories()
 
     /**
      * Every category in use, most-used first. Unlimited on purpose: callers
@@ -125,9 +82,6 @@ open class TransactionRepository @Inject constructor(
     fun observeRecentCategoryUsage(): Flow<List<String>> =
         transactionDao.observeCategoriesByUsageSince(LocalDateTime.now().minusDays(90))
 
-    fun getAllMerchants(): Flow<List<String>> =
-        transactionDao.getAllMerchants()
-
     /**
      * Up to [MerchantSuggestions.LIMIT] past merchants for a merchant field showing [typed],
      * from [profileId] (null for all profiles); none for a blank field.
@@ -138,12 +92,6 @@ open class TransactionRepository @Inject constructor(
         val found = transactionDao.suggestMerchants(MerchantSuggestions.likeTerm(typed), profileId, MerchantSuggestions.LIMIT + 1)
         return MerchantSuggestions.shown(found, typed)
     }
-
-    suspend fun getTotalAmountByTypeAndPeriod(
-        type: TransactionType,
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): Double? = transactionDao.getTotalAmountByTypeAndPeriod(type, startDate, endDate)
 
     /**
      * The one place a new row is saved for SMS, notifications, imports and chat adds, so a
@@ -286,10 +234,6 @@ open class TransactionRepository @Inject constructor(
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
         transactionDao.getTransactionByHash(transactionHash)
 
-    /** A soft-deleted transaction from the same raw SMS, if any (#703). */
-    suspend fun getDeletedBySms(smsBody: String, smsSender: String?): TransactionEntity? =
-        transactionDao.getDeletedBySms(smsBody, smsSender)
-
     /** See [TransactionDao.getAnyBySms]. */
     suspend fun getAnyBySms(smsBody: String, smsSender: String?): TransactionEntity? =
         transactionDao.getAnyBySms(smsBody, smsSender)
@@ -351,9 +295,6 @@ open class TransactionRepository @Inject constructor(
     ): List<TransactionEntity> =
         transactionDao.findRecentExpensesByMerchantAndAmount(merchant, amount, since, limit)
 
-    suspend fun getTransactionByReference(reference: String): TransactionEntity? =
-        transactionDao.getTransactionByReference(reference)
-
     /** Transactions (deleted included) with any of [hashes], in chunks under SQLite's bound-variable limit. */
     suspend fun getTransactionsByHashes(hashes: List<String>): List<TransactionEntity> =
         hashes.chunked(500).flatMap { transactionDao.getTransactionsByHashes(it) }
@@ -362,14 +303,6 @@ open class TransactionRepository @Inject constructor(
         transactionDao.getTransactionsBetweenDatesList(startDate, endDate)
 
     suspend fun getOldestTransactionDateTime(): LocalDateTime? = transactionDao.getOldestTransactionDateTime()
-
-    suspend fun findStatementMergeCandidate(transaction: TransactionEntity): TransactionEntity? {
-        val reference = transaction.reference?.takeIf { it.isNotBlank() } ?: return null
-        return transactionDao.getTransactionsByReference(reference)
-            .firstOrNull { candidate ->
-                StatementTransactionEnricher.isStatementMatch(candidate, transaction)
-            }
-    }
 
     suspend fun findPotentialDuplicates(transaction: TransactionEntity): List<TransactionEntity> {
         if (!TransactionDeduplication.hasUpiReference(transaction)) return emptyList()
@@ -505,96 +438,6 @@ open class TransactionRepository @Inject constructor(
         val expenses: BigDecimal
     )
 
-    fun getCurrentMonthBreakdown(): Flow<MonthlyBreakdown> {
-        return getTransactionsForCurrentMonth()
-            .map { transactions ->
-                transactions.toMonthlyBreakdown()
-            }
-    }
-
-    fun getCurrentMonthTotal(): Flow<BigDecimal> {
-        return getCurrentMonthBreakdown().map { it.total }
-    }
-
-    fun getLastMonthBreakdown(): Flow<MonthlyBreakdown> {
-        return getTransactionsForComparableLastMonth()
-            .map { transactions ->
-                transactions.toMonthlyBreakdown()
-            }
-    }
-
-    fun getLastMonthTotal(): Flow<BigDecimal> {
-        return getLastMonthBreakdown().map { it.total }
-    }
-
-    // Currency-grouped breakdown methods
-    fun getCurrentMonthBreakdownByCurrency(): Flow<Map<String, MonthlyBreakdown>> {
-        return getTransactionsForCurrentMonth()
-            .map { transactions ->
-                transactions.toMonthlyBreakdownByCurrency()
-            }
-    }
-
-    fun getLastMonthBreakdownByCurrency(): Flow<Map<String, MonthlyBreakdown>> {
-        return getTransactionsForComparableLastMonth()
-            .map { transactions ->
-                transactions.toMonthlyBreakdownByCurrency()
-            }
-    }
-
-    private fun getTransactionsForCurrentMonth(): Flow<List<TransactionEntity>> {
-        val now = LocalDate.now()
-        return userPreferencesRepository.budgetCycleStartDay.flatMapLatest { startDay ->
-            val (cycleStart, cycleEnd) = BudgetCycle.currentCycle(now, startDay)
-            val startDate = cycleStart.atStartOfDay()
-            val endDate = cycleEnd.atTime(LocalTime.MAX)
-            transactionDao.getTransactionsBetweenDates(startDate, endDate)
-                // Monthly spending summary ignores analytics-excluded and loan-linked transactions (#451, #800).
-                .map { txns -> txns.forTotals() }
-        }
-    }
-
-    private fun getTransactionsForComparableLastMonth(): Flow<List<TransactionEntity>> {
-        val now = LocalDate.now()
-        return userPreferencesRepository.budgetCycleStartDay.flatMapLatest { startDay ->
-            val current = BudgetCycle.currentCycle(now, startDay)
-            val (prevStart, prevEnd) = BudgetCycle.previousCycle(current, startDay)
-            val startDate = prevStart.atStartOfDay()
-            val endDate = prevEnd.atTime(LocalTime.MAX)
-            transactionDao.getTransactionsBetweenDates(startDate, endDate)
-                // Monthly spending summary ignores analytics-excluded and loan-linked transactions (#451, #800).
-                .map { txns -> txns.forTotals() }
-        }
-    }
-
-    private fun List<TransactionEntity>.toMonthlyBreakdown(): MonthlyBreakdown {
-        val income = sumTransactionType(TransactionType.INCOME)
-        val expenses = sumTransactionType(TransactionType.EXPENSE)
-        return MonthlyBreakdown(
-            total = income - expenses,
-            income = income,
-            expenses = expenses
-        )
-    }
-
-    private fun List<TransactionEntity>.toMonthlyBreakdownByCurrency(): Map<String, MonthlyBreakdown> {
-        return forTotals()
-            .groupBy { it.currency }
-            .mapValues { (_, transactions) -> transactions.toMonthlyBreakdown() }
-    }
-
-    private fun List<TransactionEntity>.sumTransactionType(type: TransactionType): BigDecimal {
-        return forTotals().filter { it.transactionType == type }
-            .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-    }
-
-    fun getRecentTransactions(limit: Int = 5): Flow<List<TransactionEntity>> {
-        return transactionDao.getAllTransactions()
-            .map { transactions ->
-                transactions.take(limit)
-            }
-    }
-
     fun getTransactionsByAccount(bankName: String, accountLast4: String): Flow<List<TransactionEntity>> {
         return transactionDao.getTransactionsByAccount(bankName, accountLast4)
     }
@@ -641,15 +484,6 @@ open class TransactionRepository @Inject constructor(
         }
     }
 
-    fun getTransactionsByAccountAndDateRange(
-        bankName: String,
-        accountLast4: String,
-        startDate: LocalDateTime,
-        endDate: LocalDateTime
-    ): Flow<List<TransactionEntity>> {
-        return transactionDao.getTransactionsByAccountAndDateRange(bankName, accountLast4, startDate, endDate)
-    }
-
     // Methods for batch rule application
     suspend fun getAllTransactionsList(): List<TransactionEntity> {
         // Get all non-deleted transactions as a list (not Flow) for batch processing
@@ -667,12 +501,6 @@ open class TransactionRepository @Inject constructor(
     suspend fun countLiveTransactions(): Int = transactionDao.countLiveTransactions()
 
     // ========== Transaction Split Methods ==========
-
-    /**
-     * Gets a transaction with its splits.
-     */
-    fun getTransactionWithSplits(transactionId: Long): Flow<TransactionWithSplits?> =
-        transactionSplitDao.getTransactionWithSplits(transactionId)
 
     /**
      * Gets transactions with their splits for a date range and currency.
@@ -701,12 +529,6 @@ open class TransactionRepository @Inject constructor(
             startDate.atStartOfDay(),
             endDate.atTime(23, 59, 59)
         )
-
-    /**
-     * Gets a transaction with its splits synchronously.
-     */
-    suspend fun getTransactionWithSplitsSync(transactionId: Long): TransactionWithSplits? =
-        transactionSplitDao.getTransactionWithSplitsSync(transactionId)
 
     /** Splits of every non-deleted transaction, observed so split edits re-emit. */
     fun observeSplitsForActiveTransactions(): Flow<List<TransactionSplitEntity>> =
@@ -748,18 +570,6 @@ open class TransactionRepository @Inject constructor(
      */
     suspend fun insertSplit(split: TransactionSplitEntity): Long =
         transactionSplitDao.insertSplit(split)
-
-    /**
-     * Updates a split.
-     */
-    suspend fun updateSplit(split: TransactionSplitEntity) =
-        transactionSplitDao.updateSplit(split)
-
-    /**
-     * Deletes a single split.
-     */
-    suspend fun deleteSplit(split: TransactionSplitEntity) =
-        transactionSplitDao.deleteSplit(split)
 }
 
 /**

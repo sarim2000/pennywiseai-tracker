@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.ledger.countingTransferPairsOnce
 import com.pennywiseai.tracker.data.ledger.forTotals
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
@@ -95,6 +96,7 @@ class AnalyticsViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val categoryRepository: CategoryRepository,
     private val tagRepository: TagRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
@@ -102,12 +104,6 @@ class AnalyticsViewModel @Inject constructor(
     // The tag and day-of-week groupings are Pro (#422); basic tagging (create /
     // apply / filter-by-tag) stays free.
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
-
-    // name -> hex color for the user's categories (incl. recolored built-ins), so
-    // Analytics renders each category in its assigned color instead of gray (#586).
-    private val categoryColors: Flow<Map<String, String>> =
-        categoryRepository.getAllCategories()
-            .map { cats -> cats.associate { it.name to it.color } }
 
     // Colors plus the sub-category → parent map (#374): Analytics rolls each
     // sub-category into its parent, and a parent filter includes its children.
@@ -313,8 +309,7 @@ class AnalyticsViewModel @Inject constructor(
             fun scopeTransactions(
                 txs: List<TransactionWithSplits>
             ): List<TransactionWithSplits> {
-                val hidden = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
-                    .getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+                val hidden = ignoredAccountsStore.keys()
                 val profileKeys = buildProfileAccountKeys(balances)
                 val keptIds = filterTransactionsByProfile(
                     txs.map { it.transaction },

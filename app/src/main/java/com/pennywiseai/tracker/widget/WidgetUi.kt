@@ -46,6 +46,7 @@ import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.hilt.EntryPoint
@@ -274,17 +275,15 @@ fun WidgetRow(
     }
 }
 
-const val HIDDEN_AMOUNT = "••••"
-
 /**
  * A total at a glance: whole units ("JD 241", not "JD241.198"), or
- * [HIDDEN_AMOUNT] while the eye is closed.
+ * [AmountPrivacy.MASK] while the eye is closed.
  */
 @Composable
 fun totalText(amount: BigDecimal, currency: String): String = when {
     // No snapshot yet: a dash, not a made-up "₹0".
     currency.isEmpty() -> "—"
-    amountsHidden() -> HIDDEN_AMOUNT
+    amountsHidden() -> AmountPrivacy.MASK
     else -> widgetMoney(LocalContext.current, wholeUnits(amount), currency)
 }
 
@@ -294,11 +293,11 @@ fun wholeUnits(amount: BigDecimal): BigDecimal = amount.setScale(0, RoundingMode
 /**
  * One transaction's exact amount ("JD 3.2"). Like the app's transaction list,
  * it stays visible while only Home's eye hides the totals, and is
- * [HIDDEN_AMOUNT] once amounts are hidden everywhere.
+ * [AmountPrivacy.MASK] once amounts are hidden everywhere.
  */
 @Composable
 fun exactText(amount: BigDecimal, currency: String): String =
-    if (everyAmountHidden()) HIDDEN_AMOUNT else widgetMoney(LocalContext.current, amount, currency)
+    if (everyAmountHidden()) AmountPrivacy.MASK else widgetMoney(LocalContext.current, amount, currency)
 
 /**
  * [CurrencyFormatter.formatCurrency] for a widget: a space after a lettered

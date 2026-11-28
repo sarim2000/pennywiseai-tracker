@@ -13,7 +13,7 @@ class OldHickoryParser : BankParser() {
     override fun getCurrency() = "USD"
 
     override fun canHandle(sender: String): Boolean {
-        val cleanSender = sender.replace("[^\\d]".toRegex(), "") // Remove non-digits
+        val cleanSender = sender.replace(NON_DIGIT, "") // Remove non-digits
 
         return when {
             // Phone number format: (877) 590-7589 -> 8775907589
@@ -21,14 +21,9 @@ class OldHickoryParser : BankParser() {
 
             // Text-based senders
             sender.uppercase().let { upper ->
-                upper == "OLDHICKORY" ||
-                        upper == "OHCU" ||
-                        upper.contains("HICKORY") ||
-                        upper.contains("OLD HICKORY")
+                upper == "OHCU" ||
+                    upper.contains("HICKORY")
             } -> true
-
-            // DLT patterns for US credit unions
-            sender.uppercase().matches(Regex("""^[A-Z]{2}-HICKORY-[A-Z]$""")) -> true
 
             else -> false
         }
@@ -127,5 +122,9 @@ class OldHickoryParser : BankParser() {
         }
 
         return super.isTransactionMessage(message)
+    }
+
+    private companion object {
+        val NON_DIGIT = Regex("[^\\d]")
     }
 }

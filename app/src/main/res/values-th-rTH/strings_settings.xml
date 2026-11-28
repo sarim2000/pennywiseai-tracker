@@ -12,7 +12,6 @@
     <string name="settings_pro_subtitle_active">ใช้งานอยู่ · ปลดล็อกฟีเจอร์ขั้นสูงทั้งหมดแล้ว</string>
     <string name="settings_pro_subtitle_upgrade">กฎ Statement การส่งออก และอื่นๆ ได้ไม่จำกัด</string>
     <!-- Personalization -->
-    <string name="settings_personalization_section">ปรับแต่ง</string>
     <string name="settings_appearance_title">ลักษณะ</string>
     <string name="settings_appearance_subtitle">ธีม สี แบบอักษร และการนำทาง</string>
     <string name="settings_language_title">ภาษา</string>
@@ -37,7 +36,6 @@
     <string name="settings_main_account_subtitle">ใช้กำหนดสกุลเงินเริ่มต้นของคุณ</string>
     <string name="settings_main_account_not_set">ยังไม่ได้ตั้งค่า</string>
     <string name="settings_number_format_title">รูปแบบตัวเลข</string>
-    <string name="settings_number_format_subtitle">วิธีแบ่งหลักของจำนวนเงินก้อนใหญ่</string>
     <string name="settings_number_format_auto">อัตโนมัติ</string>
     <string name="settings_number_format_indian">แบบอินเดีย</string>
     <string name="settings_number_format_international">แบบสากล</string>
@@ -45,7 +43,6 @@
     <string name="settings_number_format_indian_example">1,50,000 (แสน / โครร์)</string>
     <string name="settings_number_format_international_example">150,000 (พัน / ล้าน)</string>
     <string name="settings_date_format_title">รูปแบบวันที่</string>
-    <string name="settings_date_format_subtitle">วิธีแสดงวันที่</string>
     <!-- Budget -->
     <string name="settings_budget_cycle_title">วันเริ่มรอบงบประมาณ</string>
     <string name="settings_budget_cycle_dialog_body">เลือกวันที่เริ่มรอบงบประมาณแต่ละเดือน เช่น 25 หมายถึงรอบจะเริ่มวันที่ 25 ถึงวันที่ 24 ของเดือนถัดไป</string>
@@ -73,12 +70,6 @@
     </plurals>
     <!-- Data Management -->
     <string name="settings_data_section">การจัดการข้อมูล</string>
-    <string name="settings_manage_accounts_title">จัดการบัญชี</string>
-    <string name="settings_manage_accounts_subtitle">ดูและจัดการบัญชีธนาคารของคุณ</string>
-    <string name="settings_categories_title">หมวดหมู่</string>
-    <string name="settings_categories_subtitle">จัดการหมวดหมู่ค่าใช้จ่ายและรายได้</string>
-    <string name="settings_smart_rules_title">กฎอัจฉริยะ</string>
-    <string name="settings_smart_rules_subtitle">การจัดหมวดหมู่ธุรกรรมอัตโนมัติ</string>
     <string name="settings_budgets_title">งบประมาณ</string>
     <string name="settings_budgets_subtitle">ติดตามวงเงินใช้จ่ายตามหมวดหมู่</string>
     <string name="settings_loans_title">เงินกู้</string>
@@ -106,8 +97,6 @@
     <string name="settings_import_data_subtitle">กู้คืนข้อมูลจากการสำรอง</string>
     <string name="settings_import_csv_title">นำเข้าธุรกรรม (CSV)</string>
     <string name="settings_import_csv_subtitle">นำเข้าจากไฟล์ CSV ที่ส่งออกจาก PennyWise</string>
-    <string name="settings_import_statement_title">นำเข้า Statement</string>
-    <string name="settings_import_statement_subtitle">Statement ธนาคาร (Excel, CSV) หรือ PDF จากแอป UPI</string>
     <string name="settings_unrecognized_sms_title">SMS ที่ไม่รู้จัก</string>
     <string name="settings_unrecognized_sms_subtitle">ดูและรายงานข้อความจากธนาคารที่ยังไม่รองรับ</string>
     <string name="settings_delete_all_title">ลบธุรกรรมทั้งหมด</string>
@@ -206,7 +195,6 @@
     <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">ดาวน์โหลดโมเดล AI (%1$d MB)</string>
     <string name="settings_ai_status_downloading">กำลังดาวน์โหลดโมเดล AI...</string>
-    <string name="settings_ai_status_paused">การดาวน์โหลดหยุดชะงัก</string>
     <string name="settings_ai_status_completed">โมเดล AI พร้อมแชทแล้ว</string>
     <string name="settings_ai_status_failed">ดาวน์โหลดไม่สำเร็จ</string>
     <string name="settings_ai_status_insufficient_space">พื้นที่จัดเก็บไม่เพียงพอ</string>
@@ -218,8 +206,6 @@
     <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
     <string name="settings_ai_cancel_download">ยกเลิกการดาวน์โหลด</string>
     <string name="settings_ai_info">แชทกับ AI เรื่องค่าใช้จ่ายและรับข้อมูลเชิงลึกด้านการเงิน บทสนทนาทั้งหมดอยู่ในเครื่องของคุณเท่านั้น</string>
-    <string name="settings_ai_download_notification_title">โมเดลแชท AI</string>
-    <string name="settings_ai_download_notification_description">กำลังดาวน์โหลดผู้ช่วยแชท AI สำหรับ PennyWise</string>
     <!-- Developer -->
     <string name="settings_developer_section">นักพัฒนา</string>
     <string name="settings_developer_mode_title">โหมดนักพัฒนา</string>
@@ -228,7 +214,6 @@
     <string name="settings_webhooks_subtitle">ส่งข้อมูลที่เลือกไปยังปลายทางของคุณ</string>
     <string name="settings_webhooks_subtitle_pro">Pro · ส่งข้อมูลที่เลือกไปยังปลายทางของคุณ</string>
     <!-- Support & Community -->
-    <string name="settings_support_section">ความช่วยเหลือและชุมชน</string>
     <string name="settings_help_faq_title">ความช่วยเหลือและคำถามที่พบบ่อย</string>
     <string name="settings_help_faq_subtitle">คำถามที่พบบ่อยและความช่วยเหลือ</string>
     <string name="settings_user_guide_title">คู่มือการใช้งาน</string>
@@ -267,10 +252,6 @@
     <string name="appearance_nav_floating_subtitle">ทันสมัยและเพรียวบาง</string>
     <string name="appearance_nav_normal">ปกติ</string>
     <string name="appearance_nav_normal_subtitle">มาตรฐาน M3</string>
-    <!-- Cover style -->
-    <string name="appearance_cover_section">รูปแบบหน้าปก</string>
-    <string name="appearance_cover_none">ไม่มี</string>
-    <string name="appearance_cover_selected">ที่เลือก</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">แบบอักษร</string>
     <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->

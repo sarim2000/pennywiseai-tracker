@@ -109,7 +109,6 @@
     <string name="sms_scan_failed">Falha na varredura. Por favor, tente novamente.</string>
     <string name="sms_scan_cancelled">Verificação cancelada</string>
     <string name="sms_scan_starting">Iniciando verificação...</string>
-    <string name="sms_scan_indicator">Verificação de SMS: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
     <string name="duration_hours_minutes">%1$dh %2$dm</string>
     <string name="duration_minutes_seconds">%1$d min %2$d s</string>

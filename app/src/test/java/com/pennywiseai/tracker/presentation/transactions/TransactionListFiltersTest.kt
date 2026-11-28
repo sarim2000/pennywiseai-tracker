@@ -264,6 +264,23 @@ class TransactionListFiltersTest {
         assertEquals(rows, filterByTag(rows, null, tagged))
     }
 
+    @Test
+    fun `a second required tag keeps only rows carrying both`() {
+        val tags = mapOf(1L to listOf("Work", "Trip"), 2L to listOf("Work"), 3L to listOf("Trip"))
+        val rows = listOf(tx(1), tx(2), tx(3))
+        assertEquals(listOf(1L), ids(filterByTag(rows, "Work", tags, "trip")))
+        assertEquals(listOf(1L, 2L), ids(filterByTag(rows, "Work", tags)))
+    }
+
+    @Test
+    fun `a removed or deleted first tag promotes the second`() {
+        assertEquals("Trip" to null, normalizeTags(null, "Trip")) // first chip removed
+        assertEquals("Trip" to null, normalizeTags("Work", "Trip") { it == "Trip" }) // first deleted
+        assertEquals("Work" to null, normalizeTags("Work", "Trip") { it == "Work" }) // second deleted
+        assertEquals(null to null, normalizeTags("Work", "Trip") { false })
+        assertEquals("Work" to "Trip", normalizeTags("Work", "Trip"))
+    }
+
     // ─── Filterable categories ───────────────────────────────────────────────
 
     @Test

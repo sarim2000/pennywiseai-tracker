@@ -1285,4 +1285,38 @@ class BackupModelsTest {
             assertEquals(0, BigDecimal.ZERO.compareTo(amount))
         }
     }
+
+    @Test
+    fun oldBackupWithoutTrips_restoresOrdinaryGroupsAndNoExclusions() {
+        val json = """
+        { "database": { "transaction_groups": [ { "id": 1, "name": "Synthetic group" } ] } }
+        """.trimIndent()
+
+        val backup = backupJson.decodeFromString<PennyWiseBackup>(json)
+
+        val group = backup.database.transactionGroups.single()
+        assertNull(group.tripStart)
+        assertNull(group.tripEnd)
+        assertTrue(backup.database.tripExclusions.isEmpty())
+    }
+
+    @Test
+    fun tripWindowAndExclusionsRoundTrip() {
+        val group = TransactionGroupEntity(
+            id = 2, name = "Synthetic trip",
+            tripStart = LocalDateTime.of(2026, 12, 1, 0, 0), tripEnd = null
+        )
+        val exclusion = TripExclusionEntity(groupId = 2, transactionHash = "synthetic-hash")
+        val backup = PennyWiseBackup(
+            metadata = BackupMetadata(statistics = BackupStatistics(totalTripExclusions = 1)),
+            database = DatabaseSnapshot(transactionGroups = listOf(group), tripExclusions = listOf(exclusion))
+        )
+
+        val restored = backupJson.decodeFromString<PennyWiseBackup>(backupJson.encodeToString(backup))
+
+        assertEquals(group.tripStart, restored.database.transactionGroups.single().tripStart)
+        assertNull(restored.database.transactionGroups.single().tripEnd)
+        assertEquals(listOf(exclusion), restored.database.tripExclusions)
+        assertEquals(1, restored.metadata.statistics.totalTripExclusions)
+    }
 }

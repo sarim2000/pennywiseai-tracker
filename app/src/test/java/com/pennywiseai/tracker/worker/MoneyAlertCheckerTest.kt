@@ -39,6 +39,7 @@ class MoneyAlertCheckerTest {
         mockkObject(MoneyAlertNotifications)
         justRun { MoneyAlertNotifications.showLowBalance(any(), any()) }
         coEvery { balances.getAllLatestBalancesOnce() } returns listOf(account)
+        coEvery { balances.awaitLowBalanceRearms() } returns Unit
         coEvery { balances.isManualAccount(BANK, ACCT) } returns true
         coEvery { preferences.claimLowBalanceAlert(BANK, ACCT, true) } returns true
     }

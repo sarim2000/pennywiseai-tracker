@@ -32,7 +32,6 @@
     <string name="home_resync_scan_again">Réanalyser tous les messages</string>
     <string name="home_resync_scan_again_desc">Ajoute ce qui a été manqué. Vos modifications et toutes les transactions existantes restent telles quelles.</string>
     <string name="home_resync_rebuild">Tout reconstruire</string>
-    <string name="home_resync_rebuild_desc">Relit les transactions SMS pour profiter des corrections d\'analyse. Les modifications des transactions SMS sont réinitialisées. Les transactions manuelles, importées, de prêt et groupées sont conservées.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Plus d\'options</string>
     <string name="home_menu_edit_home">Modifier l\'écran d\'accueil</string>

@@ -188,13 +188,27 @@ the keys and restore as not reimbursable; older apps ignore them.
 
 ## Resilience
 
-Beyond schema tolerance, the importer skips and **counts** any single row that
-fails to insert (`insertEachCounting`) instead of letting it abort the whole
-restore. This is applied to **every** entity insert loop in both `MERGE` and
-`REPLACE_ALL` (and the merge helpers); batch snapshot inserts are wrapped in a
-table-level `try/catch`. The skipped count surfaces to the user ("N rows could
-not be imported"). This guards against genuinely corrupt rows or constraint
-violations — schema drift is already handled upstream by the defaults.
+Beyond schema tolerance, the importer skips and **counts** a row it can tell
+is unusable **before** inserting it (`insertEachCounting`), instead of letting
+it abort the whole restore. This is applied to every entity insert loop in both
+`MERGE` and `REPLACE_ALL` (and the merge helpers). The skipped count surfaces to
+the user ("N rows could not be imported").
+
+- **Skipped and counted:** a row whose parent didn't map or restore (a rule
+  application, split, tag link, budget category or goal contribution of a
+  deleted transaction/budget/goal) is rejected by a check before the DAO call
+  (`checkNotNull` / a membership test), and rows that fail a Kotlin check. The
+  foreign key is never left to throw.
+- **Aborts the import:** any SQL failure from a DAO call (a constraint
+  violation, a unique-index clash). On Room's `AndroidSQLiteDriver` a failed
+  write marks the whole import transaction rollback-only, so the COMMIT silently
+  becomes a ROLLBACK while the counters still claim success (#1513). So
+  `insertEachCounting` and the snapshot `try/catch` blocks rethrow
+  `android.database.SQLException`: the import returns an error and nothing is
+  saved. A new child table must therefore add its parent check, not rely on the
+  foreign key.
+
+Schema drift is handled upstream by the field defaults, not here.
 
 The one deliberate exception is `importProfilesAndBuildMap`: its inserts build
 the profile id-remap map that transactions/balances depend on, so it stays
@@ -205,7 +219,7 @@ strict (a profile failure should surface, not be silently swallowed).
 *Export Data (Encrypted)* (Settings → Data) wraps the same JSON in a
 passphrase envelope (`data/backup/BackupCrypto.kt`). The file keeps the
 `.pennywisebackup` extension; the JSON inside is unchanged, so everything
-above still applies once it's decrypted. That passphrase is never stored.
+above still applies once it's decrypted. That passphrase is never stored. The passphrase is normalized to Unicode NFC before key derivation.
 
 | Bytes | Field |
 |-------|-------|

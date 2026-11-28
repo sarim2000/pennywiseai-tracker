@@ -95,6 +95,28 @@ class BackupCryptoTest {
     }
 
     @Test
+    fun composedAndDecomposedPassphrasesOpenEachOther() {
+        val composed = "caf\u00E9 passphrase"
+        val decomposed = "cafe\u0301 passphrase"
+        val data = bytes(100)
+        assertArrayEquals(data, decrypt(encrypt(data, composed), decomposed))
+        assertArrayEquals(data, decrypt(encrypt(data, decomposed), composed))
+    }
+
+    @Test
+    fun asciiPassphraseRoundTripsUnchanged() {
+        val data = bytes(100)
+        assertArrayEquals(data, decrypt(encrypt(data, "plain ascii pass"), "plain ascii pass"))
+    }
+
+    @Test
+    fun surroundingSpacesStaySignificant() {
+        val sealed = encrypt(bytes(100), " spaced pass ")
+        assertThrows(BackupCrypto.WrongPassphraseException::class.java) { decrypt(sealed, "spaced pass") }
+        assertThrows(BackupCrypto.WrongPassphraseException::class.java) { decrypt(sealed, " spaced pass") }
+    }
+
+    @Test
     fun wrongPassphraseIsReported() {
         val sealed = encrypt(bytes(100))
         assertThrows(BackupCrypto.WrongPassphraseException::class.java) { decrypt(sealed, "not the passphrase") }

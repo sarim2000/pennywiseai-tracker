@@ -59,6 +59,8 @@ data class TransactionsDrillDown(
     val merchant: String? = null,
     val account: String? = null,
     val tag: String? = null,
+    /** A second tag the rows must carry as well (see [drillDownTags]). */
+    val alsoTag: String? = null,
     /** A [TransactionTypeFilter] name; null for all types. */
     val type: String? = null,
     val period: String? = null,
@@ -110,10 +112,13 @@ fun AnalyticsScreen(
     // A tapped row uses the scope of the figures on screen while new data loads.
     val drillDown: (TransactionsDrillDown) -> Unit = { group ->
         val custom = uiState.dateRange.takeIf { uiState.period == TimePeriod.CUSTOM }
+        val (tag, alsoTag) = drillDownTags(group.tag, uiState.tagFilter)
         onNavigateToTransactions(
             group.copy(
                 category = group.category ?: uiState.categoryFilter,
                 account = group.account ?: uiState.accountFilter,
+                tag = tag,
+                alsoTag = alsoTag,
                 type = uiState.typeFilter.name,
                 period = uiState.period.name,
                 currency = uiState.currency,

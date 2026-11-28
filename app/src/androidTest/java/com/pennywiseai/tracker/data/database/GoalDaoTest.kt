@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.database
 import androidx.room3.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pennywiseai.tracker.data.database.dao.deleteRebuildableSmsTransactions
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -32,7 +33,7 @@ class GoalDaoTest {
     private fun txn(id: Long, sender: String? = null) = TransactionEntity(
         id = id, amount = BigDecimal("100"), merchantName = "M$id", category = "Others",
         transactionType = TransactionType.INCOME, dateTime = LocalDateTime.of(2026, 10, 1, 12, 0),
-        transactionHash = "h$id", smsSender = sender
+        transactionHash = "h$id", smsSender = sender, smsBody = sender?.let { "body $id" }
     )
 
     private suspend fun seed(): Long {
@@ -72,7 +73,8 @@ class GoalDaoTest {
         seed()
         transactions.insertTransaction(txn(2, sender = "AD-KOTAKB"))
         transactions.deleteRebuildableSmsTransactions(
-            BankNotificationConfig.notificationAliases.toList(), from = LocalDateTime.of(2026, 1, 1, 0, 0)
+            BankNotificationConfig.notificationAliases.toList(), from = LocalDateTime.of(2026, 1, 1, 0, 0),
+            inboxMessages = mapOf(("AD-KOTAKB" to "body 1") to 1, ("AD-KOTAKB" to "body 2") to 1)
         )
         assertNotNull(transactions.getTransactionById(1))
         assertEquals(null, transactions.getTransactionById(2))

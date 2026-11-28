@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.backup
 
+import androidx.annotation.StringRes
 import com.pennywiseai.tracker.data.database.entity.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -143,6 +144,9 @@ data class BackupStatistics(
     @SerialName("total_transaction_groups")
     val totalTransactionGroups: Int = 0,
 
+    @SerialName("total_trip_exclusions")
+    val totalTripExclusions: Int = 0,
+
     @SerialName("total_profiles")
     val totalProfiles: Int = 0,
 
@@ -248,6 +252,9 @@ data class DatabaseSnapshot(
 
     @SerialName("transaction_groups")
     val transactionGroups: List<TransactionGroupEntity> = emptyList(),
+
+    @SerialName("trip_exclusions")
+    val tripExclusions: List<TripExclusionEntity> = emptyList(),
 
     @SerialName("profiles")
     val profiles: List<ProfileEntity> = emptyList(),
@@ -500,7 +507,8 @@ sealed class ImportResult {
         val skippedReceipts: Int = 0
     ) : ImportResult()
 
-    data class Error(val message: String) : ImportResult()
+    /** [userMessageRes], when set, is shown instead of [message] (which stays for the log). */
+    data class Error(val message: String, @StringRes val userMessageRes: Int? = null) : ImportResult()
 
     /** The backup is encrypted: ask for its passphrase and import again. Nothing was changed. */
     data object PassphraseRequired : ImportResult()

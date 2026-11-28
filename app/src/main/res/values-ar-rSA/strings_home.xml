@@ -33,7 +33,6 @@
     <string name="home_resync_scan_again">فحص جميع الرسائل مجددًا</string>
     <string name="home_resync_scan_again_desc">يضيف أي شيء فاتنا. تبقى تعديلاتك وجميع المعاملات الحالية كما هي.</string>
     <string name="home_resync_rebuild">إعادة البناء من البداية</string>
-    <string name="home_resync_rebuild_desc">يعيد قراءة معاملات الرسائل القصيرة للاستفادة من تحسينات قراءة الرسائل. تُلغى تعديلاتك على هذه المعاملات، ويُحتفظ بالمعاملات اليدوية والمستوردة ومعاملات القروض والمعاملات المجمّعة.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">المزيد من الخيارات</string>
     <string name="home_menu_edit_home">تعديل الشاشة الرئيسية</string>

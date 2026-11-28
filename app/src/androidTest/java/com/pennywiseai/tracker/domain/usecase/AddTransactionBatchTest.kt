@@ -35,7 +35,8 @@ class AddTransactionBatchTest {
         SubscriptionRepository(db.subscriptionDao(), db.categoryDao()),
         AccountBalanceRepository(
             db.accountBalanceDao(), db.transactionDao(), db,
-            UserPreferencesRepository(InstrumentationRegistry.getInstrumentation().targetContext) {}
+            UserPreferencesRepository(InstrumentationRegistry.getInstrumentation().targetContext) {},
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
         ),
         TagRepository(db, db.tagDao()),
         TransactionEvents(AppForegroundState { false })

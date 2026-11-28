@@ -32,6 +32,8 @@ data class Transactions(
     val endDate: Long? = null,
     val account: String? = null,
     val tag: String? = null,
+    /** A second tag the rows must carry too (an Analytics tag row drilled into under a tag filter). */
+    val alsoTag: String? = null,
     /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
     val currencyOnly: Boolean = false,
     /**
@@ -104,6 +106,8 @@ data class AddTransaction(
     val type: String? = null,
     val dateTime: String? = null,
     val unrecognizedSmsId: Long? = null,
+    // An automation app's note (see AddAutomation).
+    val note: String? = null,
     // Bills' "+" opens the Subscription form directly.
     val form: AddForm = AddForm.TRANSACTION,
     // Unique per open, so two Add screens on the stack never share one ViewModel/draft

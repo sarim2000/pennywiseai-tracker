@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
 import com.pennywiseai.tracker.data.database.entity.TransactionTagName
 import kotlinx.coroutines.flow.Flow
 
+/** Reads that can outgrow one CursorWindow are @Transaction: see [TransactionDao] (#1500). */
 @Dao
 interface TagDao {
 
@@ -52,6 +53,7 @@ interface TagDao {
     @Query("DELETE FROM transaction_tag_cross_ref")
     suspend fun deleteAllCrossRefs()
 
+    @Transaction
     @Query("SELECT * FROM transaction_tag_cross_ref")
     suspend fun getAllCrossRefs(): List<TransactionTagCrossRef>
 
@@ -77,6 +79,7 @@ interface TagDao {
     )
     suspend fun getTagsForTransactionSync(transactionId: Long): List<TagEntity>
 
+    @Transaction
     @Query(
         """
         SELECT cr.transaction_id AS transactionId, t.name AS name
@@ -85,4 +88,14 @@ interface TagDao {
         """
     )
     fun getAllTransactionTagPairs(): Flow<List<TransactionTagName>>
+
+    @Query(
+        """
+        SELECT cr.transaction_id AS transactionId, t.name AS name
+        FROM transaction_tag_cross_ref cr
+        INNER JOIN tags t ON cr.tag_id = t.id
+        WHERE cr.transaction_id IN (:ids)
+        """
+    )
+    suspend fun getTagPairsFor(ids: List<Long>): List<TransactionTagName>
 }

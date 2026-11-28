@@ -203,6 +203,7 @@
     <string name="txn_list_group_yesterday">ontem</string>
     <string name="txn_list_group_this_week">Esta semana</string>
     <string name="txn_list_group_earlier">Anteriormente</string>
+    <!-- A day heading's breakdown under its net, one line per currency: money in, then money spent. -->
     <string name="txn_list_sort_newest">Mais recentes primeiro</string>
     <string name="txn_list_sort_oldest">Mais antigos primeiro</string>
     <string name="txn_list_sort_amount_highest">Maior valor</string>

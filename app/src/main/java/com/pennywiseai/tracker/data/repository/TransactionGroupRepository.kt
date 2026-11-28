@@ -5,8 +5,6 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.trip.TripStatus
-import com.pennywiseai.tracker.data.trip.tripStatus
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.coroutines.flow.Flow
@@ -149,11 +147,9 @@ class TransactionGroupRepository @Inject constructor(
         groupDao.updateGroupChecked(group.copy(updatedAt = LocalDateTime.now()))
     }
 
-    /** "Stop trip": the window ends now. A trip that isn't running is left alone. */
-    suspend fun stopTrip(groupId: Long, now: LocalDateTime = LocalDateTime.now()) {
-        val group = groupDao.getGroupById(groupId) ?: return
-        if (group.tripStatus(now) == TripStatus.RUNNING) groupDao.setTripEnd(groupId, now)
-    }
+    /** "Stop trip": the window ends now, in one conditional UPDATE. False when it wasn't running. */
+    suspend fun stopTrip(groupId: Long, now: LocalDateTime = LocalDateTime.now()): Boolean =
+        groupDao.stopTripIfRunning(groupId, now) > 0
 
     suspend fun deleteGroup(groupId: Long) {
         val group = groupDao.getGroupById(groupId) ?: return
@@ -162,8 +158,7 @@ class TransactionGroupRepository @Inject constructor(
 
     suspend fun addTransactionToGroup(transactionId: Long, groupId: Long) {
         groupDao.addToGroup(transactionId, groupId)
-        val group = groupDao.getGroupById(groupId) ?: return
-        groupDao.updateGroup(group.copy(updatedAt = LocalDateTime.now()))
+        groupDao.touchGroup(groupId, LocalDateTime.now())
     }
 
     suspend fun createGroupWithTransaction(name: String, note: String?, transactionId: Long): Long {

@@ -98,8 +98,16 @@ interface TransactionGroupDao {
     @Query("SELECT * FROM transaction_groups WHERE trip_start IS NOT NULL")
     suspend fun getAllTrips(): List<TransactionGroupEntity>
 
-    @Query("UPDATE transaction_groups SET trip_end = :end, updated_at = :end WHERE id = :groupId")
-    suspend fun setTripEnd(groupId: Long, end: java.time.LocalDateTime)
+    /** Ends the trip at [now] only if it is running at [now]; returns the rows changed (0 = nothing to stop). */
+    @Query("""
+        UPDATE transaction_groups SET trip_end = :now, updated_at = :now
+        WHERE id = :groupId AND trip_start IS NOT NULL AND trip_start <= :now AND (trip_end IS NULL OR trip_end >= :now)
+    """)
+    suspend fun stopTripIfRunning(groupId: Long, now: java.time.LocalDateTime): Int
+
+    /** Bumps only the modified time, so it can't overwrite a concurrent stop or rename. */
+    @Query("UPDATE transaction_groups SET updated_at = :now WHERE id = :groupId")
+    suspend fun touchGroup(groupId: Long, now: java.time.LocalDateTime)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTripExclusion(exclusion: TripExclusionEntity)

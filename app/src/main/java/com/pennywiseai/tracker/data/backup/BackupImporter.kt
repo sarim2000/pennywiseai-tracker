@@ -529,8 +529,9 @@ class BackupImporter @Inject constructor(
                 }
                 // A matched local trip takes the backup's exclusions too (a repeat is ignored).
                 backup.database.tripExclusions.insertEachCounting({ skippedRows++ }) { exclusion ->
-                    val newId = oldToNewGroupIdMap[exclusion.groupId]
-                    if (newId != null) database.transactionGroupDao().insertTripExclusion(exclusion.copy(groupId = newId))
+                    // A group that didn't map is counted as skipped by insertEachCounting.
+                    val newId = checkNotNull(oldToNewGroupIdMap[exclusion.groupId]) { "Group ${exclusion.groupId} not restored" }
+                    database.transactionGroupDao().insertTripExclusion(exclusion.copy(groupId = newId))
                 }
 
                 // Build profile id map up-front so transactions and account

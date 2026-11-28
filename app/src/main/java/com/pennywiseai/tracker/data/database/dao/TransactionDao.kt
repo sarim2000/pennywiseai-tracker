@@ -62,16 +62,18 @@ suspend fun TransactionDao.deleteRebuildableSmsTransactions(
     notificationAliases: List<String>,
     from: LocalDateTime,
     inboxMessages: Map<Pair<String, String>, Int>
-) {
-    getRebuildableSmsTransactions(notificationAliases, from)
+): Set<Pair<String, String>> {
+    val deleted = getRebuildableSmsTransactions(notificationAliases, from)
         .filter { it.smsBody?.isNotBlank() == true && it.smsSender != null }
         .groupBy { it.smsSender!! to it.smsBody!! }
         // More rows than messages: we can't tell which row lost its message, so keep them all.
         .filter { (key, rows) -> rows.size <= (inboxMessages[key] ?: 0) }
-        .values.flatten()
+    deleted.values.flatten()
         .map { it.id }
         .chunked(500)
         .forEach { deleteTransactionsByIds(it) }
+    // The (sender, body) pairs of the deleted rows, for the scan to keep them out of a trip.
+    return deleted.keys
 }
 
 /**

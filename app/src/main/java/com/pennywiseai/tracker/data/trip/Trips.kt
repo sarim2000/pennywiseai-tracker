@@ -104,30 +104,36 @@ fun nextTripBoundary(groups: List<TransactionGroupEntity>, now: LocalDateTime): 
 fun tripExclusionFor(tx: TransactionEntity, group: TransactionGroupEntity?): TripExclusionEntity? =
     if (group != null && group.isTrip && tx.transactionHash.isNotBlank()) TripExclusionEntity(group.id, tx.transactionHash) else null
 
-/** A rebuild re-creates rows that were deliberately outside any trip; only a normal scan may join one. */
-fun joinsTripOnScan(rebuildStartedAt: LocalDateTime?): Boolean = rebuildStartedAt == null
+/**
+ * During a rebuild only a message whose row the rebuild deleted stays out of a trip (it was out
+ * deliberately); one the app never saved joins like any new message. Rows are paired the way the
+ * rebuild pairs them, by (sender, body). [rebuilt] is empty outside a rebuild.
+ */
+fun joinsTripOnScan(smsSender: String?, smsBody: String?, rebuilt: Set<Pair<String, String>>): Boolean =
+    smsSender == null || smsBody == null || (smsSender to smsBody) !in rebuilt
+
+/** The outcome of saving a trip window: the trip to write, or the trip that blocks it. */
+class TripSave(val trip: TransactionGroupEntity, val blocker: TransactionGroupEntity?)
 
 /**
- * Lets a new trip start right after a trip stopped earlier (today): when every conflict of
- * [candidate] is a trip already ended before [now] that covers the head of its window, the
- * candidate starts the instant after the latest such end. Anything else (a running or future
- * trip, an ended trip inside the window's middle, or no room left) comes back unchanged and
- * still overlaps, so the caller refuses it.
+ * Plain rule: the window as picked; if it overlaps and starts today, retry once starting now (a
+ * trip stopped earlier today, started again, any number of times a day). A past or future start
+ * is never shifted. A refusal names the trip blocking the final check, a running or scheduled one
+ * before an ended one.
  */
-fun startAfterEndedTrips(candidate: TransactionGroupEntity, others: List<TransactionGroupEntity>, now: LocalDateTime): TransactionGroupEntity {
-    val start = candidate.tripStart ?: return candidate
-    val conflicts = others.filter { it.id != candidate.id && candidate.overlaps(it) }
-    if (conflicts.isEmpty()) return candidate
-    val ends = conflicts.map { other ->
-        val end = other.tripEnd
-        val otherStart = other.tripStart
-        if (end == null || !end.isBefore(now) || otherStart == null || otherStart.isAfter(start)) return candidate
-        end
+fun resolveTripSave(candidate: TransactionGroupEntity, others: List<TransactionGroupEntity>, now: LocalDateTime): TripSave {
+    val start = candidate.tripStart ?: return TripSave(candidate, null)
+    fun blockers(c: TransactionGroupEntity) = others.filter { it.id != c.id && c.overlaps(it) }
+    val first = blockers(candidate)
+    if (first.isEmpty()) return TripSave(candidate, null)
+    val end = candidate.tripEnd
+    if (start.toLocalDate() == now.toLocalDate() && start.isBefore(now) && (end == null || !now.isAfter(end))) {
+        val retry = candidate.copy(tripStart = now)
+        val second = blockers(retry)
+        if (second.isEmpty()) return TripSave(retry, null)
+        return TripSave(retry, second.firstOrNull { it.tripStatus(now) != TripStatus.ENDED } ?: second.first())
     }
-    val newStart = ends.max().plusNanos(1)
-    val candidateEnd = candidate.tripEnd
-    if (candidateEnd != null && newStart.isAfter(candidateEnd)) return candidate
-    return candidate.copy(tripStart = newStart)
+    return TripSave(candidate, first.firstOrNull { it.tripStatus(now) != TripStatus.ENDED } ?: first.first())
 }
 
 /** In a MERGE restore an imported trip that overlaps one already kept becomes an ordinary group. */

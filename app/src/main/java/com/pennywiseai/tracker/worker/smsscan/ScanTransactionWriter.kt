@@ -79,6 +79,9 @@ internal class ScanRunContext(
      */
     val rebuildStartedAt: LocalDateTime?,
 
+    /** (sender, body) of the SMS rows a rebuild deleted and is re-creating; empty otherwise. */
+    val rebuiltMessages: Set<Pair<String, String>> = emptySet(),
+
     /** Cash wallets an ATM withdrawal is booked into (#1062); empty when that setting is off. */
     val atmCashWallets: List<AccountBalanceEntity> = emptyList(),
 )
@@ -268,8 +271,8 @@ internal class ScanTransactionWriter(
                 // One transaction: a charge that commits without its schedule advance
                 // would leave the bill due forever — a re-scan skips the row by hash.
                 val rowId = database.withTransaction {
-                    // A rebuild re-creates rows that sat outside any trip on purpose, so only a normal scan joins one.
-                    transactionRepository.insertTransaction(finalEntity, joinTrip = joinsTripOnScan(scanContext.rebuildStartedAt)).also { id ->
+                    // Only rows a rebuild deleted and re-creates stay out of a trip; a message never saved before joins.
+                    transactionRepository.insertTransaction(finalEntity, joinTrip = joinsTripOnScan(finalEntity.smsSender, finalEntity.smsBody, scanContext.rebuiltMessages)).also { id ->
                         if (id != -1L) matchedSub?.let { subscriptionRepository.recordCharge(it, finalEntity.dateTime.toLocalDate()) }
                     }
                 }

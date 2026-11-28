@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -265,7 +266,7 @@ private fun CreateGroupDialog(
 ) {
     val nameState = rememberTextFieldState()
     val noteState = rememberTextFieldState()
-    var trip by remember { mutableStateOf(TripDraft()) }
+    var trip by rememberSaveable(stateSaver = TripDraft.Saver) { mutableStateOf(TripDraft()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,

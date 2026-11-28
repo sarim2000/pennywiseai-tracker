@@ -524,25 +524,29 @@ class BackupImporter @Inject constructor(
                 // Trips kept so far (local ones, then each one imported): an imported trip overlapping
                 // one of them comes in as an ordinary group, so a merge can't create two running trips.
                 val keptTrips = existingGroups.filter { it.tripStart != null }.toMutableList()
-                val demotedTripGroupIds = HashSet<Long>()
+                // Local ids of groups that are trips once the import is done.
+                val tripGroupIds = existingGroups.filter { it.tripStart != null }.map { it.id }.toHashSet()
                 backup.database.transactionGroups.insertEachCounting({ skippedRows++ }) { group ->
                     val key = group.name to group.createdAt
                     val existingId = existingGroupKeyToId[key]
                     val newId = existingId ?: run {
                         val toInsert = demoteIfOverlapping(group.copy(id = 0), keptTrips)
-                        if (group.tripStart != null && toInsert.tripStart == null) demotedTripGroupIds += group.id
                         database.transactionGroupDao().insertGroup(toInsert).also {
-                            if (toInsert.tripStart != null) keptTrips += toInsert.copy(id = it)
+                            if (toInsert.tripStart != null) {
+                                keptTrips += toInsert.copy(id = it)
+                                tripGroupIds += it
+                            }
                         }
                     }
                     if (group.id != 0L) oldToNewGroupIdMap[group.id] = newId
                 }
                 // A matched local trip takes the backup's exclusions too (a repeat is ignored).
                 backup.database.tripExclusions.insertEachCounting({ skippedRows++ }) { exclusion ->
-                    // Its trip came in as an ordinary group: dropped on purpose, counted as skipped.
-                    check(exclusion.groupId !in demotedTripGroupIds) { "Trip ${exclusion.groupId} imported as a group" }
                     // A group that didn't map is counted as skipped by insertEachCounting.
                     val newId = checkNotNull(oldToNewGroupIdMap[exclusion.groupId]) { "Group ${exclusion.groupId} not restored" }
+                    // Only a group that is a trip after the import keeps exclusions; a demoted trip's
+                    // (this run or an earlier merge) are dropped on purpose and counted as skipped.
+                    check(newId in tripGroupIds) { "Group $newId is not a trip" }
                     database.transactionGroupDao().insertTripExclusion(exclusion.copy(groupId = newId))
                 }
 

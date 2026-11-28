@@ -52,6 +52,12 @@ data class TripDraft(
         get() = if (enabled) tripWindowOf(start, end, storedStart, storedEnd) else null to null
 
     companion object {
+        /** Keeps a new trip's switch and dates through a rotation or theme change. */
+        val Saver = androidx.compose.runtime.saveable.listSaver<TripDraft, String>(
+            save = { listOf(it.enabled.toString(), it.start.toString(), it.end?.toString() ?: "") },
+            restore = { TripDraft(it[0].toBoolean(), LocalDate.parse(it[1]), it[2].takeIf(String::isNotEmpty)?.let(LocalDate::parse)) }
+        )
+
         fun of(group: TransactionGroupEntity) = TripDraft(
             enabled = group.tripStart != null,
             start = group.tripStart?.toLocalDate() ?: LocalDate.now(),
@@ -83,6 +89,10 @@ fun TripFields(
         if (next.start != draft.start || next.end != draft.end) onDatesChanged()
         onChange(next)
     }
+    val flip = {
+        onDatesChanged()
+        toggle(draft, onChange, isPro, alreadyTrip, onNeedUpgrade)
+    }
     var picking by remember { mutableStateOf<PickTarget?>(null) }
     val dates = AppDates.dateFormatter()
 
@@ -90,7 +100,7 @@ fun TripFields(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { toggle(draft, onChange, isPro, alreadyTrip, onNeedUpgrade) },
+                .clickable { flip() },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
@@ -101,7 +111,7 @@ fun TripFields(
             )
             Switch(
                 checked = draft.enabled,
-                onCheckedChange = { toggle(draft, onChange, isPro, alreadyTrip, onNeedUpgrade) }
+                onCheckedChange = { flip() }
             )
         }
         if (draft.enabled) {

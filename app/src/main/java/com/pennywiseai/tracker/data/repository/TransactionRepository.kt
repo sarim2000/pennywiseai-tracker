@@ -263,7 +263,7 @@ open class TransactionRepository @Inject constructor(
         transactionDao.countAllTransactions()
 
     /** See [deleteRebuildableSmsTransactions]; run inside one database transaction. */
-    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime, inboxMessages: Map<Pair<String, String>, Int>) =
+    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime, inboxMessages: Map<Pair<String, String>, Int>): Set<Pair<String, String>> =
         transactionDao.deleteRebuildableSmsTransactions(
             BankNotificationConfig.notificationAliases.toList(),
             from,

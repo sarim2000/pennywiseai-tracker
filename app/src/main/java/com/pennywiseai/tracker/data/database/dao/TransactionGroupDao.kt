@@ -5,8 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TripExclusionEntity
 import com.pennywiseai.tracker.data.trip.TripOverlapException
-import com.pennywiseai.tracker.data.trip.findOverlappingTrip
-import com.pennywiseai.tracker.data.trip.startAfterEndedTrips
+import com.pennywiseai.tracker.data.trip.resolveTripSave
 import com.pennywiseai.tracker.data.trip.tripExclusionFor
 import kotlinx.coroutines.flow.Flow
 
@@ -31,7 +30,8 @@ interface TransactionGroupDao {
     @Transaction
     suspend fun createGroupAndLink(group: TransactionGroupEntity, transactionId: Long): Long {
         val groupId = insertGroup(group)
-        linkTransaction(transactionId, groupId)
+        // Same path as any move, so a row leaving a trip for this new group is excluded from it.
+        addToGroup(transactionId, groupId)
         return groupId
     }
 
@@ -95,9 +95,9 @@ interface TransactionGroupDao {
     // Starts the trip after trips already ended today if that clears every conflict; else refuses.
     private suspend fun resolveAgainstTrips(group: TransactionGroupEntity): TransactionGroupEntity {
         val trips = getAllTrips()
-        val adjusted = startAfterEndedTrips(group, trips, java.time.LocalDateTime.now())
-        findOverlappingTrip(adjusted, trips)?.let { throw TripOverlapException(it.name) }
-        return adjusted
+        val saved = resolveTripSave(group, trips, java.time.LocalDateTime.now())
+        saved.blocker?.let { throw TripOverlapException(it.name) }
+        return saved.trip
     }
 
     @Query("SELECT * FROM transaction_groups WHERE trip_start IS NOT NULL")

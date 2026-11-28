@@ -141,41 +141,59 @@ class TripsTest {
     }
 
     @Test
-    fun rebuildNeverJoinsButANormalScanDoes() {
-        assertFalse(joinsTripOnScan(LocalDateTime.of(2026, 12, 2, 9, 0)))
-        assertTrue(joinsTripOnScan(null))
+    fun onlyRowsTheRebuildDeletedStayOutOfATrip() {
+        val deleted = setOf("AD-BANK" to "Spent 10 at Synthetic shop")
+        assertFalse(joinsTripOnScan("AD-BANK", "Spent 10 at Synthetic shop", deleted))
+        assertTrue("never saved before", joinsTripOnScan("AD-BANK", "Spent 99 at Another shop", deleted))
+        assertTrue("normal scan", joinsTripOnScan("AD-BANK", "Spent 10 at Synthetic shop", emptySet()))
+        assertTrue("no sms text", joinsTripOnScan(null, null, deleted))
+    }
+
+    private val now = LocalDateTime.of(2026, 12, 2, 18, 0)
+    private fun day(d: Int, h: Int = 0, m: Int = 0) = LocalDateTime.of(2026, 12, d, h, m)
+
+    @Test
+    fun aTripCanRestartTwiceInOneDay() {
+        val stoppedFirst = TransactionGroupEntity(id = 1, name = "First", tripStart = day(2), tripEnd = day(2, 10, 0))
+        val stoppedSecond = TransactionGroupEntity(id = 2, name = "Second", tripStart = day(2, 10, 0).plusNanos(1), tripEnd = day(2, 14, 30))
+        val third = TransactionGroupEntity(id = 3, name = "Third", tripStart = day(2), tripEnd = null)
+
+        val saved = resolveTripSave(third, listOf(stoppedFirst, stoppedSecond), now)
+
+        assertNull(saved.blocker)
+        assertEquals(now, saved.trip.tripStart)
     }
 
     @Test
-    fun newTripStartsAfterATripStoppedEarlierToday() {
-        val now = LocalDateTime.of(2026, 12, 2, 18, 0)
-        val stoppedAt = LocalDateTime.of(2026, 12, 2, 14, 30)
-        val stopped = TransactionGroupEntity(id = 1, name = "Stopped", tripStart = LocalDateTime.of(2026, 12, 1, 0, 0), tripEnd = stoppedAt)
-        val fresh = TransactionGroupEntity(id = 2, name = "New", tripStart = LocalDateTime.of(2026, 12, 2, 0, 0), tripEnd = null)
+    fun aPastStartIsNeverShifted() {
+        val ended = TransactionGroupEntity(id = 1, name = "Ended", tripStart = day(1), tripEnd = day(1, 12, 0))
+        val past = TransactionGroupEntity(id = 2, name = "Past", tripStart = day(1), tripEnd = day(1, 23, 59))
 
-        val adjusted = startAfterEndedTrips(fresh, listOf(stopped), now)
+        val saved = resolveTripSave(past, listOf(ended), now)
 
-        assertEquals(stoppedAt.plusNanos(1), adjusted.tripStart)
-        assertNull(findOverlappingTrip(adjusted, listOf(stopped)))
+        assertEquals("Ended", saved.blocker?.name)
+        assertEquals(past.tripStart, saved.trip.tripStart)
     }
 
     @Test
-    fun runningFutureOrMiddleTripsStillRefuse() {
-        val now = LocalDateTime.of(2026, 12, 2, 18, 0)
-        val fresh = TransactionGroupEntity(id = 2, name = "New", tripStart = LocalDateTime.of(2026, 12, 2, 0, 0), tripEnd = LocalDateTime.of(2026, 12, 9, 23, 59))
-        val running = TransactionGroupEntity(id = 1, name = "Running", tripStart = LocalDateTime.of(2026, 12, 1, 0, 0), tripEnd = null)
-        val future = TransactionGroupEntity(id = 3, name = "Future", tripStart = LocalDateTime.of(2026, 12, 5, 0, 0), tripEnd = null)
-        val middle = TransactionGroupEntity(id = 4, name = "Middle", tripStart = LocalDateTime.of(2026, 12, 3, 0, 0), tripEnd = LocalDateTime.of(2026, 12, 4, 0, 0))
-        val ended = TransactionGroupEntity(id = 5, name = "Ended", tripStart = LocalDateTime.of(2026, 12, 1, 0, 0), tripEnd = LocalDateTime.of(2026, 12, 2, 14, 0))
+    fun todayWithARunningTripIsRefusedNamingTheRunningOne() {
+        val ended = TransactionGroupEntity(id = 1, name = "Ended", tripStart = day(1), tripEnd = day(2, 9, 0))
+        val running = TransactionGroupEntity(id = 3, name = "Running", tripStart = day(2, 12, 0), tripEnd = null)
+        val fresh = TransactionGroupEntity(id = 2, name = "New", tripStart = day(2), tripEnd = null)
 
-        listOf(running, future, middle).forEach {
-            assertEquals(it.name, fresh, startAfterEndedTrips(fresh, listOf(it), now))
-        }
-        // a head conflict doesn't excuse a second, middle one
-        assertEquals(fresh, startAfterEndedTrips(fresh, listOf(ended, middle), now))
-        // and the new trip must still have room after the stop
-        val tiny = fresh.copy(tripEnd = LocalDateTime.of(2026, 12, 2, 10, 0))
-        assertEquals(tiny, startAfterEndedTrips(tiny, listOf(ended), now))
+        assertEquals("Running", resolveTripSave(fresh, listOf(ended, running), now).blocker?.name)
+        // ended listed first would be the wrong name for a past date too
+        val future = TransactionGroupEntity(id = 4, name = "Future", tripStart = day(9), tripEnd = null)
+        assertEquals("Future", resolveTripSave(fresh.copy(tripStart = day(1)), listOf(ended, future), now).blocker?.name)
+    }
+
+    @Test
+    fun anUnchangedWindowIsNotReclamped() {
+        val kept = TransactionGroupEntity(id = 2, name = "Kept", tripStart = day(2, 14, 31), tripEnd = null)
+        val other = TransactionGroupEntity(id = 1, name = "Stopped", tripStart = day(1), tripEnd = day(2, 14, 30))
+        val saved = resolveTripSave(kept, listOf(other), now)
+        assertNull(saved.blocker)
+        assertEquals(day(2, 14, 31), saved.trip.tripStart)
     }
 
     @Test

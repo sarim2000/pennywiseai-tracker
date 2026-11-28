@@ -686,7 +686,8 @@ private fun EditGroupDialog(
 ) {
     val nameState = rememberTextFieldState(currentName)
     val noteState = rememberTextFieldState(currentNote ?: "")
-    var trip by remember { mutableStateOf(currentTrip) }
+    // Keyed on the stored window: a Stop (or any change) behind the dialog resets the draft to it.
+    var trip by remember(currentTrip) { mutableStateOf(currentTrip) }
 
     AlertDialog(
         onDismissRequest = onDismiss,

@@ -157,4 +157,28 @@ class AmountEntryTest {
         assertEquals("12.5", normalizeAmount("12.5", 0, decimalComma = false, before = "12.55"))
         assertNull(normalizeAmount("12.555", 2, decimalComma = false, before = "12.55"))
     }
+
+    @Test
+    fun `deleting from 448 point 6 is never put back by the editor's reformatting`() {
+        // The transaction editor keeps a positive amount and hands it back as a plain number.
+        var stored = "448.6"
+        lateinit var entry: AmountEntry
+        entry = AmountEntry(stored).also {
+            it.currency = "INR"
+            it.onAmountChange = { new ->
+                new.toBigDecimalOrNull()?.takeIf { v -> v.signum() > 0 }?.let { v ->
+                    stored = v.stripTrailingZeros().toPlainString()
+                    entry.amountChanged(stored)
+                }
+            }
+        }
+
+        val shown = List(5) {
+            entry.state.edit { replace(length - 1, length, "") }
+            entry.commitText()
+            entry.state.text.toString()
+        }
+
+        assertEquals(listOf("448.", "448", "44", "4", ""), shown)
+    }
 }

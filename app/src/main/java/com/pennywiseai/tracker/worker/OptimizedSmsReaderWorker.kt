@@ -184,6 +184,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 if (needsFullScan) recorder.markFullWindow()
 
                 var rebuildStartedAt: LocalDateTime? = null
+                // (sender, body) of the rows the rebuild deletes: re-created, they stay out of a trip.
+                var rebuiltMessages: Set<Pair<String, String>> = emptySet()
                 var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
                 var latestBeforeRebuild: List<AccountBalanceEntity> = emptyList()
                 if (forceResync) {
@@ -234,7 +236,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                                 }
                                 for (sms in feed) inboxMessages.merge(sms.sender to sms.body, 1, Int::plus)
                             }
-                            database.withTransaction {
+                            rebuiltMessages = database.withTransaction {
                                 transactionRepository.deleteRebuildableSmsTransactions(
                                     java.time.LocalDateTime.ofInstant(
                                         java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
@@ -261,6 +263,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             },
                             accountsBeforeRebuild = accountsBeforeRebuild,
                             rebuildStartedAt = rebuildStartedAt,
+                            rebuiltMessages = rebuiltMessages,
                             atmCashWallets = if (userPreferencesRepository.atmCashToWallet.first()) {
                                 accountBalanceRepository.getAllLatestBalancesOnce().cashWallets()
                             } else emptyList(),

@@ -36,6 +36,7 @@ private enum class FilterField(val title: Int) {
     TYPE(R.string.insights_filter_type),
     ACCOUNT(R.string.analytics_filter_account),
     CATEGORY(R.string.analytics_filter_category),
+    TAG(R.string.analytics_filter_tag),
     PROFILE(R.string.txn_list_filter_profile)
 }
 
@@ -49,6 +50,8 @@ internal fun AnalyticsFilters(viewModel: AnalyticsViewModel, availableCategories
     val account by viewModel.accountFilter.collectAsStateWithLifecycle()
     val accounts by viewModel.accountOptions.collectAsStateWithLifecycle()
     val category by viewModel.categoryFilter.collectAsStateWithLifecycle()
+    val tag by viewModel.tagFilter.collectAsStateWithLifecycle()
+    val tags by viewModel.tagOptions.collectAsStateWithLifecycle()
     val profileId by viewModel.selectedProfileId.collectAsStateWithLifecycle()
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
     val currencyScope by viewModel.currencyScope.collectAsStateWithLifecycle()
@@ -60,8 +63,8 @@ internal fun AnalyticsFilters(viewModel: AnalyticsViewModel, availableCategories
     val accountLabel = accounts.firstOrNull { it.key == account }?.label
     val activeCategoryLabel = category?.let { categoryLabel(it) }
     val profileLabel = profiles.firstOrNull { it.id == profileId }?.displayName()
-    val summary = listOfNotNull(type.shortLabel(), accountLabel, activeCategoryLabel, profileLabel).joinToString(" · ")
-    val count = listOf(type != defaultType, account != null, category != null, profileId != null).count { it }
+    val summary = listOfNotNull(type.shortLabel(), accountLabel, activeCategoryLabel, tag, profileLabel).joinToString(" · ")
+    val count = listOf(type != defaultType, account != null, category != null, tag != null, profileId != null).count { it }
 
     FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         FilterChip(
@@ -116,11 +119,15 @@ internal fun AnalyticsFilters(viewModel: AnalyticsViewModel, availableCategories
     var expanded by rememberSaveable { mutableStateOf<FilterField?>(null) }
     val allAccounts = stringResource(R.string.analytics_filter_all_accounts)
     val allCategories = stringResource(R.string.analytics_filter_all_categories)
+    val allTags = stringResource(R.string.analytics_filter_all_tags)
     val allProfiles = stringResource(R.string.insights_filter_all_profiles)
+    // The Tag row is hidden when the user has no tags.
+    val fields = FilterField.entries.filter { it != FilterField.TAG || tags.isNotEmpty() }
     val currentLabels = mapOf(
         FilterField.TYPE to type.label,
         FilterField.ACCOUNT to (accountLabel ?: allAccounts),
         FilterField.CATEGORY to (activeCategoryLabel ?: allCategories),
+        FilterField.TAG to (tag ?: allTags),
         FilterField.PROFILE to (profileLabel ?: allProfiles)
     )
     val activeField = expanded
@@ -136,6 +143,8 @@ internal fun AnalyticsFilters(viewModel: AnalyticsViewModel, availableCategories
             (availableCategories + listOfNotNull(category)).distinct().map { option ->
                 FilterChoice(categoryLabel(option), option == category) { viewModel.setCategoryFilter(option) }
             }
+        FilterField.TAG -> listOf(FilterChoice(allTags, tag == null) { viewModel.setTagFilter(null) }) +
+            tags.map { option -> FilterChoice(option, option == tag) { viewModel.setTagFilter(option) } }
         FilterField.PROFILE -> listOf(FilterChoice(allProfiles, profileId == null) { viewModel.selectProfile(null) }) +
             profiles.map { option ->
                 FilterChoice(option.displayName(), option.id == profileId) { viewModel.selectProfile(option.id) }
@@ -176,6 +185,7 @@ internal fun AnalyticsFilters(viewModel: AnalyticsViewModel, availableCategories
                                     viewModel.resetTransactionTypeFilter()
                                     viewModel.clearCategoryFilter()
                                     viewModel.setAccountFilter(null)
+                                    viewModel.setTagFilter(null)
                                     if (profileId != null) viewModel.selectProfile(null)
                                     expanded = null
                                 },
@@ -190,9 +200,9 @@ internal fun AnalyticsFilters(viewModel: AnalyticsViewModel, availableCategories
             if (activeField == null) {
                 item {
                     GroupedList {
-                        FilterField.entries.forEachIndexed { index, field ->
+                        fields.forEachIndexed { index, field ->
                             GroupedRow(
-                                position = ListItemPosition.from(index, FilterField.entries.size),
+                                position = ListItemPosition.from(index, fields.size),
                                 onClick = { expanded = field }
                             ) {
                                 RowLabels(

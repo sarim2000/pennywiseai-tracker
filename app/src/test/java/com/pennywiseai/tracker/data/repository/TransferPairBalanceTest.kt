@@ -52,7 +52,7 @@ class TransferPairBalanceTest {
         coEvery { getTransactionsForAccountStrict(any(), any()) } returns emptyList()
     }
     private val database = mockk<PennyWiseDatabase>()
-    private val repo = AccountBalanceRepository(balanceDao, transactionDao, database, mockk(relaxed = true))
+    private val repo = AccountBalanceRepository(balanceDao, transactionDao, database, mockk(relaxed = true), kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined))
 
     private val source = leg(1, SOURCE)
     private val destination = leg(2, DESTINATION)

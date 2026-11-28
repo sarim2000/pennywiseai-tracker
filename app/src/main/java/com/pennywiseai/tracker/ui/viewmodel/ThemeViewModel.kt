@@ -103,8 +103,10 @@ class ThemeViewModel @Inject constructor(
         }
     }
 
+    /** Marks onboarding done for an upgrader; never while a saved step says it is still in progress. */
     fun markOnboardingCompleted() {
         viewModelScope.launch {
+            if (userPreferencesRepository.getOnboardingProgress() != null) return@launch
             userPreferencesRepository.updateHasCompletedOnboarding(true)
         }
     }

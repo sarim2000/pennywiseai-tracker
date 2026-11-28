@@ -142,7 +142,11 @@ fun OnBoardingScreen(
         PackageManager.PERMISSION_GRANTED
     // Onboarding is a single back-stack entry, so without this system Back on any step
     // finished the activity instead of returning to the previous step.
-    BackHandler(enabled = uiState.canGoBack) { viewModel.goToPreviousStep() }
+    // A running scan is a WorkManager job that Start would REPLACE if the user came back to it,
+    // so Back is swallowed (not forwarded) until it finishes.
+    BackHandler(enabled = uiState.canGoBack || uiState.isScanning) {
+        if (uiState.canGoBack) viewModel.goToPreviousStep()
+    }
     // Hoisted past the step transitions so the wordmark plays once per onboarding,
     // not again on coming back to the first step.
     var wordmarkPlayed by rememberSaveable { mutableStateOf(false) }
@@ -1101,6 +1105,18 @@ private fun OnBoardingBottomBar(
                 // Top gap so content scrolled behind the bar (keyboard open) doesn't touch the dots.
                 .padding(top = Spacing.sm, bottom = Spacing.sm)
         )
+
+        if (uiState.currentStep == OnBoardingStep.ACCOUNT_SETUP &&
+            uiState.accounts.isNotEmpty() && uiState.selectedAccountKey == null
+        ) {
+            Text(
+                text = stringResource(R.string.onboarding_pick_account_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg)
+            )
+        }
 
         Row(
             modifier = Modifier

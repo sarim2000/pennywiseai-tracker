@@ -431,6 +431,7 @@ private val PRO_FEATURES = listOf(
     R.string.upgrade_feature_pdf_reports,
     R.string.upgrade_feature_merge_accounts,
     R.string.upgrade_feature_goals,
+    R.string.upgrade_feature_trips,
 )
 
 @Composable

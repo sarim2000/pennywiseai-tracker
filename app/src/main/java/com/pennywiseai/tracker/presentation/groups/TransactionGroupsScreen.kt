@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +27,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GroupSummary
+import com.pennywiseai.tracker.data.trip.TripStatus
+import com.pennywiseai.tracker.data.trip.isTrip
+import com.pennywiseai.tracker.data.trip.tripStatus
+import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
@@ -78,6 +83,7 @@ fun TransactionGroupsScreen(
         }
     ) { paddingValues ->
         val lazyListState = rememberLazyListState()
+        val now = rememberTripNow(uiState.groups.map { it.group })
 
         if (uiState.isLoading) {
             Box(
@@ -122,6 +128,7 @@ fun TransactionGroupsScreen(
             itemsIndexed(uiState.groups, key = { _, summary -> summary.group.id }) { index, summary ->
                 GroupListItem(
                     summary = summary,
+                    now = now,
                     position = ListItemPosition.from(index, uiState.groups.size),
                     onClick = { onNavigateToGroupDetail(summary.group.id) },
                     modifier = Modifier.animateItem()
@@ -130,17 +137,28 @@ fun TransactionGroupsScreen(
         }
     }
 
+    var showUpgradeSheet by remember { mutableStateOf(false) }
+    val isPro by viewModel.isProEntitled.collectAsStateWithLifecycle()
     if (uiState.showCreateDialog) {
         CreateGroupDialog(
+            isPro = isPro,
+            tripOverlap = uiState.tripOverlap,
+            isSaving = uiState.isSaving,
+            onTripDatesChanged = { viewModel.clearTripOverlap() },
+            onNeedUpgrade = { showUpgradeSheet = true },
             onDismiss = { viewModel.hideCreateDialog() },
-            onCreate = { name, note -> viewModel.createGroup(name, note) }
+            onCreate = { name, note, trip -> viewModel.createGroup(name, note, trip) }
         )
+    }
+    if (showUpgradeSheet) {
+        UpgradeSheet(onDismiss = { showUpgradeSheet = false })
     }
 }
 
 @Composable
 private fun GroupListItem(
     summary: GroupSummary,
+    now: java.time.LocalDateTime,
     position: ListItemPosition,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -183,6 +201,27 @@ private fun GroupListItem(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (summary.group.isTrip) {
+                val status = summary.group.tripStatus(now)
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        tripWindowText(summary.group),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (status == TripStatus.RUNNING) {
+                        Text(
+                            stringResource(R.string.trip_status_running),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                .padding(horizontal = Spacing.sm, vertical = Spacing.xxs)
+                        )
+                    }
+                }
+            }
         }
 
         Column(horizontalAlignment = Alignment.End) {
@@ -216,11 +255,17 @@ private fun GroupListItem(
 
 @Composable
 private fun CreateGroupDialog(
+    isPro: Boolean,
+    tripOverlap: String?,
+    isSaving: Boolean,
+    onTripDatesChanged: () -> Unit,
+    onNeedUpgrade: () -> Unit,
     onDismiss: () -> Unit,
-    onCreate: (String, String?) -> Unit
+    onCreate: (String, String?, TripDraft) -> Unit
 ) {
     val nameState = rememberTextFieldState()
     val noteState = rememberTextFieldState()
+    var trip by rememberSaveable(stateSaver = TripDraft.Saver) { mutableStateOf(TripDraft()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -250,12 +295,21 @@ private fun CreateGroupDialog(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
+                TripFields(
+                    draft = trip,
+                    onChange = { trip = it },
+                    isPro = isPro,
+                    alreadyTrip = false,
+                    onNeedUpgrade = onNeedUpgrade,
+                    error = tripOverlap?.let { stringResource(R.string.trip_overlap_error, it) },
+                    onDatesChanged = onTripDatesChanged
+                )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onCreate(nameState.text.toString(), noteState.text.toString().ifBlank { null }) },
-                enabled = nameState.text.isNotBlank(),
+                onClick = { onCreate(nameState.text.toString(), noteState.text.toString().ifBlank { null }, trip) },
+                enabled = nameState.text.isNotBlank() && !isSaving,
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.groups_create_confirm))

@@ -172,7 +172,7 @@ internal class ScanHarness(
         coEvery { transactions.getTransactionByAmountAndDateIncludingDeleted(any(), any(), any()) } answers {
             store.near(firstArg(), secondArg(), thirdArg())
         }
-        coEvery { transactions.insertTransaction(any()) } coAnswers { store.insert(firstArg()) }
+        coEvery { transactions.insertTransaction(any(), any()) } coAnswers { store.insert(firstArg()) }
 
         coEvery { balances.insertSmsTransactionBalance(any(), any(), any(), any(), any()) } answers {
             balanceTimes += thirdArg<LocalDateTime>()

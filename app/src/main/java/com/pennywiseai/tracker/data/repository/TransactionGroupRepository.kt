@@ -125,17 +125,29 @@ class TransactionGroupRepository @Inject constructor(
 
     suspend fun getGroupById(id: Long): TransactionGroupEntity? = groupDao.getGroupById(id)
 
-    suspend fun createGroup(name: String, note: String?): Long {
+    suspend fun createGroup(
+        name: String,
+        note: String?,
+        tripStart: LocalDateTime? = null,
+        tripEnd: LocalDateTime? = null
+    ): Long {
         val group = TransactionGroupEntity(
             name = name.trim(),
-            note = note?.trim()?.takeIf { it.isNotEmpty() }
+            note = note?.trim()?.takeIf { it.isNotEmpty() },
+            tripStart = tripStart,
+            tripEnd = tripStart?.let { tripEnd }
         )
-        return groupDao.insertGroup(group)
+        return groupDao.insertGroupChecked(group)
     }
 
+    /** Throws [TripOverlapException] when the trip window changed and now overlaps another trip. */
     suspend fun updateGroup(group: TransactionGroupEntity) {
-        groupDao.updateGroup(group.copy(updatedAt = LocalDateTime.now()))
+        groupDao.updateGroupChecked(group.copy(updatedAt = LocalDateTime.now()))
     }
+
+    /** "Stop trip": the window ends now, in one conditional UPDATE. False when it wasn't running. */
+    suspend fun stopTrip(groupId: Long, now: LocalDateTime = LocalDateTime.now()): Boolean =
+        groupDao.stopTripIfRunning(groupId, now) > 0
 
     suspend fun deleteGroup(groupId: Long) {
         val group = groupDao.getGroupById(groupId) ?: return
@@ -143,9 +155,8 @@ class TransactionGroupRepository @Inject constructor(
     }
 
     suspend fun addTransactionToGroup(transactionId: Long, groupId: Long) {
-        groupDao.linkTransaction(transactionId, groupId)
-        val group = groupDao.getGroupById(groupId) ?: return
-        groupDao.updateGroup(group.copy(updatedAt = LocalDateTime.now()))
+        groupDao.addToGroup(transactionId, groupId)
+        groupDao.touchGroup(groupId, LocalDateTime.now())
     }
 
     suspend fun createGroupWithTransaction(name: String, note: String?, transactionId: Long): Long {
@@ -157,6 +168,6 @@ class TransactionGroupRepository @Inject constructor(
     }
 
     suspend fun removeTransactionFromGroup(transactionId: Long) {
-        groupDao.unlinkTransaction(transactionId)
+        groupDao.removeFromGroup(transactionId)
     }
 }

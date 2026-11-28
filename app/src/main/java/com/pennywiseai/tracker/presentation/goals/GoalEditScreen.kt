@@ -68,9 +68,9 @@ import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import java.time.Instant
+import com.pennywiseai.tracker.utils.toUtcDate
+import com.pennywiseai.tracker.utils.toUtcMillis
 import java.time.LocalDate
-import java.time.ZoneOffset
 
 /** Amount fields accept digits with one optional decimal point, up to [currency]'s decimals (3 for JOD). */
 internal fun amountInput(currency: String) = Regex("^\\d*\\.?\\d{0,${MinorUnits.digits(currency)}}$")
@@ -254,7 +254,7 @@ fun GoalEditScreen(
     if (showDatePicker) {
         val today = viewModel.today
         val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = form.dueDate?.let { it.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() },
+            initialSelectedDateMillis = form.dueDate?.toUtcMillis(),
             selectableDates = object : SelectableDates {
                 override fun isSelectableDate(utcTimeMillis: Long): Boolean = utcTimeMillis.toUtcDate().isAfter(today)
                 override fun isSelectableYear(year: Int): Boolean = year >= today.year
@@ -274,8 +274,6 @@ fun GoalEditScreen(
         ) { DatePicker(state = pickerState) }
     }
 }
-
-internal fun Long.toUtcDate(): LocalDate = Instant.ofEpochMilli(this).atZone(ZoneOffset.UTC).toLocalDate()
 
 @Composable
 private fun errorText(show: Boolean, res: Int): (@Composable () -> Unit)? =

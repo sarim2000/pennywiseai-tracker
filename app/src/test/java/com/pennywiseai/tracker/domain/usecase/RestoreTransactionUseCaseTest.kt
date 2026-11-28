@@ -127,7 +127,8 @@ class RestoreTransactionUseCaseTest {
             acctDao,
             txDao,
             TestDb(),
-            io.mockk.mockk(relaxed = true)
+            io.mockk.mockk(relaxed = true),
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined)
         ) {
             override suspend fun applyRestoreBalanceShift(transaction: TransactionEntity) {
                 balanceShiftTransactions.add(transaction)

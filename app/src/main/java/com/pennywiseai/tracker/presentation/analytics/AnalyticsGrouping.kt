@@ -60,6 +60,16 @@ internal fun <K> groupTotals(
 internal fun tagKeys(tags: Collection<String>?): List<String?> =
     tags?.takeIf { it.isNotEmpty() }?.toList() ?: listOf(null)
 
+/**
+ * The tags a drill-down into a row must require: the filter tag, plus the row's own tag when it
+ * is a different one, so the list holds the rows behind the figure tapped (primary, also).
+ */
+internal fun drillDownTags(rowTag: String?, filterTag: String?): Pair<String?, String?> = when {
+    rowTag == null -> filterTag to null
+    filterTag == null || filterTag.equals(rowTag, ignoreCase = true) -> rowTag to null
+    else -> filterTag to rowTag
+}
+
 /** The seven days in the order [locale] starts its week (Monday, or Sunday in the US). */
 internal fun weekdayOrder(locale: Locale): List<DayOfWeek> {
     val first = WeekFields.of(locale).firstDayOfWeek
@@ -78,3 +88,15 @@ internal fun shareOf(amount: BigDecimal, total: BigDecimal): Float =
     if (total > BigDecimal.ZERO) {
         (amount.divide(total, 4, RoundingMode.HALF_UP) * BigDecimal(100)).toFloat().coerceAtMost(100f)
     } else 0f
+
+/** The [selected] tag if it still exists in [tagNames], else null ("All tags"): a deleted tag stops filtering. */
+internal fun effectiveTagFilter(selected: String?, tagNames: List<String>): String? =
+    selected?.takeIf { it in tagNames }
+
+/** [rows] carrying [tag] per [tagsByTransaction], from the one tag map the screen already loads; all of them when [tag] is null. */
+internal fun <T> filterByTag(
+    rows: List<T>,
+    tag: String?,
+    tagsByTransaction: Map<Long, List<String>>,
+    idOf: (T) -> Long
+): List<T> = if (tag == null) rows else rows.filter { tag in tagsByTransaction[idOf(it)].orEmpty() }

@@ -62,16 +62,18 @@ suspend fun TransactionDao.deleteRebuildableSmsTransactions(
     notificationAliases: List<String>,
     from: LocalDateTime,
     inboxMessages: Map<Pair<String, String>, Int>
-) {
-    getRebuildableSmsTransactions(notificationAliases, from)
+): Set<Pair<String, String>> {
+    val deleted = getRebuildableSmsTransactions(notificationAliases, from)
         .filter { it.smsBody?.isNotBlank() == true && it.smsSender != null }
         .groupBy { it.smsSender!! to it.smsBody!! }
         // More rows than messages: we can't tell which row lost its message, so keep them all.
         .filter { (key, rows) -> rows.size <= (inboxMessages[key] ?: 0) }
-        .values.flatten()
+    deleted.values.flatten()
         .map { it.id }
         .chunked(500)
         .forEach { deleteTransactionsByIds(it) }
+    // The (sender, body) pairs of the deleted rows, for the scan to keep them out of a trip.
+    return deleted.keys
 }
 
 /**
@@ -231,6 +233,47 @@ interface TransactionDao {
     @Transaction
     @Query(MERCHANT_SUGGESTIONS_SQL)
     suspend fun suggestMerchants(term: String, profileId: Long?, limit: Int): List<MerchantSuggestion>
+
+    /** The trip running at [now] (#1463); at most one, since saving a trip refuses overlaps. */
+    @Query("""
+        SELECT * FROM transaction_groups
+        WHERE trip_start IS NOT NULL AND trip_start <= :now AND (trip_end IS NULL OR trip_end >= :now)
+        ORDER BY trip_start DESC LIMIT 1
+    """)
+    suspend fun getRunningTrip(now: LocalDateTime): com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity?
+
+    /**
+     * Repair for a trip deleted between the lookup and the insert (transactions.group_id has no
+     * foreign key): a row stored with a group that no longer exists goes back to no group. Plain
+     * statements, no transaction scope of their own, so they are safe inside the callers' ones.
+     */
+    @Query("UPDATE transactions SET group_id = NULL WHERE id = :id AND group_id IS NOT NULL AND group_id NOT IN (SELECT id FROM transaction_groups)")
+    suspend fun clearDanglingGroup(id: Long)
+
+    @Query("UPDATE transactions SET group_id = NULL WHERE transaction_hash IN (:hashes) AND group_id IS NOT NULL AND group_id NOT IN (SELECT id FROM transaction_groups)")
+    suspend fun clearDanglingGroups(hashes: List<String>)
+
+    /**
+     * Saves a row that may have just joined a trip and clears a group deleted since the lookup,
+     * as one commit. Neither statement throws (the insert ignores a duplicate), so nesting this
+     * inside a caller's transaction cannot fail it.
+     */
+    @Transaction
+    suspend fun insertClearingDanglingGroup(transaction: TransactionEntity): Long {
+        val id = insertTransaction(transaction)
+        if (id != -1L && transaction.groupId != null) clearDanglingGroup(id)
+        return id
+    }
+
+    /** [insertClearingDanglingGroup] for a batch: one read-free repair per 500 grouped rows. */
+    @Transaction
+    suspend fun insertAllClearingDanglingGroups(transactions: List<TransactionEntity>) {
+        insertTransactions(transactions)
+        transactions.filter { it.groupId != null }.map { it.transactionHash }.chunked(500).forEach { clearDanglingGroups(it) }
+    }
+
+    @Query("SELECT transaction_hash FROM trip_exclusions WHERE group_id = :groupId")
+    suspend fun getTripExclusions(groupId: Long): List<String>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTransaction(transaction: TransactionEntity): Long

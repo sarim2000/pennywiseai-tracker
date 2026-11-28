@@ -42,6 +42,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -114,9 +115,34 @@ class SettingsViewModel @Inject constructor(
     private val _exportedBackupFile = MutableStateFlow<File?>(null)
     val exportedBackupFile: StateFlow<File?> = _exportedBackupFile.asStateFlow()
 
+    // Whether [exportedBackupFile] is passphrase-encrypted; the Save/Share dialog says so.
+    private val _exportedBackupEncrypted = MutableStateFlow(false)
+    val exportedBackupEncrypted: StateFlow<Boolean> = _exportedBackupEncrypted.asStateFlow()
+    private var exportJob: Job? = null
+
+    // True from a finished export until its Save/Share dialog is acted on or dismissed. Kept
+    // apart from [importExportMessage], which another backup action could replace meanwhile.
+    private val _exportChoicePending = MutableStateFlow(false)
+    val exportChoicePending: StateFlow<Boolean> = _exportChoicePending.asStateFlow()
+
+    // True while an export runs; both export rows are disabled until it's done.
+    private val _isExportingBackup = MutableStateFlow(false)
+    val isExportingBackup: StateFlow<Boolean> = _isExportingBackup.asStateFlow()
+
     // Receipts too large for the backup just created; the Save/Share dialog says so.
     private val _exportSkippedReceipts = MutableStateFlow(0)
     val exportSkippedReceipts: StateFlow<Int> = _exportSkippedReceipts.asStateFlow()
+
+    // True while a restore runs. Its progress follows the restore itself, not the shared
+    // message, which another backup action finishing meanwhile could replace.
+    private val _isRestoringBackup = MutableStateFlow(false)
+    val isRestoringBackup: StateFlow<Boolean> = _isRestoringBackup.asStateFlow()
+    private var restoreJob: Job? = null
+
+    // An encrypted backup picked for restore, waiting for its passphrase.
+    private val _backupPassphrasePrompt = MutableStateFlow<BackupPassphrasePrompt?>(null)
+    val backupPassphrasePrompt: StateFlow<BackupPassphrasePrompt?> = _backupPassphrasePrompt.asStateFlow()
+    private var backupPassphraseAttempt = 0
 
     // "Delete all transactions": null while the confirmation isn't open, else the
     // number of rows the delete would remove — observed, not snapshotted, so the
@@ -540,19 +566,32 @@ class SettingsViewModel @Inject constructor(
         null
     }
 
-    fun exportBackup() {
-        viewModelScope.launch {
+    /**
+     * With a [passphrase] the backup is encrypted; the array is cleared once it's used.
+     * Refused while another export runs, so one can't replace the file the other offers.
+     */
+    fun exportBackup(passphrase: CharArray? = null) {
+        if (exportJob?.isActive == true) {
+            passphrase?.fill('\u0000')
+            // The export rows are disabled meanwhile; one that slips through is told, not dropped.
+            _importExportMessage.value = UiText.Res(R.string.settings_export_already_running)
+            return
+        }
+        _isExportingBackup.value = true
+        val job = viewModelScope.launch {
             try {
                 val result = backupExporter.exportBackup(
-                    includeReceipts = userPreferencesRepository.exportIncludeReceipts.first()
+                    includeReceipts = userPreferencesRepository.exportIncludeReceipts.first(),
+                    passphrase = passphrase
                 )
                 when (result) {
                     is ExportResult.Success -> {
                         // Store the file for later saving
                         _exportedBackupFile.value = result.file
+                        _exportedBackupEncrypted.value = passphrase != null
                         _exportSkippedReceipts.value = result.skippedReceipts
-                        // Always this message: it opens the Save/Share dialog, which names skipped receipts.
-                        _importExportMessage.value = UiText.Res(R.string.settings_backup_created_choose)
+                        // Opens the Save/Share dialog, which names skipped receipts.
+                        _exportChoicePending.value = true
                     }
                     is ExportResult.Error -> {
                         _importExportMessage.value = UiText.Res(R.string.settings_export_failed, listOf("${result.message}"))
@@ -564,15 +603,30 @@ class SettingsViewModel @Inject constructor(
                 Log.e("SettingsViewModel", "Export error", e)
             }
         }
+        exportJob = job
+        // On completion, not in a finally: a job cancelled before it starts never runs its body.
+        job.invokeOnCompletion {
+            passphrase?.fill('\u0000')
+            if (exportJob === job) _isExportingBackup.value = false
+        }
     }
 
-    fun saveBackupToFile(uri: android.net.Uri) {
+    /** The Save/Share dialog was acted on or dismissed. */
+    fun dismissExportChoice() {
+        _exportChoicePending.value = false
+    }
+
+    /** Saves the export the user chose to save, [exportedPath]; not one made since. */
+    fun saveBackupToFile(uri: android.net.Uri, exportedPath: String?) {
+        // The status as Save starts. A slow save reports only over that, never over a newer
+        // export's or restore's status, and clears only the export it saved.
+        val shownMessage = _importExportMessage.value
         // Copying a backup with receipts can take a while; keep it off the main thread.
         viewModelScope.launch(Dispatchers.IO) {
             var opened = false
             try {
-                // Gone when the app was killed while the picker was open.
-                val file = _exportedBackupFile.value
+                // Gone when the app was killed while the picker was open, or replaced by a newer export.
+                val file = _exportedBackupFile.value?.takeIf { it.path == exportedPath }
                     ?: throw IOException("The backup is no longer available. Export it again")
                 // A provider can hand back no stream at all: nothing was written then.
                 val outputStream = context.contentResolver.openOutputStream(uri)
@@ -585,8 +639,8 @@ class SettingsViewModel @Inject constructor(
                 }
                 // Announced before the message, so whoever sees "Backup saved" has the moment too.
                 mascotMoments.announce(MascotMoment.BackupSaved)
-                _importExportMessage.value = UiText.Res(R.string.settings_backup_saved)
-                _exportedBackupFile.value = null
+                _importExportMessage.compareAndSet(shownMessage, UiText.Res(R.string.settings_backup_saved))
+                _exportedBackupFile.compareAndSet(file, null)
             } catch (e: Exception) {
                 // Drop the empty or half-written file so it isn't mistaken for a backup
                 // later. A file the user chose to replace keeps its old content if we never
@@ -594,7 +648,7 @@ class SettingsViewModel @Inject constructor(
                 if (opened || isEmptyDocument(uri)) {
                     runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
                 }
-                _importExportMessage.value = UiText.Res(R.string.settings_backup_save_failed, listOf("${e.message}"))
+                _importExportMessage.compareAndSet(shownMessage, UiText.Res(R.string.settings_backup_save_failed, listOf("${e.message}")))
                 Log.e("SettingsViewModel", "Error saving backup", e)
             }
         }
@@ -606,8 +660,9 @@ class SettingsViewModel @Inject constructor(
         } ?: false
     }.getOrDefault(false)
 
-    fun shareBackup() {
-        _exportedBackupFile.value?.let { file ->
+    /** Shares the export the user is looking at, [exportedPath]; not one made since. */
+    fun shareBackup(exportedPath: String?) {
+        _exportedBackupFile.value?.takeIf { it.path == exportedPath }?.let { file ->
             shareBackupFile(file)
         }
     }
@@ -636,13 +691,33 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun importBackup(uri: android.net.Uri) {
-        viewModelScope.launch {
+    /**
+     * An encrypted backup asks for its [passphrase] first; the array is cleared once it's used.
+     * Refused while another restore runs, so an older one can't replace a newer pick's prompt.
+     */
+    fun importBackup(uri: android.net.Uri, passphrase: CharArray? = null) {
+        if (restoreJob?.isActive == true) {
+            passphrase?.fill('\u0000')
+            // Import Data is disabled meanwhile; a pick that slips through is told, not dropped.
+            _importExportMessage.value = UiText.Res(R.string.settings_import_already_running)
+            return
+        }
+        _backupPassphrasePrompt.value = null
+        _isRestoringBackup.value = true
+        val job = viewModelScope.launch {
             try {
-                _importExportMessage.value = UiText.Res(R.string.settings_importing_backup)
                 val baseBefore = userPreferencesRepository.baseCurrency.first()
-                val result = backupImporter.importBackup(uri, ImportStrategy.MERGE)
+                val result = backupImporter.importBackup(uri, ImportStrategy.MERGE, passphrase)
                 when (result) {
+                    ImportResult.PassphraseRequired, ImportResult.WrongPassphrase -> {
+                        // Nothing was imported: ask (again), with the error on a retry.
+                        _importExportMessage.value = null
+                        _backupPassphrasePrompt.value = BackupPassphrasePrompt(
+                            uri,
+                            wrongPassphrase = result == ImportResult.WrongPassphrase,
+                            attempt = ++backupPassphraseAttempt
+                        )
+                    }
                     is ImportResult.Success -> {
                         // A restored base currency moves this device's budgets with it, as picking it in Settings does.
                         val baseAfter = userPreferencesRepository.baseCurrency.first()
@@ -674,7 +749,8 @@ class SettingsViewModel @Inject constructor(
                         }
                     }
                     is ImportResult.Error -> {
-                        _importExportMessage.value = UiText.Res(R.string.settings_import_failed, listOf("${result.message}"))
+                        _importExportMessage.value = result.userMessageRes?.let { UiText.Res(it) }
+                            ?: UiText.Res(R.string.settings_import_failed, listOf("${result.message}"))
                         Log.e("SettingsViewModel", "Import failed: ${result.message}")
                     }
                 }
@@ -683,6 +759,16 @@ class SettingsViewModel @Inject constructor(
                 Log.e("SettingsViewModel", "Import error", e)
             }
         }
+        restoreJob = job
+        // On completion, not in a finally: a job cancelled before it starts never runs its body.
+        job.invokeOnCompletion {
+            passphrase?.fill('\u0000')
+            if (restoreJob === job) _isRestoringBackup.value = false
+        }
+    }
+
+    fun cancelBackupPassphrase() {
+        _backupPassphrasePrompt.value = null
     }
 
     /**
@@ -956,6 +1042,12 @@ class SettingsViewModel @Inject constructor(
 private const val BYTES_PER_MB = 1024L * 1024L
 
 data class BudgetConversionPrompt(val from: String, val to: String, val rate: java.math.BigDecimal)
+
+/**
+ * An encrypted backup at [uri] waiting for its passphrase; [wrongPassphrase] after a failed try.
+ * [attempt] is new for every prompt, so two wrong tries in a row never look like the same one.
+ */
+data class BackupPassphrasePrompt(val uri: Uri, val wrongPassphrase: Boolean = false, val attempt: Int = 0)
 
 enum class DownloadState {
     NOT_DOWNLOADED,

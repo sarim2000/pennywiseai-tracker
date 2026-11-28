@@ -57,6 +57,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
+import com.pennywiseai.tracker.data.database.entity.TripExclusionEntity
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.database.entity.WebhookCursorEntity
 import com.pennywiseai.tracker.data.database.entity.WebhookDeliveredTransactionEntity
@@ -70,7 +71,7 @@ import com.pennywiseai.tracker.data.database.entity.WebhookProfileEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 72
+const val SCHEMA_VERSION = 73
 
 /**
  * The PennyWise Room database.
@@ -83,7 +84,7 @@ const val SCHEMA_VERSION = 72
  * @property autoMigrations List of automatic migrations between versions.
  */
 @Database(
-    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, TagEntity::class, TransactionTagCrossRef::class, RecurringTransactionEntity::class, WebhookProfileEntity::class, WebhookLogEntity::class, WebhookCursorEntity::class, WebhookDeliveredTransactionEntity::class, GoalEntity::class, GoalContributionEntity::class, LoanShareEntity::class],
+    entities = [TransactionEntity::class, SubscriptionEntity::class, ChatMessage::class, MerchantMappingEntity::class, MerchantAliasEntity::class, CategoryEntity::class, AccountBalanceEntity::class, UnrecognizedSmsEntity::class, CardEntity::class, RuleEntity::class, RuleApplicationEntity::class, ExchangeRateEntity::class, BudgetEntity::class, BudgetCategoryEntity::class, BudgetMonthSnapshotEntity::class, BudgetCategoryMonthSnapshotEntity::class, TransactionSplitEntity::class, BankNotificationEntity::class, LoanEntity::class, TransactionGroupEntity::class, ProfileEntity::class, TagEntity::class, TransactionTagCrossRef::class, RecurringTransactionEntity::class, WebhookProfileEntity::class, WebhookLogEntity::class, WebhookCursorEntity::class, WebhookDeliveredTransactionEntity::class, GoalEntity::class, GoalContributionEntity::class, LoanShareEntity::class, TripExclusionEntity::class],
     version = SCHEMA_VERSION,
     exportSchema = true,
     autoMigrations = [
@@ -141,7 +142,10 @@ const val SCHEMA_VERSION = 72
         AutoMigration(from = 65, to = 66),
         // 66→67 adds the loan_shares table and transactions.lent_shares_total
         // for split bills (#346) — purely additive.
-        AutoMigration(from = 66, to = 67)
+        AutoMigration(from = 66, to = 67),
+        // 72→73 adds transaction_groups.trip_start / trip_end and the trip_exclusions
+        // table (#1463) — purely additive (ADD COLUMN + CREATE TABLE).
+        AutoMigration(from = 72, to = 73)
         // 67→68 adds transactions.transfer_pair_id and links existing pairs: manual.
         // 68→69 adds the card bill columns to account_balances: manual.
         // 69→70 adds the rollover setting to budgets: manual.

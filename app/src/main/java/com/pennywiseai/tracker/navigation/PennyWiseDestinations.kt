@@ -29,6 +29,8 @@ data class Transactions(
     val endDate: Long? = null,
     val account: String? = null,
     val tag: String? = null,
+    /** A second tag the rows must carry too (an Analytics tag row drilled into under a tag filter). */
+    val alsoTag: String? = null,
     /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
     val currencyOnly: Boolean = false,
     /**

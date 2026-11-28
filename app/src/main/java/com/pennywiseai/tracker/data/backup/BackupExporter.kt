@@ -232,6 +232,7 @@ class BackupExporter @Inject constructor(
                     totalBankNotifications = exportedBankNotifications.size,
                     totalLoans = exportedLoans.size,
                     totalTransactionGroups = exportedTransactionGroups.size,
+                    totalTripExclusions = exportedTripExclusions.size,
                     totalProfiles = exportedProfiles.size,
                     totalBudgetMonthSnapshots = exportedBudgetMonthSnapshots.size,
                     totalBudgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots.size,

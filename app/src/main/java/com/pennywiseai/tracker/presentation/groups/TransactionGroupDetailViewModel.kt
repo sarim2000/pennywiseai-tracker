@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.repository.AccountShare
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.accountSharesOf
 import com.pennywiseai.tracker.data.repository.groupTotalsOf
+import com.pennywiseai.tracker.data.trip.TripOverlapException
 import com.pennywiseai.tracker.data.trip.isTrip
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,7 +39,8 @@ data class TransactionGroupDetailUiState(
     val isDeleted: Boolean = false,
     val ungroupedTransactions: List<TransactionEntity> = emptyList(),
     val addSearchQuery: String = "",
-    val tripOverlap: String? = null
+    val tripOverlap: String? = null,
+    val isSaving: Boolean = false
 )
 
 @HiltViewModel
@@ -134,6 +136,8 @@ class TransactionGroupDetailViewModel @Inject constructor(
         val group = _uiState.value.group ?: return
         // Turning a plain group into a trip is Pro; an existing trip keeps working after a lapse.
         if (trip.enabled && !group.isTrip && !isProEntitled.value) return
+        if (_uiState.value.isSaving) return
+        _uiState.value = _uiState.value.copy(isSaving = true)
         viewModelScope.launch {
             val (start, end) = trip.window
             try {
@@ -146,8 +150,10 @@ class TransactionGroupDetailViewModel @Inject constructor(
                     )
                 )
                 _uiState.value = _uiState.value.copy(group = repository.getGroupById(groupId), showEditDialog = false, tripOverlap = null)
-            } catch (e: TransactionGroupRepository.TripOverlapException) {
+            } catch (e: TripOverlapException) {
                 _uiState.value = _uiState.value.copy(tripOverlap = e.other)
+            } finally {
+                _uiState.value = _uiState.value.copy(isSaving = false)
             }
         }
     }

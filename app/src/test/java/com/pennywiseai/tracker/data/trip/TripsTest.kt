@@ -55,6 +55,30 @@ class TripsTest {
     }
 
     @Test
+    fun editingNameOnlyKeepsStoppedTripTimestamps() {
+        val stoppedAt = LocalDateTime.of(2026, 12, 3, 14, 30, 5)
+        val stopped = trip.copy(tripStart = LocalDateTime.of(2026, 12, 1, 9, 15), tripEnd = stoppedAt)
+        val (s, e) = tripWindowOf(stopped.tripStart!!.toLocalDate(), stoppedAt.toLocalDate(), stopped.tripStart, stopped.tripEnd)
+        assertEquals(stopped.tripStart, s)
+        assertEquals(stoppedAt, e)
+        // changing the end date takes the new day's end
+        val (_, moved) = tripWindowOf(stopped.tripStart!!.toLocalDate(), LocalDate.of(2026, 12, 6), stopped.tripStart, stopped.tripEnd)
+        assertEquals(LocalDateTime.of(2026, 12, 6, 23, 59, 59, 999_999_999), moved)
+        // "until I stop it" stays open
+        assertNull(tripWindowOf(stopped.tripStart!!.toLocalDate(), null, stopped.tripStart, stopped.tripEnd).second)
+    }
+
+    @Test
+    fun nextBoundaryIsTheNextStartOrJustPastAnEnd() {
+        val other = TransactionGroupEntity(id = 8, name = "Later", tripStart = LocalDateTime.of(2026, 12, 20, 0, 0))
+        assertEquals(start, nextTripBoundary(listOf(trip, other), start.minusDays(2)))
+        assertEquals(end.plusNanos(1), nextTripBoundary(listOf(trip, other), start))
+        assertEquals(other.tripStart, nextTripBoundary(listOf(trip, other), end.plusNanos(1)))
+        assertNull(nextTripBoundary(listOf(trip), end.plusDays(1)))
+        assertNull(nextTripBoundary(listOf(TransactionGroupEntity(name = "plain")), start))
+    }
+
+    @Test
     fun overlapRefusedAndNamed() {
         val other = TransactionGroupEntity(id = 8, name = "Other", tripStart = end, tripEnd = null)
         assertEquals("Other", findOverlappingTrip(trip, listOf(trip, other))?.name) // shares the end instant

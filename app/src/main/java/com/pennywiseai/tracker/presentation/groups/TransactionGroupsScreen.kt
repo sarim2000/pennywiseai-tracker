@@ -22,7 +22,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -84,6 +83,7 @@ fun TransactionGroupsScreen(
         }
     ) { paddingValues ->
         val lazyListState = rememberLazyListState()
+        val now = rememberTripNow(uiState.groups.map { it.group })
 
         if (uiState.isLoading) {
             Box(
@@ -128,6 +128,7 @@ fun TransactionGroupsScreen(
             itemsIndexed(uiState.groups, key = { _, summary -> summary.group.id }) { index, summary ->
                 GroupListItem(
                     summary = summary,
+                    now = now,
                     position = ListItemPosition.from(index, uiState.groups.size),
                     onClick = { onNavigateToGroupDetail(summary.group.id) },
                     modifier = Modifier.animateItem()
@@ -142,6 +143,7 @@ fun TransactionGroupsScreen(
         CreateGroupDialog(
             isPro = isPro,
             tripOverlap = uiState.tripOverlap,
+            isSaving = uiState.isSaving,
             onNeedUpgrade = { showUpgradeSheet = true },
             onDismiss = { viewModel.hideCreateDialog() },
             onCreate = { name, note, trip -> viewModel.createGroup(name, note, trip) }
@@ -155,6 +157,7 @@ fun TransactionGroupsScreen(
 @Composable
 private fun GroupListItem(
     summary: GroupSummary,
+    now: java.time.LocalDateTime,
     position: ListItemPosition,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -198,7 +201,7 @@ private fun GroupListItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (summary.group.isTrip) {
-                val status = remember(summary.group) { summary.group.tripStatus(java.time.LocalDateTime.now()) }
+                val status = summary.group.tripStatus(now)
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         tripWindowText(summary.group),
@@ -209,11 +212,11 @@ private fun GroupListItem(
                         Text(
                             stringResource(R.string.trip_status_running),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
                                 .clip(MaterialTheme.shapes.small)
-                                .background(MaterialTheme.colorScheme.tertiaryContainer)
-                                .padding(horizontal = Spacing.sm, vertical = 2.dp)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                .padding(horizontal = Spacing.sm, vertical = Spacing.xxs)
                         )
                     }
                 }
@@ -253,6 +256,7 @@ private fun GroupListItem(
 private fun CreateGroupDialog(
     isPro: Boolean,
     tripOverlap: String?,
+    isSaving: Boolean,
     onNeedUpgrade: () -> Unit,
     onDismiss: () -> Unit,
     onCreate: (String, String?, TripDraft) -> Unit
@@ -302,7 +306,7 @@ private fun CreateGroupDialog(
         confirmButton = {
             TextButton(
                 onClick = { onCreate(nameState.text.toString(), noteState.text.toString().ifBlank { null }, trip) },
-                enabled = nameState.text.isNotBlank(),
+                enabled = nameState.text.isNotBlank() && !isSaving,
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.groups_create_confirm))

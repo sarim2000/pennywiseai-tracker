@@ -71,6 +71,7 @@ fun TransactionGroupDetailScreen(
     }
 
     val group = uiState.group
+    val tripNow = rememberTripNow(listOfNotNull(group))
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -183,7 +184,7 @@ fun TransactionGroupDetailScreen(
                             )
                         }
                         if (group.isTrip) {
-                            val status = remember(group) { group.tripStatus(java.time.LocalDateTime.now()) }
+                            val status = group.tripStatus(tripNow)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -427,6 +428,7 @@ fun TransactionGroupDetailScreen(
             alreadyTrip = group.isTrip,
             isPro = isPro,
             tripOverlap = uiState.tripOverlap,
+            isSaving = uiState.isSaving,
             onNeedUpgrade = { showUpgradeSheet = true },
             onDismiss = { viewModel.hideEditDialog() },
             onSave = { name, note, trip -> viewModel.updateGroupName(name, note, trip) }
@@ -675,6 +677,7 @@ private fun EditGroupDialog(
     alreadyTrip: Boolean,
     isPro: Boolean,
     tripOverlap: String?,
+    isSaving: Boolean,
     onNeedUpgrade: () -> Unit,
     onDismiss: () -> Unit,
     onSave: (String, String?, TripDraft) -> Unit
@@ -724,7 +727,7 @@ private fun EditGroupDialog(
         confirmButton = {
             TextButton(
                 onClick = { onSave(nameState.text.toString(), noteState.text.toString().ifBlank { null }, trip) },
-                enabled = nameState.text.isNotBlank(),
+                enabled = nameState.text.isNotBlank() && !isSaving,
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.group_save))

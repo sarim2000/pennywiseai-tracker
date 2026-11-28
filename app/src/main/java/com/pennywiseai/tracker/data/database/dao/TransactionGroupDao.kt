@@ -4,6 +4,8 @@ import androidx.room3.*
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TripExclusionEntity
+import com.pennywiseai.tracker.data.trip.TripOverlapException
+import com.pennywiseai.tracker.data.trip.findOverlappingTrip
 import com.pennywiseai.tracker.data.trip.tripExclusionFor
 import kotlinx.coroutines.flow.Flow
 
@@ -73,6 +75,25 @@ interface TransactionGroupDao {
         LIMIT :limit
     """)
     fun searchUngroupedTransactions(query: String, limit: Int = 50): Flow<List<TransactionEntity>>
+
+    /** The overlap check and the write in one transaction, so two quick saves can't both pass (#1463). */
+    @Transaction
+    suspend fun insertGroupChecked(group: TransactionGroupEntity): Long {
+        if (group.tripStart != null) {
+            findOverlappingTrip(group, getAllTrips())?.let { throw TripOverlapException(it.name) }
+        }
+        return insertGroup(group)
+    }
+
+    /** Checks only when the window changed, so renaming a trip that already overlaps stays possible. */
+    @Transaction
+    suspend fun updateGroupChecked(group: TransactionGroupEntity) {
+        val stored = getGroupById(group.id)
+        if (group.tripStart != null && (stored == null || stored.tripStart != group.tripStart || stored.tripEnd != group.tripEnd)) {
+            findOverlappingTrip(group, getAllTrips())?.let { throw TripOverlapException(it.name) }
+        }
+        updateGroup(group)
+    }
 
     @Query("SELECT * FROM transaction_groups WHERE trip_start IS NOT NULL")
     suspend fun getAllTrips(): List<TransactionGroupEntity>

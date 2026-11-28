@@ -72,9 +72,33 @@ suspend fun TransactionDao.withTripGroup(
     return transactions.map { if (joinsTrip(it, trip, excluded)) it.copy(groupId = trip.id) else it }
 }
 
-/** A trip picked by dates covers whole days: from the start of [start] to the last instant of [end]. */
-fun tripWindowOf(start: java.time.LocalDate, end: java.time.LocalDate?): Pair<LocalDateTime, LocalDateTime?> =
-    start.atStartOfDay() to end?.atTime(java.time.LocalTime.MAX)
+/**
+ * A trip picked by dates covers whole days: from the start of [start] to the last instant of [end].
+ * A date the user didn't change keeps its stored timestamp ([storedStart] / [storedEnd]) exactly,
+ * so renaming a trip stopped at 14:30 doesn't widen it back to end of day and restart it.
+ */
+fun tripWindowOf(
+    start: java.time.LocalDate,
+    end: java.time.LocalDate?,
+    storedStart: LocalDateTime? = null,
+    storedEnd: LocalDateTime? = null
+): Pair<LocalDateTime, LocalDateTime?> {
+    val s = storedStart?.takeIf { it.toLocalDate() == start } ?: start.atStartOfDay()
+    val e = end?.let { d -> storedEnd?.takeIf { it.toLocalDate() == d } ?: d.atTime(java.time.LocalTime.MAX) }
+    return s to e
+}
+
+/** Saving a trip whose window overlaps [other]'s, named so the message can say which. */
+class TripOverlapException(val other: String) : Exception("Trip overlaps $other")
+
+/**
+ * The next instant after [now] at which a trip's status flips (its start, or just past its end),
+ * across [groups]; null when nothing will change.
+ */
+fun nextTripBoundary(groups: List<TransactionGroupEntity>, now: LocalDateTime): LocalDateTime? =
+    groups.flatMap { g -> listOfNotNull(g.tripStart, g.tripEnd?.plusNanos(1)) }
+        .filter { it.isAfter(now) }
+        .minOrNull()
 
 /** What removing [tx] from [group] must remember: its hash, for a trip, when it has one (a manual row has none). */
 fun tripExclusionFor(tx: TransactionEntity, group: TransactionGroupEntity?): TripExclusionEntity? =

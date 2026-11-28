@@ -143,6 +143,9 @@ data class BackupStatistics(
     @SerialName("total_transaction_groups")
     val totalTransactionGroups: Int = 0,
 
+    @SerialName("total_trip_exclusions")
+    val totalTripExclusions: Int = 0,
+
     @SerialName("total_profiles")
     val totalProfiles: Int = 0,
 

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.repository.GroupSummary
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
+import com.pennywiseai.tracker.data.trip.TripOverlapException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +18,8 @@ data class TransactionGroupsUiState(
     val isLoading: Boolean = true,
     val showCreateDialog: Boolean = false,
     // Name of the trip a new trip's dates overlap, shown in the dialog (#1463).
-    val tripOverlap: String? = null
+    val tripOverlap: String? = null,
+    val isSaving: Boolean = false
 )
 
 @HiltViewModel
@@ -50,13 +52,17 @@ class TransactionGroupsViewModel @Inject constructor(
         if (name.isBlank()) return
         // Starting a trip is Pro; a stale dialog can't get past the switch's own gate.
         if (trip.enabled && !isProEntitled.value) return
+        if (_uiState.value.isSaving) return
+        _uiState.value = _uiState.value.copy(isSaving = true)
         viewModelScope.launch {
             val (start, end) = trip.window
             try {
                 repository.createGroup(name, note, start, end)
                 _uiState.value = _uiState.value.copy(showCreateDialog = false, tripOverlap = null)
-            } catch (e: TransactionGroupRepository.TripOverlapException) {
+            } catch (e: TripOverlapException) {
                 _uiState.value = _uiState.value.copy(tripOverlap = e.other)
+            } finally {
+                _uiState.value = _uiState.value.copy(isSaving = false)
             }
         }
     }

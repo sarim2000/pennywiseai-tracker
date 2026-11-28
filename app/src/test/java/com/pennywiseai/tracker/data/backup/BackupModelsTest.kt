@@ -1307,12 +1307,16 @@ class BackupModelsTest {
             tripStart = LocalDateTime.of(2026, 12, 1, 0, 0), tripEnd = null
         )
         val exclusion = TripExclusionEntity(groupId = 2, transactionHash = "synthetic-hash")
-        val backup = PennyWiseBackup(database = DatabaseSnapshot(transactionGroups = listOf(group), tripExclusions = listOf(exclusion)))
+        val backup = PennyWiseBackup(
+            metadata = BackupMetadata(statistics = BackupStatistics(totalTripExclusions = 1)),
+            database = DatabaseSnapshot(transactionGroups = listOf(group), tripExclusions = listOf(exclusion))
+        )
 
         val restored = backupJson.decodeFromString<PennyWiseBackup>(backupJson.encodeToString(backup))
 
         assertEquals(group.tripStart, restored.database.transactionGroups.single().tripStart)
         assertNull(restored.database.transactionGroups.single().tripEnd)
         assertEquals(listOf(exclusion), restored.database.tripExclusions)
+        assertEquals(1, restored.metadata.statistics.totalTripExclusions)
     }
 }

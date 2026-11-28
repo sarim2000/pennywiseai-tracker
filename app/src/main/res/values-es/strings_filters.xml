@@ -11,7 +11,7 @@
     <string name="filter_type_all">Todo</string>
     <string name="filter_type_income">Ingreso</string>
     <string name="filter_type_expense">Gasto</string>
-    <string name="filter_type_credit">Crédito</string>
+    <string name="filter_type_credit">Gasto con tarjeta</string>
     <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_spending">Gastos (Gasto + Tarjeta)</string>
     <string name="filter_type_transfer">Transferencia</string>

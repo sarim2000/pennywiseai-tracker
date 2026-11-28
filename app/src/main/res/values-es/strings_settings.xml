@@ -392,10 +392,10 @@
     <string name="faq_expand">Expandir</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Tipos de transacciones</string>
-    <string name="faq_wallet_credit_question">¿Por qué las transacciones de billeteras aparecen como Crédito?</string>
-    <string name="faq_wallet_credit_answer">Las transacciones de billeteras (Amazon Pay, Paytm, etc.) se marcan como Crédito porque primero se cargan a tu cuenta bancaria o tarjeta de crédito, no son débitos bancarios directos. Así se sigue el medio de pago que realmente usaste.</string>
+    <string name="faq_wallet_credit_question">¿Por qué las transacciones de billeteras aparecen como Gasto con tarjeta?</string>
+    <string name="faq_wallet_credit_answer">Las transacciones de billeteras (Amazon Pay, Paytm, etc.) se marcan como Gasto con tarjeta porque primero se cargan a tu cuenta bancaria o tarjeta de crédito, no son débitos bancarios directos. Así se sigue el medio de pago que realmente usaste.</string>
     <string name="faq_transaction_types_question">¿Cuál es la diferencia entre los 5 tipos de transacciones?</string>
-    <string name="faq_transaction_types_answer">• Gasto: dinero que sale de tu cuenta (débitos, compras, pagos de facturas)\n• Ingreso: dinero que entra a tu cuenta (sueldo, reembolsos, cashback)\n• Inversión: fondos de inversión, acciones, SIP, cuentas de trading\n• Crédito: transacciones con tarjeta de crédito y pagos con billeteras (dinero que pagarás después)\n• Transferencia: dinero que mueves entre tus propias cuentas</string>
+    <string name="faq_transaction_types_answer">• Gasto: dinero que sale de tu cuenta (débitos, compras, pagos de facturas)\n• Ingreso: dinero que entra a tu cuenta (sueldo, reembolsos, cashback)\n• Inversión: fondos de inversión, acciones, SIP, cuentas de trading\n• Gasto con tarjeta: transacciones con tarjeta de crédito y pagos con billeteras (dinero que pagarás después)\n• Transferencia: dinero que mueves entre tus propias cuentas</string>
     <string name="faq_transfer_vs_expense_question">¿Cuándo uso Transferencia y cuándo Gasto?</string>
     <string name="faq_transfer_vs_expense_answer">Usa Transferencia cuando muevas dinero entre tus propias cuentas (p. ej., de ahorros a la cuenta corriente). No afecta tu patrimonio neto. Usa Gasto para lo que realmente gastas.</string>
     <!-- SMS Parsing -->

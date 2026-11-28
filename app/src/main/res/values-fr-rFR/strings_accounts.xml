@@ -24,7 +24,7 @@
     <string name="account_detail_estimated_amount">estimé %1$s</string>
     <!-- %1$s = formatted balance after the transaction -->
     <string name="account_detail_balance_after">• Balon : %1$s</string>
-    <string name="account_detail_type_credit">Crédit</string>
+    <string name="account_detail_type_credit">Dépenses par carte</string>
     <string name="account_detail_type_transfer">Transférer</string>
     <string name="account_detail_type_investment">Investissement</string>
     <string name="account_detail_range_last_7_days">Les 7 derniers jours</string>

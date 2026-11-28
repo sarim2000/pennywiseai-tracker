@@ -87,7 +87,7 @@
     <string name="type_filter_all">Vše</string>
     <string name="type_filter_income">Výnosy</string>
     <string name="type_filter_expense">Výdaje</string>
-    <string name="type_filter_credit">Kredit</string>
+    <string name="type_filter_credit">Útrata kartou</string>
     <string name="type_filter_spending">Útrata</string>
     <string name="type_filter_transfer">Převod</string>
     <string name="type_filter_investment">Investovat</string>
@@ -225,11 +225,11 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">Peníze v pohybu</string>
     <string name="cash_flow_subtitle">Kanály mimo Váš čistý peněžní tok tento měsíc</string>
-    <string name="cash_flow_credit">Kredit</string>
+    <string name="cash_flow_credit">Útrata kartou</string>
     <string name="cash_flow_invested">Investováno</string>
     <string name="cash_flow_transferred">Převedeno</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">Kredit</string>
+    <string name="txn_item_tag_credit">Karta</string>
     <string name="txn_item_tag_transfer">Převod</string>
     <string name="txn_item_tag_investment">Investice</string>
     <string name="txn_item_tag_recurring">Opakování</string>

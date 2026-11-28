@@ -488,7 +488,7 @@
     <!-- Transaction type labels (stored value stays the enum name) -->
     <string name="rules_type_income">Даход</string>
     <string name="rules_type_expense">Выдатак</string>
-    <string name="rules_type_credit">Крэдыт</string>
+    <string name="rules_type_credit">Выдаткі па картцы</string>
     <string name="rules_type_transfer">Перавод</string>
     <string name="rules_type_investment">Інвестыцыя</string>
     <string name="rules_select_transaction_type">Выберыце тып транзакцыі:</string>

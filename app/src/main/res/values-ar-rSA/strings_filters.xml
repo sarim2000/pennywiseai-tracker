@@ -11,7 +11,7 @@
     <string name="filter_type_all">الكل</string>
     <string name="filter_type_income">دخل</string>
     <string name="filter_type_expense">مصروف</string>
-    <string name="filter_type_credit">ائتمان</string>
+    <string name="filter_type_credit">إنفاق البطاقة</string>
     <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_spending">الإنفاق (مصروف + بطاقة)</string>
     <string name="filter_type_transfer">تحويل</string>

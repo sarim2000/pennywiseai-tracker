@@ -83,7 +83,7 @@
     <string name="type_filter_all">Todo</string>
     <string name="type_filter_income">Ingresos</string>
     <string name="type_filter_expense">Gastos</string>
-    <string name="type_filter_credit">Crédito</string>
+    <string name="type_filter_credit">Gasto con tarjeta</string>
     <string name="type_filter_spending">Gasto total</string>
     <string name="type_filter_transfer">Transferencia</string>
     <string name="type_filter_investment">Inversión</string>
@@ -200,11 +200,11 @@
     <!-- Cash flow card -->
     <string name="cash_flow_title">Dinero en movimiento</string>
     <string name="cash_flow_subtitle">Movimientos fuera de tu flujo de efectivo neto este mes</string>
-    <string name="cash_flow_credit">Crédito</string>
+    <string name="cash_flow_credit">Gasto con tarjeta</string>
     <string name="cash_flow_invested">Invertido</string>
     <string name="cash_flow_transferred">Transferido</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">Crédito</string>
+    <string name="txn_item_tag_credit">Tarjeta</string>
     <string name="txn_item_tag_transfer">Transferencia</string>
     <string name="txn_item_tag_investment">Inversión</string>
     <string name="txn_item_tag_recurring">Recurrente</string>

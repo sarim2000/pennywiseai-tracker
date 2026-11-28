@@ -392,10 +392,10 @@
     <string name="faq_expand">Développer</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Types de transaction</string>
-    <string name="faq_wallet_credit_question">Pourquoi les transactions de portefeuille sont-elles marquées comme Crédit?</string>
-    <string name="faq_wallet_credit_answer">Les transactions de portefeuille (Amazon Pay, Paytm, etc.) sont marquées comme Crédit parce qu\'elles sont débitées sur votre compte bancaire ou votre carte de crédit en premier, pas des débits bancaires directs. Cela permet de suivre le mode de paiement utilisé.</string>
+    <string name="faq_wallet_credit_question">Pourquoi les transactions de portefeuille sont-elles marquées comme Dépenses par carte ?</string>
+    <string name="faq_wallet_credit_answer">Les transactions de portefeuille (Amazon Pay, Paytm, etc.) sont marquées comme Dépenses par carte parce qu\'elles sont d\'abord débitées de votre compte bancaire ou de votre carte de crédit, et non par prélèvement bancaire direct. Cela permet de suivre le mode de paiement réellement utilisé.</string>
     <string name="faq_transaction_types_question">Quelle est la différence entre les 5 types d\'opérations ?</string>
-    <string name="faq_transaction_types_answer">• Dépenses : Argent sortant de votre compte (débits, achats, paiements de factures)\n• Revenus : Argent entrant dans votre compte (salaire, remboursement, remise)\n• Investissement: Fonds mutuels, stocks, SIPs, comptes de trading\n• Crédit : transactions par carte de crédit et paiements de portefeuille (argent que vous paierez plus tard)\n• Transfert: Argent déplacé entre vos propres comptes (auto-transferts)</string>
+    <string name="faq_transaction_types_answer">• Dépense : argent sortant de votre compte (débits, achats, paiements de factures)\n• Revenu : argent entrant sur votre compte (salaire, remboursements, cashback)\n• Investissement : fonds communs, actions, SIP, comptes de trading\n• Dépenses par carte : transactions par carte de crédit et paiements par portefeuille (argent que vous paierez plus tard)\n• Transfert : argent déplacé entre vos propres comptes</string>
     <string name="faq_transfer_vs_expense_question">Quand devrais-je utiliser le transfert vs dépenses ?</string>
     <string name="faq_transfer_vs_expense_answer">Utilisez le transfert lorsque vous transférez de l\'argent entre vos propres comptes (par exemple, l\'épargne pour vérifier). Cela n\'affecte pas votre valeur nette. Utilisez les dépenses pour les dépenses réelles.</string>
     <!-- SMS Parsing -->

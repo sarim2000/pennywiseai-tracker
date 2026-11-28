@@ -666,7 +666,7 @@
     <!-- Transaction type labels (stored value stays the enum name) -->
     <string name="rules_type_income">دخل</string>
     <string name="rules_type_expense">مصروف</string>
-    <string name="rules_type_credit">ائتمان</string>
+    <string name="rules_type_credit">إنفاق البطاقة</string>
     <string name="rules_type_transfer">تحويل</string>
     <string name="rules_type_investment">استثمار</string>
     <string name="rules_select_transaction_type">حدد نوع المعاملة:</string>

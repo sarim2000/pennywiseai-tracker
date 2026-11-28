@@ -11,7 +11,7 @@
     <string name="filter_type_all">ทั้งหมด</string>
     <string name="filter_type_income">รายได้</string>
     <string name="filter_type_expense">ค่าใช้จ่าย</string>
-    <string name="filter_type_credit">เครดิต</string>
+    <string name="filter_type_credit">ใช้จ่ายผ่านบัตร</string>
     <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_spending">การใช้จ่าย (ค่าใช้จ่าย + บัตร)</string>
     <string name="filter_type_transfer">โอน</string>

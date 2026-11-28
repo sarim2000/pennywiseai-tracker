@@ -398,10 +398,10 @@
     <string name="faq_expand">Expandir</string>
     <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Tipos de transação</string>
-    <string name="faq_wallet_credit_question">Por que as transações de carteira são marcadas como Crédito?</string>
-    <string name="faq_wallet_credit_answer">As transações Wallet (Amazon Pay, Paytm, etc.) estão marcadas como Crédito porque são cobradas em sua conta bancária ou cartão de crédito primeiro, não como débitos bancários. Isso ajuda a rastrear o método de pagamento realmente usado.</string>
+    <string name="faq_wallet_credit_question">Porque é que as transações de carteira são marcadas como Gasto com cartão?</string>
+    <string name="faq_wallet_credit_answer">As transações de carteira (Amazon Pay, Paytm, etc.) são marcadas como Gasto com cartão porque são cobradas primeiro na sua conta bancária ou no seu cartão de crédito, e não como débitos bancários diretos. Isto ajuda a acompanhar o método de pagamento realmente utilizado.</string>
     <string name="faq_transaction_types_question">Qual é a diferença entre os 5 tipos de transação?</string>
-    <string name="faq_transaction_types_answer">• Despesa: Dinheiro saindo da sua conta (débitos, compras,\nReceita: Dinheiro vindo em sua conta (salário, reembolso, reembolso)\n• Investimento: Fundos mútuos, ações, SIPs, contas de negociação\n• Crédito: transações com cartão de crédito e pagamentos em carteira (dinheiro que você pagará mais tarde)\n• Transferência: Dinheiro movido entre suas contas (transferências próprias)</string>
+    <string name="faq_transaction_types_answer">• Despesa: dinheiro que sai da sua conta (débitos, compras, pagamento de faturas)\n• Receita: dinheiro que entra na sua conta (salário, reembolsos, cashback)\n• Investimento: fundos de investimento, ações, SIP, contas de negociação\n• Gasto com cartão: transações com cartão de crédito e pagamentos por carteira (dinheiro que pagará mais tarde)\n• Transferência: dinheiro movido entre as suas próprias contas</string>
     <string name="faq_transfer_vs_expense_question">Quando devo usar a Transferência vs Despesa?</string>
     <string name="faq_transfer_vs_expense_answer">Use a Transferência ao movimentar dinheiro entre suas próprias contas (por exemplo, poupanças para verificação). Isso não afeta o seu valor líquido. Use despesas para gastos reais.</string>
     <!-- SMS Parsing -->

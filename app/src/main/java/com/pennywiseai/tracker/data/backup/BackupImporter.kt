@@ -269,11 +269,15 @@ class BackupImporter @Inject constructor(
                 backup.database.loans.insertEachCounting({ skippedRows++ }) { loan ->
                     database.loanDao().insertLoan(loan)
                 }
+                val restoredGroupIds = mutableSetOf<Long>()
                 backup.database.transactionGroups.insertEachCounting({ skippedRows++ }) { group ->
                     database.transactionGroupDao().insertGroup(group)
+                    restoredGroupIds += group.id
                 }
-                // Groups keep their ids on a full restore, so no remap.
+                // Groups keep their ids on a full restore, so no remap. An exclusion whose group is
+                // not in the backup is skipped here: its foreign key would fail the whole restore (#1513).
                 backup.database.tripExclusions.insertEachCounting({ skippedRows++ }) { exclusion ->
+                    check(exclusion.groupId in restoredGroupIds) { "Group ${exclusion.groupId} not in backup" }
                     database.transactionGroupDao().insertTripExclusion(exclusion)
                 }
                 val profileIdMap = importProfilesAndBuildMap(backup.database.profiles)

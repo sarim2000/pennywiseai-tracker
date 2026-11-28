@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.countedCategory
 import com.pennywiseai.tracker.data.ledger.forTotals
@@ -23,9 +25,15 @@ import java.time.LocalDate
  */
 private fun Set<String>.hasCategory(name: String) = countedCategory(name).let { counted -> any { it.equals(counted, ignoreCase = true) } }
 
+/** A refund: money back that comes off spending instead of counting as income. */
+internal fun TransactionEntity.isRefund() =
+    transactionType == TransactionType.INCOME && budgetImpactType == BudgetImpactType.DEDUCT_SPENT
+
 /**
  * Rows in [categories]: a split row by its splits' categories, any other by its own, the same
- * match Analytics makes through [TransactionWithSplits.getAmountByCategory].
+ * match Analytics makes through [TransactionWithSplits.getAmountByCategory]. A refund also
+ * matches by the budget category it comes off (blank is Others), as Analytics nets it, so the
+ * list adds up to the figure it was opened from.
  */
 internal fun filterByCategories(
     transactions: List<TransactionEntity>,
@@ -34,7 +42,8 @@ internal fun filterByCategories(
 ): List<TransactionEntity> {
     val splitsByTxId = splits.groupBy { it.transactionId }
     return transactions.filter { tx ->
-        splitsByTxId[tx.id]?.any { categories.hasCategory(it.category) } ?: categories.hasCategory(tx.category)
+        (splitsByTxId[tx.id]?.any { categories.hasCategory(it.category) } ?: categories.hasCategory(tx.category)) ||
+            (tx.isRefund() && categories.hasCategory(tx.budgetCategory.orEmpty()))
     }
 }
 
@@ -51,7 +60,10 @@ class CategorySplitShares(
 
     /** The amount of [tx]'s splits in the filter, or null when [tx] isn't split. For display. */
     fun shareOf(tx: TransactionEntity): BigDecimal? =
-        splitsByTxId[tx.id]?.filter { categories.hasCategory(it.category) }?.sumOf { it.amount }
+        if (tx.refundsFilter()) null else splitsByTxId[tx.id]?.filter { categories.hasCategory(it.category) }?.sumOf { it.amount }
+
+    // A refund comes off its budget category whole, whatever its splits say, as in Analytics (#1376).
+    private fun TransactionEntity.refundsFilter() = isRefund() && categories.hasCategory(budgetCategory.orEmpty())
 
     /** The amount [tx] shows: its share when split, else its own amount. */
     fun shownAmount(tx: TransactionEntity): BigDecimal = shareOf(tx) ?: tx.amount
@@ -61,7 +73,7 @@ class CategorySplitShares(
      * proportion, then only the splits in the filter. Null when none of it counts.
      */
     fun forTotals(tx: TransactionEntity): TransactionEntity? {
-        val splits = splitsByTxId[tx.id] ?: return tx.forTotals()
+        val splits = splitsByTxId[tx.id]?.takeUnless { tx.refundsFilter() } ?: return tx.forTotals()
         val counted = TransactionWithSplits(tx, splits).forTotals() ?: return null
         val share = counted.splits.filter { categories.hasCategory(it.category) }.sumOf { it.amount }
         return tx.copy(amount = share, loanId = null, loanContribution = null, lentSharesTotal = null).forTotals()
@@ -117,15 +129,31 @@ private fun amountMatchesSearch(query: String, amount: BigDecimal): Boolean {
         amount.toPlainString().contains(cleanedQuery)
 }
 
-/** Rows carrying exactly [tag], ignoring case; null means no tag filter. */
+/**
+ * The (first, second) tag filter after dropping any tag for which [exists] is false; a second tag
+ * with no first is promoted to first, so the picker and chips always match what the list filters by.
+ */
+internal fun normalizeTags(first: String?, also: String?, exists: (String) -> Boolean = { true }): Pair<String?, String?> {
+    val f = first?.takeIf(exists)
+    val a = also?.takeIf(exists)
+    return if (f == null) a to null else f to a
+}
+
+/**
+ * Rows carrying exactly [tag], ignoring case; null means no tag filter. A non-null [alsoTag]
+ * (an Analytics drill-down into a tag row under a tag filter) is required as well.
+ */
 internal fun filterByTag(
     transactions: List<TransactionEntity>,
     tag: String?,
     tagsById: Map<Long, List<String>>,
+    alsoTag: String? = null,
 ): List<TransactionEntity> {
-    if (tag == null) return transactions
+    val required = listOfNotNull(tag, alsoTag)
+    if (required.isEmpty()) return transactions
     return transactions.filter { tx ->
-        tagsById[tx.id]?.any { it.equals(tag, ignoreCase = true) } == true
+        val tags = tagsById[tx.id].orEmpty()
+        required.all { want -> tags.any { it.equals(want, ignoreCase = true) } }
     }
 }
 
@@ -142,7 +170,9 @@ internal fun filterableCategories(
     val splits = allSplits.filter { it.transactionId in ids }
     // Parents of present sub-categories are filterable too (#374),
     // and the auto-clear in the ViewModel must not drop them.
-    val present = (transactions.map { countedCategory(it.category) } + splits.map { countedCategory(it.category) }).distinct()
+    // A refund's budget category too: [filterByCategories] lists it there, even with no spend left in it (#1376).
+    val refunded = transactions.filter { it.isRefund() }.map { countedCategory(it.budgetCategory.orEmpty()) }
+    val present = (transactions.map { countedCategory(it.category) } + splits.map { countedCategory(it.category) } + refunded).distinct()
     return (present + present.mapNotNull { parentOf[it] }).distinct().sorted()
 }
 

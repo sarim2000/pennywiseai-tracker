@@ -28,6 +28,7 @@ import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.data.repository.mappingFits
+import com.pennywiseai.tracker.data.trip.joinsTripOnScan
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.model.rule.tagChanges
 import com.pennywiseai.tracker.domain.repository.RuleRepository
@@ -77,6 +78,9 @@ internal class ScanRunContext(
      * back; rows created after it (an expense added mid-rebuild) don't (#982).
      */
     val rebuildStartedAt: LocalDateTime?,
+
+    /** (sender, body) of the SMS rows a rebuild deleted and is re-creating; empty otherwise. */
+    val rebuiltMessages: Set<Pair<String, String>> = emptySet(),
 
     /** Cash wallets an ATM withdrawal is booked into (#1062); empty when that setting is off. */
     val atmCashWallets: List<AccountBalanceEntity> = emptyList(),
@@ -267,7 +271,8 @@ internal class ScanTransactionWriter(
                 // One transaction: a charge that commits without its schedule advance
                 // would leave the bill due forever — a re-scan skips the row by hash.
                 val rowId = database.withTransaction {
-                    transactionRepository.insertTransaction(finalEntity).also { id ->
+                    // Only rows a rebuild deleted and re-creates stay out of a trip; a message never saved before joins.
+                    transactionRepository.insertTransaction(finalEntity, joinTrip = joinsTripOnScan(finalEntity.smsSender, finalEntity.smsBody, scanContext.rebuiltMessages)).also { id ->
                         if (id != -1L) matchedSub?.let { subscriptionRepository.recordCharge(it, finalEntity.dateTime.toLocalDate()) }
                     }
                 }

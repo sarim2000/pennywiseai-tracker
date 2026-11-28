@@ -60,7 +60,10 @@ class CategorySplitShares(
 
     /** The amount of [tx]'s splits in the filter, or null when [tx] isn't split. For display. */
     fun shareOf(tx: TransactionEntity): BigDecimal? =
-        splitsByTxId[tx.id]?.filter { categories.hasCategory(it.category) }?.sumOf { it.amount }
+        if (tx.refundsFilter()) null else splitsByTxId[tx.id]?.filter { categories.hasCategory(it.category) }?.sumOf { it.amount }
+
+    // A refund comes off its budget category whole, whatever its splits say, as in Analytics (#1376).
+    private fun TransactionEntity.refundsFilter() = isRefund() && categories.hasCategory(budgetCategory.orEmpty())
 
     /** The amount [tx] shows: its share when split, else its own amount. */
     fun shownAmount(tx: TransactionEntity): BigDecimal = shareOf(tx) ?: tx.amount
@@ -70,7 +73,7 @@ class CategorySplitShares(
      * proportion, then only the splits in the filter. Null when none of it counts.
      */
     fun forTotals(tx: TransactionEntity): TransactionEntity? {
-        val splits = splitsByTxId[tx.id] ?: return tx.forTotals()
+        val splits = splitsByTxId[tx.id]?.takeUnless { tx.refundsFilter() } ?: return tx.forTotals()
         val counted = TransactionWithSplits(tx, splits).forTotals() ?: return null
         val share = counted.splits.filter { categories.hasCategory(it.category) }.sumOf { it.amount }
         return tx.copy(amount = share, loanId = null, loanContribution = null, lentSharesTotal = null).forTotals()

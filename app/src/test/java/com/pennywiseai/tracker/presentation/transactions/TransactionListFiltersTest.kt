@@ -319,6 +319,14 @@ class TransactionListFiltersTest {
         ids(filterByCategories(rows.toList(), filter, splits))
 
     @Test
+    fun `a split refund comes off its budget category whole`() {
+        val row = refund(1, "Food").copy(amount = BigDecimal("100"))
+        val shares = CategorySplitShares(setOf("Food"), listOf(split(1, "Travel")))
+        assertEquals(BigDecimal("100"), shares.shownAmount(row))
+        assertEquals(BigDecimal("100"), shares.forTotals(row)?.amount)
+    }
+
+    @Test
     fun `a refund's budget category and its parent are filterable`() {
         assertEquals(listOf("Food", "Living", "Refunds"), filterableCategories(listOf(refund(1, "Food")), emptyList(), mapOf("Food" to "Living")))
     }

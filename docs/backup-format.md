@@ -264,7 +264,11 @@ Then frames until the one marked last:
   read error, or a passphrase the Keystore can't unlock (opening never
   creates a key), writes nothing, the worker retries later, and Settings
   asks for the passphrase again. Nothing is marked on disk when an unlock
-  fails. The switch can be turned on before automatic backups, and turning
+  fails; Settings tries the unlock itself each time it reads the setting, so
+  a key lost while the app was closed shows too. A store file that can't be
+  parsed is reset to "on, no passphrase", which asks for it again. Turning
+  encryption off asks first: the next backup replaces the encrypted file
+  with a plain one. The switch can be turned on before automatic backups, and turning
   them on waits for a passphrase still being saved, so the first file is
   already encrypted. One lock in `worker/FolderBackupRunner.kt` keeps backups
   and encryption changes from overlapping. Restore them like any encrypted

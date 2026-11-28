@@ -444,7 +444,8 @@ internal fun OnBoardingUiState.restoredFrom(
         profileImageUri = if (avatar == null) progress.profileImageUri?.toUri() else null,
         selectedBackgroundColor = backgroundColors.indexOf(progress.backgroundColor).takeIf { it >= 0 }
             ?: selectedBackgroundColor,
-        selectedCurrency = progress.pickedCurrency ?: selectedCurrency,
+        // A currency picked before the restore landed wins, like a name typed before it.
+        selectedCurrency = if (currencyPicked) selectedCurrency else progress.pickedCurrency ?: selectedCurrency,
         currencyPicked = progress.pickedCurrency != null || currencyPicked
     )
 }

@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.ledger.BalanceCalculator
 import com.pennywiseai.tracker.data.ledger.isPairedTransferLeg
 import com.pennywiseai.tracker.data.ledger.ledgerType
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
+import com.pennywiseai.tracker.data.trip.withTripGroup
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.toDatabaseString
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -573,12 +574,16 @@ open class AccountBalanceRepository @Inject constructor(
     suspend fun insertTransactionWithBalance(
         transaction: TransactionEntity,
         bankName: String?,
-        accountLast4: String?
+        accountLast4: String?,
+        joinTrip: Boolean = true
     ): Long = database.withTransaction {
         if (bankName != null && accountLast4 != null) {
             ensureManualOpening(bankName, accountLast4)
         }
-        val rowId = transactionDao.insertTransaction(transaction)
+        // A running trip (#1463) claims manual adds here; scheduled templates opt out.
+        val rowId = transactionDao.insertTransaction(
+            if (joinTrip) transactionDao.withTripGroup(listOf(transaction)).single() else transaction
+        )
         if (rowId != -1L && bankName != null && accountLast4 != null) {
             applyTransactionToBalance(
                 bankName = bankName,

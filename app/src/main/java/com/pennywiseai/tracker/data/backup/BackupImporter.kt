@@ -247,6 +247,10 @@ class BackupImporter @Inject constructor(
                 backup.database.transactionGroups.insertEachCounting({ skippedRows++ }) { group ->
                     database.transactionGroupDao().insertGroup(group)
                 }
+                // Groups keep their ids on a full restore, so no remap.
+                backup.database.tripExclusions.insertEachCounting({ skippedRows++ }) { exclusion ->
+                    database.transactionGroupDao().insertTripExclusion(exclusion)
+                }
                 val profileIdMap = importProfilesAndBuildMap(backup.database.profiles)
 
                 // Older backups (pre-v1.1) didn't serialize loans / groups,
@@ -522,6 +526,11 @@ class BackupImporter @Inject constructor(
                     val newId = existingId
                         ?: database.transactionGroupDao().insertGroup(group.copy(id = 0))
                     if (group.id != 0L) oldToNewGroupIdMap[group.id] = newId
+                }
+                // A matched local trip takes the backup's exclusions too (a repeat is ignored).
+                backup.database.tripExclusions.insertEachCounting({ skippedRows++ }) { exclusion ->
+                    val newId = oldToNewGroupIdMap[exclusion.groupId]
+                    if (newId != null) database.transactionGroupDao().insertTripExclusion(exclusion.copy(groupId = newId))
                 }
 
                 // Build profile id map up-front so transactions and account

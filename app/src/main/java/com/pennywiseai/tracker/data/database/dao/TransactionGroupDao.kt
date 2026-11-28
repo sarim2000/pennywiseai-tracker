@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.data.database.dao
 import androidx.room3.*
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
+import com.pennywiseai.tracker.data.database.entity.TripExclusionEntity
+import com.pennywiseai.tracker.data.trip.tripExclusionFor
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -71,6 +73,40 @@ interface TransactionGroupDao {
         LIMIT :limit
     """)
     fun searchUngroupedTransactions(query: String, limit: Int = 50): Flow<List<TransactionEntity>>
+
+    @Query("SELECT * FROM transaction_groups WHERE trip_start IS NOT NULL")
+    suspend fun getAllTrips(): List<TransactionGroupEntity>
+
+    @Query("UPDATE transaction_groups SET trip_end = :end, updated_at = :end WHERE id = :groupId")
+    suspend fun setTripEnd(groupId: Long, end: java.time.LocalDateTime)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertTripExclusion(exclusion: TripExclusionEntity)
+
+    @Query("DELETE FROM trip_exclusions WHERE group_id = :groupId AND transaction_hash = :hash")
+    suspend fun deleteTripExclusion(groupId: Long, hash: String)
+
+    @Query("SELECT * FROM trip_exclusions")
+    suspend fun getAllTripExclusions(): List<TripExclusionEntity>
+
+    @Query("SELECT * FROM transactions WHERE id = :transactionId")
+    suspend fun getTransactionById(transactionId: Long): TransactionEntity?
+
+    /** Takes a row out of its group; from a trip it is also remembered by hash so a rebuild can't re-add it (#1463). */
+    @Transaction
+    suspend fun removeFromGroup(transactionId: Long) {
+        val tx = getTransactionById(transactionId)
+        val group = tx?.groupId?.let { getGroupById(it) }
+        tx?.let { tripExclusionFor(it, group) }?.let { insertTripExclusion(it) }
+        unlinkTransaction(transactionId)
+    }
+
+    /** Putting a row back by hand clears its exclusion (#1463). */
+    @Transaction
+    suspend fun addToGroup(transactionId: Long, groupId: Long) {
+        getTransactionById(transactionId)?.transactionHash?.let { deleteTripExclusion(groupId, it) }
+        linkTransaction(transactionId, groupId)
+    }
 
     // Used by BackupImporter.replaceAllData to clear groups before re-import.
     @Query("DELETE FROM transaction_groups")

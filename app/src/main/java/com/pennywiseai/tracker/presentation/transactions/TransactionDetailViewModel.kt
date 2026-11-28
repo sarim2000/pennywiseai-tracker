@@ -505,7 +505,7 @@ class TransactionDetailViewModel @Inject constructor(
                         ?.let { merchantMappingRepository.getCategoryForMerchant(it) }
                         ?.takeIf { mappingFits(categoryRepository.getCategoryByName(it)?.isIncome, type) }
                     ?: categoryRepository.getVisibleCategories().first().balanceAdjustmentDefaultCategory(type)
-                transactionRepository.insertTransaction(balanceAdjustment(tx, d, name, category))
+                transactionRepository.insertTransaction(balanceAdjustment(tx, d, name, category), joinTrip = false)
                 _balanceDiscrepancy.value = detectBalanceDiscrepancy.execute(tx)
                 if (_balanceDiscrepancy.value == null) {
                     com.pennywiseai.tracker.receiver.SmsBroadcastReceiver.cancelBalanceDiscrepancyNotification(context, tx)

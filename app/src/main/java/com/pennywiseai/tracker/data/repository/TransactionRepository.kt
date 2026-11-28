@@ -16,6 +16,7 @@ import com.pennywiseai.tracker.data.model.MerchantSuggestions
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
+import com.pennywiseai.tracker.data.trip.withTripGroup
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -144,11 +145,17 @@ open class TransactionRepository @Inject constructor(
         endDate: LocalDateTime
     ): Double? = transactionDao.getTotalAmountByTypeAndPeriod(type, startDate, endDate)
 
-    suspend fun insertTransaction(transaction: TransactionEntity): Long =
-        transactionDao.insertTransaction(withCurrentCategoryNames(listOf(transaction)).single())
+    /**
+     * The one place a new row is saved for SMS, notifications, imports and chat adds, so a
+     * running trip (#1463) claims it here. [joinTrip] is false for reconciling entries.
+     */
+    suspend fun insertTransaction(transaction: TransactionEntity, joinTrip: Boolean = true): Long {
+        val named = withCurrentCategoryNames(listOf(transaction))
+        return transactionDao.insertTransaction((if (joinTrip) transactionDao.withTripGroup(named) else named).single())
+    }
 
     suspend fun insertTransactions(transactions: List<TransactionEntity>) =
-        transactionDao.insertTransactions(withCurrentCategoryNames(transactions))
+        transactionDao.insertTransactions(transactionDao.withTripGroup(withCurrentCategoryNames(transactions)))
 
     /**
      * Auto-categorization speaks in built-in names ("Food & Dining"); if the user

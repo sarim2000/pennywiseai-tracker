@@ -5,6 +5,10 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.trip.TripStatus
+import com.pennywiseai.tracker.data.trip.findOverlappingTrip
+import com.pennywiseai.tracker.data.trip.isTrip
+import com.pennywiseai.tracker.data.trip.tripStatus
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.coroutines.flow.Flow
@@ -127,16 +131,41 @@ class TransactionGroupRepository @Inject constructor(
 
     suspend fun getGroupById(id: Long): TransactionGroupEntity? = groupDao.getGroupById(id)
 
-    suspend fun createGroup(name: String, note: String?): Long {
+    /** Saving a trip whose window overlaps [other]'s, named so the message can say which. */
+    class TripOverlapException(val other: String) : Exception("Trip overlaps $other")
+
+    private suspend fun requireNoOverlap(group: TransactionGroupEntity) {
+        if (!group.isTrip) return
+        findOverlappingTrip(group, groupDao.getAllTrips())?.let { throw TripOverlapException(it.name) }
+    }
+
+    suspend fun createGroup(
+        name: String,
+        note: String?,
+        tripStart: LocalDateTime? = null,
+        tripEnd: LocalDateTime? = null
+    ): Long {
         val group = TransactionGroupEntity(
             name = name.trim(),
-            note = note?.trim()?.takeIf { it.isNotEmpty() }
+            note = note?.trim()?.takeIf { it.isNotEmpty() },
+            tripStart = tripStart,
+            tripEnd = tripStart?.let { tripEnd }
         )
+        requireNoOverlap(group)
         return groupDao.insertGroup(group)
     }
 
+    /** Throws [TripOverlapException] when the trip window changed and now overlaps another trip. */
     suspend fun updateGroup(group: TransactionGroupEntity) {
+        val stored = groupDao.getGroupById(group.id)
+        if (stored == null || stored.tripStart != group.tripStart || stored.tripEnd != group.tripEnd) requireNoOverlap(group)
         groupDao.updateGroup(group.copy(updatedAt = LocalDateTime.now()))
+    }
+
+    /** "Stop trip": the window ends now. A trip that isn't running is left alone. */
+    suspend fun stopTrip(groupId: Long, now: LocalDateTime = LocalDateTime.now()) {
+        val group = groupDao.getGroupById(groupId) ?: return
+        if (group.tripStatus(now) == TripStatus.RUNNING) groupDao.setTripEnd(groupId, now)
     }
 
     suspend fun deleteGroup(groupId: Long) {
@@ -145,7 +174,7 @@ class TransactionGroupRepository @Inject constructor(
     }
 
     suspend fun addTransactionToGroup(transactionId: Long, groupId: Long) {
-        groupDao.linkTransaction(transactionId, groupId)
+        groupDao.addToGroup(transactionId, groupId)
         val group = groupDao.getGroupById(groupId) ?: return
         groupDao.updateGroup(group.copy(updatedAt = LocalDateTime.now()))
     }
@@ -159,6 +188,6 @@ class TransactionGroupRepository @Inject constructor(
     }
 
     suspend fun removeTransactionFromGroup(transactionId: Long) {
-        groupDao.unlinkTransaction(transactionId)
+        groupDao.removeFromGroup(transactionId)
     }
 }

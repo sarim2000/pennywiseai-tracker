@@ -249,6 +249,9 @@ data class DatabaseSnapshot(
     @SerialName("transaction_groups")
     val transactionGroups: List<TransactionGroupEntity> = emptyList(),
 
+    @SerialName("trip_exclusions")
+    val tripExclusions: List<TripExclusionEntity> = emptyList(),
+
     @SerialName("profiles")
     val profiles: List<ProfileEntity> = emptyList(),
 

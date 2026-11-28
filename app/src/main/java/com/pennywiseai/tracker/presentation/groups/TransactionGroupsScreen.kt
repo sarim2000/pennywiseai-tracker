@@ -22,10 +22,15 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GroupSummary
+import com.pennywiseai.tracker.data.trip.TripStatus
+import com.pennywiseai.tracker.data.trip.isTrip
+import com.pennywiseai.tracker.data.trip.tripStatus
+import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
@@ -131,11 +136,19 @@ fun TransactionGroupsScreen(
         }
     }
 
+    var showUpgradeSheet by remember { mutableStateOf(false) }
+    val isPro by viewModel.isProEntitled.collectAsStateWithLifecycle()
     if (uiState.showCreateDialog) {
         CreateGroupDialog(
+            isPro = isPro,
+            tripOverlap = uiState.tripOverlap,
+            onNeedUpgrade = { showUpgradeSheet = true },
             onDismiss = { viewModel.hideCreateDialog() },
-            onCreate = { name, note -> viewModel.createGroup(name, note) }
+            onCreate = { name, note, trip -> viewModel.createGroup(name, note, trip) }
         )
+    }
+    if (showUpgradeSheet) {
+        UpgradeSheet(onDismiss = { showUpgradeSheet = false })
     }
 }
 
@@ -184,6 +197,27 @@ private fun GroupListItem(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (summary.group.isTrip) {
+                val status = remember(summary.group) { summary.group.tripStatus(java.time.LocalDateTime.now()) }
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        tripWindowText(summary.group),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (status == TripStatus.RUNNING) {
+                        Text(
+                            stringResource(R.string.trip_status_running),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .background(MaterialTheme.colorScheme.tertiaryContainer)
+                                .padding(horizontal = Spacing.sm, vertical = 2.dp)
+                        )
+                    }
+                }
+            }
         }
 
         Column(horizontalAlignment = Alignment.End) {
@@ -217,11 +251,15 @@ private fun GroupListItem(
 
 @Composable
 private fun CreateGroupDialog(
+    isPro: Boolean,
+    tripOverlap: String?,
+    onNeedUpgrade: () -> Unit,
     onDismiss: () -> Unit,
-    onCreate: (String, String?) -> Unit
+    onCreate: (String, String?, TripDraft) -> Unit
 ) {
     val nameState = rememberTextFieldState()
     val noteState = rememberTextFieldState()
+    var trip by remember { mutableStateOf(TripDraft()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -251,11 +289,19 @@ private fun CreateGroupDialog(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
+                TripFields(
+                    draft = trip,
+                    onChange = { trip = it },
+                    isPro = isPro,
+                    alreadyTrip = false,
+                    onNeedUpgrade = onNeedUpgrade,
+                    error = tripOverlap?.let { stringResource(R.string.trip_overlap_error, it) }
+                )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onCreate(nameState.text.toString(), noteState.text.toString().ifBlank { null }) },
+                onClick = { onCreate(nameState.text.toString(), noteState.text.toString().ifBlank { null }, trip) },
                 enabled = nameState.text.isNotBlank(),
                 shapes = ButtonDefaults.shapes()
             ) {

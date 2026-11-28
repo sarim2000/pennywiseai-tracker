@@ -269,6 +269,17 @@ interface TransactionDao {
         endDate: LocalDateTime
     ): Double?
 
+    /** The trip running at [now] (#1463); at most one, since saving a trip refuses overlaps. */
+    @Query("""
+        SELECT * FROM transaction_groups
+        WHERE trip_start IS NOT NULL AND trip_start <= :now AND (trip_end IS NULL OR trip_end >= :now)
+        ORDER BY trip_start DESC LIMIT 1
+    """)
+    suspend fun getRunningTrip(now: LocalDateTime): com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity?
+
+    @Query("SELECT transaction_hash FROM trip_exclusions WHERE group_id = :groupId")
+    suspend fun getTripExclusions(groupId: Long): List<String>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTransaction(transaction: TransactionEntity): Long
 

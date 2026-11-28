@@ -161,6 +161,7 @@ internal fun DataPage(
     val folderBackupEncryption by settingsViewModel.folderBackupEncryption.collectAsStateWithLifecycle()
     val savingFolderBackupPassphrase by settingsViewModel.savingFolderBackupPassphrase.collectAsStateWithLifecycle()
     var showFolderPassphraseDialog by remember { mutableStateOf(false) }
+    var showFolderEncryptionOffDialog by remember { mutableStateOf(false) }
     val backupPassphrasePrompt by settingsViewModel.backupPassphrasePrompt.collectAsStateWithLifecycle()
 
     // File picker for import
@@ -348,7 +349,7 @@ internal fun DataPage(
                 ),
                 checked = folderBackupEncryption.let { it != null && it != FolderBackupPassphrase.Status.OFF },
                 onCheckedChange = { encrypt ->
-                    if (encrypt) showFolderPassphraseDialog = true else settingsViewModel.turnOffFolderBackupEncryption()
+                    if (encrypt) showFolderPassphraseDialog = true else showFolderEncryptionOffDialog = true
                 },
                 position = ListItemPosition.from(autoBackupRow++, autoBackupRows),
                 // Not before the stored setting is read (the switch would show a guess), nor mid-save.
@@ -624,6 +625,32 @@ internal fun DataPage(
                 settingsViewModel.setFolderBackupPassphrase(passphrase)
             },
             onDismiss = { showFolderPassphraseDialog = false }
+        )
+    }
+
+    // The next backup replaces the encrypted file, maybe in a synced folder: ask first.
+    if (showFolderEncryptionOffDialog) {
+        AlertDialog(
+            onDismissRequest = { showFolderEncryptionOffDialog = false },
+            icon = { Icon(Icons.Default.LockOpen, contentDescription = null) },
+            title = { Text(stringResource(R.string.settings_folder_backup_encryption_off_title)) },
+            text = { Text(stringResource(R.string.settings_folder_backup_encryption_off_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showFolderEncryptionOffDialog = false
+                        settingsViewModel.turnOffFolderBackupEncryption()
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.settings_folder_backup_encryption_off_action))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFolderEncryptionOffDialog = false }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.settings_action_cancel))
+                }
+            }
         )
     }
 

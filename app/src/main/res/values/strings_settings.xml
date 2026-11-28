@@ -158,6 +158,10 @@
     <string name="settings_folder_backup_passphrase_body">Daily backups will be locked with this passphrase, and you\'ll need it to restore one. It can\'t be recovered if you forget it.</string>
     <string name="settings_folder_backup_passphrase_action">Save</string>
     <string name="settings_folder_backup_passphrase_save_failed">Couldn\'t save the backup passphrase on this device</string>
+    <!-- Asked before turning off encryption for automatic folder backups -->
+    <string name="settings_folder_backup_encryption_off_title">Turn off encryption?</string>
+    <string name="settings_folder_backup_encryption_off_body">The next automatic backup will replace the encrypted file in your backup folder with an unencrypted one. If that folder syncs to a cloud service, the unencrypted copy goes there too.</string>
+    <string name="settings_folder_backup_encryption_off_action">Turn off</string>
     <string name="settings_folder_backup_encryption_off_failed">Couldn\'t turn off encryption, so automatic backups stay locked</string>
     <string name="settings_folder_backup_encryption_unreadable">Couldn\'t read the backup encryption setting, so nothing was written</string>
     <string name="settings_folder_backup_encryption_saving">Saving your passphrase…</string>

@@ -596,6 +596,8 @@ class TransactionDetailViewModel @Inject constructor(
     fun enterEditMode() {
         _editableTransaction.value = _transaction.value?.copy()
         editStart = _transaction.value
+        amountTextInvalid = false
+        _amountRefusals.value = 0
         editStartTags = null
         // A cancelled edit can leave these on an unsaved pick (e.g. the Refund answer).
         _budgetImpactType.value = _transaction.value?.budgetImpactType
@@ -715,8 +717,18 @@ class TransactionDetailViewModel @Inject constructor(
         validateMerchantName(name)
     }
 
+    // True while the amount field's text is empty or not a positive amount: the editor then
+    // still holds the last valid amount, which Save must not write behind the field's back.
+    private var amountTextInvalid = false
+
+    // Counts the saves refused over the amount text; 0 while there is nothing to show under the field.
+    private val _amountRefusals = MutableStateFlow(0)
+    val amountRefusals: StateFlow<Int> = _amountRefusals.asStateFlow()
+
     fun updateAmount(amountStr: String) {
         val amount = amountStr.toBigDecimalOrNull()
+        amountTextInvalid = amount == null || amount <= BigDecimal.ZERO
+        if (!amountTextInvalid) _amountRefusals.value = 0
         if (amount != null && amount > BigDecimal.ZERO) {
             _editableTransaction.update { current ->
                 current?.copy(amount = amount)
@@ -1023,6 +1035,13 @@ class TransactionDetailViewModel @Inject constructor(
         // Validate before saving
         if (toSave.merchantName.isBlank()) {
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_merchant_required)
+            return
+        }
+
+        if (amountTextInvalid) {
+            // Shown under the amount field (a snackbar hides behind the keyboard, and
+            // the same message is not shown twice).
+            _amountRefusals.value += 1
             return
         }
 

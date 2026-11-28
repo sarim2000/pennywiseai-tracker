@@ -229,6 +229,11 @@
             android:name=".receiver.BillReminderActionReceiver"
             android:exported="false" />
 
+        <!-- "Still on your trip?" actions: stop it / keep going -->
+        <receiver
+            android:name=".receiver.TripNudgeActionReceiver"
+            android:exported="false" />
+
         <!-- Notification listener for bank app notifications -->
         <service
             android:name=".receiver.BankNotificationListenerService"

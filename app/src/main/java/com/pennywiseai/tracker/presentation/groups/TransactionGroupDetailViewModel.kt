@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
+import com.pennywiseai.tracker.data.database.entity.canMarkReimbursable
 import com.pennywiseai.tracker.data.repository.AccountShare
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.accountSharesOf
@@ -45,8 +46,18 @@ data class TransactionGroupDetailUiState(
     val tripOverlap: String? = null,
     val isSaving: Boolean = false,
     val upgradeRequested: Boolean = false,
-    val backfill: TripBackfillOffer? = null
+    val backfill: TripBackfillOffer? = null,
+    // Non-null while "Mark N as reimbursable?" is asking.
+    val markAllCount: Int? = null,
+    // The rows the last "Mark all" changed, held only until its Undo snackbar is answered.
+    val marked: MarkedBatch? = null
 )
+
+/** Compared by identity, so a second batch with the same ids still shows its own snackbar. */
+class MarkedBatch(val ids: List<Long>)
+
+/** The rows "Mark all as reimbursable" would touch: exactly those a single row's action would accept. */
+fun reimbursementMarkIds(rows: List<TransactionEntity>): List<Long> = rows.filter(::canMarkReimbursable).map { it.id }
 
 @HiltViewModel
 class TransactionGroupDetailViewModel @Inject constructor(
@@ -187,6 +198,37 @@ class TransactionGroupDetailViewModel @Inject constructor(
             }
         }
     }
+
+    fun requestMarkAll() {
+        val count = reimbursementMarkIds(_uiState.value.linkedTransactions).size
+        if (count > 0) _uiState.update { it.copy(markAllCount = count) }
+    }
+
+    fun dismissMarkAll() { _uiState.update { it.copy(markAllCount = null) } }
+
+    /** One database transaction for the whole batch; the changed ids are kept for the Undo. */
+    fun confirmMarkAll() {
+        val ids = reimbursementMarkIds(_uiState.value.linkedTransactions)
+        _uiState.update { it.copy(markAllCount = null) }
+        viewModelScope.launch {
+            val changed = try {
+                repository.markGroupReimbursable(groupId, ids)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                emptyList()
+            }
+            if (changed.isNotEmpty()) _uiState.update { it.copy(marked = MarkedBatch(changed)) }
+        }
+    }
+
+    fun undoMarkAll(batch: MarkedBatch) {
+        _uiState.update { if (it.marked === batch) it.copy(marked = null) else it }
+        viewModelScope.launch { repository.undoGroupReimbursable(batch.ids) }
+    }
+
+    /** The snackbar went away unanswered: the batch stands, and its ids are let go. */
+    fun clearMarked(batch: MarkedBatch) { _uiState.update { if (it.marked === batch) it.copy(marked = null) else it } }
 
     fun dismissUpgrade() { _uiState.value = _uiState.value.copy(upgradeRequested = false) }
 

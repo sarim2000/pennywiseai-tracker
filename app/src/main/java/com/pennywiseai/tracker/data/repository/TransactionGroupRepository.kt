@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.trip.TripBackfill
+import com.pennywiseai.tracker.data.trip.TripNudges
 import com.pennywiseai.tracker.data.trip.backfillWindowEnd
 import com.pennywiseai.tracker.data.trip.tripBackfillOf
 import com.pennywiseai.tracker.utils.Money
@@ -83,7 +84,8 @@ private fun GroupTotals.all(): List<Money> = expense.values + invested.values + 
 
 @Singleton
 class TransactionGroupRepository @Inject constructor(
-    private val groupDao: TransactionGroupDao
+    private val groupDao: TransactionGroupDao,
+    private val tripNudges: TripNudges
 ) {
     private companion object {
         const val BACKFILL_LIMIT = 500
@@ -152,15 +154,30 @@ class TransactionGroupRepository @Inject constructor(
     /** Throws [TripOverlapException] when the trip window changed and now overlaps another trip. */
     suspend fun updateGroup(group: TransactionGroupEntity) {
         groupDao.updateGroupChecked(group.copy(updatedAt = LocalDateTime.now()))
+        // An end date (or no longer a trip) ends the "still on your trip?" question. After the write, never inside it.
+        if (group.tripStart == null || group.tripEnd != null) tripNudges.clear(group.id)
     }
 
     /** "Stop trip": the window ends now, in one conditional UPDATE. False when it wasn't running. */
-    suspend fun stopTrip(groupId: Long, now: LocalDateTime = LocalDateTime.now()): Boolean =
-        groupDao.stopTripIfRunning(groupId, now) > 0
+    suspend fun stopTrip(groupId: Long, now: LocalDateTime = LocalDateTime.now()): Boolean {
+        val stopped = groupDao.stopTripIfRunning(groupId, now) > 0
+        if (stopped) tripNudges.clear(groupId)
+        return stopped
+    }
+
+    /** "Mark all as reimbursable": the ids it changed, in one database transaction. Empty when nothing qualified. */
+    suspend fun markGroupReimbursable(groupId: Long, candidateIds: List<Long>): List<Long> =
+        if (candidateIds.isEmpty()) emptyList() else groupDao.markGroupReimbursable(groupId, candidateIds, LocalDateTime.now())
+
+    /** Puts back exactly what [markGroupReimbursable] returned. */
+    suspend fun undoGroupReimbursable(ids: List<Long>) {
+        if (ids.isNotEmpty()) groupDao.undoGroupReimbursable(ids, LocalDateTime.now())
+    }
 
     suspend fun deleteGroup(groupId: Long) {
         val group = groupDao.getGroupById(groupId) ?: return
         groupDao.unlinkAndDeleteGroup(group)
+        tripNudges.clear(groupId)
     }
 
     suspend fun addTransactionToGroup(transactionId: Long, groupId: Long) {

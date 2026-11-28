@@ -49,6 +49,8 @@ class MainActivity : FragmentActivity() {
 
         /** Goal widgets (#914): open a goal, the Budgets screen, or "New goal" there. */
         const val EXTRA_OPEN_GOAL_ID = "com.pennywiseai.tracker.OPEN_GOAL_ID"
+        // A trip's reminder opens that group.
+        const val EXTRA_OPEN_GROUP_ID = "com.pennywiseai.tracker.OPEN_GROUP_ID"
         const val EXTRA_OPEN_REVIEW = "com.pennywiseai.tracker.OPEN_REVIEW"
         const val EXTRA_REVIEW_WEEK_START = "com.pennywiseai.tracker.REVIEW_WEEK_START"
         // Set by the evening recap when Insights has an alert.
@@ -217,8 +219,10 @@ class MainActivity : FragmentActivity() {
     private fun handleWidgetIntent(intent: Intent?) {
         intent ?: return
         val goalId = intent.getLongExtra(EXTRA_OPEN_GOAL_ID, -1L)
+        val groupId = intent.getLongExtra(EXTRA_OPEN_GROUP_ID, -1L)
         widgetDestination = when {
             goalId > 0 -> com.pennywiseai.tracker.navigation.GoalDetail(goalId)
+            groupId > 0 -> com.pennywiseai.tracker.navigation.TransactionGroupDetail(groupId)
             intent.getBooleanExtra(EXTRA_OPEN_UNRECOGNIZED, false) ->
                 com.pennywiseai.tracker.navigation.UnrecognizedSms
             intent.hasExtra(EXTRA_OPEN_REVIEW) ->

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.preferences
 
+import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
 import com.pennywiseai.tracker.domain.conscience.ConscienceFeedback
@@ -9,6 +10,7 @@ import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
 import com.pennywiseai.tracker.domain.conscience.ConscienceRemark
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import kotlinx.coroutines.flow.Flow
+import java.time.LocalDateTime
 import kotlin.random.Random
 
 /**
@@ -42,6 +44,14 @@ interface NotificationPreferences {
 
     /** A rename is the same account in the same dip, so what it was told goes with it. */
     suspend fun moveLowBalanceAlert(oldBankName: String, accountLast4: String, newBankName: String)
+
+    /** True at most once while [trip] is open-ended, 14 days on and not yet asked; records that it was. */
+    suspend fun claimTripNudge(trip: TransactionGroupEntity, now: LocalDateTime): Boolean
+
+    /** "Keep going": asks again 14 days from [now]; false when [trip] is no longer open-ended and running. */
+    suspend fun keepTripGoing(trip: TransactionGroupEntity, now: LocalDateTime): Boolean
+
+    suspend fun clearTripNudge(tripId: Long)
 
     val conscienceEnabled: Flow<Boolean>
 

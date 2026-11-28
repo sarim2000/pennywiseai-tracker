@@ -147,6 +147,12 @@ data class TransactionEntity(
     val reimbursedById: Long? = null
 )
 
+/** Whether [txn] can be marked reimbursable: money out that isn't one already. */
+fun canMarkReimbursable(txn: TransactionEntity): Boolean =
+    txn.reimbursementStatus == null &&
+        !txn.isDeleted &&
+        (txn.transactionType == TransactionType.EXPENSE || txn.transactionType == TransactionType.CREDIT)
+
 /** Where a reimbursable expense stands (#1389). Stored by name: never rename a constant. */
 @Serializable
 enum class ReimbursementStatus {

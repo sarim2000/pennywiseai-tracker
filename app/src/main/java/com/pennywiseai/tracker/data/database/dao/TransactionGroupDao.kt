@@ -177,7 +177,41 @@ interface TransactionGroupDao {
         touchGroup(groupId, now)
     }
 
+    /** Of [ids], the rows still in [groupId] that can become reimbursable: live spending with no reimbursement state. */
+    @Query("""
+        SELECT id FROM transactions
+        WHERE group_id = :groupId AND id IN (:ids) AND is_deleted = 0
+        AND reimbursement_status IS NULL AND transaction_type IN ('EXPENSE', 'CREDIT')
+    """)
+    suspend fun getMarkableForReimbursement(groupId: Long, ids: List<Long>): List<Long>
+
+    /** The same two columns as [TransactionDao.setReimbursement] with PENDING and no link. */
+    @Query("UPDATE transactions SET reimbursement_status = 'PENDING', reimbursed_by_id = NULL, updated_at = :now WHERE id IN (:ids) AND reimbursement_status IS NULL")
+    suspend fun markReimbursablePending(ids: List<Long>, now: java.time.LocalDateTime): Int
+
+    /** Undo of [markGroupReimbursable]: only rows still merely pending go back to not reimbursable. */
+    @Query("UPDATE transactions SET reimbursement_status = NULL, reimbursed_by_id = NULL, updated_at = :now WHERE id IN (:ids) AND reimbursement_status = 'PENDING'")
+    suspend fun clearReimbursablePending(ids: List<Long>, now: java.time.LocalDateTime): Int
+
+    /**
+     * Marks the [candidateIds] that still qualify as reimbursable, in one transaction, and returns
+     * the ids it really changed (what an Undo restores). Chunked under SQLite's old 999-variable cap.
+     */
+    @Transaction
+    suspend fun markGroupReimbursable(groupId: Long, candidateIds: List<Long>, now: java.time.LocalDateTime): List<Long> =
+        candidateIds.chunked(IN_CHUNK).flatMap { chunk ->
+            getMarkableForReimbursement(groupId, chunk).also { if (it.isNotEmpty()) markReimbursablePending(it, now) }
+        }
+
+    @Transaction
+    suspend fun undoGroupReimbursable(ids: List<Long>, now: java.time.LocalDateTime) {
+        ids.chunked(IN_CHUNK).forEach { clearReimbursablePending(it, now) }
+    }
+
     // Used by BackupImporter.replaceAllData to clear groups before re-import.
     @Query("DELETE FROM transaction_groups")
     suspend fun deleteAllGroups()
 }
+
+// Room's `IN (:ids)` is one SQLite variable per id, capped at 999 before Android 11.
+private const val IN_CHUNK = 500

@@ -424,6 +424,31 @@
         <item quantity="other">Add %1$d to trip</item>
     </plurals>
     <string name="trip_backfill_skip">Skip</string>
+    <string name="group_mark_reimbursable">Mark all as reimbursable</string>
+    <plurals name="group_mark_reimbursable_title">
+        <item quantity="one">Mark %1$d transaction as reimbursable?</item>
+        <item quantity="other">Mark %1$d transactions as reimbursable?</item>
+    </plurals>
+    <string name="group_mark_reimbursable_message">Spending that isn\'t reimbursable yet is marked, so you can track what\'s owed back. Income, transfers and anything already marked stay as they are. Totals don\'t change.</string>
+    <string name="group_mark_reimbursable_confirm">Mark</string>
+    <plurals name="group_mark_reimbursable_done">
+        <item quantity="one">%1$d transaction marked reimbursable</item>
+        <item quantity="other">%1$d transactions marked reimbursable</item>
+    </plurals>
+    <!-- Notification channel + the 14-day question for a trip with no end date -->
+    <string name="trip_nudge_channel_name">Trip reminders</string>
+    <string name="trip_nudge_channel_description">Asks whether a trip with no end date is still on</string>
+    <!-- %1$s: the trip\'s name -->
+    <string name="trip_nudge_title">Still on your %1$s trip?</string>
+    <plurals name="trip_nudge_text">
+        <item quantity="one">It has run for %1$d day with no end date. Stop it, or keep going.</item>
+        <item quantity="other">It has run for %1$d days with no end date. Stop it, or keep going.</item>
+    </plurals>
+    <string name="trip_nudge_keep_going">Keep going</string>
+    <!-- The new-transaction alert when the row joined a running trip. %1$s: the trip\'s name -->
+    <string name="notif_txn_added_to_trip">Added to %1$s</string>
+    <string name="notif_txn_action_remove_from_trip">Remove from trip</string>
+    <string name="notif_txn_removed_from_trip">Removed from %1$s</string>
     <string name="group_back">Back</string>
     <string name="group_name">Group name</string>
     <string name="group_note">Note (optional)</string>

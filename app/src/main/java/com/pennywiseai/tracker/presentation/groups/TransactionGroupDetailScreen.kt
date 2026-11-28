@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -75,10 +76,22 @@ fun TransactionGroupDetailScreen(
 
     val group = uiState.group
     val tripNow = rememberTripNow(listOfNotNull(group))
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // "Marked N as reimbursable" with Undo. Leaving the screen drops the Undo, not the marks.
+    uiState.marked?.let { batch ->
+        val message = pluralStringResource(R.plurals.group_mark_reimbursable_done, batch.ids.size, batch.ids.size)
+        val undoLabel = stringResource(R.string.home_undo)
+        LaunchedEffect(batch) {
+            val result = snackbarHostState.showSnackbar(message = message, actionLabel = undoLabel, duration = SnackbarDuration.Long)
+            if (result == SnackbarResult.ActionPerformed) viewModel.undoMarkAll(batch) else viewModel.clearMarked(batch)
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHostState) { data -> Snackbar(data, shape = MaterialTheme.shapes.large) } },
         topBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
@@ -106,6 +119,13 @@ fun TransactionGroupDetailScreen(
                                 onClick = { showMenu = false; viewModel.showEditDialog() },
                                 leadingIcon = { Icon(Icons.Default.Edit, null) }
                             )
+                            if (reimbursementMarkIds(uiState.linkedTransactions).isNotEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.group_mark_reimbursable)) },
+                                    onClick = { showMenu = false; viewModel.requestMarkAll() },
+                                    leadingIcon = { Icon(Icons.Default.Receipt, null) }
+                                )
+                            }
                             if (uiState.linkedTransactions.isNotEmpty()) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.group_detail_export_csv)) },
@@ -460,6 +480,24 @@ fun TransactionGroupDetailScreen(
         ExportTransactionsDialog(
             transactions = uiState.linkedTransactions,
             onDismiss = { showExportDialog = false }
+        )
+    }
+
+    uiState.markAllCount?.let { count ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissMarkAll() },
+            title = { Text(pluralStringResource(R.plurals.group_mark_reimbursable_title, count, count)) },
+            text = { Text(stringResource(R.string.group_mark_reimbursable_message)) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmMarkAll() }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.group_mark_reimbursable_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissMarkAll() }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.group_cancel))
+                }
+            }
         )
     }
 

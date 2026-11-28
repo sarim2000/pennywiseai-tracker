@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.hilt.work.HiltWorker
@@ -39,7 +40,8 @@ import java.util.concurrent.TimeUnit
  * schedule stays right without opening the app. A bill the bank reports paying
  * (one created from a mandate SMS, or one an SMS charge already paid) gets the heads-up without
  * them: its SMS marks it paid, and a manual payment on top would count it twice. Users silence it from the system's
- * notification settings (channel "Bill reminders").
+ * notification settings (channel "Bill reminders"). It is also the daily run that asks about a
+ * trip with no end date ([TripNudgeChecker]).
  */
 @HiltWorker
 class BillReminderWorker @AssistedInject constructor(
@@ -47,7 +49,8 @@ class BillReminderWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val subscriptionRepository: SubscriptionRepository,
     private val transactionDao: TransactionDao,
-    private val categoryDao: CategoryDao
+    private val categoryDao: CategoryDao,
+    private val tripNudgeChecker: TripNudgeChecker
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -63,6 +66,8 @@ class BillReminderWorker @AssistedInject constructor(
 
         val context = applicationContext
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return Result.success()
+        // The same morning run also asks whether a trip with no end date is still on.
+        runCatching { tripNudgeChecker.check() }.onFailure { Log.e(TAG, "Trip nudge check failed", it) }
         // Recurring income added by hand is stored as EXPENSE today; its category
         // still says income, so it isn't reminded (or booked) as a bill.
         val due = dueTomorrow(subscriptionRepository.getActiveSubscriptions().first(), LocalDate.now())
@@ -129,6 +134,7 @@ class BillReminderWorker @AssistedInject constructor(
     }
 
     companion object {
+        private const val TAG = "BillReminderWorker"
         private const val WORK_NAME = "bill_reminders"
         private const val CHANNEL_ID = "bill_reminders"
         private const val REMINDER_HOUR = 9

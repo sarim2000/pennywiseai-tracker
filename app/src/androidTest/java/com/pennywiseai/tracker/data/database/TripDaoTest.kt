@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.database
 import androidx.room3.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -129,5 +130,27 @@ class TripDaoTest {
         assertNull(transactions.getTransactionById(orphan)!!.groupId)
         assertEquals(tripId, transactions.getTransactionByHash("batch-live")!!.groupId)
         assertNull(transactions.getTransactionByHash("batch-orphan")!!.groupId)
+    }
+
+    @Test fun markAllReimbursableTouchesOnlyUnmarkedSpendingAndUndoRestoresIt() = runBlocking {
+        val groupId = groups.insertGroup(TransactionGroupEntity(name = "Synthetic group"))
+        val plain = transactions.insertTransaction(txn("plain").copy(groupId = groupId))
+        val credit = transactions.insertTransaction(txn("credit").copy(groupId = groupId, transactionType = TransactionType.CREDIT))
+        val income = transactions.insertTransaction(txn("income").copy(groupId = groupId, transactionType = TransactionType.INCOME))
+        val done = transactions.insertTransaction(txn("done").copy(groupId = groupId, reimbursementStatus = ReimbursementStatus.REIMBURSED))
+        val outside = transactions.insertTransaction(txn("outside"))
+
+        val changed = groups.markGroupReimbursable(groupId, listOf(plain, credit, income, done, outside), at)
+
+        assertEquals(setOf(plain, credit), changed.toSet())
+        assertEquals(ReimbursementStatus.PENDING, transactions.getTransactionById(plain)!!.reimbursementStatus)
+        assertNull(transactions.getTransactionById(income)!!.reimbursementStatus)
+        assertNull(transactions.getTransactionById(outside)!!.reimbursementStatus)
+
+        groups.undoGroupReimbursable(changed, at)
+
+        assertNull(transactions.getTransactionById(plain)!!.reimbursementStatus)
+        assertNull(transactions.getTransactionById(credit)!!.reimbursementStatus)
+        assertEquals(ReimbursementStatus.REIMBURSED, transactions.getTransactionById(done)!!.reimbursementStatus)
     }
 }

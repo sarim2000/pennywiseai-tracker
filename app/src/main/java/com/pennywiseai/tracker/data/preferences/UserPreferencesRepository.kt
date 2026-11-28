@@ -15,10 +15,14 @@ import com.pennywiseai.tracker.core.DateFormatStyle
 import com.pennywiseai.tracker.core.NumberFormatStyle
 import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.backup.SettingsSnapshot
+import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.preferences.HomeShortcut
 import com.pennywiseai.tracker.data.preferences.HomeShortcutLayout
+import com.pennywiseai.tracker.data.trip.TripNudgeState
+import com.pennywiseai.tracker.data.trip.claimedNudge
+import com.pennywiseai.tracker.data.trip.keepGoingNudge
 import com.pennywiseai.tracker.domain.challenges.ChallengeState
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
@@ -44,6 +48,7 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
 import java.io.IOException
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -707,6 +712,40 @@ open class UserPreferencesRepository internal constructor(
 
     private fun lowBalanceToldKey(bankName: String, accountLast4: String) =
         booleanPreferencesKey("low_balance_told_$bankName|$accountLast4")
+
+    /**
+     * One dynamic key per trip, like the budget and low-balance alert latches: it is in no
+     * SettingsBackup bucket, so it never leaves this device, and a restore can only cost one more nudge.
+     */
+    private fun tripNudgeKey(tripId: Long) = stringPreferencesKey("trip_nudge_$tripId")
+
+    override suspend fun claimTripNudge(trip: TransactionGroupEntity, now: LocalDateTime): Boolean {
+        val key = tripNudgeKey(trip.id)
+        var claimed = false
+        dataStore.edit { preferences ->
+            claimedNudge(trip, now, TripNudgeState.decode(preferences[key]))?.let {
+                preferences[key] = it.encode()
+                claimed = true
+            }
+        }
+        return claimed
+    }
+
+    override suspend fun keepTripGoing(trip: TransactionGroupEntity, now: LocalDateTime): Boolean {
+        val key = tripNudgeKey(trip.id)
+        var kept = false
+        dataStore.edit { preferences ->
+            keepGoingNudge(trip, now)?.let {
+                preferences[key] = it.encode()
+                kept = true
+            }
+        }
+        return kept
+    }
+
+    override suspend fun clearTripNudge(tripId: Long) {
+        dataStore.edit { it.remove(tripNudgeKey(tripId)) }
+    }
 
     override val conscienceEnabled: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.CONSCIENCE_ENABLED] ?: false }

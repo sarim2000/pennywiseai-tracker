@@ -39,7 +39,7 @@ class TransactionGroupRepositoryTest {
             )
         }
 
-        val result = TransactionGroupRepository(dao).observeGroupsWithTransactions().first()
+        val result = TransactionGroupRepository(dao, mockk(relaxed = true)).observeGroupsWithTransactions().first()
 
         assertEquals(listOf(trip, party, empty), result.map { it.first })
         assertEquals(listOf(12L, 10L, 13L), result[0].second.map { it.id })

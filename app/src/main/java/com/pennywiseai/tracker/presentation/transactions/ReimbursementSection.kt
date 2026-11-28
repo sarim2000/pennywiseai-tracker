@@ -55,12 +55,6 @@ import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
-/** Whether [txn] can be marked reimbursable: money out that isn't one already. */
-fun canMarkReimbursable(txn: TransactionEntity): Boolean =
-    txn.reimbursementStatus == null &&
-        !txn.isDeleted &&
-        (txn.transactionType == TransactionType.EXPENSE || txn.transactionType == TransactionType.CREDIT)
-
 /**
  * "Reimbursement" on the transaction screen (#1389). On a reimbursable expense: waiting
  * (tap to say what paid it back) or reimbursed (tap to open that payment). On money

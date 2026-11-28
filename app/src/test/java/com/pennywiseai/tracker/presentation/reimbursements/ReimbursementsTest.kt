@@ -3,9 +3,9 @@ package com.pennywiseai.tracker.presentation.reimbursements
 import com.pennywiseai.tracker.data.database.entity.ReimbursementStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.canMarkReimbursable
 import com.pennywiseai.tracker.data.ledger.countedAmount
 import com.pennywiseai.tracker.data.repository.keepReimbursement
-import com.pennywiseai.tracker.presentation.transactions.canMarkReimbursable
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

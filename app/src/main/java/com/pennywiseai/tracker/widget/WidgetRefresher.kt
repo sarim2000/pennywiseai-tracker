@@ -85,7 +85,7 @@ object WidgetRefresher {
         RecentTransactionsWidgetReceiver::class.java, SpendingSummaryWidgetReceiver::class.java,
         BudgetWidgetReceiver::class.java, CategoryPieWidgetReceiver::class.java, GoalWidgetReceiver::class.java,
         GoalsListWidgetReceiver::class.java, AddTransactionWidgetReceiver::class.java,
-        TrackingCheckupWidgetReceiver::class.java
+        TrackingCheckupWidgetReceiver::class.java, ChallengeWidgetReceiver::class.java
     )
 
     /**

@@ -50,14 +50,36 @@ class FolderBackupWriterTest {
     }
 
     @Test
-    fun `an old backup the provider won't delete is a failure, not a second file`() {
+    fun `an old backup the provider won't delete is written over in place`() {
         tree.put(final, "old")
         tree.undeletable += final
 
+        assertEquals(FolderBackupWriter.Result.Success, writer.writeBackup("tree", backup("new")))
+
+        assertEquals(mapOf(final to "new"), tree.contents())
+    }
+
+    @Test
+    fun `an old backup the provider won't delete or overwrite still gets the new copy beside it`() {
+        tree.put(final, "old")
+        tree.undeletable += final
+        tree.unwritable += final
+
         val result = writer.writeBackup("tree", backup("new"))
 
-        assertTrue(result is FolderBackupWriter.Result.Failure)
-        assertEquals(mapOf(final to "old"), tree.contents())
+        assertEquals(FolderBackupWriter.Result.NameUnconfirmed, result)
+        assertEquals(mapOf(final to "old", "$final (1)" to "new"), tree.contents())
+    }
+
+    @Test
+    fun `the same refused delete twice in a row still writes both backups`() {
+        tree.put(final, "old")
+        tree.undeletable += final
+
+        assertEquals(FolderBackupWriter.Result.Success, writer.writeBackup("tree", backup("first")))
+        assertEquals(FolderBackupWriter.Result.Success, writer.writeBackup("tree", backup("second")))
+
+        assertEquals(mapOf(final to "second"), tree.contents())
     }
 
     @Test
@@ -104,15 +126,14 @@ class FolderBackupWriterTest {
     }
 
     @Test
-    fun `a stale temp the provider won't delete is a failure, and the backup is untouched`() {
+    fun `a stale temp the provider won't delete doesn't stop the backup, and is never put in place`() {
         tree.put(final, "old")
         tree.put(tmp, "stale")
         tree.undeletable += tmp
 
-        val result = writer.writeBackup("tree", backup("new"))
+        assertEquals(FolderBackupWriter.Result.Success, writer.writeBackup("tree", backup("new")))
 
-        assertTrue(result is FolderBackupWriter.Result.Failure)
-        assertEquals(mapOf(final to "old", tmp to "stale"), tree.contents())
+        assertEquals(mapOf(final to "new", tmp to "stale"), tree.contents())
     }
 
     @Test

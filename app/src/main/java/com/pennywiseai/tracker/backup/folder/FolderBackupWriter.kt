@@ -22,9 +22,9 @@ class FolderBackupWriter @Inject constructor(
 
     /**
      * Copies the backup [file] into the folder, streamed rather than loaded into memory.
-     * Success means the backup file now holds it under its own name: a refused delete is a
-     * failure. A renamed copy whose name can't be confirmed is kept, never deleted: it is the
-     * newest backup, and the old one may already be gone.
+     * Success means the backup file now holds it under its own name. A delete the provider
+     * refuses never stops the backup. A renamed copy whose name can't be confirmed is kept,
+     * never deleted: it is the newest backup, and the old one may already be gone.
      */
     fun writeBackup(treeUri: String, file: File): Result {
         val folder = DocumentFile.fromTreeUri(context, Uri.parse(treeUri))
@@ -37,10 +37,9 @@ class FolderBackupWriter @Inject constructor(
         // Write to a sibling temp file first, then swap it into place. SAF has no atomic
         // replace, so writing straight to the backup file would truncate the previous
         // (good) backup on open and leave nothing behind if the write is interrupted.
-        // A temp left by an interrupted run is never put in place: this run writes its own.
-        folder.findFile(ScheduledFolderBackupConstants.TEMP_BACKUP_FILE_NAME)?.let { stale ->
-            if (!stale.delete()) return Result.Failure("Could not remove the old temporary backup file")
-        }
+        // A temp left by an interrupted run is never put in place: this run writes its own,
+        // under a suffixed name if the provider won't delete the stale one.
+        folder.findFile(ScheduledFolderBackupConstants.TEMP_BACKUP_FILE_NAME)?.delete()
         val tempFile = folder.createFile(
             "application/octet-stream",
             ScheduledFolderBackupConstants.TEMP_BACKUP_FILE_NAME
@@ -56,8 +55,13 @@ class FolderBackupWriter @Inject constructor(
         // If interrupted between the two, the fresh data stays under the temp name until the next run.
         val oldFile = folder.findFile(ScheduledFolderBackupConstants.BACKUP_FILE_NAME)
         if (oldFile != null && !oldFile.delete()) {
-            tempFile.delete()
-            return Result.Failure("Could not replace the previous backup file")
+            // The provider won't delete it: write over it instead, so the name stays the
+            // backup file's. The temp is kept until that write is done, as a complete copy;
+            // if it fails, the rename below still puts this backup in the folder.
+            if (copyFile(file, oldFile.uri) == null) {
+                tempFile.delete()
+                return Result.Success
+            }
         }
         if (tempFile.renameTo(ScheduledFolderBackupConstants.BACKUP_FILE_NAME)) {
             // A suffixed name ("name (1)") or none at all (a failed query) can't be confirmed.

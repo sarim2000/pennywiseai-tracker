@@ -42,6 +42,9 @@ class ReceiptExtractorTest {
     fun `the whole bill or what was paid beats what's still due, and nothing due isn't a total`() {
         assertEquals(BigDecimal("75.00"), amount("Grand Total AED 75.00", "Balance Due AED 0.00"))
         assertEquals(BigDecimal("60.00"), amount("Amount paid 60.00", "Balance due 40.00"))
+        // A balance left after a deposit is only part of the bill.
+        assertEquals(BigDecimal("100.00"), amount("TOTAL 100.00", "Deposit 60.00", "Balance due 40.00"))
+        assertEquals(BigDecimal("40.00"), amount("Bread 3.20", "Balance due 40.00"))
         assertNull(amount("TOTAL 0.00", "Bread 3.20"))
     }
 

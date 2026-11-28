@@ -55,12 +55,16 @@ object ReceiptExtractor {
 
     // ── Total ──
 
-    // Strongest first: the whole bill or what was paid beats what's still due, which beats a bare "Total".
+    // Strongest first: the whole bill or what was paid beats what's due, which beats a bare "Total".
     private val PAID_TOTAL = listOf("grand total", "amount paid", "total paid")
     private val STRONG_TOTAL = listOf(
-        "amount due", "balance due", "total due", "total payable",
+        "amount due", "total due", "total payable",
         "net payable", "net amount", "net total", "to pay", "الإجمالي", "الاجمالي", "कुल",
     )
+
+    // What's left after part of the bill was paid: no more than a bare "Total", so the larger
+    // full bill wins when both are printed ("TOTAL 100.00", "Balance due 40.00").
+    private val BALANCE = listOf("balance due")
     private val TOTAL = Regex("""\b(?:total|net)\b|المجموع""")
 
     // Lines that name a part of the bill, or what was handed over, rather than the bill.
@@ -112,6 +116,7 @@ object ReceiptExtractor {
             val rank = when {
                 PAID_TOTAL.any { it in lower } -> 3
                 STRONG_TOTAL.any { it in lower } -> 2
+                BALANCE.any { it in lower } -> 1
                 TOTAL.containsMatchIn(lower) && !NOT_TOTAL.containsMatchIn(lower) -> 1
                 else -> 0
             }

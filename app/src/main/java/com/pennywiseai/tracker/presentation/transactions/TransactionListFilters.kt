@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.countedCategory
 import com.pennywiseai.tracker.data.ledger.forTotals
@@ -23,9 +25,15 @@ import java.time.LocalDate
  */
 private fun Set<String>.hasCategory(name: String) = countedCategory(name).let { counted -> any { it.equals(counted, ignoreCase = true) } }
 
+/** A refund: money back that comes off spending instead of counting as income. */
+internal fun TransactionEntity.isRefund() =
+    transactionType == TransactionType.INCOME && budgetImpactType == BudgetImpactType.DEDUCT_SPENT
+
 /**
  * Rows in [categories]: a split row by its splits' categories, any other by its own, the same
- * match Analytics makes through [TransactionWithSplits.getAmountByCategory].
+ * match Analytics makes through [TransactionWithSplits.getAmountByCategory]. A refund also
+ * matches by the budget category it comes off (blank is Others), as Analytics nets it, so the
+ * list adds up to the figure it was opened from.
  */
 internal fun filterByCategories(
     transactions: List<TransactionEntity>,
@@ -34,7 +42,8 @@ internal fun filterByCategories(
 ): List<TransactionEntity> {
     val splitsByTxId = splits.groupBy { it.transactionId }
     return transactions.filter { tx ->
-        splitsByTxId[tx.id]?.any { categories.hasCategory(it.category) } ?: categories.hasCategory(tx.category)
+        (splitsByTxId[tx.id]?.any { categories.hasCategory(it.category) } ?: categories.hasCategory(tx.category)) ||
+            (tx.isRefund() && categories.hasCategory(tx.budgetCategory.orEmpty()))
     }
 }
 

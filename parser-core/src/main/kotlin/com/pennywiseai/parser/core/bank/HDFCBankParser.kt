@@ -16,6 +16,14 @@ import java.math.BigDecimal
  */
 class HDFCBankParser : BaseIndianBankParser() {
 
+    private companion object {
+        val BLOCK_PCC_PATTERN = Regex("""\bblock\s?p?cc\b""", RegexOption.IGNORE_CASE)
+        val PIXEL_PLAY_UPI_PATTERN = Regex(
+            """\bwas made using your\b.*\bcredit card\b.*\bvia upi\b""",
+            setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+        )
+    }
+
     override fun getBankName() = "HDFC Bank"
 
     override fun canHandle(sender: String): Boolean {
@@ -122,14 +130,11 @@ class HDFCBankParser : BaseIndianBankParser() {
         // For credit card transactions (with BLOCK CC/PCC instruction), extract merchant after "At"
         if (message.contains("card", ignoreCase = true) &&
             message.contains(" at ", ignoreCase = true) &&
-            (message.contains("block cc", ignoreCase = true) || message.contains(
-                "block pcc",
-                ignoreCase = true
-            ))
+            BLOCK_PCC_PATTERN.containsMatchIn(message)
         ) {
-            // Pattern for "at [merchant] by UPI" or just "at [merchant]"
+            // Pattern for "at [merchant] by/via UPI" or just "at [merchant]"
             val atPattern = Regex(
-                """at\s+([^@\s]+(?:@[^\s]+)?(?:\s+[^\s]+)?)(?:\s+by\s+|\s+on\s+|$)""",
+                """at\s+([^@\s]+(?:@[^\s]+)?(?:\s+[^\s]+)?)(?:\s+by\s+|\s+via\s+UPI\b|\s+on\s+|$)""",
                 RegexOption.IGNORE_CASE
             )
             atPattern.find(message)?.let { match ->
@@ -145,8 +150,9 @@ class HDFCBankParser : BaseIndianBankParser() {
                 } else {
                     merchant
                 }
-                if (cleanedMerchant.isNotEmpty()) {
-                    return cleanMerchantName(cleanedMerchant)
+                val finalMerchant = cleanMerchantName(cleanedMerchant)
+                if (finalMerchant.isNotEmpty() && isValidMerchantName(finalMerchant)) {
+                    return finalMerchant
                 }
             }
         }
@@ -330,7 +336,7 @@ class HDFCBankParser : BaseIndianBankParser() {
             // Credit card transactions - ONLY if message contains CC or PCC indicators
             // Any transaction with BLOCK CC or BLOCK PCC is a credit card transaction.
             // The space is optional: PIXEL cards write "SMS BLOCKPCC 1234".
-            Regex("""\bblock\s?p?cc\b""").containsMatchIn(lowerMessage) -> TransactionType.CREDIT
+            BLOCK_PCC_PATTERN.containsMatchIn(lowerMessage) -> TransactionType.CREDIT
 
             // "INR X deposited in HDFC Bank A/c … for Interest paid till …" — money in.
             // Checked before the expense keywords: the narration's "paid" would
@@ -568,7 +574,13 @@ class HDFCBankParser : BaseIndianBankParser() {
             "payment successful"
         )
 
-        return hdfcTransactionKeywords.any { lowerMessage.contains(it) }
+        if (hdfcTransactionKeywords.any { lowerMessage.contains(it) }) {
+            return true
+        }
+
+        // Pixel Play Credit Card UPI alert:
+        // "A transaction of Rs. X was made using your HDFC Bank Pixel Play Credit Card at <vpa> via UPI …"
+        return PIXEL_PLAY_UPI_PATTERN.containsMatchIn(lowerMessage)
     }
 
     // ==========================================
